@@ -7,17 +7,25 @@ appenders:
     path: "log/scraper.log"
     encoder:
       pattern: "{d} - {m}{n}"
+  database:
+    kind: file
+    path: "log/db.log"
+    encoder:
+      pattern: "{d} - {m}{n}"
 root:
-  level: debug
+  level: info
   appenders:
     - stdout
 loggers:
   api:
-    level: debug
+    level: info
   db:
-    level: debug
+    level: info
+    appenders:
+      - database
+    additive: false
   wiki_scraper:
-    level: debug
+    level: info
     appenders:
       - scraper
     additive: false

@@ -2,38 +2,33 @@
 extern crate lazy_static;
 
 mod common;
+mod db;
 mod wiki_scraper;
 
-use common::pet::Pet;
-use log::{error, info};
-use serde_json::to_writer_pretty;
-use std::{fs::File, path::Path};
+use std::error::Error;
+use log::error;
 
-use crate::wiki_scraper::parser::{parse_pet_info, read_wiki_url};
+use crate::db::setup::{create_tables, get_connection};
+use crate::db::query::update_pet_info;
 
-pub const PETS_JSON: &str = "pets.json";
-pub const SAP_WIKI_SOURCES_JSON: &str = "config/sources.json";
+pub const SCRAPER_SOURCES: &str = "config/sources.json";
+pub const DB_CREATE_SQL: &str = "./src/db/sql/create_tables.sql";
+pub const DB_INSERT_PET_SQL: &str = "./src/db/sql/insert_pet.sql";
+pub const DB_FNAME: &str = "./sap.db";
 
-fn get_pet_info(output: &str) {
-    if let Ok(wiki_urls) = read_wiki_url(SAP_WIKI_SOURCES_JSON) {
-        let res = parse_pet_info(&wiki_urls.pets);
-        if let Ok(all_pets) = res {
-            let file = File::create(output).expect("Can't create file.");
-            to_writer_pretty(file, &all_pets).expect("Unable to serialize pet info.");
-        } else {
-            error!("{:?}", res.unwrap_err())
-        }
-    }
+
+pub fn update_db() -> Result<(), Box<dyn Error>> {
+    let conn = get_connection()?;
+    create_tables(&conn)?;
+    update_pet_info(&conn)?;
+    Ok(())
 }
 
 pub fn main() {
     log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
 
-    if Path::new(PETS_JSON).exists() {
-        let file = File::open(PETS_JSON).expect("Unable to read file.");
-        let pets: Vec<Pet> = serde_json::from_reader(file).unwrap();
-        println!("{:#?}", pets)
-    } else {
-        get_pet_info(PETS_JSON)
+    let res = update_db();
+    if res.is_err() {
+        error!(target: "database", "{}", res.unwrap_err())
     }
 }

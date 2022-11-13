@@ -1,4 +1,3 @@
-use crate::common::{game::Pack, pet::Pet};
 use itertools::Itertools;
 use log::info;
 use regex::Regex;
@@ -9,6 +8,8 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
+use crate::common::{game::Pack, pet::Pet};
+
 lazy_static! {
     static ref RGX_TIER: Regex = Regex::new(r#"<!--\sTIER\s(\d)\s-->"#).unwrap();
     static ref RGX_PET_NAME: Regex = Regex::new(r#"pet\s=\s\{\{IconSAP\|(.*?)\|size"#).unwrap();
@@ -16,6 +17,7 @@ lazy_static! {
         Regex::new(r#"attack\s=\s(?P<attack>\d+)\s\|\shealth\s=\s(?P<health>\d+)"#).unwrap();
     static ref RGX_PET_PACK: Regex = Regex::new(r#"(\w+pack)+"#).unwrap();
     static ref RGX_PET_EFFECT_TRIGGER: Regex = Regex::new(r#"\| ''+(.*?)''+"#).unwrap();
+    // TODO: Misses animals with no triggers. (Tiger)
     static ref RGX_PET_EFFECT: Regex = Regex::new(r#"→\s(.*?)\n"#).unwrap();
     static ref RGX_ICON_NAME: Regex =
         Regex::new(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|]*=[\w\.]+)*"#).unwrap();
@@ -86,7 +88,6 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
                 .captures(line)
                 .and_then(|cap| cap.get(1).map(|cap| cap.as_str()))
                 .unwrap();
-            info!(target: "wiki_scraper", "On {}...", pet_name);
 
             let pet_stats = RGX_PET_STATS.captures(line).unwrap();
             // TODO: Default to 0 on parse error.
