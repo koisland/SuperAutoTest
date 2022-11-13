@@ -1,0 +1,2530 @@
+[
+  {
+    "name": "Ant",
+    "tier": 1,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Give one random friend +2 attack and +1 health.",
+      "Give one random friend +4 attack and +2 health.",
+      "Give one random friend +6 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Beaver",
+    "tier": 1,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give two random friends +1 health.",
+      "Give two random friends +2 health.",
+      "Give two random friends +3 health."
+    ]
+  },
+  {
+    "name": "Cricket",
+    "tier": 1,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one 1/1 Zombie Cricket.",
+      "Summon one 2/2 Zombie Cricket.",
+      "Summon one 3/3 Zombie Cricket."
+    ]
+  },
+  {
+    "name": "Duck",
+    "tier": 1,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give shop pets +1 health.",
+      "Give shop pets +2 health.",
+      "Give shop pets +3 health."
+    ]
+  },
+  {
+    "name": "Fish",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Level up",
+    "effects": [
+      "Give all friends +1 attack and +1 health.",
+      "Give all friends +2 attack and +1 health."
+    ]
+  },
+  {
+    "name": "Horse",
+    "tier": 1,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "Give it +1 attack until end of battle.",
+      "Give it +2 attack until end of battle.",
+      "Give it +3 attack until end of battle."
+    ]
+  },
+  {
+    "name": "Mosquito",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 1 damage to one random enemy.",
+      "Deal 1 damage to two random enemies.",
+      "Deal 1 damage to three random enemies."
+    ]
+  },
+  {
+    "name": "Otter",
+    "tier": 1,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "Give one random friend +1 attack and +1 health.",
+      "Give two random friends +1 attack and +1 health.",
+      "Give three random friends +1 attack and +1 health."
+    ]
+  },
+  {
+    "name": "Pig",
+    "tier": 1,
+    "attack": 4,
+    "health": 1,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Gain +1 gold.",
+      "Gain +2 gold.",
+      "Gain +3 gold."
+    ]
+  },
+  {
+    "name": "Chinchilla",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Summon one Loyal Chinchilla.",
+      "Summon two Loyal Chinchilla.",
+      "Summon three Loyal Chinchilla."
+    ]
+  },
+  {
+    "name": "Frilled Dragon",
+    "tier": 1,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Gain +1 attack and +1 health per friend with a Faint ability.",
+      "Gain +2 attack and +2 health per friend with a Faint ability.",
+      "Gain +3 attack and +3 health per friend with a Faint ability."
+    ]
+  },
+  {
+    "name": "Marmoset",
+    "tier": 1,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Your next roll is free.",
+      "Your next two rolls are free.",
+      "Your next three rolls are free."
+    ]
+  },
+  {
+    "name": "Moth",
+    "tier": 1,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give front-most friend +3 attack.",
+      "Give front-most friend +6 attack.",
+      "Give front-most friend +9 attack."
+    ]
+  },
+  {
+    "name": "Beetle",
+    "tier": 1,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Eat shop food",
+    "effects": [
+      "Give left-most shop pet +1 attack.",
+      "Give left-most shop pet +2 attack.",
+      "Give left-most shop pet +3 attack."
+    ]
+  },
+  {
+    "name": "Bluebird",
+    "tier": 1,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give one random friend +1 attack.",
+      "Give two random friends +1 attack.",
+      "Give three random friends +1 attack."
+    ]
+  },
+  {
+    "name": "Ladybug",
+    "tier": 1,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Shop food bought",
+    "effects": [
+      "Gain +2 attack until end of battle.",
+      "Gain +4 attack until end of battle.",
+      "Gain +6 attack until end of battle."
+    ]
+  },
+  {
+    "name": "Cockroach",
+    "tier": 1,
+    "attack": 1,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Set attack to the current shop tier + 1.",
+      "Set attack to the current shop tier + 2.",
+      "Set attack to the current shop tier + 3."
+    ]
+  },
+  {
+    "name": "Duckling",
+    "tier": 1,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give left-most shop pet +2 health.",
+      "Give left-most shop pet +4 health.",
+      "Give left-most shop pet +6 health."
+    ]
+  },
+  {
+    "name": "Frog",
+    "tier": 1,
+    "attack": 3,
+    "health": 1,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Swap stats of the two adjacent friends.",
+      "Swap stats of the two adjacent friends.",
+      "Swap stats of the two adjacent friends."
+    ]
+  },
+  {
+    "name": "Hummingbird",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give +2 attack and +1 health to one random Strawberry friend.",
+      "Give +2 attack and +1 health to one random Strawberry friend.",
+      "Give +2 attack and +1 health to one random Strawberry friend."
+    ]
+  },
+  {
+    "name": "Iguana",
+    "tier": 1,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Enemy summoned or pushed",
+    "effects": [
+      "Deal 1 attack to it.",
+      "Deal 2 attack to it.",
+      "Deal 3 attack to it."
+    ]
+  },
+  {
+    "name": "Kiwi",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give one random Strawberry friend +1 attack and +2 health.",
+      "Give one random Strawberry friend +2 attack and +4 health.",
+      "Give one random Strawberry friend +3 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Mouse",
+    "tier": 1,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Replace food shop with 1 free Apple that gives +1 attack and +1 health.",
+      "Replace food shop with 2 free Apples that gives +1 attack and +1 health.",
+      "Replace food shop with 3 free Apples that gives +1 attack and +1 health."
+    ]
+  },
+  {
+    "name": "Pillbug",
+    "tier": 1,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Shop tier upgraded",
+    "effects": [
+      "Give the two nearest pets behind +1 health.",
+      "Give the two nearest pets behind +2 health.",
+      "Give the two nearest pets behind +3 health."
+    ]
+  },
+  {
+    "name": "Seahorse",
+    "tier": 1,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Push the last enemy one space forward.",
+      "Push the last enemy two spaces forward.",
+      "Push the last enemy three spaces forward."
+    ]
+  },
+  {
+    "name": "Sloth",
+    "tier": 1,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Turtle",
+      "Puppy",
+      "Star"
+    ],
+    "effect_trigger": "\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"",
+    "effects": []
+  },
+  {
+    "name": "Crab",
+    "tier": 2,
+    "attack": 3,
+    "health": 1,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Copy 50% of health from the most healthy friend.",
+      "Copy 100% of health from the most healthy friend.",
+      "Copy 150% of health from the most healthy friend."
+    ]
+  },
+  {
+    "name": "Dodo",
+    "tier": 2,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give 50% of attack to the nearest friend ahead.",
+      "Give 100% of attack to the nearest friend ahead.",
+      "Give 150% of attack to the nearest friend ahead."
+    ]
+  },
+  {
+    "name": "Elephant",
+    "tier": 2,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Before attack",
+    "effects": [
+      "Deal 1 damage to the nearest friend behind.",
+      "Deal 1 damage to the nearest friend behind. Triggers 2 times.",
+      "Deal 1 damage to the nearest friend behind. Triggers 3 times."
+    ]
+  },
+  {
+    "name": "Flamingo",
+    "tier": 2,
+    "attack": 4,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Give the two nearest friends behind +1 attack and +1 health.",
+      "Give the two nearest friends behind +2 attack and +2 health.",
+      "Give the two nearest friends behind +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Hedgehog",
+    "tier": 2,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Deal 2 damage to all.",
+      "Deal 4 damage to all.",
+      "Deal 6 damage to all."
+    ]
+  },
+  {
+    "name": "Peacock",
+    "tier": 2,
+    "attack": 2,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Gain +4 attack.",
+      "Gain +8 attack.",
+      "Gain +12 attack."
+    ]
+  },
+  {
+    "name": "Rat",
+    "tier": 2,
+    "attack": 4,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one 1/1 Dirty Rat up front for the opponent.",
+      "Summon two 1/1 Dirty Rats up front for the opponent.",
+      "Summon three 1/1 Dirty Rats up front for the opponent."
+    ]
+  },
+  {
+    "name": "Shrimp",
+    "tier": 2,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Friend sold",
+    "effects": [
+      "Give one random friend +1 health.",
+      "Give one random friend +2 health.",
+      "Give one random friend +3 health."
+    ]
+  },
+  {
+    "name": "Spider",
+    "tier": 2,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one level 1 tier 3 pet as a 2/2.",
+      "Summon one level 2 tier 3 pet as a 4/4.",
+      "Summon one level 3 tier 3 pet as a 6/6."
+    ]
+  },
+  {
+    "name": "Swan",
+    "tier": 2,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Gain +1 gold.",
+      "Gain +2 gold.",
+      "Gain +3 gold."
+    ]
+  },
+  {
+    "name": "Frigatebird",
+    "tier": 2,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "Give a random friend with a Hurt ability +2 health.",
+      "Give a random friend with a Hurt ability +4 health.",
+      "Give a random friend with a Hurt ability +6 health."
+    ]
+  },
+  {
+    "name": "Gold Fish",
+    "tier": 2,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Discount the two left-most shop pets by 1 gold.",
+      "Discount the two left-most shop pets by 2 gold.",
+      "Discount the two left-most shop pets by 3 gold."
+    ]
+  },
+  {
+    "name": "Racoon",
+    "tier": 2,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Before attack",
+    "effects": [
+      "Steal held food from the nearest enemy ahead. Works 1 time per battle.",
+      "Steal held food from the nearest enemy ahead. Works 2 times per battle.",
+      "Steal held food from the nearest enemy ahead. Works 3 times per battle."
+    ]
+  },
+  {
+    "name": "Toucan",
+    "tier": 2,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Give this' held food to the nearest friend behind.",
+      "Give this' held food to the two nearest friends behind.",
+      "Give this' held food to the three nearest friends behind."
+    ]
+  },
+  {
+    "name": "Wombat",
+    "tier": 2,
+    "attack": 3,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Copy Faint Ability as level 1 from the highest tier enemy.",
+      "Copy Faint Ability as level 2 from the highest tier enemy.",
+      "Copy Faint Ability as level 3 from the highest tier enemy."
+    ]
+  },
+  {
+    "name": "Bat",
+    "tier": 2,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Make one random enemy weak.",
+      "Make two random enemies weak.",
+      "Make three random enemies weak."
+    ]
+  },
+  {
+    "name": "Dromedary",
+    "tier": 2,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Give the two left-most shop pets +1 attack and +1 health.",
+      "Give the two left-most shop pets +2 attack and +2 health.",
+      "Give the two left-most shop pets +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Tabby Cat",
+    "tier": 2,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Eats shop food",
+    "effects": [
+      "Give friends +1 attack until end of battle.",
+      "Give friends +2 attack until end of battle.",
+      "Give friends +3 attack until end of battle."
+    ]
+  },
+  {
+    "name": "Atlantic Puffin",
+    "tier": 2,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 2 damage for each Strawberry friend to one random enemy.",
+      "Deal 2 damage for each Strawberry friend to two random enemies.",
+      "Deal 2 damage for each Strawberry friend to three random enemies."
+    ]
+  },
+  {
+    "name": "Dove",
+    "tier": 2,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Give two Strawberry friends +2 attack and +2 health.",
+      "Give two Strawberry friends +4 attack and +4 health.",
+      "Give two Strawberry friends +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Guinea Pig",
+    "tier": 2,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "Summon one 1/1 Guinea Pig.",
+      "Summon one 2/2 Guinea Pig.",
+      "Summon one 3/3 Guinea Pig."
+    ]
+  },
+  {
+    "name": "Jellyfish",
+    "tier": 2,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Pet level-up",
+    "effects": [
+      "Gain +1 attack and +1 health.",
+      "Gain +2 attack and +2 health.",
+      "Gain +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Koala",
+    "tier": 2,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friend hurt",
+    "effects": [
+      "Give it +1 attack and +1 health. Works 1 time per turn.",
+      "Give it +2 attack and +2 health. Works 1 time per turn.",
+      "Give it +3 attack and +3 health. Works 1 time per turn."
+    ]
+  },
+  {
+    "name": "Panda",
+    "tier": 2,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give 50% of attack and health to the nearest friend ahead, then faint.",
+      "Give 100% of attack and health to the nearest friend ahead, then faint.",
+      "Give 150% of attack and health to the nearest friend ahead, then faint."
+    ]
+  },
+  {
+    "name": "Pug",
+    "tier": 2,
+    "attack": 5,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give friend ahead +1 experience.",
+      "Give friend ahead +2 experience.",
+      "Give friend ahead +3 experience."
+    ]
+  },
+  {
+    "name": "Salamander",
+    "tier": 2,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friend bought",
+    "effects": [
+      "If it has a Start of battle ability, gain +2 attack.",
+      "If it has a Start of battle ability, gain +4 attack.",
+      "If it has a Start of battle ability, gain +6 attack."
+    ]
+  },
+  {
+    "name": "Stork",
+    "tier": 2,
+    "attack": 2,
+    "health": 1,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one level 1 pet from the previous shop tier.",
+      "Summon one level 2 pet from the previous shop tier.",
+      "Summon one level 3 pet from the previous shop tier."
+    ]
+  },
+  {
+    "name": "Yak",
+    "tier": 2,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Deal 1 damage to itself and gain +1 attack.",
+      "Deal 1 damage to itself and gain +2 attack.",
+      "Deal 1 damage to itself and gain +3 attack."
+    ]
+  },
+  {
+    "name": "Badger",
+    "tier": 3,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Deal 50% attack damage to adjacent pets.",
+      "Deal 100% attack damage to adjacent pets.",
+      "Deal 150% attack damage to adjacent pets."
+    ]
+  },
+  {
+    "name": "Blowfish",
+    "tier": 3,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Deal 2 damage to one random enemy.",
+      "Deal 4 damage to one random enemy.",
+      "Deal 6 damage to one random enemy."
+    ]
+  },
+  {
+    "name": "Camel",
+    "tier": 3,
+    "attack": 2,
+    "health": 6,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Give the nearest friend behind +2 attack and +2 health.",
+      "Give the nearest friend behind +4 attack and +4 health.",
+      "Give the nearest friend behind +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Dog",
+    "tier": 3,
+    "attack": 3,
+    "health": 4,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "Gain +1 attack and +1 health until end of battle.",
+      "Gain +2 attack and +2 health until end of battle.",
+      "Gain +3 attack and +3 health until end of battle."
+    ]
+  },
+  {
+    "name": "Dolphin",
+    "tier": 3,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 3 damage to the lowest health enemy.",
+      "Deal 3 damage to the lowest health enemy. Triggers 2 times.",
+      "Deal 3 damage to the lowest health enemy. Triggers 3 times."
+    ]
+  },
+  {
+    "name": "Giraffe",
+    "tier": 3,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give the nearest friend ahead +1 attack and +1 health.",
+      "Give the nearest two friends ahead +1 attack and +1 health.",
+      "Give the nearest three friends ahead +1 attack and +1 health."
+    ]
+  },
+  {
+    "name": "Kangaroo",
+    "tier": 3,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend ahead attacks",
+    "effects": [
+      "Gain +2 attack and +2 health.",
+      "Gain +4 attack and +4 health.",
+      "Gain +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Ox",
+    "tier": 3,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend ahead faints",
+    "effects": [
+      "Gain Melon and +1 attack.",
+      "Gain Melon and +2 attack.",
+      "Gain Melon and +3 attack."
+    ]
+  },
+  {
+    "name": "Rabbit",
+    "tier": 3,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Shop food eaten",
+    "effects": [
+      "Give it +1 health.",
+      "Give it +2 health.",
+      "Give it +3 health."
+    ]
+  },
+  {
+    "name": "Sheep",
+    "tier": 3,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon two 2/2 Rams.",
+      "Summon two 4/4 Rams.",
+      "Summon two 6/6 Rams."
+    ]
+  },
+  {
+    "name": "Snail",
+    "tier": 3,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "If you lost last battle, give all friends +1 attack and +1 health.",
+      "If you lost last battle, give all friends +2 attack and +2 health.",
+      "If you lost last battle, give all friends +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Aardvark",
+    "tier": 3,
+    "attack": 3,
+    "health": 4,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Enemy summoned",
+    "effects": [
+      "Gain +2 attack and +3 health.",
+      "Gain +4 attack and +6 health.",
+      "Gain +6 attack and +9 health."
+    ]
+  },
+  {
+    "name": "Bear",
+    "tier": 3,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Give Honey to all pets that are one space away.",
+      "Give Honey to all pets that are two spaces away.",
+      "Give Honey to all pets that are three spaces away."
+    ]
+  },
+  {
+    "name": "Emperor Tamarin",
+    "tier": 3,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give 50% attack and health to the leftmost shop pet.",
+      "Give 100% attack and health to the leftmost shop pet.",
+      "Give 150% attack and health to the leftmost shop pet."
+    ]
+  },
+  {
+    "name": "Seagull",
+    "tier": 3,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "Copy this' held food to it. Works 1 time per turn.",
+      "Copy this' held food to it. Works 2 times per turn.",
+      "Copy this' held food to it. Works 3 times per turn."
+    ]
+  },
+  {
+    "name": "Wasp",
+    "tier": 3,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Shop tier upgraded",
+    "effects": [
+      "Gain +50% attack.",
+      "Gain +100% attack.",
+      "Gain +150% attack."
+    ]
+  },
+  {
+    "name": "Hatching Chick",
+    "tier": 3,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give +4 attack and +4 health to the nearest friend ahead until end of battle.",
+      "Give +2 attack and +2 health to the nearest friend ahead.",
+      "Give +1 experience to friend ahead."
+    ]
+  },
+  {
+    "name": "Owl",
+    "tier": 3,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Give a random friend +2 attack and +2 health.",
+      "Give a random friend +4 attack and +4 health.",
+      "Give a random friend +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Puppy",
+    "tier": 3,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "If you have at least 2 gold, gain +2 attack and +1 health.",
+      "If you have at least 2 gold, gain +4 attack and +2 health.",
+      "If you have at least 2 gold, gain +6 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Tropical Fish",
+    "tier": 3,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give adjacent friends +1 health.",
+      "Give adjacent friends +2 health.",
+      "Give adjacent friends +3 health."
+    ]
+  },
+  {
+    "name": "Blobfish",
+    "tier": 3,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Give the nearest friend behind +1 attack and +1 health and +1 experience.",
+      "Give the nearest friend behind +2 attack and +2 health and +2 experience.",
+      "Give the nearest friend behind +3 attack and +3 health and +3 experience."
+    ]
+  },
+  {
+    "name": "Capybara",
+    "tier": 3,
+    "attack": 2,
+    "health": 5,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Roll",
+    "effects": [
+      "Give unforzen shop pets +2 attack and +1 health.",
+      "Give unforzen shop pets +4 attack and +2 health.",
+      "Give unforzen shop pets +6 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Cassowary",
+    "tier": 3,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "If this has a Strawberry friend, gain +1 attack and +1 health.",
+      "If this has a Strawberry friend, gain +2 attack and +2 health.",
+      "If this has a Strawberry friend, gain +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Clownfish",
+    "tier": 3,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friendly pet level-up",
+    "effects": [
+      "Give it +2 attack and +2 health.",
+      "Give it +4 attack and +4 health.",
+      "Give it +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Leech",
+    "tier": 3,
+    "attack": 4,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Deal 1 damage to the nearest pet ahead and gain +1 health.",
+      "Deal 1 damage to the nearest pet ahead and gain +2 health.",
+      "Deal 1 damage to the nearest pet ahead and gain +3 health."
+    ]
+  },
+  {
+    "name": "Okapi",
+    "tier": 3,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Roll",
+    "effects": [
+      "Gain +1 attack and +1 health until end of battle. Works 5 times per turn.",
+      "Gain +2 attack and +2 health until end of battle. Works 5 times per turn.",
+      "Gain +3 attack and +3 health until end of battle. Works 5 times per turn."
+    ]
+  },
+  {
+    "name": "Starfish",
+    "tier": 3,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friend sold",
+    "effects": [
+      "If it had a Sell ability, give +1 attack and +1 health to one random friend.",
+      "If it had a Sell ability, give +2 attack and +2 health to one random friend.",
+      "If it had a Sell ability, give +3 attack and +3 health to one random friend."
+    ]
+  },
+  {
+    "name": "Toad",
+    "tier": 3,
+    "attack": 3,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Enemy hurt",
+    "effects": [
+      "Make it weak. Works 2 times per battle.",
+      "Make it weak. Works 4 times per battle.",
+      "Make it weak. Works 6 times per battle."
+    ]
+  },
+  {
+    "name": "Woodpecker",
+    "tier": 3,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 2 damage to the nearest two pets ahead.",
+      "Deal 2 damage to the nearest two pets ahead. Triggers 2 times.",
+      "Deal 2 damage to the nearest two pets ahead. Triggers 3 times."
+    ]
+  },
+  {
+    "name": "Bison",
+    "tier": 4,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "If this has a level 3 friend, gain +2 attack and +2 health.",
+      "If this has a level 3 friend, gain +4 attack and +4 health.",
+      "If this has a level 3 friend, gain +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Deer",
+    "tier": 4,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one 5/5 Bus with Chili.",
+      "Summon one 10/10 Bus with Chili.",
+      "Summon one 15/15 Bus with Chili."
+    ]
+  },
+  {
+    "name": "Hippo",
+    "tier": 4,
+    "attack": 4,
+    "health": 5,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Knock out",
+    "effects": [
+      "Gain +3 attack and +3 health.",
+      "Gain +6 attack and +6 health.",
+      "Gain +9 attack and +9 health."
+    ]
+  },
+  {
+    "name": "Parrot",
+    "tier": 4,
+    "attack": 4,
+    "health": 2,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Copy ability from the nearest pet ahead as level 1 until end of battle.",
+      "Copy ability from the nearest pet ahead as level 2 until end of battle.",
+      "Copy ability from the nearest pet ahead as level 3 until end of battle."
+    ]
+  },
+  {
+    "name": "Penguin",
+    "tier": 4,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give two level 2 and 3 friends +1 attack and +1 health.",
+      "Give two level 2 and 3 friends +2 attack and +2 health.",
+      "Give two level 2 and 3 friends +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Rooster",
+    "tier": 4,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one Chick with 1 health and 50% attack of this.",
+      "Summon two Chicks with 1 health and 50% attack of this.",
+      "Summon three Chicks with 1 health and 50% attack of this."
+    ]
+  },
+  {
+    "name": "Skunk",
+    "tier": 4,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Reduce the highest health enemy by 33% health.",
+      "Reduce the highest health enemy by 66% health.",
+      "Reduce the highest health enemy by 99% health."
+    ]
+  },
+  {
+    "name": "Squirrel",
+    "tier": 4,
+    "attack": 2,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Add one shop food and discount them by 1 gold.",
+      "Add one shop food and discount them by 2 gold.",
+      "Add one shop food and discount them by 3 gold."
+    ]
+  },
+  {
+    "name": "Turtle",
+    "tier": 4,
+    "attack": 2,
+    "health": 5,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Before faint",
+    "effects": [
+      "Give the nearest friend behind Melon.",
+      "Give the nearest two friends behind Melon.",
+      "Give the nearest three friends behind Melon."
+    ]
+  },
+  {
+    "name": "Whale",
+    "tier": 4,
+    "attack": 3,
+    "health": 8,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Swallow the nearest friend ahead and release it as a level 1 after fainting.",
+      "Swallow the nearest friend ahead and release it as a level 2 after fainting.",
+      "Swallow the nearest friend ahead and release it as a level 3 after fainting."
+    ]
+  },
+  {
+    "name": "Worm",
+    "tier": 4,
+    "attack": 3,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Eats shop food",
+    "effects": [
+      "Gain +1 attack and +1 health.",
+      "Gain +2 attack and +2 health.",
+      "Gain +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Armadillo",
+    "tier": 4,
+    "attack": 2,
+    "health": 6,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Hurt & Faint",
+    "effects": [
+      "Give friends +1 health.",
+      "Give friends +2 health.",
+      "Give friends +3 health."
+    ]
+  },
+  {
+    "name": "Doberman",
+    "tier": 4,
+    "attack": 4,
+    "health": 5,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "If this is your lowest tier pet, gain Coconut and +5 attack and +5 health.",
+      "If this is your lowest tier pet, gain Coconut and +10 attack and +10 health.",
+      "If this is your lowest tier pet, gain Coconut and +15 attack and +15 health."
+    ]
+  },
+  {
+    "name": "Dragonfly",
+    "tier": 4,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give +1 attack and +1 health to one friend of each level.",
+      "Give +2 attack and +2 health to one friend of each level.",
+      "Give +3 attack and +3 health to one friend of each level."
+    ]
+  },
+  {
+    "name": "Jerboa",
+    "tier": 4,
+    "attack": 1,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Eats Apple",
+    "effects": [
+      "Give other pets +1 attack and +1 health.",
+      "Give other pets +2 attack and +2 health.",
+      "Give other pets +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Lynx",
+    "tier": 4,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal damage to one random enemy equal to the sum of all friendly levels.",
+      "Deal damage to two random enemies equal to the sum of all friendly levels.",
+      "Deal damage to three random enemies equal to the sum of all friendly levels."
+    ]
+  },
+  {
+    "name": "Mole",
+    "tier": 4,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "Give adjacent friends +1 attack and +1 health.",
+      "Give adjacent friends +2 attack and +2 health.",
+      "Give adjacent friends +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Porcupine",
+    "tier": 4,
+    "attack": 3,
+    "health": 6,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Deal 6 damage back to the pet that hurt this.",
+      "Deal 12 damage back to the pet that hurt this.",
+      "Deal 18 damage back to the pet that hurt this."
+    ]
+  },
+  {
+    "name": "Buffalo",
+    "tier": 4,
+    "attack": 4,
+    "health": 4,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Friend bought",
+    "effects": [
+      "Gain +1 attack and +1 health. Works 3 times per turn.",
+      "Gain +2 attack and +2 health. Works 3 times per turn.",
+      "Gain +3 attack and +3 health. Works 3 times per turn."
+    ]
+  },
+  {
+    "name": "Caterpillar",
+    "tier": 4,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Gain +1 experience.",
+      "Gain +1 experience.",
+      "Transform into a Butterfly, then copy stats of the strongest friend."
+    ]
+  },
+  {
+    "name": "Llama",
+    "tier": 4,
+    "attack": 3,
+    "health": 6,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "If there in an empty space, gain +2 attack and +2 health.",
+      "If there in an empty space, gain +4 attack and +4 health.",
+      "If there in an empty space, gain +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Lobster",
+    "tier": 4,
+    "attack": 3,
+    "health": 3,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "If outside battle, gain +2 attack and +2 health.",
+      "If outside battle, gain +4 attack and +4 health.",
+      "If outside battle, gain +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Microbe",
+    "tier": 4,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Make all pets weak.",
+      "Make all pets weak.",
+      "Make all pets weak."
+    ]
+  },
+  {
+    "name": "Anteater",
+    "tier": 4,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon two level 1 Ants.",
+      "Summon two level 2 Ants.",
+      "Summon two level 3 Ants."
+    ]
+  },
+  {
+    "name": "Crow",
+    "tier": 4,
+    "attack": 3,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Replace food shop with one Chocolate that gives 1 experience.",
+      "Replace food shop with one Chocolate that gives 2 experience.",
+      "Replace food shop with one Chocolate that gives 3 experience."
+    ]
+  },
+  {
+    "name": "Donkey",
+    "tier": 4,
+    "attack": 4,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friend faints",
+    "effects": [
+      "Push the last enemy to the front. Works 1 time per battle.",
+      "Push the last enemy to the front. Works 2 times per battle.",
+      "Push the last enemy to the front. Works 3 times per battle."
+    ]
+  },
+  {
+    "name": "Eel",
+    "tier": 4,
+    "attack": 5,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Gain 50% health.",
+      "Gain 100% health.",
+      "Gain 150% health."
+    ]
+  },
+  {
+    "name": "Hawk",
+    "tier": 4,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 7 damage to the opposite enemy.",
+      "Deal 14 damage to the opposite enemy.",
+      "Deal 21 damage to the opposite enemy."
+    ]
+  },
+  {
+    "name": "Orangutan",
+    "tier": 4,
+    "attack": 3,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give the lowest health friendly pet +4 health.",
+      "Give the lowest health friendly pet +8 health.",
+      "Give the lowest health friendly pet +12 health."
+    ]
+  },
+  {
+    "name": "Pelican",
+    "tier": 4,
+    "attack": 2,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn & Start of battle",
+    "effects": [
+      "Give one random Strawberry friend +2 attack and +1 health.",
+      "Give one random Strawberry friend +4 attack and +2 health.",
+      "Give one random Strawberry friend +6 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Platypus",
+    "tier": 4,
+    "attack": 5,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Sell",
+    "effects": [
+      "Summon one level 1 Duck and Beaver.",
+      "Summon one level 2 Duck and Beaver.",
+      "Summon one level 3 Duck and Beaver."
+    ]
+  },
+  {
+    "name": "Praying Mantis",
+    "tier": 4,
+    "attack": 7,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Knock out adjacent friends and gain +2 attack and +2 health.",
+      "Knock out adjacent friends and gain +4 attack and +4 health.",
+      "Knock out adjacent friends and gain +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Cow",
+    "tier": 5,
+    "attack": 4,
+    "health": 6,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Buy",
+    "effects": [
+      "Replace food shop with 2 free Milk that gives +1 attack and +2 health.",
+      "Replace food shop with 2 free Milk that gives +2 attack and +4 health.",
+      "Replace food shop with 2 free Milk that gives +3 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Crocodile",
+    "tier": 5,
+    "attack": 8,
+    "health": 4,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 8 damage to the last enemy.",
+      "Deal 8 damage to the last enemy. Triggers 2 times.",
+      "Deal 8 damage to the last enemy. Triggers 3 times."
+    ]
+  },
+  {
+    "name": "Monkey",
+    "tier": 5,
+    "attack": 1,
+    "health": 2,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give right-most friend +2 attack and +3 health.",
+      "Give right-most friend +4 attack and +6 health.",
+      "Give right-most friend +6 attack and +9 health."
+    ]
+  },
+  {
+    "name": "Rhino",
+    "tier": 5,
+    "attack": 5,
+    "health": 8,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Knock out",
+    "effects": [
+      "Deal 4 damage to the first enemy. Double against tier 1 pets.",
+      "Deal 8 damage to the first enemy. Double against tier 1 pets.",
+      "Deal 12 damage to the first enemy. Double against tier 1 pets."
+    ]
+  },
+  {
+    "name": "Scorpion",
+    "tier": 5,
+    "attack": 1,
+    "health": 1,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Summoned",
+    "effects": [
+      "Gain Peanuts.",
+      "Gain Peanuts.",
+      "Gain Peanuts."
+    ]
+  },
+  {
+    "name": "Seal",
+    "tier": 5,
+    "attack": 3,
+    "health": 8,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Eats shop food",
+    "effects": [
+      "Give two random friends +1 attack and +1 health.",
+      "Give two random friends +2 attack and +2 health.",
+      "Give two random friends +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Shark",
+    "tier": 5,
+    "attack": 4,
+    "health": 2,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend faints",
+    "effects": [
+      "Gain +1 attack and +2 health. Double out of battle.",
+      "Gain +2 attack and +4 health. Double out of battle.",
+      "Gain +3 attack and +6 health. Double out of battle."
+    ]
+  },
+  {
+    "name": "Turkey",
+    "tier": 5,
+    "attack": 3,
+    "health": 4,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "Give it +3 attack and +3 health.",
+      "Give it +6 attack and +6 health.",
+      "Give it +9 attack and +9 health."
+    ]
+  },
+  {
+    "name": "Hyena",
+    "tier": 5,
+    "attack": 5,
+    "health": 5,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Swap attack and health of all pets.",
+      "Shuffle positions of all pets.",
+      "Swap attack and health and shuffle positions of all pets."
+    ]
+  },
+  {
+    "name": "Lionfish",
+    "tier": 5,
+    "attack": 4,
+    "health": 6,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Before friend attacks",
+    "effects": [
+      "Make the enemy target weak. Works 1 time per battle.",
+      "Make the enemy target weak. Works 2 times per battle.",
+      "Make the enemy target weak. Works 3 times per battle."
+    ]
+  },
+  {
+    "name": "Moose",
+    "tier": 5,
+    "attack": 5,
+    "health": 6,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Unfreeze shop and give +1 attack and +1 health to one random friend. Multiply with the lowest tier in the pet shop.",
+      "Unfreeze shop and give +2 attack and +2 health to one random friend. Multiply with the lowest tier in the pet shop.",
+      "Unfreeze shop and give +3 attack and +3 health to one random friend. Multiply with the lowest tier in the pet shop."
+    ]
+  },
+  {
+    "name": "Eagle",
+    "tier": 5,
+    "attack": 6,
+    "health": 5,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one level 1 tier 6 pet.",
+      "Summon one level 2 tier 6 pet.",
+      "Summon one level 3 tier 6 pet."
+    ]
+  },
+  {
+    "name": "Goat",
+    "tier": 5,
+    "attack": 4,
+    "health": 6,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Friend bought",
+    "effects": [
+      "Gain +1 gold. Works 2 times per turn.",
+      "Gain +2 gold. Works 2 times per turn.",
+      "Gain +3 gold. Works 2 times per turn."
+    ]
+  },
+  {
+    "name": "Poodle",
+    "tier": 5,
+    "attack": 2,
+    "health": 2,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give +1 attack and +1 health to one friend of each tier.",
+      "Give +2 attack and +2 health to one friend of each tier.",
+      "Give +3 attack and +3 health to one friend of each tier."
+    ]
+  },
+  {
+    "name": "Fox",
+    "tier": 5,
+    "attack": 5,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Steal one random shop food.",
+      "Steal one random shop food. Health and attack effects are multiplied by 2.",
+      "Steal one random shop food. Health and attack effects are multiplied by 3."
+    ]
+  },
+  {
+    "name": "Hamster",
+    "tier": 5,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Roll",
+    "effects": [
+      "Gain +1 gold. Works 2 times per turn.",
+      "Gain +1 gold. Works 4 times per turn.",
+      "Gain +1 gold. Works 6 times per turn."
+    ]
+  },
+  {
+    "name": "Lion",
+    "tier": 5,
+    "attack": 6,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "If this is your highest tier pet, gain +50% attack and health.",
+      "If this is your highest tier pet, gain +100% attack and health.",
+      "If this is your highest tier pet, gain +150% attack and health."
+    ]
+  },
+  {
+    "name": "Polar Bear",
+    "tier": 5,
+    "attack": 4,
+    "health": 8,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "Give one random frozen shop pet +4 attack and +4 health.",
+      "Give one random frozen shop pet +8 attack and +8 health.",
+      "Give one random frozen shop pet +12 attack and +12 health."
+    ]
+  },
+  {
+    "name": "Shoebill",
+    "tier": 5,
+    "attack": 2,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give Strawberry friend +1 attack and +2 health.",
+      "Give Strawberry friend +2 attack and +4 health.",
+      "Give Strawberry friend +3 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Siberian Husky",
+    "tier": 5,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give with no held food +1 attack and +1 health.",
+      "Give with no held food +2 attack and +2 health.",
+      "Give with no held food +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Sword Fish",
+    "tier": 5,
+    "attack": 5,
+    "health": 5,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 100% attack damage to the most healthy enemy and itself.",
+      "Deal 200% attack damage to the most healthy enemy and itself.",
+      "Deal 300% attack damage to the most healthy enemy and itself."
+    ]
+  },
+  {
+    "name": "Triceratops",
+    "tier": 5,
+    "attack": 5,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Give one random friend +3 attack and +3 health.",
+      "Give one random friend +6 attack and +6 health.",
+      "Give one random friend +9 attack and +9 health."
+    ]
+  },
+  {
+    "name": "Vulture",
+    "tier": 5,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Two friends faint",
+    "effects": [
+      "Deal 4 damage to one random enemy.",
+      "Deal 8 damage to one random enemy.",
+      "Deal 12 damage to one random enemy."
+    ]
+  },
+  {
+    "name": "Zebra",
+    "tier": 5,
+    "attack": 3,
+    "health": 5,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Buy & Sell",
+    "effects": [
+      "Give one random friend +2 attack and +2 health.",
+      "Give one random friend +4 attack and +4 health.",
+      "Give one random friend +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Boar",
+    "tier": 6,
+    "attack": 10,
+    "health": 6,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Before attack",
+    "effects": [
+      "Gain +4 attack and +2 health.",
+      "Gain +8 attack and +4 health.",
+      "Gain +12 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Cat",
+    "tier": 6,
+    "attack": 4,
+    "health": 5,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "None",
+    "effects": []
+  },
+  {
+    "name": "Dragon",
+    "tier": 6,
+    "attack": 6,
+    "health": 8,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Tier 1 friend bought",
+    "effects": [
+      "Give other pets +1 attack and +1 health.",
+      "Give other pets +2 attack and +2 health.",
+      "Give other pets +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Fly",
+    "tier": 6,
+    "attack": 5,
+    "health": 5,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend faints",
+    "effects": [
+      "Summon one 4/4 Zombie Fly in its place. Works 3 times per turn.",
+      "Summon one 8/8 Zombie Fly in its place. Works 3 times per turn.",
+      "Summon one 12/12 Zombie Fly in its place. Works 3 times per turn."
+    ]
+  },
+  {
+    "name": "Gorilla",
+    "tier": 6,
+    "attack": 6,
+    "health": 9,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Gain Coconut 1 time per battle.",
+      "Gain Coconut 2 times per battle.",
+      "Gain Coconut 3 times per battle."
+    ]
+  },
+  {
+    "name": "Leopard",
+    "tier": 6,
+    "attack": 10,
+    "health": 4,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Deal 50% attack damage to one random enemy.",
+      "Deal 50% attack damage to two random enemy.",
+      "Deal 50% attack damage to three random enemy."
+    ]
+  },
+  {
+    "name": "Mammoth",
+    "tier": 6,
+    "attack": 3,
+    "health": 10,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Give all friends +2 attack and +2 health.",
+      "Give all friends +4 attack and +4 health.",
+      "Give all friends +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Snake",
+    "tier": 6,
+    "attack": 6,
+    "health": 6,
+    "packs": [
+      "Turtle"
+    ],
+    "effect_trigger": "Friend ahead attacks",
+    "effects": [
+      "Deal 5 damage damage to one random enemy.",
+      "Deal 10 damage damage to one random enemy.",
+      "Deal 15 damage damage to one random enemy."
+    ]
+  },
+  {
+    "name": "Tiger",
+    "tier": 6,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Turtle",
+      "Puppy"
+    ],
+    "effect_trigger": "None",
+    "effects": []
+  },
+  {
+    "name": "Alpaca",
+    "tier": 6,
+    "attack": 4,
+    "health": 9,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Friend summoned",
+    "effects": [
+      "Give it +1 experience. Except other Alpacas! Works 2 times per turn.",
+      "Give it +2 experience. Except other Alpacas! Works 2 times per turn.",
+      "Give it +3 experience. Except other Alpacas! Works 2 times per turn."
+    ]
+  },
+  {
+    "name": "Lioness",
+    "tier": 6,
+    "attack": 4,
+    "health": 5,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give current and future shop pets +2 attack and +2 health.",
+      "Give current and future shop pets +4 attack and +4 health.",
+      "Give current and future shop pets +6 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Tapir",
+    "tier": 6,
+    "attack": 4,
+    "health": 3,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one level 1 copy of a random friendly pet. Except other Tapirs!",
+      "Summon one level 2 copy of a random friendly pet. Except other Tapirs!",
+      "Summon one level 3 copy of a random friendly pet. Except other Tapirs!"
+    ]
+  },
+  {
+    "name": "Walrus",
+    "tier": 6,
+    "attack": 7,
+    "health": 5,
+    "packs": [
+      "Weekly"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Give one random friend Peanuts.",
+      "Give two random friends Peanuts.",
+      "Give three random friends Peanuts."
+    ]
+  },
+  {
+    "name": "White Tiger",
+    "tier": 6,
+    "attack": 4,
+    "health": 3,
+    "packs": [],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Make the nearest friend behind +3 experience.",
+      "Make the nearest two friends behind +3 experience.",
+      "Make the nearest three friends behind +3 experience."
+    ]
+  },
+  {
+    "name": "Chicken",
+    "tier": 6,
+    "attack": 3,
+    "health": 4,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Tier 1 friend bought",
+    "effects": [
+      "Give current and future shop pets +1 attack and +1 health.",
+      "Give current and future shop pets +2 attack and +2 health.",
+      "Give current and future shop pets +3 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Octopus",
+    "tier": 6,
+    "attack": 8,
+    "health": 8,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Before attack",
+    "effects": [
+      "Deal 6 damage to one random enemy.",
+      "Deal 6 damage to two random enemies.",
+      "Deal 6 damage to three random enemies."
+    ]
+  },
+  {
+    "name": "Sauropod",
+    "tier": 6,
+    "attack": 4,
+    "health": 12,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "Shop food bought",
+    "effects": [
+      "Gain +1 gold. Works 3 times per turn.",
+      "Gain +2 gold. Works 3 times per turn.",
+      "Gain +3 gold. Works 3 times per turn."
+    ]
+  },
+  {
+    "name": "Tyrannosaurus",
+    "tier": 6,
+    "attack": 9,
+    "health": 4,
+    "packs": [
+      "Puppy"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "If you have at least 3 gold, give other pets +2 attack and +1 health.",
+      "If you have at least 3 gold, give other pets +4 attack and +2 health.",
+      "If you have at least 3 gold, give other pets +6 attack and +3 health."
+    ]
+  },
+  {
+    "name": "Hammershark",
+    "tier": 6,
+    "attack": 5,
+    "health": 5,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of turn",
+    "effects": [
+      "If this has a level 3 friend, gain +3 gold.",
+      "If this has a level 3 friend, gain +6 gold.",
+      "If this has a level 3 friend, gain +9 gold."
+    ]
+  },
+  {
+    "name": "Komodo",
+    "tier": 6,
+    "attack": 6,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Give friends ahead +1 attack and +1 health and then shuffle their positions.",
+      "Give friends ahead +2 attack and +2 health and then shuffle their positions.",
+      "Give friends ahead +3 attack and +3 health and then shuffle their positions."
+    ]
+  },
+  {
+    "name": "Orca",
+    "tier": 6,
+    "attack": 4,
+    "health": 8,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Faint",
+    "effects": [
+      "Summon one random pet with Faint ability from any pack.",
+      "Summon two random pets with Faint ability from any pack.",
+      "Summon three random pets with Faint ability from any pack."
+    ]
+  },
+  {
+    "name": "Ostrich",
+    "tier": 6,
+    "attack": 2,
+    "health": 8,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "End turn",
+    "effects": [
+      "Gain +1 attack and +1 health for every tier 5 pet or higher in the shop.",
+      "Gain +2 attack and +2 health for every tier 5 pet or higher in the shop.",
+      "Gain +3 attack and +3 health for every tier 5 pet or higher in the shop."
+    ]
+  },
+  {
+    "name": "Piranha",
+    "tier": 6,
+    "attack": 10,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Hurt & Faint",
+    "effects": [
+      "Give friends +3 attack.",
+      "Give friends +6 attack.",
+      "Give friends +9 attack."
+    ]
+  },
+  {
+    "name": "Reindeer",
+    "tier": 6,
+    "attack": 6,
+    "health": 4,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Before attack",
+    "effects": [
+      "Gain Melon. Works 1 time per battle.",
+      "Gain Melon. Works 2 times per battle.",
+      "Gain Melon. Works 3 times per battle."
+    ]
+  },
+  {
+    "name": "Sabertooth Tiger",
+    "tier": 6,
+    "attack": 8,
+    "health": 6,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Hurt",
+    "effects": [
+      "Summon one random tier 1 pet as a 8/8.",
+      "Summon one random tier 1 pet as a 16/16.",
+      "Summon one random tier 1 pet as a 24/24."
+    ]
+  },
+  {
+    "name": "Spinosaurus",
+    "tier": 6,
+    "attack": 4,
+    "health": 8,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Friend faints",
+    "effects": [
+      "Give one random friend +3 attack and +2 health.",
+      "Give one random friend +6 attack and +4 health.",
+      "Give one random friend +9 attack and +6 health."
+    ]
+  },
+  {
+    "name": "Stegosaurus",
+    "tier": 6,
+    "attack": 3,
+    "health": 8,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give one random friend without held food +1 attack and +1 health until end of battle. Multiply with turn number.",
+      "Give one random friend without held food +2 attack and +2 health until end of battle. Multiply with turn number.",
+      "Give one random friend without held food +3 attack and +3 health until end of battle. Multiply with turn number."
+    ]
+  },
+  {
+    "name": "Velociraptor",
+    "tier": 6,
+    "attack": 3,
+    "health": 2,
+    "packs": [
+      "Star"
+    ],
+    "effect_trigger": "Start of battle",
+    "effects": [
+      "Give Coconut to one random Strawberry friend.",
+      "Give Coconut to two random Strawberry friends.",
+      "Give Coconut to three random Strawberry friends."
+    ]
+  }
+]

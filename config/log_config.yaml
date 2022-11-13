@@ -1,0 +1,23 @@
+refresh_rate: 30 seconds
+appenders:
+  stdout:
+    kind: console
+  scraper:
+    kind: file
+    path: "log/scraper.log"
+    encoder:
+      pattern: "{d} - {m}{n}"
+root:
+  level: debug
+  appenders:
+    - stdout
+loggers:
+  api:
+    level: debug
+  db:
+    level: debug
+  wiki_scraper:
+    level: debug
+    appenders:
+      - scraper
+    additive: false
