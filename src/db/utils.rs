@@ -1,7 +1,7 @@
+use crate::wiki_scraper::parser::{parse_pet_info, read_wiki_url};
 use log::error;
 use serde_json::to_writer_pretty;
 use std::fs::File;
-use crate::wiki_scraper::parser::{parse_pet_info, read_wiki_url};
 
 #[allow(dead_code)]
 fn write_pet_info(output: &str) {
