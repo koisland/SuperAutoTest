@@ -9,6 +9,17 @@ pub enum Pack {
     Weekly,
     Unknown,
 }
+impl Pack {
+    pub fn new(name: &str) -> Pack {
+        match name {
+            "Turtle" => Pack::Turtle,
+            "Puppy" => Pack::Puppy,
+            "Star" => Pack::Star,
+            "Weekly" => Pack::Weekly,
+            _ => Pack::Unknown
+        }
+    }
+}
 
 impl fmt::Display for Pack {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

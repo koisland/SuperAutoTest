@@ -18,17 +18,17 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
         for pack in pet.packs.iter() {
             let n_rows = conn.execute(
                 &sql_insert_pet,
-                (
+                &[
                     &pet.name,
-                    &pet.tier,
-                    &pet.attack,
-                    &pet.health,
-                    pack.to_string(),
+                    &pet.tier.to_string(),
+                    &pet.attack.to_string(),
+                    &pet.health.to_string(),
+                    &pack.to_string(),
                     &pet.effect_trigger,
-                    &pet.effects.get(0).unwrap_or(&"None".to_string()),
-                    &pet.effects.get(1).unwrap_or(&"None".to_string()),
-                    &pet.effects.get(2).unwrap_or(&"None".to_string()),
-                ),
+                    pet.effects.get(0).unwrap_or(&"None".to_string()),
+                    pet.effects.get(1).unwrap_or(&"None".to_string()),
+                    pet.effects.get(2).unwrap_or(&"None".to_string()),
+                ],
             )?;
             n_rows_updated += n_rows;
         }
@@ -48,7 +48,12 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
         for pack in food.packs.iter() {
             let n_rows = conn.execute(
                 &sql_insert_food,
-                (&food.name, food.tier, &food.effect, pack.to_string()),
+                &[
+                    &food.name,
+                    &food.tier.to_string(),
+                    &food.effect,
+                    &pack.to_string(),
+                ],
             )?;
             n_rows_updated += n_rows;
         }

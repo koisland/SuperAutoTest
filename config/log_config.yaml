@@ -6,12 +6,17 @@ appenders:
     kind: file
     path: "log/scraper.log"
     encoder:
-      pattern: "{d} - {m}{n}"
+      pattern: "{d} {l} {M} - {m}{n}"
   database:
     kind: file
     path: "log/db.log"
     encoder:
-      pattern: "{d} - {m}{n}"
+      pattern: "{d} {l} {M} - {m}{n}"
+  server:
+    kind: file
+    path: "log/server.log"
+    encoder:
+      pattern: "{d} {l} {M} - {m}{n}"
 root:
   level: info
   appenders:
@@ -19,6 +24,9 @@ root:
 loggers:
   api:
     level: info
+    appenders:
+      - server
+    additive: false
   db:
     level: info
     appenders:
