@@ -3,8 +3,8 @@ use rocket::response::content::RawJson;
 use rusqlite::{Error, Row};
 use serde_json::to_string_pretty;
 
-const QUERY_PET_PARAMS: [&str; 3] = ["name", "pack", "tier"];
-const QUERY_FOOD_PARAMS: [&str; 5] = ["name", "tier", "lvl", "pack", "effect_trigger"];
+const QUERY_FOOD_PARAMS: [&str; 3] = ["name", "pack", "tier"];
+const QUERY_PET_PARAMS: [&str; 5] = ["name", "tier", "lvl", "pack", "effect_trigger"];
 
 // TODO: Add html doc to show basic routes.
 #[get("/")]
@@ -49,7 +49,9 @@ pub fn setup_param_query(table: &str, params: &[String], param_names: &[&str]) -
     let mut sql_stmt = format!("SELECT * FROM {table} WHERE ");
 
     // Check that params and length are equivalent.
-    assert!(params.len() == param_names.len());
+    assert!(params.len() == param_names.len(), "Length of params and their names is different.");
+    // Check that at least one param given
+    assert!(params.len() >= 1, "Less than one param given. Will result in malformed SQL.");
 
     // Iterate through params and set up SQL statement.
     // No user param values are inserted.
