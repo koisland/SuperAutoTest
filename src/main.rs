@@ -1,4 +1,4 @@
-#![feature(proc_macro_hygiene, decl_macro)]
+#![feature(array_zip)]
 
 #[macro_use]
 extern crate lazy_static;
@@ -26,11 +26,10 @@ pub const DB_INSERT_PET_SQL: &str = "./src/db/sql/insert_pet.sql";
 pub const DB_INSERT_FOOD_SQL: &str = "./src/db/sql/insert_food.sql";
 pub const DB_FNAME: &str = "./sap.db";
 
-
 pub fn update_db() -> Result<(), Box<dyn Error>> {
     // Get database connection.
     let conn: Connection = get_connection()?;
-    
+
     create_tables(&conn)?;
     update_pet_info(&conn)?;
     update_food_info(&conn)?;

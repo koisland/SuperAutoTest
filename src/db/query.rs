@@ -13,25 +13,22 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let pets = parse_pet_info(&wiki_urls.pets)?;
     // Add each pet.
     for pet in pets.iter() {
-        // Creating a new row for each pack a pet belongs to.
+        // Creating a new row for each pack and level a pet belongs to.
         // Each pet constrained by name and pack so will replace if already exists.
-        for pack in pet.packs.iter() {
-            let n_rows = conn.execute(
-                &sql_insert_pet,
-                &[
-                    &pet.name,
-                    &pet.tier.to_string(),
-                    &pet.attack.to_string(),
-                    &pet.health.to_string(),
-                    &pack.to_string(),
-                    &pet.effect_trigger,
-                    pet.effects.get(0).unwrap_or(&"None".to_string()),
-                    pet.effects.get(1).unwrap_or(&"None".to_string()),
-                    pet.effects.get(2).unwrap_or(&"None".to_string()),
-                ],
-            )?;
-            n_rows_updated += n_rows;
-        }
+        let n_rows = conn.execute(
+            &sql_insert_pet,
+            [
+                &pet.name,
+                &pet.tier.to_string(),
+                &pet.attack.to_string(),
+                &pet.health.to_string(),
+                &pet.pack.to_string(),
+                &pet.effect_trigger,
+                &pet.effect,
+                &pet.lvl.to_string(),
+            ],
+        )?;
+        n_rows_updated += n_rows;
     }
     info!(target: "db", "{} rows updated in \"pet\" table.", n_rows_updated);
     Ok(())
@@ -45,18 +42,16 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
 
     let foods = parse_food_info(&wiki_urls.food)?;
     for food in foods.iter() {
-        for pack in food.packs.iter() {
-            let n_rows = conn.execute(
-                &sql_insert_food,
-                &[
-                    &food.name,
-                    &food.tier.to_string(),
-                    &food.effect,
-                    &pack.to_string(),
-                ],
-            )?;
-            n_rows_updated += n_rows;
-        }
+        let n_rows = conn.execute(
+            &sql_insert_food,
+            [
+                &food.name,
+                &food.tier.to_string(),
+                &food.effect,
+                &food.pack.to_string(),
+            ],
+        )?;
+        n_rows_updated += n_rows;
     }
     info!(target: "db", "{} rows updated in \"food\" table.", n_rows_updated);
     Ok(())

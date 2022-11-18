@@ -128,16 +128,22 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
                 })
                 .collect_vec();
 
-            let pet = Pet::new(
-                pet_name,
-                curr_tier,
-                pet_atk,
-                pet_health,
-                &pet_packs,
-                &pet_effect_trigger,
-                &pet_effect,
-            );
-            pets.push(pet)
+            // Create a new pet record for every level.
+            for pack in pet_packs.iter() {
+                for (lvl, effect) in pet_effect.iter().enumerate() {
+                    let pet = Pet {
+                        name: pet_name.to_string(),
+                        tier: curr_tier,
+                        attack: pet_atk,
+                        health: pet_health,
+                        pack: pack.clone(),
+                        effect_trigger: pet_effect_trigger.to_string(),
+                        effect: effect.to_string(),
+                        lvl: lvl + 1,
+                    };
+                    pets.push(pet)
+                }
+            }
         }
     }
     info!(target: "wiki_scraper", "Retrieved {} pets.", pets.len());
@@ -224,7 +230,14 @@ pub fn parse_food_info(url: &str) -> Result<Vec<Food>, Box<dyn Error>> {
             // Attempt convert tier to usize.
             let tier_n_conversion = tier.parse::<usize>();
             if let Ok(tier_n) = tier_n_conversion {
-                foods.push(Food::new(name, tier_n, effect, &packs[..]));
+                for pack in packs {
+                    foods.push(Food {
+                        name: name.to_string(),
+                        tier: tier_n,
+                        effect: effect.to_string(),
+                        pack,
+                    });
+                }
             } else {
                 error!(target: "wiki_scraper", "Unable to convert tier {tier} for {name} to usize.")
             }

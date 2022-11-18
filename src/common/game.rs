@@ -9,6 +9,7 @@ pub enum Pack {
     Weekly,
     Unknown,
 }
+
 impl Pack {
     pub fn new(name: &str) -> Pack {
         match name {
@@ -16,7 +17,7 @@ impl Pack {
             "Puppy" => Pack::Puppy,
             "Star" => Pack::Star,
             "Weekly" => Pack::Weekly,
-            _ => Pack::Unknown
+            _ => Pack::Unknown,
         }
     }
 }
