@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use log::{error, info};
+use log::{error, info, warn};
 use regex::Regex;
 use reqwest::blocking;
 use serde::Deserialize;
@@ -19,6 +19,7 @@ lazy_static! {
     static ref RGX_PET_EFFECT_TRIGGER: Regex = Regex::new(r#"\| ''+(.*?)''+"#).unwrap();
     // TODO: Misses animals with no triggers. (Tiger)
     static ref RGX_PET_EFFECT: Regex = Regex::new(r#"→\s(.*?)\n"#).unwrap();
+    static ref RGX_PET_EFFECT_TRIGGERLESS: Regex = Regex::new(r#"\|\s([^[=]]*?\.*)\n"#).unwrap();
     static ref RGX_ICON_NAME: Regex =
         Regex::new(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|]*=[\w\.]+)*"#).unwrap();
     static ref RGX_FOOD_LINK_NAME: Regex = Regex::new(r#"\[\[(.*?)\]\]"#).unwrap();
@@ -65,7 +66,7 @@ fn parse_icon_names(line: &str) -> String {
     }
     // Remove remaining }, if any.
     // Remove '''
-    final_line.replace('}', "").replace("'''", "")
+    final_line.replace('}', "")
 }
 
 pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
@@ -85,19 +86,33 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
         }
         // If a pet name is found.
         if RGX_PET_NAME.is_match(line) {
-            let pet_name = RGX_PET_NAME
-                .captures(line)
-                .and_then(|cap| cap.get(1).map(|cap| cap.as_str()))
-                .unwrap();
+            let parsed_name = if let Some(name) = RGX_PET_NAME.captures(line) {
+                name.get(1).map(|cap| cap.as_str())
+            } else {
+                error!(target: "wiki_parser", "Unable to coerce pet name in line to string. {line}");
+                None
+            };
+            let pet_name = if let Some(name) = parsed_name {
+                name
+            } else {
+                warn!(target: "wiki_parser", "No pet name found in {line}.");
+                continue;
+            };
 
-            let pet_stats = RGX_PET_STATS.captures(line).unwrap();
-            // TODO: Default to 0 on parse error.
-            let pet_atk: usize = pet_stats
-                .name("attack")
-                .map_or(0, |m| m.as_str().parse().unwrap_or(0));
-            let pet_health: usize = pet_stats
-                .name("health")
-                .map_or(0, |m| m.as_str().parse().unwrap_or(0));
+            let pet_atk: usize;
+            let pet_health: usize;
+            if let Some(pet_stats) = RGX_PET_STATS.captures(line) {
+                // TODO: Default to 0 on parse error.
+                pet_atk = pet_stats
+                    .name("attack")
+                    .map_or(0, |m| m.as_str().parse().unwrap_or(0));
+                pet_health = pet_stats
+                    .name("health")
+                    .map_or(0, |m| m.as_str().parse().unwrap_or(0));
+            } else {
+                warn!(target: "wiki_parser", "No pet stats found in {line}.");
+                continue;
+            }
 
             let pet_packs = RGX_PET_PACK
                 .captures_iter(line)
@@ -106,41 +121,52 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
                     "puppypack" => Pack::Puppy,
                     "turtlepack" => Pack::Turtle,
                     "weeklypack" => Pack::Weekly,
-                    _ => Pack::Unknown,
+                    _ => {
+                        warn!(target: "wiki_parser", "New pack found. {:?}", cap);
+                        Pack::Unknown
+                    }
                 })
                 .collect_vec();
 
-            let pet_effect_trigger = RGX_PET_EFFECT_TRIGGER
-                .captures(line)
-                .and_then(|cap| {
-                    cap.get(1).map_or(Some("None".to_string()), |cap| {
-                        Some(parse_icon_names(cap.as_str()))
-                    })
-                })
-                .unwrap_or_else(|| "None".to_string());
+            // Remove icon names in line so regex doesn't give false positive.
+            let icon_name_less_line = parse_icon_names(line);
+            let pet_effect_trigger =
+                RGX_PET_EFFECT_TRIGGER
+                    .captures(&icon_name_less_line)
+                    .map(|cap| {
+                        cap.get(1)
+                            .map_or("None".to_string(), |cap| cap.as_str().to_string())
+                    });
 
-            let pet_effect = RGX_PET_EFFECT
-                .captures_iter(line)
+            // Use triggerless capture pattern to get pet effects that lack '→'.
+            let pet_effect_captures = if pet_effect_trigger.is_none() {
+                RGX_PET_EFFECT_TRIGGERLESS.captures_iter(&icon_name_less_line)
+            } else {
+                RGX_PET_EFFECT.captures_iter(&icon_name_less_line)
+            };
+
+            let pet_effects = pet_effect_captures
                 .map(|cap| {
-                    cap.get(1).map_or("None".to_string(), |effect| {
-                        parse_icon_names(effect.as_str())
-                    })
+                    cap.get(1)
+                        .map_or("None".to_string(), |effect| effect.as_str().to_string())
                 })
                 .collect_vec();
 
             // Create a new pet record for every level.
             for pack in pet_packs.iter() {
-                for (lvl, effect) in pet_effect.iter().enumerate() {
+                for lvl in 0..3 {
+                    let pet_lvl_effect = pet_effects.get(lvl).cloned();
                     let pet = Pet {
                         name: pet_name.to_string(),
                         tier: curr_tier,
                         attack: pet_atk,
                         health: pet_health,
                         pack: pack.clone(),
-                        effect_trigger: pet_effect_trigger.to_string(),
-                        effect: effect.to_string(),
+                        effect_trigger: pet_effect_trigger.clone(),
+                        effect: pet_lvl_effect,
                         lvl: lvl + 1,
                     };
+
                     pets.push(pet)
                 }
             }
@@ -162,8 +188,9 @@ pub fn parse_food_info(url: &str) -> Result<Vec<Food>, Box<dyn Error>> {
         .split("|-")
         .collect_vec();
 
-    for (i, food_info) in table.iter().enumerate() {
-        if i == 0 {
+    for (table_n, food_info) in table.iter().enumerate() {
+        // First section contains pack info.
+        if table_n == 0 {
             continue;
         }
         let mut food_info_copy = food_info.to_string();

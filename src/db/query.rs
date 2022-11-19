@@ -23,8 +23,10 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
                 &pet.attack.to_string(),
                 &pet.health.to_string(),
                 &pet.pack.to_string(),
-                &pet.effect_trigger,
-                &pet.effect,
+                &pet.effect_trigger
+                    .clone()
+                    .unwrap_or_else(|| "None".to_string()),
+                &pet.effect.clone().unwrap_or_else(|| "None".to_string()),
                 &pet.lvl.to_string(),
             ],
         )?;

@@ -9,7 +9,7 @@ pub struct Pet {
     pub attack: usize,
     pub health: usize,
     pub pack: Pack,
-    pub effect_trigger: String,
-    pub effect: String,
+    pub effect_trigger: Option<String>,
+    pub effect: Option<String>,
     pub lvl: usize,
 }
