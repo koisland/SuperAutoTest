@@ -1,8 +1,46 @@
-use crate::wiki_scraper::parser::{parse_food_info, parse_pet_info, read_wiki_url};
+use crate::{
+    common::{food::FoodRecord, pet::PetRecord},
+    db::utils::{map_row_to_food, map_row_to_pet},
+    wiki_scraper::parser::{parse_food_info, parse_pet_info, read_wiki_url},
+};
 use log::info;
 use rusqlite::Connection;
 use std::error::Error;
 use std::fs::read_to_string;
+
+pub fn query_pet(
+    conn: &Connection,
+    sql: &str,
+    params: &[String],
+) -> Result<Vec<PetRecord>, rusqlite::Error> {
+    let mut pet_stmt = conn.prepare(sql).unwrap();
+    let mut pets: Vec<PetRecord> = vec![];
+
+    if let Ok(mut pets_found) = pet_stmt.query(rusqlite::params_from_iter(params)) {
+        while let Some(pet_row) = pets_found.next().unwrap_or(None) {
+            let pet = map_row_to_pet(pet_row)?;
+            pets.push(pet);
+        }
+    }
+    Ok(pets)
+}
+
+pub fn query_food(
+    conn: &Connection,
+    sql: &str,
+    params: &[String],
+) -> Result<Vec<FoodRecord>, rusqlite::Error> {
+    let mut food_stmt = conn.prepare(sql).unwrap();
+    let mut foods: Vec<FoodRecord> = vec![];
+
+    if let Ok(mut foods_found) = food_stmt.query(rusqlite::params_from_iter(params)) {
+        while let Some(food_row) = foods_found.next().unwrap_or(None) {
+            let food = map_row_to_food(food_row)?;
+            foods.push(food);
+        }
+    }
+    Ok(foods)
+}
 
 pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES)?;

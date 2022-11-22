@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 
-use crate::common::{food::Food, game::Pack, pet::Pet};
+use crate::common::{food::FoodRecord, game::Pack, pet::PetRecord};
 
 lazy_static! {
     static ref RGX_TIER: Regex = Regex::new(r#"<!--\sTIER\s(\d)\s-->"#).unwrap();
@@ -69,9 +69,9 @@ fn parse_icon_names(line: &str) -> String {
     final_line.replace('}', "")
 }
 
-pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
+pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, Box<dyn Error>> {
     let response = get_page_info(url)?;
-    let mut pets: Vec<Pet> = vec![];
+    let mut pets: Vec<PetRecord> = vec![];
     let mut curr_tier: usize = 1;
 
     for line in response.split("\n\n") {
@@ -156,7 +156,7 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
             for pack in pet_packs.iter() {
                 for lvl in 0..3 {
                     let pet_lvl_effect = pet_effects.get(lvl).cloned();
-                    let pet = Pet {
+                    let pet = PetRecord {
                         name: pet_name.to_string(),
                         tier: curr_tier,
                         attack: pet_atk,
@@ -176,9 +176,9 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<Pet>, Box<dyn Error>> {
     Ok(pets)
 }
 
-pub fn parse_food_info(url: &str) -> Result<Vec<Food>, Box<dyn Error>> {
+pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
     let response = get_page_info(url)?;
-    let mut foods: Vec<Food> = vec![];
+    let mut foods: Vec<FoodRecord> = vec![];
 
     // TODO: Add TableNotFound error to replace unwrap_or with ok_or
     let table = &response
@@ -258,7 +258,7 @@ pub fn parse_food_info(url: &str) -> Result<Vec<Food>, Box<dyn Error>> {
             let tier_n_conversion = tier.parse::<usize>();
             if let Ok(tier_n) = tier_n_conversion {
                 for pack in packs {
-                    foods.push(Food {
+                    foods.push(FoodRecord {
                         name: name.to_string(),
                         tier: tier_n,
                         effect: effect.to_string(),
