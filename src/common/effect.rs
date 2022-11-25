@@ -1,6 +1,17 @@
+use lazy_regex::regex;
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use super::{food::Food, pet::Pet};
+use super::{food::Food, pets::names::PetName};
+
+pub static RGX_PERC: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)%"#);
+pub static RGX_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d)\sattack"#);
+pub static RGX_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d)\shealth"#);
+pub static RGX_DMG: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)\sdamage"#);
+pub static RGX_N_TRIGGERS: &lazy_regex::Lazy<lazy_regex::Regex> =
+    regex!(r#"Triggers\s(\d+)\stimes"#);
+pub static RGX_SUMMON_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)/"#);
+pub static RGX_SUMMON_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"/(\d+)"#);
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Statistics {
@@ -11,15 +22,19 @@ pub struct Statistics {
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Action {
     Attack,
+    Hurt,
+    KnockOut,
     Faint,
     Summoned,
+    Pushed,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Position {
     Any,
     All,
-    Specific(usize),
+    Trigger,
+    Specific(isize),
     None,
 }
 
@@ -42,20 +57,24 @@ pub struct FoodEffect {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Target {
-    ToSelf,
+    OnSelf,
     Friend,
     Enemy,
     None,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Outcome {
+    pub action: Action,
+    pub position: Option<Position>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub enum EffectTrigger {
-    Hurt,
-    Faint,
     StartBattle,
-    KnockOut,
-    Friend(Action, Position),
-    Enemy(Action, Position),
+    OnSelf(Outcome),
+    Friend(Outcome),
+    Enemy(Outcome),
     None,
     NotImplemented,
 }
@@ -65,9 +84,8 @@ pub enum Effect {
     Add(Statistics),
     Remove(Statistics),
     Negate(Statistics),
-    Splash,
     Gain(Box<Food>),
-    Summon(Box<Pet>),
+    Summon(Option<PetName>, Statistics),
     None,
     NotImplemented,
 }

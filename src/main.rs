@@ -48,8 +48,8 @@ pub fn main() -> Result<(), Box<dyn Error>> {
     update_db()?;
     info!(target: "db", "Successfully updated all tables.");
 
-    // // Launch rocket and pass database connection.
-    // server::main()?;
+    // Launch rocket and pass database connection.
+    server::main()?;
 
     Ok(())
 }

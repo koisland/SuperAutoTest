@@ -7,7 +7,7 @@ mod tests {
             attack: 2,
             health: 1,
         };
-        let ant = Pet::new(PetName::Ant, stats, 3, None);
+        let ant = Pet::new(PetName::Mosquito, stats, 3, None);
 
         if let Err(err) = ant {
             panic!("{}", err.to_string())

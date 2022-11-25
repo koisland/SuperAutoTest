@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use lazy_regex::regex;
 use log::{error, info, warn};
 use regex::Regex;
 use reqwest::blocking;
