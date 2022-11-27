@@ -7,14 +7,16 @@ use super::{
     effect::PetEffect,
     effect::{
         Action, Effect, EffectTrigger, Outcome, Position, Statistics, Target, RGX_ATK, RGX_HEALTH,
-        RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
+        RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH, Modify,
     },
     food::Food,
     game::Pack,
     pets::names::PetName,
-    team::Team,
 };
 
+/// A record with information about a pet from *Super Auto Pets*.
+///
+/// This information is queried and parsed from the *Super Auto Pets* *Fandom* wiki.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PetRecord {
     pub name: String,
@@ -27,6 +29,7 @@ pub struct PetRecord {
     pub lvl: usize,
 }
 
+/// A Super Auto Pet.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Pet {
     pub name: PetName,
@@ -47,6 +50,7 @@ pub fn num_regex(
     })?)
 }
 
+/// Maps a pet to its effects.
 pub fn get_pet_effect(
     pet: &PetName,
     effect_stats: Statistics,
@@ -61,14 +65,14 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::Any,
             effect: Effect::Add(effect_stats),
-            limit: Some(n_triggers),
+            uses: Some(n_triggers),
         }),
         PetName::Mosquito => Some(PetEffect {
             trigger: EffectTrigger::StartBattle,
             target: Target::Enemy,
             position: Position::Any,
             effect: Effect::Remove(effect_stats),
-            limit: Some(n_triggers),
+            uses: Some(n_triggers),
         }),
         PetName::Cricket => Some(PetEffect {
             trigger: EffectTrigger::OnSelf(Outcome {
@@ -78,7 +82,7 @@ pub fn get_pet_effect(
             target: Target::None,
             position: Position::Specific(0),
             effect: Effect::Summon(Some(PetName::ZombieCricket), effect_stats),
-            limit: Some(n_triggers),
+            uses: Some(n_triggers),
         }),
         PetName::Horse => Some(PetEffect {
             trigger: EffectTrigger::Friend(Outcome {
@@ -88,12 +92,15 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::Trigger,
             effect: Effect::Add(effect_stats),
-            limit: None,
+            uses: None,
         }),
         _ => None,
     }
 }
+
+
 impl Pet {
+    /// Create a new `Pet` with given stats and level
     pub fn new(
         name: PetName,
         stats: Statistics,
@@ -129,28 +136,61 @@ impl Pet {
     }
 }
 
+trait Shop {
+    fn feed(&mut self, food: &Food);
+    fn upgrade(&mut self, pet: &Pet);
+}
+
 trait Combat {
     fn attack(&mut self, enemy: &mut Pet);
-    fn get_effect_stat_modifier(&self) -> &Statistics;
+    fn get_effect_stat_modifier(&self) -> Statistics;
+}
+
+impl Modify for Pet {
+    fn add_uses(&mut self, n: usize) -> &Self {
+        if let Some(ability) = self.effect.as_mut() {
+            ability.uses.as_mut().map(|uses| *uses += n );
+        }
+        self
+    }
+
+    fn remove_uses(&mut self, n: usize) -> &Self {
+        if let Some(ability) = self.effect.as_mut() {
+            ability.uses.as_mut().map(|uses| if *uses >= n { *uses -= n } );
+        }
+        self
+    }
 }
 
 impl Combat for Pet {
     /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
     ///
     /// If a pet has no held food, no `Statistics` are provided.
-    fn get_effect_stat_modifier(&self) -> &Statistics {
+    fn get_effect_stat_modifier(&self) -> Statistics {
         // If a pet has an item that alters stats...
+        // Otherwise, no stat modifier added.
         self.item.as_ref().map_or(
-            &Statistics {
+            Statistics {
                 attack: 0,
                 health: 0,
             },
             |food| {
-                match &food.ability.effect {
+                let food_effect = food.ability.uses.as_ref().map_or(&Effect::None, |uses| {
+                    if *uses > 0 {
+                        // Return the food effect.
+                        &food.ability.effect
+                    } else {
+                        &Effect::None
+                    }
+                });
+
+                match food_effect {
                     // Get stat modifiers from effects.
-                    Effect::Add(stats) | Effect::Remove(stats) | Effect::Negate(stats) => stats,
+                    Effect::Add(stats) | Effect::Remove(stats) | Effect::Negate(stats) => {
+                        stats.clone()
+                    }
                     // Otherwise, no change.
-                    _ => &Statistics {
+                    _ => Statistics {
                         attack: 0,
                         health: 0,
                     },
@@ -159,6 +199,8 @@ impl Combat for Pet {
         )
     }
     /// Handle the logic of a single pet interaction during the battle phase.
+    /// * Alters a `Pet`'s `stats.attack` and `stats.health`
+    /// * Decrements any held `Food`'s `uses` attribute.
     ///
     /// ```
     /// use crate::common::{
@@ -178,6 +220,7 @@ impl Combat for Pet {
     /// }
     /// ```
     fn attack(&mut self, enemy: &mut Pet) {
+        // TODO: Convert to Result<(), Box<dyn Error>>
         let stat_modifier = self.get_effect_stat_modifier();
         let enemy_stat_modifer = enemy.get_effect_stat_modifier();
 
@@ -192,6 +235,10 @@ impl Combat for Pet {
             .unwrap_or(0);
         let new_enemy_health = enemy.stats.health.checked_sub(atk).unwrap_or(0);
 
+        // Decrement number of uses on items, if any.
+        self.item.as_mut().map(|item| item.remove_uses(1));
+        enemy.item.as_mut().map(|item| item.remove_uses(1));
+
         // Set the new health of a pet.
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;
@@ -200,7 +247,10 @@ impl Combat for Pet {
 
 mod tests {
     use crate::common::{
-        effect::Statistics, food::Food, foods::names::FoodName, pet::{Combat, Pet},
+        effect::Statistics,
+        food::Food,
+        foods::names::FoodName,
+        pet::{Combat, Pet},
         pets::names::PetName,
     };
 

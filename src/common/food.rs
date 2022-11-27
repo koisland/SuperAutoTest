@@ -1,9 +1,8 @@
+use crate::common::game::Pack;
 use serde::{Deserialize, Serialize};
 
-use crate::common::game::Pack;
-
 use super::{
-    effect::Effect, effect::FoodEffect, effect::Position, effect::Statistics, effect::Target,
+    effect::Effect, effect::FoodEffect, effect::Position, effect::{Statistics, Modify}, effect::Target,
     foods::names::FoodName, pets::names::PetName,
 };
 
@@ -31,7 +30,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 0,
                 health: 5,
             }),
-            limit: None,
+            uses: None,
         },
         FoodName::Coconut => FoodEffect {
             target: Target::OnSelf,
@@ -41,7 +40,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 0,
                 health: 150,
             }),
-            limit: Some(1),
+            uses: Some(1),
         },
         FoodName::Garlic => FoodEffect {
             target: Target::OnSelf,
@@ -50,7 +49,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 0,
                 health: 2,
             }),
-            limit: None,
+            uses: None,
         },
         FoodName::Honey => FoodEffect {
             target: Target::OnSelf,
@@ -62,7 +61,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                     health: 1,
                 },
             ),
-            limit: None,
+            uses: None,
         },
         FoodName::MeatBone => FoodEffect {
             target: Target::OnSelf,
@@ -71,7 +70,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 4,
                 health: 0,
             }),
-            limit: None,
+            uses: None,
         },
         FoodName::Melon => FoodEffect {
             target: Target::OnSelf,
@@ -80,7 +79,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 0,
                 health: 20,
             }),
-            limit: Some(1),
+            uses: Some(1),
         },
         FoodName::Mushroom => FoodEffect {
             target: Target::OnSelf,
@@ -93,7 +92,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                     health: 1,
                 },
             ),
-            limit: Some(1),
+            uses: Some(1),
         },
         FoodName::Peanuts => FoodEffect {
             target: Target::OnSelf,
@@ -102,7 +101,7 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 150,
                 health: 0,
             }),
-            limit: None,
+            uses: None,
         },
         FoodName::Steak => FoodEffect {
             target: Target::OnSelf,
@@ -111,16 +110,29 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 attack: 20,
                 health: 0,
             }),
-            limit: Some(1),
+            uses: Some(1),
         },
     }
 }
 impl Food {
+    /// Create a `Food` from `FoodName`.
     pub fn new(name: &FoodName) -> Food {
         // TODO: Regex to get food effect stats.
         Food {
             name: name.clone(),
             ability: get_food_effect(name),
         }
+    }
+}
+
+impl Modify for Food {
+    fn add_uses(&mut self, n: usize) -> &Self {
+        self.ability.uses.as_mut().map(|uses| *uses += n );
+        self
+    }
+
+    fn remove_uses(&mut self, n: usize) -> &Self {
+        self.ability.uses.as_mut().map(|uses| if *uses >= n { *uses -= n } );
+        self
     }
 }

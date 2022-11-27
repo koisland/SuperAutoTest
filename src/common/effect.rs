@@ -13,7 +13,7 @@ pub static RGX_N_TRIGGERS: &lazy_regex::Lazy<lazy_regex::Regex> =
 pub static RGX_SUMMON_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)/"#);
 pub static RGX_SUMMON_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"/(\d+)"#);
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct Statistics {
     pub attack: usize,
     pub health: usize,
@@ -44,7 +44,7 @@ pub struct PetEffect {
     pub target: Target,
     pub position: Position,
     pub effect: Effect,
-    pub limit: Option<usize>,
+    pub uses: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -52,7 +52,15 @@ pub struct FoodEffect {
     pub target: Target,
     pub position: Position,
     pub effect: Effect,
-    pub limit: Option<usize>,
+    pub uses: Option<usize>,
+}
+
+pub trait Modify {
+    /// Add `n` uses to a `FoodEffect` or `PetEffect` if possible.
+    fn add_uses(&mut self, n: usize) -> &Self;
+
+    /// Remove `n` uses to a `FoodEffect` or `PetEffect` if possible.
+    fn remove_uses(&mut self, n: usize) -> &Self;
 }
 
 #[derive(Debug, Deserialize, Serialize)]
