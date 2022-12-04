@@ -9,7 +9,6 @@ extern crate rocket;
 mod api;
 mod common;
 mod db;
-mod simulate;
 mod wiki_scraper;
 
 use log::info;
@@ -21,10 +20,9 @@ use crate::db::{
     query::{update_food_info, update_pet_info},
     setup::{create_tables, get_connection},
 };
-use crate::simulate::battle;
 
-pub const LOG_CONFIG: &str = "config/log_config.yaml";
-pub const SCRAPER_SOURCES: &str = "config/sources.json";
+pub const LOG_CONFIG: &str = "./config/log_config.yaml";
+pub const SCRAPER_SOURCES: &str = "./config/sources.json";
 pub const DB_CREATE_SQL: &str = "./src/db/sql/create_tables.sql";
 pub const DB_INSERT_PET_SQL: &str = "./src/db/sql/insert_pet.sql";
 pub const DB_INSERT_FOOD_SQL: &str = "./src/db/sql/insert_food.sql";

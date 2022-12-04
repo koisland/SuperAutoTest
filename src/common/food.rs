@@ -2,8 +2,13 @@ use crate::common::game::Pack;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    effect::Effect, effect::FoodEffect, effect::Position, effect::{Statistics, Modify}, effect::Target,
-    foods::names::FoodName, pets::names::PetName,
+    effect::Effect,
+    effect::FoodEffect,
+    effect::Position,
+    effect::Target,
+    effect::{Modify, Statistics},
+    foods::names::FoodName,
+    pets::names::PetName,
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -14,7 +19,7 @@ pub struct FoodRecord {
     pub pack: Pack,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Food {
     pub name: FoodName,
     pub ability: FoodEffect,
@@ -127,12 +132,16 @@ impl Food {
 
 impl Modify for Food {
     fn add_uses(&mut self, n: usize) -> &Self {
-        self.ability.uses.as_mut().map(|uses| *uses += n );
+        self.ability.uses.as_mut().map(|uses| *uses += n);
         self
     }
 
     fn remove_uses(&mut self, n: usize) -> &Self {
-        self.ability.uses.as_mut().map(|uses| if *uses >= n { *uses -= n } );
+        self.ability.uses.as_mut().map(|uses| {
+            if *uses >= n {
+                *uses -= n
+            }
+        });
         self
     }
 }

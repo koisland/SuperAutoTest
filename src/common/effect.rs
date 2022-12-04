@@ -13,13 +13,13 @@ pub static RGX_N_TRIGGERS: &lazy_regex::Lazy<lazy_regex::Regex> =
 pub static RGX_SUMMON_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)/"#);
 pub static RGX_SUMMON_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"/(\d+)"#);
 
-#[derive(Debug, Deserialize, Serialize, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Statistics {
     pub attack: usize,
     pub health: usize,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Action {
     Attack,
     Hurt,
@@ -29,7 +29,7 @@ pub enum Action {
     Pushed,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Position {
     Any,
     All,
@@ -38,7 +38,7 @@ pub enum Position {
     None,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct PetEffect {
     pub trigger: EffectTrigger,
     pub target: Target,
@@ -47,7 +47,7 @@ pub struct PetEffect {
     pub uses: Option<usize>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct FoodEffect {
     pub target: Target,
     pub position: Position,
@@ -63,7 +63,7 @@ pub trait Modify {
     fn remove_uses(&mut self, n: usize) -> &Self;
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Target {
     OnSelf,
     Friend,
@@ -71,13 +71,13 @@ pub enum Target {
     None,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Outcome {
     pub action: Action,
     pub position: Option<Position>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum EffectTrigger {
     StartBattle,
     OnSelf(Outcome),
@@ -87,7 +87,7 @@ pub enum EffectTrigger {
     NotImplemented,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum Effect {
     Add(Statistics),
     Remove(Statistics),

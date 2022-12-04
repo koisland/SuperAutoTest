@@ -6,8 +6,8 @@ use crate::db::{setup::get_connection, utils::map_row_to_pet};
 use super::{
     effect::PetEffect,
     effect::{
-        Action, Effect, EffectTrigger, Outcome, Position, Statistics, Target, RGX_ATK, RGX_HEALTH,
-        RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH, Modify,
+        Action, Effect, EffectTrigger, Modify, Outcome, Position, Statistics, Target, RGX_ATK,
+        RGX_HEALTH, RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
     },
     food::Food,
     game::Pack,
@@ -30,7 +30,7 @@ pub struct PetRecord {
 }
 
 /// A Super Auto Pet.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     pub name: PetName,
     pub tier: usize,
@@ -98,7 +98,6 @@ pub fn get_pet_effect(
     }
 }
 
-
 impl Pet {
     /// Create a new `Pet` with given stats and level
     pub fn new(
@@ -149,14 +148,18 @@ trait Combat {
 impl Modify for Pet {
     fn add_uses(&mut self, n: usize) -> &Self {
         if let Some(ability) = self.effect.as_mut() {
-            ability.uses.as_mut().map(|uses| *uses += n );
+            ability.uses.as_mut().map(|uses| *uses += n);
         }
         self
     }
 
     fn remove_uses(&mut self, n: usize) -> &Self {
         if let Some(ability) = self.effect.as_mut() {
-            ability.uses.as_mut().map(|uses| if *uses >= n { *uses -= n } );
+            ability.uses.as_mut().map(|uses| {
+                if *uses >= n {
+                    *uses -= n
+                }
+            });
         }
         self
     }

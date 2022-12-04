@@ -1,14 +1,14 @@
 use crate::{
     api::server::SapDB,
     common::food::FoodRecord,
-    common::pet::PetRecord,
+    common::{pet::PetRecord, team::Team},
     db::{
         query::{query_food, query_pet},
         utils::setup_param_query,
     },
 };
 use itertools::Itertools;
-use rocket::response::content::RawJson;
+use rocket::{form::Form, response::content::RawJson, serde::json::Json};
 use rusqlite::Error;
 use serde_json::to_string_pretty;
 
@@ -122,3 +122,13 @@ pub async fn foods(
         None
     }
 }
+
+#[derive(FromForm)]
+pub struct Teams {
+    team_1: Json<Team>,
+    team_2: Json<Team>,
+}
+
+#[post("/battle", data = "<teams>")]
+pub fn battle(teams: Form<Teams>) {}
+// { pet: Cat, lvl: 1, stats: {atk: 1, health: 2}, food: None}
