@@ -19,7 +19,7 @@ pub struct Statistics {
     pub health: usize,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Action {
     Attack,
     Hurt,
@@ -27,9 +27,10 @@ pub enum Action {
     Faint,
     Summoned,
     Pushed,
+    None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Position {
     Any,
     All,
@@ -63,7 +64,7 @@ pub trait Modify {
     fn remove_uses(&mut self, n: usize) -> &Self;
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Target {
     OnSelf,
     Friend,
@@ -71,16 +72,15 @@ pub enum Target {
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub struct Outcome {
     pub action: Action,
     pub position: Option<Position>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum EffectTrigger {
     StartBattle,
-    OnSelf(Outcome),
     Friend(Outcome),
     Enemy(Outcome),
     None,

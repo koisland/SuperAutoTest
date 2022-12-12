@@ -58,9 +58,9 @@ pub fn get_pet_effect(
 ) -> Option<PetEffect> {
     match pet {
         PetName::Ant => Some(PetEffect {
-            trigger: EffectTrigger::OnSelf(Outcome {
+            trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Faint,
-                position: None,
+                position: Some(Position::Specific(0)),
             }),
             target: Target::Friend,
             position: Position::Any,
@@ -75,9 +75,9 @@ pub fn get_pet_effect(
             uses: Some(n_triggers),
         }),
         PetName::Cricket => Some(PetEffect {
-            trigger: EffectTrigger::OnSelf(Outcome {
+            trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Faint,
-                position: None,
+                position: Some(Position::Specific(0)),
             }),
             target: Target::None,
             position: Position::Specific(0),
@@ -140,9 +140,16 @@ trait Shop {
     fn upgrade(&mut self, pet: &Pet);
 }
 
-trait Combat {
-    fn attack(&mut self, enemy: &mut Pet);
-    fn get_effect_stat_modifier(&self) -> Statistics;
+#[derive(Debug)]
+pub struct BattleOutcome {
+    friends: Outcome,
+    opponents: Outcome,
+}
+
+pub trait Combat {
+    fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
+    fn get_outcome(&self, new_health: usize) -> Outcome;
+    fn get_food_stat_modifier(&self) -> Statistics;
 }
 
 impl Modify for Pet {
@@ -166,10 +173,34 @@ impl Modify for Pet {
 }
 
 impl Combat for Pet {
+    fn get_outcome(&self, new_health: usize) -> Outcome {
+        let health_diff = self.stats.health - new_health;
+
+        if health_diff == self.stats.health {
+            // If difference between health before and after battle is equal the before battle health,
+            // pet lost all health during fight and has fainted.
+            Outcome {
+                action: Action::Faint,
+                position: Some(Position::Specific(0)),
+            }
+        } else if health_diff == 0 {
+            // If original health - new health is 0, pet wasn't hurt.
+            Outcome {
+                action: Action::None,
+                position: Some(Position::Specific(0)),
+            }
+        } else {
+            // Otherwise, pet was hurt.
+            Outcome {
+                action: Action::Hurt,
+                position: Some(Position::Specific(0)),
+            }
+        }
+    }
     /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
     ///
     /// If a pet has no held food, no `Statistics` are provided.
-    fn get_effect_stat_modifier(&self) -> Statistics {
+    fn get_food_stat_modifier(&self) -> Statistics {
         // If a pet has an item that alters stats...
         // Otherwise, no stat modifier added.
         self.item.as_ref().map_or(
@@ -179,7 +210,7 @@ impl Combat for Pet {
             },
             |food| {
                 let food_effect = food.ability.uses.as_ref().map_or(&Effect::None, |uses| {
-                    if *uses > 0 {
+                    if *uses > 0 && food.ability.target == Target::OnSelf {
                         // Return the food effect.
                         &food.ability.effect
                     } else {
@@ -204,37 +235,29 @@ impl Combat for Pet {
     /// Handle the logic of a single pet interaction during the battle phase.
     /// * Alters a `Pet`'s `stats.attack` and `stats.health`
     /// * Decrements any held `Food`'s `uses` attribute.
+    /// * Returns `BattleOutcome` showing status of pets.
     ///
     /// ```
-    /// use crate::common::{
-    ///     effect::Statistics, pet::{Combat, Pet},
-    ///     pets::names::PetName,
-    /// };
+    ///let ant_1 = Pet::new(PetName::Ant,
+    ///    Statistics {attack: 2, health: 1}, 1, None).unwrap();
+    ///let ant_2 = Pet::new(PetName::Ant,
+    ///    Statistics {attack: 2, health: 3}, 1, None).unwrap();
     ///
-    /// fn main() {
-    ///     let ant_1 = Pet::new(PetName::Ant,
-    ///         Statistics {attack: 2, health: 1}, 1, None).unwrap();
-    ///     let ant_2 = Pet::new(PetName::Ant,
-    ///         Statistics {attack: 2, health: 3}, 1, None).unwrap();
-    ///
-    ///     ant_t1.attack(&mut ant_t2);
-    ///
-    ///     assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
-    /// }
+    ///let outcome = ant_t1.attack(&mut ant_t2);
     /// ```
-    fn attack(&mut self, enemy: &mut Pet) {
-        // TODO: Convert to Result<(), Box<dyn Error>>
-        let stat_modifier = self.get_effect_stat_modifier();
-        let enemy_stat_modifer = enemy.get_effect_stat_modifier();
+    fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome {
+        // Get stat modifier from food.
+        let stat_modifier = self.get_food_stat_modifier();
+        let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk = (enemy.stats.attack + enemy_stat_modifer.attack)
+        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
             .checked_sub(stat_modifier.health)
             .unwrap_or(0);
         let new_health = self.stats.health.checked_sub(enemy_atk).unwrap_or(0);
 
         let atk = (self.stats.attack + stat_modifier.attack)
-            .checked_sub(enemy_stat_modifer.health)
+            .checked_sub(enemy_stat_modifier.health)
             .unwrap_or(0);
         let new_enemy_health = enemy.stats.health.checked_sub(atk).unwrap_or(0);
 
@@ -242,18 +265,29 @@ impl Combat for Pet {
         self.item.as_mut().map(|item| item.remove_uses(1));
         enemy.item.as_mut().map(|item| item.remove_uses(1));
 
+        // Get outcomes for both pets.
+        // This doesn't factor in splash effects as pets outside of battle are affected.
+        let outcome = self.get_outcome(new_health);
+        let enemy_outcome = enemy.get_outcome(new_enemy_health);
+
         // Set the new health of a pet.
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;
+
+        BattleOutcome {
+            friends: outcome,
+            opponents: enemy_outcome,
+        }
     }
 }
 
 mod tests {
     use crate::common::{
         effect::Statistics,
+        effect::{Outcome, Position},
         food::Food,
         foods::names::FoodName,
-        pet::{Combat, Pet},
+        pet::{Action, Combat, Pet},
         pets::names::PetName,
     };
 
@@ -280,9 +314,23 @@ mod tests {
         )
         .unwrap();
 
-        ant_t1.attack(&mut ant_t2);
+        let outcome = ant_t1.attack(&mut ant_t2);
 
         assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
+        assert!(
+            outcome.friends
+                == Outcome {
+                    action: Action::Faint,
+                    position: Some(Position::Specific(0))
+                }
+        );
+        assert!(
+            outcome.opponents
+                == Outcome {
+                    action: Action::Hurt,
+                    position: Some(Position::Specific(0))
+                }
+        );
     }
 
     #[test]
