@@ -1,13 +1,12 @@
 use serde::{Deserialize, Serialize};
-use std::error::Error;
+use std::{collections::VecDeque, error::Error};
 
 use crate::db::{setup::get_connection, utils::map_row_to_pet};
 
 use super::{
-    effect::PetEffect,
     effect::{
-        Action, Effect, EffectTrigger, Modify, Outcome, Position, Statistics, Target, RGX_ATK,
-        RGX_HEALTH, RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
+        Action, Effect, EffectAction, EffectTrigger, EffectType, Modify, Outcome, Position,
+        Statistics, Target, RGX_ATK, RGX_HEALTH, RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
     },
     food::Food,
     game::Pack,
@@ -36,7 +35,7 @@ pub struct Pet {
     pub tier: usize,
     pub stats: Statistics,
     pub lvl: usize,
-    pub effect: Option<PetEffect>,
+    pub effect: Option<Effect>,
     pub item: Option<Food>,
 }
 
@@ -55,44 +54,48 @@ pub fn get_pet_effect(
     pet: &PetName,
     effect_stats: Statistics,
     n_triggers: usize,
-) -> Option<PetEffect> {
+) -> Option<Effect> {
     match pet {
-        PetName::Ant => Some(PetEffect {
+        PetName::Ant => Some(Effect {
             trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Faint,
                 position: Some(Position::Specific(0)),
             }),
             target: Target::Friend,
             position: Position::Any,
-            effect: Effect::Add(effect_stats),
+            effect: EffectAction::Add(effect_stats),
             uses: Some(n_triggers),
+            effect_type: EffectType::Pet,
         }),
-        PetName::Mosquito => Some(PetEffect {
+        PetName::Mosquito => Some(Effect {
             trigger: EffectTrigger::StartBattle,
             target: Target::Enemy,
             position: Position::Any,
-            effect: Effect::Remove(effect_stats),
+            effect: EffectAction::Remove(effect_stats),
             uses: Some(n_triggers),
+            effect_type: EffectType::Pet,
         }),
-        PetName::Cricket => Some(PetEffect {
+        PetName::Cricket => Some(Effect {
             trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Faint,
                 position: Some(Position::Specific(0)),
             }),
             target: Target::None,
             position: Position::Specific(0),
-            effect: Effect::Summon(Some(PetName::ZombieCricket), effect_stats),
+            effect: EffectAction::Summon(Some(PetName::ZombieCricket), effect_stats),
             uses: Some(n_triggers),
+            effect_type: EffectType::Pet,
         }),
-        PetName::Horse => Some(PetEffect {
+        PetName::Horse => Some(Effect {
             trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Summoned,
                 position: Some(Position::Trigger),
             }),
             target: Target::Friend,
             position: Position::Trigger,
-            effect: Effect::Add(effect_stats),
+            effect: EffectAction::Add(effect_stats),
             uses: None,
+            effect_type: EffectType::Pet,
         }),
         _ => None,
     }
@@ -109,7 +112,7 @@ impl Pet {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets where name = ? and lvl = ?")?;
         let pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
-        let pet_effect = pet_record.effect.unwrap_or("None".to_string());
+        let pet_effect = pet_record.effect.unwrap_or_else(|| "None".to_string());
 
         let mut effect_stats = Statistics {
             attack: num_regex(RGX_ATK, &pet_effect).ok().unwrap_or(0),
@@ -120,7 +123,7 @@ impl Pet {
             effect_stats.attack = num_regex(RGX_SUMMON_ATK, &pet_effect).ok().unwrap_or(1);
             effect_stats.health = num_regex(RGX_SUMMON_HEALTH, &pet_effect).ok().unwrap_or(1);
         }
-        let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).ok().unwrap_or(1) as usize;
+        let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).ok().unwrap_or(1);
         // TODO: Parse from pet description.
         let effect = get_pet_effect(&name, effect_stats, n_triggers);
 
@@ -142,34 +145,14 @@ trait Shop {
 
 #[derive(Debug)]
 pub struct BattleOutcome {
-    friends: Outcome,
-    opponents: Outcome,
+    pub friends: VecDeque<EffectTrigger>,
+    pub opponents: VecDeque<EffectTrigger>,
 }
 
 pub trait Combat {
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
     fn get_outcome(&self, new_health: usize) -> Outcome;
     fn get_food_stat_modifier(&self) -> Statistics;
-}
-
-impl Modify for Pet {
-    fn add_uses(&mut self, n: usize) -> &Self {
-        if let Some(ability) = self.effect.as_mut() {
-            ability.uses.as_mut().map(|uses| *uses += n);
-        }
-        self
-    }
-
-    fn remove_uses(&mut self, n: usize) -> &Self {
-        if let Some(ability) = self.effect.as_mut() {
-            ability.uses.as_mut().map(|uses| {
-                if *uses >= n {
-                    *uses -= n
-                }
-            });
-        }
-        self
-    }
 }
 
 impl Combat for Pet {
@@ -209,20 +192,24 @@ impl Combat for Pet {
                 health: 0,
             },
             |food| {
-                let food_effect = food.ability.uses.as_ref().map_or(&Effect::None, |uses| {
-                    if *uses > 0 && food.ability.target == Target::OnSelf {
-                        // Return the food effect.
-                        &food.ability.effect
-                    } else {
-                        &Effect::None
-                    }
-                });
+                let food_effect = food
+                    .ability
+                    .uses
+                    .as_ref()
+                    .map_or(&EffectAction::None, |uses| {
+                        if *uses > 0 && food.ability.target == Target::OnSelf {
+                            // Return the food effect.
+                            &food.ability.effect
+                        } else {
+                            &EffectAction::None
+                        }
+                    });
 
                 match food_effect {
                     // Get stat modifiers from effects.
-                    Effect::Add(stats) | Effect::Remove(stats) | Effect::Negate(stats) => {
-                        stats.clone()
-                    }
+                    EffectAction::Add(stats)
+                    | EffectAction::Remove(stats)
+                    | EffectAction::Negate(stats) => stats.clone(),
                     // Otherwise, no change.
                     _ => Statistics {
                         attack: 0,
@@ -251,19 +238,17 @@ impl Combat for Pet {
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
-            .checked_sub(stat_modifier.health)
-            .unwrap_or(0);
-        let new_health = self.stats.health.checked_sub(enemy_atk).unwrap_or(0);
+        let enemy_atk =
+            (enemy.stats.attack + enemy_stat_modifier.attack).saturating_sub(stat_modifier.health);
+        let new_health = self.stats.health.saturating_sub(enemy_atk);
 
-        let atk = (self.stats.attack + stat_modifier.attack)
-            .checked_sub(enemy_stat_modifier.health)
-            .unwrap_or(0);
-        let new_enemy_health = enemy.stats.health.checked_sub(atk).unwrap_or(0);
+        let atk =
+            (self.stats.attack + stat_modifier.attack).saturating_sub(enemy_stat_modifier.health);
+        let new_enemy_health = enemy.stats.health.saturating_sub(atk);
 
         // Decrement number of uses on items, if any.
-        self.item.as_mut().map(|item| item.remove_uses(1));
-        enemy.item.as_mut().map(|item| item.remove_uses(1));
+        self.item.as_mut().map(|item| item.ability.remove_uses(1));
+        enemy.item.as_mut().map(|item| item.ability.remove_uses(1));
 
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
@@ -274,9 +259,16 @@ impl Combat for Pet {
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;
 
+        // TODO: Rc instead?
         BattleOutcome {
-            friends: outcome,
-            opponents: enemy_outcome,
+            friends: VecDeque::from_iter([
+                EffectTrigger::Friend(outcome.clone()),
+                EffectTrigger::Enemy(enemy_outcome.clone()),
+            ]),
+            opponents: VecDeque::from_iter([
+                EffectTrigger::Friend(enemy_outcome.clone()),
+                EffectTrigger::Enemy(outcome.clone()),
+            ]),
         }
     }
 }
@@ -317,20 +309,7 @@ mod tests {
         let outcome = ant_t1.attack(&mut ant_t2);
 
         assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
-        assert!(
-            outcome.friends
-                == Outcome {
-                    action: Action::Faint,
-                    position: Some(Position::Specific(0))
-                }
-        );
-        assert!(
-            outcome.opponents
-                == Outcome {
-                    action: Action::Hurt,
-                    position: Some(Position::Specific(0))
-                }
-        );
+        // TODO: Add triggers
     }
 
     #[test]

@@ -1,19 +1,25 @@
 use super::{
-    effect::{Action, Effect, EffectTrigger, Modify, Outcome, PetEffect, Position, Target},
+    effect::{Action, Effect, EffectAction, EffectTrigger, Modify, Outcome, Position, Target},
     pet::{self, Combat, Pet},
 };
+use itertools::Itertools;
 use log::info;
+use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
 const TEAM_SIZE: usize = 5;
-const TRIGGER_BEFORE_ATTACK: EffectTrigger = EffectTrigger::Friend(Outcome {
+const TRIGGER_SELF_ATTACK: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Attack,
     position: Some(Position::Specific(0)),
 });
 const TRIGGER_AHEAD_ATTACK: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Attack,
     position: Some(Position::Specific(-1)),
+});
+const TRIGGER_SELF_HURT: EffectTrigger = EffectTrigger::Friend(Outcome {
+    action: Action::Hurt,
+    position: Some(Position::Specific(0)),
 });
 const TRIGGER_ANY_FAINT: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Faint,
@@ -31,6 +37,7 @@ const TRIGGER_AHEAD_FAINT: EffectTrigger = EffectTrigger::Friend(Outcome {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Team {
     pub friends: Vec<Option<Pet>>,
+    pub triggers: VecDeque<EffectTrigger>,
 }
 
 pub trait Summary {
@@ -39,8 +46,10 @@ pub trait Summary {
 }
 pub trait Battle {
     // fn is_team_alive(&self) -> bool;
-    fn next_pet(&mut self) -> Option<&mut Pet>;
-    fn apply_triggers(&mut self, opponent: &mut Team, triggers: &mut VecDeque<EffectTrigger>);
+    fn clear_team(&mut self) -> &mut Self;
+    fn get_next_pet(&mut self) -> Option<&mut Pet>;
+    fn get_any_pet(&mut self) -> Option<&mut Pet>;
+    fn apply_triggers(&mut self, opponent: &mut Team) -> &mut Self;
     fn fight(&mut self, opponent: &mut Team);
 }
 
@@ -52,6 +61,7 @@ impl Team {
 
         Ok(Team {
             friends: pets.to_vec(),
+            triggers: VecDeque::from_iter([EffectTrigger::StartBattle]),
         })
     }
 }
@@ -64,66 +74,119 @@ impl Battle for Team {
     //         .any(|pet| pet.as_ref().map_or(false, |pet| ))
     // }
 
+    /// Remove gaps in `Team` and any fainted `Pet`s.
+    fn clear_team(&mut self) -> &mut Self {
+        self.friends = self
+            .friends
+            .iter()
+            .filter(|pet| pet.is_some() && pet.as_ref().map_or(false, |pet| pet.stats.health != 0))
+            .cloned()
+            .collect_vec();
+        self
+    }
     /// Get the next pet in team.
-    fn next_pet(&mut self) -> Option<&mut Pet> {
+    fn get_next_pet(&mut self) -> Option<&mut Pet> {
         self.friends
             .iter_mut()
-            // Allows for spaces in team.
-            .find(|pet| pet.is_some() && pet.as_ref().map_or(false, |pet| pet.stats.health != 0))
+            .next()
+            .map(|pet| pet.as_mut().unwrap())
+    }
+
+    fn get_any_pet(&mut self) -> Option<&mut Pet> {
+        let mut rng = rand::thread_rng();
+        self.friends
+            .iter_mut()
+            .choose(&mut rng)
             .map(|pet| pet.as_mut().unwrap())
     }
 
     /// Apply provided effect triggers to both teams.
-    fn apply_triggers(&mut self, opponent: &mut Team, triggers: &mut VecDeque<EffectTrigger>) {
+    fn apply_triggers(&mut self, opponent: &mut Team) -> &mut Self {
         // Continue iterating until all triggers consumed.
-        while let Some(trigger) = triggers.front() {
+        while let Some(trigger) = self.triggers.front() {
             // Iterate through pets.
-            for pet in self.friends.iter() {
-                if let Some(pet) = pet {
-                    pet.effect
-                        .as_ref()
-                        // Check if pet's effect_trigger is in provided triggers.
-                        .map(|effect| if trigger == &effect.trigger {});
+            for (pos, pet) in self
+                .friends
+                .iter_mut()
+                .filter_map(|pet| pet.as_mut())
+                .enumerate()
+            {
+                if let Some(effect) = pet.effect.as_mut() {
+                    for _ in 0..effect.uses.unwrap_or(0) {
+                        if trigger == &effect.trigger {
+                            match effect.target {
+                                Target::OnSelf => {}
+                                Target::Friend => {}
+                                Target::Enemy => {}
+                                Target::None => todo!(),
+                            };
+                            effect.remove_uses(1);
+                        }
+                    }
                 }
             }
             // Cleanup fainted pets.
+
+            // Remove checked trigger.
+            self.triggers.pop_front();
         }
+        self
     }
 
     fn fight(&mut self, opponent: &mut Team) {
-        let mut triggers: VecDeque<EffectTrigger> =
-            VecDeque::from_iter([EffectTrigger::StartBattle]);
-
-        self.apply_triggers(opponent, &mut triggers);
+        // Clear empty spaces and fainted pets.
+        self.clear_team().apply_triggers(opponent);
+        opponent.clear_team().apply_triggers(self);
 
         // Check that both teams have a pet that is alive.
-        while let (Some(first_pet), Some(first_enemy_pet)) = (self.next_pet(), opponent.next_pet())
-        {
-            // TODO: Trigger Before Attack && Friend Ahead attack.
-            // TRIGGER_AHEAD_ATTACK
-            // TRIGGER_BEFORE_ATTACK
-            // self.friends.iter().map(|pet| );
-            // Attack
-            let outcome = first_pet.attack(first_enemy_pet);
-            info!("Outcome of fight: {:?}", outcome);
+        while self.friends.len() != 0 && opponent.friends.len() != 0 {
+            // Trigger Before Attack && Friend Ahead attack.
+            self.triggers
+                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+            opponent
+                .triggers
+                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
-            // Apply food effect that targets after combat. ex. Splash
-            if let Some(food) = first_pet.item.as_mut() {
-                let food_effect = &food.ability;
-                let target = &food_effect.target;
-                match food_effect.target {
-                    Target::Enemy => match &food_effect.effect {
-                        Effect::Remove(_) => {}
-                        _ => {}
-                    },
-                    _ => {}
+            self.clear_team().apply_triggers(opponent);
+            opponent.clear_team().apply_triggers(self);
+
+            // Check that two pets exist
+            if let (Some(pet), Some(opponent_pet)) = (self.get_next_pet(), opponent.get_next_pet())
+            {
+                // Attack
+                let outcome = pet.attack(opponent_pet);
+                info!("Outcome of fight: {:?}", outcome);
+
+                // Apply food effect that:
+                //  * Targets another pet during combat
+                //  * Does damage.
+                //  * And affects a specific position
+                //  * ex. Chili
+                if let Some(food) = pet.item.as_mut() {
+                    let food_effect = &food.ability;
+                    if let (Target::Enemy, EffectAction::Remove(stats), Position::Specific(idx)) = (
+                        &food_effect.target,
+                        &food_effect.effect,
+                        &food_effect.position,
+                    ) {
+                        if let Some(target) = opponent
+                            .friends
+                            .get_mut(*idx as usize)
+                            .map(|pet| pet.as_mut().unwrap())
+                        {
+                            target.stats.sub(stats);
+                            food.ability.remove_uses(1);
+                        }
+                    }
                 }
-                food.remove_uses(1);
-            }
-            // If any hurt.
 
-            // If any faint.
+                // Apply effect triggers from combat
+                self.clear_team().apply_triggers(opponent);
+                opponent.clear_team().apply_triggers(self);
+            }
         }
+        self.clear_team();
+        opponent.clear_team();
     }
 }
 

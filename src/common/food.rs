@@ -2,10 +2,7 @@ use crate::common::game::Pack;
 use serde::{Deserialize, Serialize};
 
 use super::{
-    effect::Effect,
-    effect::FoodEffect,
-    effect::Position,
-    effect::Target,
+    effect::{Effect, EffectAction, EffectTrigger, EffectType, Position, Target},
     effect::{Modify, Statistics},
     foods::names::FoodName,
     pets::names::PetName,
@@ -22,44 +19,50 @@ pub struct FoodRecord {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Food {
     pub name: FoodName,
-    pub ability: FoodEffect,
+    pub ability: Effect,
 }
 
-fn get_food_effect(name: &FoodName) -> FoodEffect {
+fn get_food_effect(name: &FoodName) -> Effect {
     match name {
-        FoodName::Chili => FoodEffect {
+        FoodName::Chili => Effect {
             target: Target::Enemy,
             // Next enemy relative to position.
             position: Position::Specific(1),
-            effect: Effect::Remove(Statistics {
+            effect: EffectAction::Remove(Statistics {
                 attack: 0,
                 health: 5,
             }),
             uses: None,
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Coconut => FoodEffect {
+        FoodName::Coconut => Effect {
             target: Target::OnSelf,
             position: Position::None,
             // Negate 150 health hit. Pretty much invulnerability.
-            effect: Effect::Negate(Statistics {
+            effect: EffectAction::Negate(Statistics {
                 attack: 0,
                 health: 150,
             }),
             uses: Some(1),
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Garlic => FoodEffect {
+        FoodName::Garlic => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Negate(Statistics {
+            effect: EffectAction::Negate(Statistics {
                 attack: 0,
                 health: 2,
             }),
             uses: None,
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Honey => FoodEffect {
+        FoodName::Honey => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Summon(
+            effect: EffectAction::Summon(
                 Some(PetName::Bee),
                 Statistics {
                     attack: 1,
@@ -67,29 +70,35 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 },
             ),
             uses: None,
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::MeatBone => FoodEffect {
+        FoodName::MeatBone => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Add(Statistics {
+            effect: EffectAction::Add(Statistics {
                 attack: 4,
                 health: 0,
             }),
             uses: None,
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Melon => FoodEffect {
+        FoodName::Melon => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Negate(Statistics {
+            effect: EffectAction::Negate(Statistics {
                 attack: 0,
                 health: 20,
             }),
             uses: Some(1),
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Mushroom => FoodEffect {
+        FoodName::Mushroom => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Summon(
+            effect: EffectAction::Summon(
                 // Replace during runtime.
                 None,
                 Statistics {
@@ -98,24 +107,30 @@ fn get_food_effect(name: &FoodName) -> FoodEffect {
                 },
             ),
             uses: Some(1),
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Peanuts => FoodEffect {
+        FoodName::Peanuts => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Add(Statistics {
+            effect: EffectAction::Add(Statistics {
                 attack: 150,
                 health: 0,
             }),
             uses: None,
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
-        FoodName::Steak => FoodEffect {
+        FoodName::Steak => Effect {
             target: Target::OnSelf,
             position: Position::None,
-            effect: Effect::Add(Statistics {
+            effect: EffectAction::Add(Statistics {
                 attack: 20,
                 health: 0,
             }),
             uses: Some(1),
+            effect_type: EffectType::Food,
+            trigger: EffectTrigger::None,
         },
     }
 }
@@ -127,21 +142,5 @@ impl Food {
             name: name.clone(),
             ability: get_food_effect(name),
         }
-    }
-}
-
-impl Modify for Food {
-    fn add_uses(&mut self, n: usize) -> &Self {
-        self.ability.uses.as_mut().map(|uses| *uses += n);
-        self
-    }
-
-    fn remove_uses(&mut self, n: usize) -> &Self {
-        self.ability.uses.as_mut().map(|uses| {
-            if *uses >= n {
-                *uses -= n
-            }
-        });
-        self
     }
 }

@@ -77,7 +77,7 @@ pub async fn pets(
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
     let query: Result<Vec<PetRecord>, Error> = conn
-        .run(move |c| query_pet(&c, &sql_stmt, &flat_sql_params))
+        .run(move |c| query_pet(c, &sql_stmt, &flat_sql_params))
         .await;
     if let Ok(res) = query {
         Some(RawJson(to_string_pretty(&res).unwrap()))
@@ -114,7 +114,7 @@ pub async fn foods(
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
     let query: Result<Vec<FoodRecord>, Error> = conn
-        .run(move |c| query_food(&c, &sql_stmt, &flat_sql_params))
+        .run(move |c| query_food(c, &sql_stmt, &flat_sql_params))
         .await;
     if let Ok(res) = query {
         Some(RawJson(to_string_pretty(&res).unwrap()))
