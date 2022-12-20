@@ -11,7 +11,11 @@ use super::{
     food::Food,
     game::Pack,
     pets::names::PetName,
+    team::Team,
 };
+
+const MIN_DMG: usize = 1;
+const MAX_DMG: usize = 150;
 
 /// A record with information about a pet from *Super Auto Pets*.
 ///
@@ -80,7 +84,7 @@ pub fn get_pet_effect(
                 action: Action::Faint,
                 position: Some(Position::Specific(0)),
             }),
-            target: Target::None,
+            target: Target::Friend,
             position: Position::Specific(0),
             effect: EffectAction::Summon(Some(PetName::ZombieCricket), effect_stats),
             uses: Some(n_triggers),
@@ -151,15 +155,68 @@ pub struct BattleOutcome {
 
 pub trait Combat {
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Outcome;
+    fn apply_food_effect(&mut self, opponent: &mut Team);
     fn get_outcome(&self, new_health: usize) -> Outcome;
     fn get_food_stat_modifier(&self) -> Statistics;
 }
 
 impl Combat for Pet {
-    fn get_outcome(&self, new_health: usize) -> Outcome {
-        let health_diff = self.stats.health - new_health;
+    /// Get `Outcome` when pet hit by a projectile/indirect attack.
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Outcome {
+        // Get food status modifier. ex. Melon/Garlic
+        let stat_modifier = self.get_food_stat_modifier();
+        // Subtract stat_modifer (150/2) from indirect attack.
+        let enemy_atk = hit_stats
+            .attack
+            .saturating_sub(stat_modifier.health)
+            // Must do a minimum of 1 damage.
+            .clamp(MIN_DMG, MAX_DMG);
+        let new_health = self.stats.health.saturating_sub(enemy_atk);
 
-        if health_diff == self.stats.health {
+        // Use health difference to determine outcome.
+        let outcome = self.get_outcome(new_health);
+        // Set new health.
+        self.stats.health = new_health;
+        outcome
+    }
+
+    /// Apply an `Effect` of a `Food` that:
+    ///  * Targets a `Pet` other than itself during combat
+    ///  * Does damage remove some `Statistics`.
+    ///  * And affects a specific `Position`.
+    fn apply_food_effect(&mut self, opponent: &mut Team) {
+        if let Some(food) = self.item.as_mut() {
+            let food_effect = &food.ability;
+            // Food targets an enemy at a specific position and removes stats.
+            if let (Target::Enemy, EffectAction::Remove(stats), Position::Specific(idx)) = (
+                &food_effect.target,
+                &food_effect.effect,
+                &food_effect.position,
+            ) {
+                if let Some(target) = opponent
+                    .friends
+                    .get_mut(*idx as usize)
+                    .map(|pet| pet.as_mut().unwrap())
+                {
+                    let indir_atk_outcome = target.indirect_attack(stats);
+                    info!(
+                        "Used {:?}'s {:?} -> {:?} {:?}",
+                        self.name, food.name, target.name, indir_atk_outcome
+                    );
+                    opponent
+                        .triggers
+                        .push_back(EffectTrigger::Friend(indir_atk_outcome));
+                    food.ability.remove_uses(1);
+                }
+            }
+        }
+    }
+
+    /// Get `Outcome` when health is altered.
+    fn get_outcome(&self, new_health: usize) -> Outcome {
+        let health_diff = self.stats.health.saturating_sub(new_health);
+        let outcome = if health_diff == self.stats.health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
             Outcome {
@@ -178,7 +235,9 @@ impl Combat for Pet {
                 action: Action::Hurt,
                 position: Some(Position::Specific(0)),
             }
-        }
+        };
+        info!("Outcome for {:?}: {:?}", self.name, outcome);
+        outcome
     }
     /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
     ///
@@ -238,12 +297,14 @@ impl Combat for Pet {
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk =
-            (enemy.stats.attack + enemy_stat_modifier.attack).saturating_sub(stat_modifier.health);
+        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
+            .saturating_sub(stat_modifier.health)
+            .clamp(MIN_DMG, MAX_DMG);
         let new_health = self.stats.health.saturating_sub(enemy_atk);
 
-        let atk =
-            (self.stats.attack + stat_modifier.attack).saturating_sub(enemy_stat_modifier.health);
+        let atk = (self.stats.attack + stat_modifier.attack)
+            .saturating_sub(enemy_stat_modifier.health)
+            .clamp(MIN_DMG, MAX_DMG);
         let new_enemy_health = enemy.stats.health.saturating_sub(atk);
 
         // Decrement number of uses on items, if any.
@@ -259,15 +320,14 @@ impl Combat for Pet {
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;
 
-        // TODO: Rc instead?
         BattleOutcome {
             friends: VecDeque::from_iter([
                 EffectTrigger::Friend(outcome.clone()),
                 EffectTrigger::Enemy(enemy_outcome.clone()),
             ]),
             opponents: VecDeque::from_iter([
-                EffectTrigger::Friend(enemy_outcome.clone()),
-                EffectTrigger::Enemy(outcome.clone()),
+                EffectTrigger::Friend(enemy_outcome),
+                EffectTrigger::Enemy(outcome),
             ]),
         }
     }
