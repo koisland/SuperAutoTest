@@ -125,6 +125,7 @@ impl Battle for Team {
             .filter_map(|pet| pet.as_mut())
             .collect_vec()
     }
+
     /// Apply provided effect triggers to both teams.
     fn apply_triggers(&mut self, opponent: &mut Team) -> &mut Self {
         // Continue iterating until all triggers consumed.
@@ -132,10 +133,25 @@ impl Battle for Team {
             let mut valid_effects: VecDeque<Effect> = VecDeque::new();
 
             // Iterate through pets collecting valid effects.
-            for pet in self.friends.iter_mut().filter_map(|pet| pet.as_mut()) {
+            for (i, pet) in self
+                .friends
+                .iter_mut()
+                .filter_map(|pet| pet.as_mut())
+                .enumerate()
+            {
+                // TODO: check food effect
+                if let Some(food) = pet.item.as_mut() {
+                    if trigger == &food.ability.trigger {
+                        // Adjust food effect's position to match pet.
+                        food.ability.position = Position::Specific(i as isize);
+                        valid_effects.push_back(food.ability.clone());
+                        food.ability.remove_uses(1);
+                    }
+                }
                 if let Some(effect) = pet.effect.as_mut() {
                     // Match on trigger in triggers.
-                    if trigger == &effect.trigger {
+                    // Also allow if effect triggers on any pet since cannot know until runtime.
+                    if trigger == &effect.trigger || effect.trigger.affects_any() {
                         // Clone the effect
                         valid_effects.push_back(effect.clone());
                         // Decrement its use.
@@ -159,7 +175,26 @@ impl Battle for Team {
                                         target.item = Some(*food.clone());
                                     }
                                     // Must also emit EffectTrigger for summon.
-                                    EffectAction::Summon(pet, pet_stats) => {}
+                                    EffectAction::Summon(pet) => {
+                                        if self.get_all_pets().len() == 5 {
+                                            info!("Team is full.");
+                                            continue;
+                                        }
+                                        if let Some(stored_pet) = pet.clone() {
+                                            let mut rng = rand::thread_rng();
+                                            let random_pos =
+                                                (0..5).choose(&mut rng).unwrap() as usize;
+                                            self.friends.insert(random_pos, Some(*stored_pet));
+                                            self.triggers.push_back(EffectTrigger::Friend(
+                                                Outcome {
+                                                    action: Action::Summoned,
+                                                    position: Some(Position::Specific(
+                                                        random_pos as isize,
+                                                    )),
+                                                },
+                                            ))
+                                        }
+                                    }
                                     _ => {}
                                 }
                             }
@@ -178,12 +213,52 @@ impl Battle for Team {
                             _ => {}
                         },
                         Position::Trigger => todo!(),
-                        Position::Specific(_) => todo!(),
-                        Position::None => todo!(),
+                        Position::Specific(pos) => todo!(),
+                        _ => {}
                     },
 
                     Target::Enemy => match effect.position {
-                        Position::Any => todo!(),
+                        Position::Any => {
+                            if let Some(target) = opponent.get_any_pet() {
+                                match &effect.effect {
+                                    EffectAction::Add(stats) => {
+                                        target.stats.add(stats);
+                                        info!("Added {:?} to {:?}", stats, target)
+                                    }
+                                    EffectAction::Remove(stats) => {
+                                        target.stats.sub(stats);
+                                        info!("Removed {:?} to {:?}", stats, target)
+                                    }
+                                    EffectAction::Gain(food) => {
+                                        target.item = Some(*food.clone());
+                                        info!("Gave {:?} to {:?}", food, target)
+                                    }
+                                    // Must also emit EffectTrigger for summon.
+                                    EffectAction::Summon(pet) => {
+                                        if opponent.get_all_pets().len() == 5 {
+                                            info!("Team is full. Cannot add {:?}", pet);
+                                            continue;
+                                        }
+                                        if let Some(stored_pet) = pet.clone() {
+                                            let mut rng = rand::thread_rng();
+                                            let random_pos =
+                                                (0..5).choose(&mut rng).unwrap() as usize;
+                                            info!("Summoned {:?}.", &stored_pet);
+                                            opponent.friends.insert(random_pos, Some(*stored_pet));
+                                            opponent.triggers.push_back(EffectTrigger::Friend(
+                                                Outcome {
+                                                    action: Action::Summoned,
+                                                    position: Some(Position::Specific(
+                                                        random_pos as isize,
+                                                    )),
+                                                },
+                                            ))
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                        },
                         Position::All => todo!(),
                         Position::Trigger => todo!(),
                         Position::Specific(_) => todo!(),
@@ -243,8 +318,9 @@ impl Battle for Team {
             self.clear_team().apply_triggers(opponent);
             opponent.clear_team().apply_triggers(self);
         }
-
-        if self.friends.is_empty() {
+        if self.friends.is_empty() && opponent.friends.is_empty() {
+            info!("Draw!")
+        } else if self.friends.is_empty() {
             info!("Your team won!")
         } else {
             info!("Enemy team won...")
@@ -254,7 +330,8 @@ impl Battle for Team {
 
 mod tests {
     use crate::common::{
-        effect::Statistics, pet::Pet, pets::names::PetName, team::Battle, team::Team,
+        effect::Statistics, food::Food, foods::names::FoodName, pet::Pet, pets::names::PetName,
+        team::Battle, team::Team,
     };
 
     #[test]
@@ -354,7 +431,7 @@ mod tests {
                 health: 1,
             },
             1,
-            None,
+            Some(Food::new(&FoodName::Honey)),
         )
         .unwrap();
 

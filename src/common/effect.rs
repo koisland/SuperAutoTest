@@ -2,7 +2,7 @@ use lazy_regex::regex;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 
-use super::{food::Food, pets::names::PetName};
+use super::{food::Food, pet::Pet};
 
 pub static RGX_PERC: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)%"#);
 pub static RGX_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d)\sattack"#);
@@ -119,13 +119,34 @@ pub enum EffectTrigger {
     NotImplemented,
 }
 
+impl EffectTrigger {
+    pub fn affects_any(&self) -> bool {
+        match self {
+            EffectTrigger::Friend(outcome) => {
+                if outcome.position == Some(Position::Any) {
+                    true
+                } else {
+                    false
+                }
+            }
+            EffectTrigger::Enemy(outcome) => {
+                if outcome.position == Some(Position::Any) {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+}
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum EffectAction {
     Add(Statistics),
     Remove(Statistics),
     Negate(Statistics),
     Gain(Box<Food>),
-    Summon(Option<PetName>, Statistics),
+    Summon(Option<Box<Pet>>),
     None,
     NotImplemented,
 }

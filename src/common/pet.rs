@@ -57,6 +57,7 @@ pub fn num_regex(
 pub fn get_pet_effect(
     pet: &PetName,
     effect_stats: Statistics,
+    lvl: usize,
     n_triggers: usize,
 ) -> Option<Effect> {
     match pet {
@@ -79,21 +80,25 @@ pub fn get_pet_effect(
             uses: Some(n_triggers),
             effect_type: EffectType::Pet,
         }),
-        PetName::Cricket => Some(Effect {
-            trigger: EffectTrigger::Friend(Outcome {
-                action: Action::Faint,
-                position: Some(Position::Specific(0)),
-            }),
-            target: Target::Friend,
-            position: Position::Specific(0),
-            effect: EffectAction::Summon(Some(PetName::ZombieCricket), effect_stats),
-            uses: Some(n_triggers),
-            effect_type: EffectType::Pet,
-        }),
+        PetName::Cricket => {
+            let zombie_cricket =
+                Box::new(Pet::new(PetName::ZombieCricket, effect_stats, lvl, None).unwrap());
+            Some(Effect {
+                trigger: EffectTrigger::Friend(Outcome {
+                    action: Action::Faint,
+                    position: Some(Position::Specific(0)),
+                }),
+                target: Target::Friend,
+                position: Position::Specific(0),
+                effect: EffectAction::Summon(Some(zombie_cricket)),
+                uses: Some(n_triggers),
+                effect_type: EffectType::Pet,
+            })
+        }
         PetName::Horse => Some(Effect {
             trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Summoned,
-                position: Some(Position::Trigger),
+                position: Some(Position::Any),
             }),
             target: Target::Friend,
             position: Position::Trigger,
@@ -129,7 +134,7 @@ impl Pet {
         }
         let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).ok().unwrap_or(1);
         // TODO: Parse from pet description.
-        let effect = get_pet_effect(&name, effect_stats, n_triggers);
+        let effect = get_pet_effect(&name, effect_stats, lvl, n_triggers);
 
         Ok(Pet {
             name,

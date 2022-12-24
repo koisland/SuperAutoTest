@@ -2,9 +2,10 @@ use crate::common::game::Pack;
 use serde::{Deserialize, Serialize};
 
 use super::{
+    effect::{Action, Modify, Outcome, Statistics},
     effect::{Effect, EffectAction, EffectTrigger, EffectType, Position, Target},
-    effect::{Modify, Statistics},
     foods::names::FoodName,
+    pet::Pet,
     pets::names::PetName,
 };
 
@@ -59,20 +60,31 @@ fn get_food_effect(name: &FoodName) -> Effect {
             effect_type: EffectType::Food,
             trigger: EffectTrigger::None,
         },
-        FoodName::Honey => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
-            effect: EffectAction::Summon(
-                Some(PetName::Bee),
-                Statistics {
-                    attack: 1,
-                    health: 1,
-                },
-            ),
-            uses: None,
-            effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
-        },
+        FoodName::Honey => {
+            let bee = Box::new(
+                Pet::new(
+                    PetName::Bee,
+                    Statistics {
+                        attack: 1,
+                        health: 1,
+                    },
+                    1,
+                    None,
+                )
+                .unwrap(),
+            );
+            Effect {
+                target: Target::Friend,
+                position: Position::None,
+                effect: EffectAction::Summon(Some(bee)),
+                uses: None,
+                effect_type: EffectType::Food,
+                trigger: EffectTrigger::Friend(Outcome {
+                    action: Action::Faint,
+                    position: Some(Position::Specific(0)),
+                }),
+            }
+        }
         FoodName::MeatBone => Effect {
             target: Target::OnSelf,
             position: Position::None,
@@ -96,19 +108,16 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: EffectTrigger::None,
         },
         FoodName::Mushroom => Effect {
-            target: Target::OnSelf,
+            target: Target::Friend,
             position: Position::None,
-            effect: EffectAction::Summon(
-                // Replace during runtime.
-                None,
-                Statistics {
-                    attack: 1,
-                    health: 1,
-                },
-            ),
+            // Replace during runtime.
+            effect: EffectAction::Summon(None),
             uses: Some(1),
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: EffectTrigger::Friend(Outcome {
+                action: Action::Faint,
+                position: Some(Position::Specific(0)),
+            }),
         },
         FoodName::Peanuts => Effect {
             target: Target::OnSelf,
