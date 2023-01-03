@@ -5,7 +5,7 @@ use crate::{
 use log::error;
 use rusqlite::{Error, Row};
 use serde_json::to_writer_pretty;
-use std::{fs::File, fmt::Write};
+use std::{fmt::Write, fs::File};
 
 #[allow(dead_code)]
 fn write_pet_info(output: &str) {
@@ -65,7 +65,11 @@ pub fn setup_param_query(table: &str, params: &[(&str, &Vec<String>)]) -> String
         if i + 1 == params.len() {
             let _ = write!(sql_stmt, "{} {} ({})", param_name, sql_in, params_string);
         } else {
-            let _ = write!(sql_stmt, "{} {} ({}) AND ", param_name, sql_in, params_string);
+            let _ = write!(
+                sql_stmt,
+                "{} {} ({}) AND ",
+                param_name, sql_in, params_string
+            );
         }
     }
     sql_stmt

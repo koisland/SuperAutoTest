@@ -107,7 +107,8 @@ pub fn parse_pet_effects(line: &str, pet_effect_found: bool) -> Vec<String> {
 
     pet_effect_captures
         .filter_map(|cap| {
-            cap.get(1).map(|effect| effect.as_str().replace('\'', "").replace('"', ""))
+            cap.get(1)
+                .map(|effect| effect.as_str().replace('\'', "").replace('"', ""))
         })
         .collect_vec()
 }
