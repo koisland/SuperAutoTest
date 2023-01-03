@@ -4,14 +4,14 @@
 
 Database for Super Auto Pets.
 
-Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and store in a `SQLite3` database.
+Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite3` database.
 
 ---
 
 ### Usage
-Run the `sapi.exe` in `./bin`.
+Run the `sapdb.exe` in `./bin`.
 ```bash
-./bin/sapi.exe
+./bin/sapdb.exe
 ```
 
 This will setup a server locally at [127.0.0.1:8000](http://127.0.0.1:8000)
@@ -87,3 +87,4 @@ Check the logs saved to `~/logs` to debug any issues.
 
 ### Sources
 https://superautopets.fandom.com/wiki
+https://emoji.supply/kitchen/
