@@ -8,7 +8,7 @@ use crate::{
     },
 };
 use itertools::Itertools;
-use rocket::{form::Form, response::content::RawJson, serde::json::Json};
+use rocket::{response::content::RawJson, serde::json::Json};
 use rusqlite::Error;
 use serde_json::to_string_pretty;
 
@@ -73,7 +73,14 @@ pub async fn pets(
         effect_trigger_name,
     ];
 
-    let sql_stmt = setup_param_query("pets", &sql_params, &QUERY_PET_PARAMS);
+    // Will panic if length of query param names and sql_params not equal.
+    let named_params: Vec<(&str, &Vec<String>)> = sql_params
+        .iter()
+        .enumerate()
+        .map(|(i, vals)| (QUERY_PET_PARAMS[i], vals))
+        .collect();
+
+    let sql_stmt = setup_param_query("pets", &named_params);
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
     let query: Result<Vec<PetRecord>, Error> = conn
@@ -110,7 +117,13 @@ pub async fn foods(
     });
 
     let sql_params: [Vec<String>; 3] = [food_name, pack_name, tier_name];
-    let sql_stmt = setup_param_query("foods", &sql_params, &QUERY_FOOD_PARAMS);
+    // Will panic if length of query param names and sql_params not equal.
+    let named_params: Vec<(&str, &Vec<String>)> = sql_params
+        .iter()
+        .enumerate()
+        .map(|(i, vals)| (QUERY_FOOD_PARAMS[i], vals))
+        .collect();
+    let sql_stmt = setup_param_query("foods", &named_params);
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
     let query: Result<Vec<FoodRecord>, Error> = conn
@@ -129,6 +142,6 @@ pub struct Teams {
     team_2: Json<Team>,
 }
 
-#[post("/battle", data = "<teams>")]
-pub fn battle(teams: Form<Teams>) {}
-// { pet: Cat, lvl: 1, stats: {atk: 1, health: 2}, food: None}
+// #[post("/battle", data = "<teams>")]
+// pub fn battle(teams: Form<Teams>) {}
+// // { pet: Cat, lvl: 1, stats: {atk: 1, health: 2}, food: None}

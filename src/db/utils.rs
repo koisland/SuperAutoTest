@@ -1,11 +1,11 @@
 use crate::{
     common::{food::FoodRecord, game::Pack, pet::PetRecord},
-    wiki_scraper::parser::{parse_pet_info, read_wiki_url},
+    wiki_scraper::{common::read_wiki_url, parse_pet::parse_pet_info},
 };
 use log::error;
 use rusqlite::{Error, Row};
 use serde_json::to_writer_pretty;
-use std::fs::File;
+use std::{fs::File, fmt::Write};
 
 #[allow(dead_code)]
 fn write_pet_info(output: &str) {
@@ -45,23 +45,12 @@ pub fn map_row_to_food(food_row: &Row) -> Result<FoodRecord, Error> {
 }
 
 /// Dynamically grow SQL statement given params.
-pub fn setup_param_query(table: &str, params: &[Vec<String>], param_names: &[&str]) -> String {
+pub fn setup_param_query(table: &str, params: &[(&str, &Vec<String>)]) -> String {
     let mut sql_stmt = format!("SELECT * FROM {table} WHERE ");
-
-    // Check that params and length are equivalent.
-    assert!(
-        params.len() == param_names.len(),
-        "Length of params and their names is different."
-    );
-    // Check that at least one param given
-    assert!(
-        !params.is_empty(),
-        "Less than one param given. Will result in malformed SQL."
-    );
 
     // Iterate through params and set up SQL statement.
     // No user param values are inserted.
-    for (i, (param_name, param_value)) in param_names.iter().zip(params).enumerate() {
+    for (i, (param_name, param_value)) in params.iter().enumerate() {
         // If value is empty, use NOT IN to get all other values.
         let sql_in = if param_value.iter().all(|param| param.is_empty()) {
             "NOT IN"
@@ -74,9 +63,9 @@ pub fn setup_param_query(table: &str, params: &[Vec<String>], param_names: &[&st
 
         // If at end of params, don't include AND.
         if i + 1 == params.len() {
-            sql_stmt.push_str(&format!("{param_name} {sql_in} ({})", params_string))
+            let _ = write!(sql_stmt, "{} {} ({})", param_name, sql_in, params_string);
         } else {
-            sql_stmt.push_str(&format!("{param_name} {sql_in} ({}) AND ", params_string))
+            let _ = write!(sql_stmt, "{} {} ({}) AND ", param_name, sql_in, params_string);
         }
     }
     sql_stmt

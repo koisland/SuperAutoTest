@@ -1,5 +1,5 @@
 [package]
-name = "sapi"
+name = "sapdb"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,7 @@ edition = "2021"
 rand = "0.8.5"
 reqwest = {version = "0.11", features = ["blocking"]}
 rocket = {version = "0.5.0-rc.2", features = ["json"]}
-rusqlite = "0.25"
+rusqlite = {version = "0.25", features = ["bundled"]}
 serde = {version = "1.0.147", features = ["derive", "rc"]}
 serde_json = "1.0"
 lazy-regex = "2.3.1"

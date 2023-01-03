@@ -34,7 +34,7 @@ impl Statistics {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Action {
     Attack,
     Hurt,
@@ -45,7 +45,7 @@ pub enum Action {
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
     Any,
     All,
@@ -96,7 +96,7 @@ impl Modify for Effect {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Target {
     OnSelf,
     Friend,
@@ -104,13 +104,13 @@ pub enum Target {
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Outcome {
     pub action: Action,
     pub position: Option<Position>,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum EffectTrigger {
     StartBattle,
     Friend(Outcome),
@@ -122,20 +122,7 @@ pub enum EffectTrigger {
 impl EffectTrigger {
     pub fn affects_any(&self) -> bool {
         match self {
-            EffectTrigger::Friend(outcome) => {
-                if outcome.position == Some(Position::Any) {
-                    true
-                } else {
-                    false
-                }
-            }
-            EffectTrigger::Enemy(outcome) => {
-                if outcome.position == Some(Position::Any) {
-                    true
-                } else {
-                    false
-                }
-            }
+            EffectTrigger::Friend(outcome) | EffectTrigger::Enemy(outcome)=> outcome.position == Some(Position::Any),
             _ => false,
         }
     }

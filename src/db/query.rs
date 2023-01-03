@@ -1,7 +1,7 @@
 use crate::{
     common::{food::FoodRecord, pet::PetRecord},
     db::utils::{map_row_to_food, map_row_to_pet},
-    wiki_scraper::parser::{parse_food_info, parse_pet_info, read_wiki_url},
+    wiki_scraper::{common::read_wiki_url, parse_food::parse_food_info, parse_pet::parse_pet_info},
 };
 use log::info;
 use rusqlite::Connection;

@@ -1,22 +1,89 @@
-# SuperAutoTest
-Testing framework and database for Super Auto Pets.
+# SuperAutoDB
 
-Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page.
+<img src="docs/images/turtle_crystal_ball.png" width="40%" />
+
+Database for Super Auto Pets.
+
+Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and store in a `SQLite3` database.
+
+---
 
 ### Usage
-*WIP*
+Run the `sapi.exe` in `./bin`.
 ```bash
-cargo run
+./bin/sapi.exe
 ```
 
-This will setup a server on locally at [127.0.0.1:8000](http://127.0.0.1:8000)
+This will setup a server locally at [127.0.0.1:8000](http://127.0.0.1:8000)
 
-From here, you can do two things:
-1. Query pets or foods.
-    * `/pet?<name>&<level>&<tier>&<pack>&<effect_trigger>`
-    * `/food?<name>&<tier>&<pack>`
-2. Battle two teams.
-    * `WIP`
+From here, you can query pets by the following parameters:
+1. `name`
+    * Name of pet.
+2. `level`
+    * Level of pet. Alters the effect.
+3. `tier`
+    * Tier of pet.
+4. `pack`
+    * Pack pet belongs to.
+    * Refer to the SuperAutoPets Fandom wiki page on [Pets](https://superautopets.fandom.com/wiki/Pets) for more information.
+5. `effect_trigger`
+    * Effect trigger for pet.
+
+Or foods with the following parameters:
+1. `name`
+2. `tier`
+3. `pack`
+
+---
+
+### Examples
+
+To get all **level 2** pets named **'Sloth'** from the **'Turtle' pack**.
+```bash
+curl http://127.0.0.1:8000/pet?level=2&pack=Turtle&name=Sloth
+```
+
+Output:
+```json
+[
+  {
+    "name": "Sloth",
+    "tier": 1,
+    "attack": 1,
+    "health": 1,
+    "pack": "Turtle",
+    "effect_trigger": "None",
+    "effect": "Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!",
+    "lvl": 2
+  }
+]
+```
+
+To get all **tier 3** foods from the **Star pack**.
+```bash
+curl http://127.0.0.1:8000/food?tier=3&pack=Star
+```
+
+```json
+[
+  {
+    "name": "Pineapple",
+    "tier": 3,
+    "effect": "Give one pet Pineapple.ability deals +2 damage",
+    "pack": "Star"
+  },
+  {
+    "name": "Cucumber",
+    "tier": 3,
+    "effect": "Give one pet Cucumber.Gain +1 health at end of turn",
+    "pack": "Star"
+  }
+]
+```
+
+### Troubleshooting
+Check the logs saved to `~/logs` to debug any issues.
+
 
 ### Sources
 https://superautopets.fandom.com/wiki

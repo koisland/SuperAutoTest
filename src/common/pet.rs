@@ -20,7 +20,7 @@ const MAX_DMG: usize = 150;
 /// A record with information about a pet from *Super Auto Pets*.
 ///
 /// This information is queried and parsed from the *Super Auto Pets* *Fandom* wiki.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PetRecord {
     pub name: String,
     pub tier: usize,

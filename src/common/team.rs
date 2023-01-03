@@ -258,7 +258,7 @@ impl Battle for Team {
                                     _ => {}
                                 }
                             }
-                        },
+                        }
                         Position::All => todo!(),
                         Position::Trigger => todo!(),
                         Position::Specific(_) => todo!(),
