@@ -1,5 +1,3 @@
-use itertools::Itertools;
-
 use crate::common::game::Pack;
 use crate::common::pet::PetRecord;
 use crate::wiki_scraper::{
