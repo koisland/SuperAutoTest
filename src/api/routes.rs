@@ -1,7 +1,6 @@
 use crate::{
     api::server::SapDB,
-    common::food::FoodRecord,
-    common::pet::PetRecord,
+    common::record::{FoodRecord, PetRecord},
     db::{
         query::{query_food, query_pet},
         utils::setup_param_query,

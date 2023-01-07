@@ -4,7 +4,7 @@ use regex::Regex;
 use std::error::Error;
 
 use crate::{
-    common::{game::Pack, pet::PetRecord},
+    common::{pack::Pack, record::PetRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,

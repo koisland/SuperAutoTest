@@ -4,7 +4,7 @@ use regex::Regex;
 use std::{error::Error, str::FromStr};
 
 use crate::{
-    common::{food::FoodRecord, game::Pack},
+    common::{pack::Pack, record::FoodRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,
@@ -121,7 +121,6 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
 
     // Skip first table which contains columns.
     for food_info in table.get(1..).expect("No table elements.").iter() {
-
         let clean_food_info = clean_link_text(food_info.trim());
 
         if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) = cols

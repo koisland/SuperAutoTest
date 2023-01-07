@@ -1,8 +1,8 @@
 use itertools::Itertools;
 
 use crate::{
-    common::game::Pack,
-    wiki_scraper::parse_food::{get_cols, get_largest_table, clean_link_text, FoodTableCols},
+    common::pack::Pack,
+    wiki_scraper::parse_food::{clean_link_text, get_cols, get_largest_table, FoodTableCols},
 };
 
 const PAGE_INFO: &str = "

@@ -1,5 +1,8 @@
 use crate::{
-    common::{food::FoodRecord, game::Pack, pet::PetRecord},
+    common::{
+        pack::Pack,
+        record::{FoodRecord, PetRecord},
+    },
     wiki_scraper::{common::read_wiki_url, parse_pet::parse_pet_info},
 };
 use log::error;

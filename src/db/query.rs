@@ -1,5 +1,5 @@
 use crate::{
-    common::{food::FoodRecord, pet::PetRecord},
+    common::record::{FoodRecord, PetRecord},
     db::utils::{map_row_to_food, map_row_to_pet},
     wiki_scraper::{common::read_wiki_url, parse_food::parse_food_info, parse_pet::parse_pet_info},
 };

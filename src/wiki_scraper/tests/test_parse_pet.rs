@@ -1,5 +1,5 @@
-use crate::common::game::Pack;
-use crate::common::pet::PetRecord;
+use crate::common::pack::Pack;
+use crate::common::record::PetRecord;
 use crate::wiki_scraper::{
     common::remove_icon_names,
     parse_pet::{

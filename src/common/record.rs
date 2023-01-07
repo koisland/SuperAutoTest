@@ -1,6 +1,16 @@
+use crate::common::pack::Pack;
 use serde::{Deserialize, Serialize};
 
-use crate::common::game::Pack;
+/// A record with information about a food from *Super Auto Pets*.
+///
+/// This information is queried and parsed from the *Super Auto Pets* *Fandom* wiki.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct FoodRecord {
+    pub name: String,
+    pub tier: usize,
+    pub effect: String,
+    pub pack: Pack,
+}
 
 /// A record with information about a pet from *Super Auto Pets*.
 ///
