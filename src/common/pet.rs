@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{collections::VecDeque, error::Error};
+use std::{cell::RefCell, collections::VecDeque, error::Error, rc::Rc};
 
 use crate::db::{setup::get_connection, utils::map_row_to_pet};
 
@@ -9,7 +9,6 @@ use super::{
         Statistics, Target, RGX_ATK, RGX_HEALTH, RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
     },
     food::Food,
-    game::Pack,
     pets::names::PetName,
     team::Team,
 };
@@ -17,27 +16,12 @@ use super::{
 const MIN_DMG: usize = 1;
 const MAX_DMG: usize = 150;
 
-/// A record with information about a pet from *Super Auto Pets*.
-///
-/// This information is queried and parsed from the *Super Auto Pets* *Fandom* wiki.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct PetRecord {
-    pub name: String,
-    pub tier: usize,
-    pub attack: usize,
-    pub health: usize,
-    pub pack: Pack,
-    pub effect_trigger: Option<String>,
-    pub effect: Option<String>,
-    pub lvl: usize,
-}
-
 /// A Super Auto Pet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     pub name: PetName,
     pub tier: usize,
-    pub stats: Statistics,
+    pub stats: Rc<RefCell<Statistics>>,
     pub lvl: usize,
     pub effect: Option<Effect>,
     pub item: Option<Food>,
@@ -69,7 +53,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::Any,
             effect: EffectAction::Add(effect_stats),
-            uses: Some(n_triggers),
+            uses: Some(Rc::new(RefCell::new(n_triggers))),
             effect_type: EffectType::Pet,
         }),
         PetName::Mosquito => Some(Effect {
@@ -77,7 +61,7 @@ pub fn get_pet_effect(
             target: Target::Enemy,
             position: Position::Any,
             effect: EffectAction::Remove(effect_stats),
-            uses: Some(n_triggers),
+            uses: Some(Rc::new(RefCell::new(n_triggers))),
             effect_type: EffectType::Pet,
         }),
         PetName::Cricket => {
@@ -91,7 +75,7 @@ pub fn get_pet_effect(
                 target: Target::Friend,
                 position: Position::Specific(0),
                 effect: EffectAction::Summon(Some(zombie_cricket)),
-                uses: Some(n_triggers),
+                uses: Some(Rc::new(RefCell::new(n_triggers))),
                 effect_type: EffectType::Pet,
             })
         }
@@ -139,7 +123,7 @@ impl Pet {
         Ok(Pet {
             name,
             tier: pet_record.tier,
-            stats,
+            stats: Rc::new(RefCell::new(stats)),
             lvl: pet_record.lvl,
             effect,
             item,
@@ -160,7 +144,7 @@ pub struct BattleOutcome {
 
 pub trait Combat {
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Outcome;
+    fn indirect_attack(&self, hit_stats: &Statistics) -> Outcome;
     fn apply_food_effect(&mut self, opponent: &mut Team);
     fn get_outcome(&self, new_health: usize) -> Outcome;
     fn get_food_stat_modifier(&self) -> Statistics;
@@ -168,7 +152,7 @@ pub trait Combat {
 
 impl Combat for Pet {
     /// Get `Outcome` when pet hit by a projectile/indirect attack.
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Outcome {
+    fn indirect_attack(&self, hit_stats: &Statistics) -> Outcome {
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
         // Subtract stat_modifer (150/2) from indirect attack.
@@ -177,12 +161,12 @@ impl Combat for Pet {
             .saturating_sub(stat_modifier.health)
             // Must do a minimum of 1 damage.
             .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.health.saturating_sub(enemy_atk);
+        let new_health = self.stats.borrow().health.saturating_sub(enemy_atk);
 
         // Use health difference to determine outcome.
         let outcome = self.get_outcome(new_health);
         // Set new health.
-        self.stats.health = new_health;
+        self.stats.borrow_mut().health = new_health;
         outcome
     }
 
@@ -190,6 +174,7 @@ impl Combat for Pet {
     ///  * Targets a `Pet` other than itself during combat
     ///  * Does damage remove some `Statistics`.
     ///  * And affects a specific `Position`.
+    ///
     fn apply_food_effect(&mut self, opponent: &mut Team) {
         if let Some(food) = self.item.as_mut() {
             let food_effect = &food.ability;
@@ -201,16 +186,21 @@ impl Combat for Pet {
             ) {
                 if let Some(target) = opponent
                     .friends
+                    .borrow_mut()
                     .get_mut(*idx as usize)
                     .map(|pet| pet.as_mut().unwrap())
                 {
-                    let indir_atk_outcome = target.indirect_attack(stats);
+                    let indir_atk_outcome = target.borrow().indirect_attack(stats);
                     info!(
                         "Used {:?}'s {:?} -> {:?} {:?}",
-                        self.name, food.name, target.name, indir_atk_outcome
+                        self.name,
+                        food.name,
+                        target.borrow().name,
+                        indir_atk_outcome
                     );
                     opponent
                         .triggers
+                        .borrow_mut()
                         .push_back(EffectTrigger::Friend(indir_atk_outcome));
                     food.ability.remove_uses(1);
                 }
@@ -220,8 +210,8 @@ impl Combat for Pet {
 
     /// Get `Outcome` when health is altered.
     fn get_outcome(&self, new_health: usize) -> Outcome {
-        let health_diff = self.stats.health.saturating_sub(new_health);
-        let outcome = if health_diff == self.stats.health {
+        let health_diff = self.stats.borrow().health.saturating_sub(new_health);
+        let outcome = if health_diff == self.stats.borrow().health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
             Outcome {
@@ -261,7 +251,7 @@ impl Combat for Pet {
                     .uses
                     .as_ref()
                     .map_or(&EffectAction::None, |uses| {
-                        if *uses > 0 && food.ability.target == Target::OnSelf {
+                        if *uses.borrow() > 0 && food.ability.target == Target::OnSelf {
                             // Return the food effect.
                             &food.ability.effect
                         } else {
@@ -302,15 +292,15 @@ impl Combat for Pet {
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
+        let enemy_atk = (enemy.stats.borrow().attack + enemy_stat_modifier.attack)
             .saturating_sub(stat_modifier.health)
             .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.health.saturating_sub(enemy_atk);
+        let new_health = self.stats.borrow().health.saturating_sub(enemy_atk);
 
-        let atk = (self.stats.attack + stat_modifier.attack)
+        let atk = (self.stats.borrow().attack + stat_modifier.attack)
             .saturating_sub(enemy_stat_modifier.health)
             .clamp(MIN_DMG, MAX_DMG);
-        let new_enemy_health = enemy.stats.health.saturating_sub(atk);
+        let new_enemy_health = enemy.stats.borrow().health.saturating_sub(atk);
 
         // Decrement number of uses on items, if any.
         self.item.as_mut().map(|item| item.ability.remove_uses(1));
@@ -322,8 +312,8 @@ impl Combat for Pet {
         let enemy_outcome = enemy.get_outcome(new_enemy_health);
 
         // Set the new health of a pet.
-        self.stats.health = new_health;
-        enemy.stats.health = new_enemy_health;
+        self.stats.borrow_mut().health = new_health;
+        enemy.stats.borrow_mut().health = new_enemy_health;
 
         BattleOutcome {
             friends: VecDeque::from_iter([
@@ -373,7 +363,7 @@ mod tests {
 
         let outcome = ant_t1.attack(&mut ant_t2);
 
-        assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
+        assert!(ant_t1.stats.borrow().health == 0 && ant_t2.stats.borrow().health == 1);
         // TODO: Add triggers
     }
 

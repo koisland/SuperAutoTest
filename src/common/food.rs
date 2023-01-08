@@ -1,4 +1,5 @@
-use crate::common::game::Pack;
+use std::{cell::RefCell, rc::Rc};
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -8,14 +9,6 @@ use super::{
     pet::Pet,
     pets::names::PetName,
 };
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FoodRecord {
-    pub name: String,
-    pub tier: usize,
-    pub effect: String,
-    pub pack: Pack,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Food {
@@ -45,7 +38,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 0,
                 health: 150,
             }),
-            uses: Some(1),
+            uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
             trigger: EffectTrigger::None,
         },
@@ -61,18 +54,17 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: EffectTrigger::None,
         },
         FoodName::Honey => {
-            let bee = Box::new(
-                Pet::new(
-                    PetName::Bee,
-                    Statistics {
-                        attack: 1,
-                        health: 1,
-                    },
-                    1,
-                    None,
-                )
-                .unwrap(),
-            );
+            let bee = Box::new(Pet {
+                name: PetName::Bee,
+                tier: 1,
+                stats: Rc::new(RefCell::new(Statistics {
+                    attack: 1,
+                    health: 1,
+                })),
+                lvl: 1,
+                effect: None,
+                item: None,
+            });
             Effect {
                 target: Target::Friend,
                 position: Position::None,
@@ -103,7 +95,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 0,
                 health: 20,
             }),
-            uses: Some(1),
+            uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
             trigger: EffectTrigger::None,
         },
@@ -112,7 +104,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             position: Position::None,
             // Replace during runtime.
             effect: EffectAction::Summon(None),
-            uses: Some(1),
+            uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
             trigger: EffectTrigger::Friend(Outcome {
                 action: Action::Faint,
@@ -137,7 +129,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 20,
                 health: 0,
             }),
-            uses: Some(1),
+            uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
             trigger: EffectTrigger::None,
         },

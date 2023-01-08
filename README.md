@@ -1,4 +1,5 @@
 # SuperAutoDB
+[![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
 
 <img src="docs/images/turtle_crystal_ball.png" width="40%" />
 

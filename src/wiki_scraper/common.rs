@@ -30,6 +30,8 @@ pub fn get_page_info(url: &str) -> Result<String, Box<dyn Error>> {
     Ok(blocking::get(url)?.text()?)
 }
 
+/// Remove any Fandom icon names from a block of text.
+/// * Ex. `{IconSAP|Turtle}` -> `Turtle`
 pub fn remove_icon_names(line: &str) -> String {
     let mut final_line = line.to_string();
     let final_line_copy = final_line.clone();

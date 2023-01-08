@@ -4,7 +4,7 @@ use regex::Regex;
 use std::error::Error;
 
 use crate::{
-    common::{game::Pack, pet::PetRecord},
+    common::{pack::Pack, record::PetRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,
@@ -107,7 +107,8 @@ pub fn parse_pet_effects(line: &str, pet_effect_found: bool) -> Vec<String> {
 
     pet_effect_captures
         .filter_map(|cap| {
-            cap.get(1).map(|effect| effect.as_str().replace('\'', "").replace('"', ""))
+            cap.get(1)
+                .map(|effect| effect.as_str().replace(['\'', '"'], ""))
         })
         .collect_vec()
 }
@@ -175,6 +176,8 @@ pub fn parse_single_pet(
     }
     Ok(())
 }
+
+/// Parse pet info into a list of `Pet`s.
 pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, Box<dyn Error>> {
     let response = get_page_info(url)?;
     let mut pets: Vec<PetRecord> = vec![];

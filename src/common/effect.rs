@@ -1,6 +1,8 @@
 use lazy_regex::regex;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use super::{food::Food, pet::Pet};
 
@@ -67,7 +69,7 @@ pub struct Effect {
     pub target: Target,
     pub position: Position,
     pub effect: EffectAction,
-    pub uses: Option<usize>,
+    pub uses: Option<Rc<RefCell<usize>>>,
 }
 
 pub trait Modify {
@@ -81,15 +83,15 @@ pub trait Modify {
 impl Modify for Effect {
     fn add_uses(&mut self, n: usize) -> &Self {
         if let Some(uses) = self.uses.as_mut() {
-            *uses += n
+            *uses.borrow_mut() += n
         };
         self
     }
 
     fn remove_uses(&mut self, n: usize) -> &Self {
         if let Some(uses) = self.uses.as_mut() {
-            if *uses >= n {
-                *uses -= n
+            if *uses.borrow() >= n {
+                *uses.borrow_mut() -= n
             }
         };
         self
@@ -122,7 +124,9 @@ pub enum EffectTrigger {
 impl EffectTrigger {
     pub fn affects_any(&self) -> bool {
         match self {
-            EffectTrigger::Friend(outcome) | EffectTrigger::Enemy(outcome)=> outcome.position == Some(Position::Any),
+            EffectTrigger::Friend(outcome) | EffectTrigger::Enemy(outcome) => {
+                outcome.position == Some(Position::Any)
+            }
             _ => false,
         }
     }

@@ -1,89 +1,142 @@
 use itertools::Itertools;
 use log::{error, info};
 use regex::Regex;
-use std::error::Error;
+use std::{error::Error, str::FromStr};
 
 use crate::{
-    common::{food::FoodRecord, game::Pack},
-    wiki_scraper::common::{get_page_info, remove_icon_names},
+    common::{pack::Pack, record::FoodRecord},
+    wiki_scraper::{
+        common::{get_page_info, remove_icon_names},
+        error::WikiParserError,
+    },
 };
 
 lazy_static! {
+    static ref RGX_TABLE: Regex = Regex::new(r#"\{\|(.|\W)*\|\}"#).unwrap();
+    static ref RGX_COLS: Regex = Regex::new(r#"!(.*?)\n"#).unwrap();
     static ref RGX_FOOD_LINK_NAME: Regex = Regex::new(r#"\[\[(.*?)\]\]"#).unwrap();
 }
 
+const TABLE_STR_DELIM: &str = "|-";
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum FoodTableCols {
+    Name,
+    Tier,
+    Effect,
+    GamePack(Pack),
+}
+
+impl FromStr for FoodTableCols {
+    type Err = WikiParserError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Name" => Ok(FoodTableCols::Name),
+            "Tier" => Ok(FoodTableCols::Tier),
+            "Effect" => Ok(FoodTableCols::Effect),
+            "Turtle Pack" => Ok(FoodTableCols::GamePack(Pack::Turtle)),
+            "Puppy Pack" => Ok(FoodTableCols::GamePack(Pack::Puppy)),
+            "Star Pack" => Ok(FoodTableCols::GamePack(Pack::Star)),
+            _ => Err(WikiParserError {
+                reason: format!("Unknown column {s}."),
+            }),
+        }
+    }
+}
+
+/// Clean text removing:
+/// * Links `[[...|...]]`
+/// * Icon names `{IconSAP|...}`.
+pub fn clean_link_text(text: &str) -> String {
+    let mut text_copy = text.to_string();
+
+    for capture in RGX_FOOD_LINK_NAME.captures_iter(text) {
+        // Get last element in link text.
+        // ex. |Give one [[Pets|pet]] [[Lemon]]. -> Give one pet Lemon.
+        for (i, mtch) in capture.iter().enumerate() {
+            // Skip first match which matches everything.
+            if i == 0 {
+                continue;
+            }
+            let food_name = mtch
+                .map_or("", |m| m.as_str())
+                .split('|')
+                .last()
+                .unwrap_or("");
+            // Update line copy replacing links wiht food name.
+            text_copy = RGX_FOOD_LINK_NAME
+                .replacen(&text_copy, 1, food_name)
+                .to_string();
+        }
+    }
+    remove_icon_names(&text_copy).trim_matches('|').to_string()
+}
+
+/// Get the largest table and its values contained by `{|...|}` and split it into rows.
+pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, Box<WikiParserError>> {
+    let largest_block = page_info
+        .split("\n\n")
+        .max_by(|blk_1, blk_2| blk_1.len().cmp(&blk_2.len()))
+        .ok_or(WikiParserError {
+            reason: "Largest text block not found.".to_string(),
+        })?;
+
+    if let Some(Some(largest_table)) = RGX_TABLE.captures(largest_block).map(|cap| cap.get(0)) {
+        Ok(largest_table.as_str().split(TABLE_STR_DELIM).collect_vec())
+    } else {
+        Err(Box::new(WikiParserError {
+            reason: "Can't find main table following format: {|...|}.".to_string(),
+        }))
+    }
+}
+
+/// Get table column names from the header row of a `fandom-table`.
+///
+/// These are mapped to `FoodTableCols`.
+pub fn get_cols(cols_str: &str) -> Result<Vec<FoodTableCols>, WikiParserError> {
+    let cols: Option<Vec<FoodTableCols>> = RGX_COLS
+        .captures_iter(cols_str)
+        .filter_map(|capt|
+            // Get capture and remove newlines and !.
+            // !Name\n -> Name
+            capt.get(1).map(|mtch| mtch.as_str().trim_matches(|c| c == '\n' || c == '!')))
+        .map(|colname| FoodTableCols::from_str(colname).ok())
+        .collect();
+
+    cols.ok_or(WikiParserError {
+        reason: format!("One or more cols is unknown in col_str: {}.", cols_str),
+    })
+}
+
+/// Parse food info into a list of `Food`s.
 pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
     let response = get_page_info(url)?;
     let mut foods: Vec<FoodRecord> = vec![];
 
-    // TODO: Add TableNotFound error to replace unwrap_or with ok_or
-    let table = &response
-        .split("\n\n")
-        .max_by(|x, y| x.len().cmp(&y.len()))
-        .unwrap_or("")
-        .split("|-")
-        .collect_vec();
+    let table = get_largest_table(&response)?;
 
-    for (table_n, food_info) in table.iter().enumerate() {
-        // First section contains pack info.
-        if table_n == 0 {
-            continue;
-        }
-        let mut food_info_copy = food_info.to_string();
+    // Can safely unwrap here as will catch above.
+    let cols = get_cols(table.first().unwrap())?;
 
-        for capture in RGX_FOOD_LINK_NAME.captures_iter(food_info) {
-            // Get last element in link text.
-            // ex. |Give one [[Pets|pet]] [[Lemon]]. -> Give one pet Lemon.
-            for (i, mtch) in capture.iter().enumerate() {
-                // Skip first match which matches everything.
-                if i == 0 {
-                    continue;
-                }
-                let food_name = mtch
-                    .map_or("", |m| m.as_str())
-                    .split('|')
-                    .last()
-                    .unwrap_or("");
-                // Update line copy replacing links wiht food name.
-                food_info_copy = RGX_FOOD_LINK_NAME
-                    .replacen(&food_info_copy, 1, food_name)
-                    .to_string();
-            }
-        }
-        food_info_copy = remove_icon_names(&food_info_copy)
-            .replace('\n', "")
-            .replace("<br>", "");
+    // Skip first table which contains columns.
+    for food_info in table.get(1..).expect("No table elements.").iter() {
+        let clean_food_info = clean_link_text(food_info.trim());
 
-        // Remove the first character if is '|'.
-        if food_info_copy.chars().next().unwrap_or('_') == '|' {
-            let mut food_info_copy_chars = food_info_copy.chars();
-            food_info_copy_chars.next();
-            food_info_copy = food_info_copy_chars.as_str().to_string();
-        }
-
-        // Remove the last character if is '|'.
-        if food_info_copy.chars().last().unwrap_or('_') == '|' {
-            let mut food_info_copy_chars = food_info_copy.chars();
-            food_info_copy_chars.next_back();
-            food_info_copy = food_info_copy_chars.as_str().to_string();
-        }
-
-        if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) =
-            food_info_copy.split('|').collect_tuple()
+        if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) = cols
+            .iter()
+            .zip_eq(clean_food_info.split('|').map(|col_info| col_info.trim()))
+            .collect_tuple()
         {
             // Map tiers that are N/A to 0. ex. Coconut which is summoned.
-            tier = if tier == "N/A" { "0" } else { tier };
+            tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
 
-            let available_packs = [Pack::Turtle, Pack::Puppy, Pack::Star];
             let packs = [turtle_pack, puppy_pack, star_pack]
                 .iter()
-                .enumerate()
-                // Access pack by index. Need to be same length. Cannot zip as unstable feature.
-                .filter_map(|(i, pack_desc)| {
-                    // If pack description doesn't list item in pack, ignore.
-                    if pack_desc.contains("Yes") {
-                        let pack = available_packs.get(i).unwrap_or(&Pack::Unknown);
-                        Some(pack.clone())
+                .filter_map(|(pack, pack_desc)| {
+                    if let FoodTableCols::GamePack(pack_name) = pack {
+                        // If pack description doesn't list item in pack, ignore.
+                        pack_desc.contains("Yes").then_some(pack_name.clone())
                     } else {
                         None
                     }
@@ -91,21 +144,21 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
                 .collect_vec();
 
             // Attempt convert tier to usize.
-            let tier_n_conversion = tier.parse::<usize>();
-            if let Ok(tier_n) = tier_n_conversion {
+            if let Ok(tier_n) = tier.1.parse::<usize>() {
                 for pack in packs {
                     foods.push(FoodRecord {
-                        name: name.to_string(),
+                        name: name.1.to_string(),
                         tier: tier_n,
-                        effect: effect.to_string(),
+                        // Remove newlines and replace any in-between effect desc.
+                        effect: effect.1.replace('\n', " "),
                         pack,
                     });
                 }
             } else {
-                error!(target: "wiki_scraper", "Unable to convert tier {tier} for {name} to usize.")
+                error!(target: "wiki_scraper", "Unable to convert tier {} for {} to usize.", tier.1, name.1)
             }
         } else {
-            error!(target: "wiki_scraper", "Missing fields for {food_info_copy}.");
+            error!(target: "wiki_scraper", "Missing fields for {clean_food_info}. Needs {:?}", cols);
         }
     }
     info!(target: "wiki_scraper", "Retrieved {} foods.", foods.len());
