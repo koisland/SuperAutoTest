@@ -3,10 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    effect::{
-        Action, Effect, EffectAction, EffectTrigger, EffectType, Outcome, Position, Statistics,
-        Target,
-    },
+    effect::{Effect, EffectAction, EffectType, Outcome, Position, Statistics, Status, Target},
     foods::names::FoodName,
     pet::Pet,
     pets::names::PetName,
@@ -17,6 +14,12 @@ pub struct Food {
     pub name: FoodName,
     pub ability: Effect,
 }
+
+const TRIGGER_NONE: Outcome = Outcome {
+    status: Status::None,
+    target: Target::None,
+    position: Position::None,
+};
 
 #[allow(dead_code)]
 fn get_food_effect(name: &FoodName) -> Effect {
@@ -31,7 +34,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: None,
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Coconut => Effect {
             target: Target::OnSelf,
@@ -43,7 +46,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Garlic => Effect {
             target: Target::OnSelf,
@@ -54,7 +57,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: None,
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Honey => {
             let bee = Box::new(Pet {
@@ -70,14 +73,15 @@ fn get_food_effect(name: &FoodName) -> Effect {
             });
             Effect {
                 target: Target::Friend,
-                position: Position::None,
+                position: Position::Specific(0),
                 effect: EffectAction::Summon(Some(bee)),
                 uses: None,
                 effect_type: EffectType::Food,
-                trigger: EffectTrigger::Friend(Outcome {
-                    action: Action::Faint,
-                    position: Some(Position::Specific(0)),
-                }),
+                trigger: Outcome {
+                    status: Status::Faint,
+                    target: Target::Friend,
+                    position: Position::Specific(0),
+                },
             }
         }
         FoodName::MeatBone => Effect {
@@ -89,7 +93,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: None,
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Melon => Effect {
             target: Target::OnSelf,
@@ -100,19 +104,20 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Mushroom => Effect {
             target: Target::Friend,
-            position: Position::None,
+            position: Position::Specific(0),
             // Replace during runtime.
             effect: EffectAction::Summon(None),
             uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::Friend(Outcome {
-                action: Action::Faint,
-                position: Some(Position::Specific(0)),
-            }),
+            trigger: Outcome {
+                status: Status::Faint,
+                target: Target::Friend,
+                position: Position::Specific(0),
+            },
         },
         FoodName::Peanuts => Effect {
             target: Target::OnSelf,
@@ -123,7 +128,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: None,
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
         FoodName::Steak => Effect {
             target: Target::OnSelf,
@@ -134,7 +139,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
-            trigger: EffectTrigger::None,
+            trigger: TRIGGER_NONE,
         },
     }
 }

@@ -26,22 +26,11 @@ impl Statistics {
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum Action {
-    Attack,
-    Hurt,
-    KnockOut,
-    Faint,
-    Summoned,
-    Pushed,
-    None,
-}
-
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
     Any,
     All,
     Trigger,
-    Specific(isize),
+    Specific(usize),
     None,
 }
 
@@ -54,7 +43,7 @@ pub enum EffectType {
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Effect {
     pub effect_type: EffectType,
-    pub trigger: EffectTrigger,
+    pub trigger: Outcome,
     pub target: Target,
     pub position: Position,
     pub effect: EffectAction,
@@ -97,15 +86,19 @@ pub enum Target {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Outcome {
-    pub action: Action,
-    pub position: Option<Position>,
+    pub status: Status,
+    pub target: Target,
+    pub position: Position,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum EffectTrigger {
+pub enum Status {
     StartBattle,
-    Friend(Outcome),
-    Enemy(Outcome),
+    Attack,
+    Hurt,
+    Faint,
+    Summoned,
+    Pushed,
     None,
     NotImplemented,
 }

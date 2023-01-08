@@ -56,4 +56,4 @@ loggers:
     level: info
     appenders:
       - dev
-    additive: false
+    additive: true
