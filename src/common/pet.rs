@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, collections::VecDeque, error::Error, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, error::Error, fmt::Display, rc::Rc};
 
 use crate::db::{setup::get_connection, utils::map_row_to_pet};
 
 use super::{
     effect::{
         Action, Effect, EffectAction, EffectTrigger, EffectType, Modify, Outcome, Position,
-        Statistics, Target, RGX_ATK, RGX_HEALTH, RGX_N_TRIGGERS, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
+        Statistics, Target,
     },
     food::Food,
     pets::names::PetName,
+    regex_patterns::*,
     team::Team,
 };
 
@@ -27,16 +28,29 @@ pub struct Pet {
     pub item: Option<Food>,
 }
 
-pub fn num_regex(
-    pattern: &'static lazy_regex::Lazy<lazy_regex::Regex>,
-    string: &str,
-) -> Result<usize, Box<dyn Error>> {
+impl Display for Pet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[{}: ({},{}) (Level: {}) - Item: {:?}]",
+            self.name,
+            self.stats.borrow().attack,
+            self.stats.borrow().health,
+            self.lvl,
+            self.item
+        )
+    }
+}
+
+#[allow(dead_code)]
+pub fn num_regex(pattern: &LRegex, string: &str) -> Result<usize, Box<dyn Error>> {
     Ok(pattern.captures(string).map_or(Ok(0), |cap| {
         cap.get(1)
             .map_or(Ok(0), |mtch| mtch.as_str().parse::<usize>())
     })?)
 }
 
+#[allow(dead_code)]
 /// Maps a pet to its effects.
 pub fn get_pet_effect(
     pet: &PetName,
@@ -94,6 +108,7 @@ pub fn get_pet_effect(
     }
 }
 
+#[allow(dead_code)]
 impl Pet {
     /// Create a new `Pet` with given stats and level
     pub fn new(
@@ -140,6 +155,16 @@ trait Shop {
 pub struct BattleOutcome {
     pub friends: VecDeque<EffectTrigger>,
     pub opponents: VecDeque<EffectTrigger>,
+}
+
+impl Display for BattleOutcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Outcome (Friends)  - {:?}\nOutcome (Opponent) - {:?}",
+            self.friends, self.opponents,
+        )
+    }
 }
 
 pub trait Combat {
@@ -316,65 +341,8 @@ impl Combat for Pet {
         enemy.stats.borrow_mut().health = new_enemy_health;
 
         BattleOutcome {
-            friends: VecDeque::from_iter([
-                EffectTrigger::Friend(outcome.clone()),
-                EffectTrigger::Enemy(enemy_outcome.clone()),
-            ]),
-            opponents: VecDeque::from_iter([
-                EffectTrigger::Friend(enemy_outcome),
-                EffectTrigger::Enemy(outcome),
-            ]),
+            friends: VecDeque::from_iter([EffectTrigger::Friend(outcome)]),
+            opponents: VecDeque::from_iter([EffectTrigger::Friend(enemy_outcome)]),
         }
     }
-}
-
-mod tests {
-    use crate::common::{
-        effect::Statistics,
-        effect::{Outcome, Position},
-        food::Food,
-        foods::names::FoodName,
-        pet::{Action, Combat, Pet},
-        pets::names::PetName,
-    };
-
-    #[test]
-    fn test_attack() {
-        let mut ant_t1 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let mut ant_t2 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 3,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-
-        let outcome = ant_t1.attack(&mut ant_t2);
-
-        assert!(ant_t1.stats.borrow().health == 0 && ant_t2.stats.borrow().health == 1);
-        // TODO: Add triggers
-    }
-
-    #[test]
-    fn test_attack_meat() {}
-
-    #[test]
-    fn test_attack_melon() {}
-
-    // #[test]
-    // fn test_attack_melon() {
-
-    // }
 }

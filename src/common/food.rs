@@ -3,8 +3,10 @@ use std::{cell::RefCell, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use super::{
-    effect::{Action, Modify, Outcome, Statistics},
-    effect::{Effect, EffectAction, EffectTrigger, EffectType, Position, Target},
+    effect::{
+        Action, Effect, EffectAction, EffectTrigger, EffectType, Outcome, Position, Statistics,
+        Target,
+    },
     foods::names::FoodName,
     pet::Pet,
     pets::names::PetName,
@@ -16,6 +18,7 @@ pub struct Food {
     pub ability: Effect,
 }
 
+#[allow(dead_code)]
 fn get_food_effect(name: &FoodName) -> Effect {
     match name {
         FoodName::Chili => Effect {
@@ -135,6 +138,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
         },
     }
 }
+
+#[allow(dead_code)]
 impl Food {
     /// Create a `Food` from `FoodName`.
     pub fn new(name: &FoodName) -> Food {

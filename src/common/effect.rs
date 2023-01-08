@@ -1,19 +1,8 @@
-use lazy_regex::regex;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::{food::Food, pet::Pet};
-
-pub static RGX_PERC: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)%"#);
-pub static RGX_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d)\sattack"#);
-pub static RGX_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d)\shealth"#);
-pub static RGX_DMG: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)\sdamage"#);
-pub static RGX_N_TRIGGERS: &lazy_regex::Lazy<lazy_regex::Regex> =
-    regex!(r#"Triggers\s(\d+)\stimes"#);
-pub static RGX_SUMMON_ATK: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"(\d+)/"#);
-pub static RGX_SUMMON_HEALTH: &lazy_regex::Lazy<lazy_regex::Regex> = regex!(r#"/(\d+)"#);
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Statistics {
@@ -121,16 +110,6 @@ pub enum EffectTrigger {
     NotImplemented,
 }
 
-impl EffectTrigger {
-    pub fn affects_any(&self) -> bool {
-        match self {
-            EffectTrigger::Friend(outcome) | EffectTrigger::Enemy(outcome) => {
-                outcome.position == Some(Position::Any)
-            }
-            _ => false,
-        }
-    }
-}
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub enum EffectAction {
     Add(Statistics),

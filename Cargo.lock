@@ -1567,7 +1567,6 @@ version = "0.1.0"
 dependencies = [
  "itertools",
  "lazy-regex",
- "lazy_static",
  "log",
  "log4rs",
  "rand",

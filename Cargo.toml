@@ -15,7 +15,6 @@ serde_json = "1.0"
 lazy-regex = "2.3.1"
 regex = "1.5"
 itertools = "0.10.5"
-lazy_static = "1.4.0"
 log = "0.4.17"
 log4rs = {version = "1.2.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
 

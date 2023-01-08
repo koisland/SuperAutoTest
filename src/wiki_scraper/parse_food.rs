@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use log::{error, info};
-use regex::Regex;
 use std::{error::Error, str::FromStr};
 
 use crate::{
@@ -8,14 +7,9 @@ use crate::{
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,
+        regex_patterns::*,
     },
 };
-
-lazy_static! {
-    static ref RGX_TABLE: Regex = Regex::new(r#"\{\|(.|\W)*\|\}"#).unwrap();
-    static ref RGX_COLS: Regex = Regex::new(r#"!(.*?)\n"#).unwrap();
-    static ref RGX_FOOD_LINK_NAME: Regex = Regex::new(r#"\[\[(.*?)\]\]"#).unwrap();
-}
 
 const TABLE_STR_DELIM: &str = "|-";
 

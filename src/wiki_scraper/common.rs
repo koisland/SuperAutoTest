@@ -1,16 +1,8 @@
+use crate::wiki_scraper::regex_patterns::RGX_ICON_NAME;
 use log::info;
-use regex::Regex;
 use reqwest::blocking;
 use serde::Deserialize;
-use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
-
-lazy_static! {
-    static ref RGX_ICON_NAME: Regex =
-        Regex::new(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|]*=[\w\.]+)*"#).unwrap();
-}
+use std::{error::Error, fs::File, io::BufReader, path::Path};
 
 #[derive(Deserialize, Debug)]
 pub struct SAPWikiSources {

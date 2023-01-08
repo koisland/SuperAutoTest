@@ -1,14 +1,14 @@
 use super::{
-    effect::{Action, Effect, EffectAction, EffectTrigger, Modify, Outcome, Position, Target},
-    food::Food,
-    pet::{self, Combat, Pet},
+    effect::{Action, Effect, EffectAction, EffectTrigger, Outcome, Position, Target},
+    pet::{Combat, Pet},
 };
 use itertools::Itertools;
 use log::info;
 use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, fmt::Display, rc::Rc};
 
+#[allow(dead_code)]
 const TEAM_SIZE: usize = 5;
 const TRIGGER_SELF_ATTACK: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Attack,
@@ -18,25 +18,26 @@ const TRIGGER_AHEAD_ATTACK: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Attack,
     position: Some(Position::Specific(-1)),
 });
-const TRIGGER_SELF_HURT: EffectTrigger = EffectTrigger::Friend(Outcome {
-    action: Action::Hurt,
-    position: Some(Position::Specific(0)),
-});
+// const TRIGGER_SELF_HURT: EffectTrigger = EffectTrigger::Friend(Outcome {
+//     action: Action::Hurt,
+//     position: Some(Position::Specific(0)),
+// });
 const TRIGGER_SELF_FAINT: EffectTrigger = EffectTrigger::Friend(Outcome {
     action: Action::Faint,
     position: Some(Position::Specific(0)),
 });
-const TRIGGER_ANY_SUMMON: EffectTrigger = EffectTrigger::Friend(Outcome {
-    action: Action::Summoned,
-    position: Some(Position::Any),
-});
-const TRIGGER_AHEAD_FAINT: EffectTrigger = EffectTrigger::Friend(Outcome {
-    action: Action::Faint,
-    position: Some(Position::Specific(-1)),
-});
+// const TRIGGER_ANY_SUMMON: EffectTrigger = EffectTrigger::Friend(Outcome {
+//     action: Action::Summoned,
+//     position: Some(Position::Any),
+// });
+// const TRIGGER_AHEAD_FAINT: EffectTrigger = EffectTrigger::Friend(Outcome {
+//     action: Action::Faint,
+//     position: Some(Position::Specific(-1)),
+// });
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Team {
+    pub name: String,
     pub friends: RefCell<Vec<Option<Rc<RefCell<Pet>>>>>,
     pub triggers: RefCell<VecDeque<EffectTrigger>>,
 }
@@ -63,25 +64,32 @@ pub trait Battle {
 }
 
 impl Team {
-    fn new(pets: &[Option<Pet>]) -> Result<Team, &'static str> {
+    #[allow(dead_code)]
+    pub fn new(name: &str, pets: &[Option<Pet>]) -> Result<Team, &'static str> {
         if pets.len() != TEAM_SIZE {
             return Err("Invalid team size.");
         };
 
         Ok(Team {
+            name: name.to_string(),
             friends: RefCell::new(
                 pets.iter()
-                    .map(|pet| {
-                        if let Some(pet) = pet {
-                            Some(Rc::new(RefCell::new(pet.clone())))
-                        } else {
-                            None
-                        }
-                    })
+                    .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
                     .collect_vec(),
             ),
             triggers: RefCell::new(VecDeque::from_iter([EffectTrigger::StartBattle])),
         })
+    }
+}
+
+impl Display for Team {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let friends_ref = self.friends.borrow();
+        let friends = friends_ref
+            .iter()
+            .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
+            .collect_vec();
+        write!(f, "Team: {}\n{:?}", self.name, friends)
     }
 }
 
@@ -111,6 +119,7 @@ impl Battle for Team {
                     None
                 } else {
                     // Pet is dead.
+                    info!(target: "dev", "Pet ({i}) {} is dead. Removing.", pet.as_ref().unwrap().borrow());
                     self.triggers.borrow_mut().push_back(TRIGGER_SELF_FAINT);
                     Some(i)
                 }
@@ -140,22 +149,17 @@ impl Battle for Team {
         self.friends
             .borrow()
             .iter()
-            .filter_map(|pet| {
-                if let Some(pet) = pet {
-                    Some(pet.clone())
-                } else {
-                    None
-                }
-            })
+            .filter_map(|pet| pet.as_ref().cloned())
             .collect_vec()
     }
 
     fn summon_pet(pet: &Option<Box<Pet>>, pos: usize, team: &Team) -> Result<(), &'static str> {
         if team.get_all_pets().len() == 5 {
-            info!("Team is full.");
+            info!(target: "dev", "Team is full.");
             return Err("Team is full.");
         }
         if let Some(stored_pet) = pet.clone() {
+            info!(target: "dev", "Summoned {:?}.", stored_pet);
             team.friends
                 .borrow_mut()
                 .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
@@ -181,12 +185,15 @@ impl Battle for Team {
                         match &effect.effect {
                             EffectAction::Add(stats) => {
                                 target.borrow().stats.borrow_mut().add(stats);
+                                info!(target: "dev", "Added {:?} to {:?}\n\t({:?}).", stats, &effect.target, target.borrow());
                             }
                             EffectAction::Remove(stats) => {
                                 target.borrow().stats.borrow_mut().sub(stats);
+                                info!(target: "dev", "Removed {:?} to {:?}\n\t({:?}).", stats, &effect.target, target.borrow());
                             }
                             EffectAction::Gain(food) => {
                                 target.borrow_mut().item = Some(*food.clone());
+                                info!(target: "dev", "Gave {:?} to {:?}\n\t({:?}).", food, &effect.target, target.borrow());
                             }
                             // Must also emit EffectTrigger for summon.
                             EffectAction::Summon(pet) => {
@@ -243,15 +250,15 @@ impl Battle for Team {
                         match &effect.effect {
                             EffectAction::Add(stats) => {
                                 target.borrow().stats.borrow_mut().add(stats);
-                                info!("Added {:?} to {:?}", stats, target)
+                                info!(target: "dev", "Added {:?} to {:?}.", stats, &effect.target)
                             }
                             EffectAction::Remove(stats) => {
                                 target.borrow().stats.borrow_mut().sub(stats);
-                                info!("Removed {:?} to {:?}", stats, target)
+                                info!(target: "dev", "Removed {:?} to {:?}.", stats, &effect.target)
                             }
                             EffectAction::Gain(food) => {
                                 target.borrow_mut().item = Some(*food.clone());
-                                info!("Gave {:?} to {:?}", food, target)
+                                info!(target: "dev", "Gave {:?} to {:?}", food, target)
                             }
                             // Must also emit EffectTrigger for summon.
                             EffectAction::Summon(pet) => {
@@ -291,7 +298,7 @@ impl Battle for Team {
                     .effect
                     .as_ref()
                     .filter(|effect| effect.trigger == trigger)
-                    .map(|effect| effect.clone());
+                    .cloned();
 
                 if let Some(food_effect) = food_effect {
                     Team::apply_effect(i, food_effect, self, opponent).unwrap();
@@ -331,7 +338,9 @@ impl Battle for Team {
             {
                 // Attack
                 let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-                info!("Outcome of fight: {:?}", outcome);
+                info!(target: "dev", "Outcome of fight: {:?}", outcome);
+                info!(target: "dev", "Self:\n{}", self);
+                info!(target: "dev", "Opponent:\n{}", opponent);
             } else {
                 // If either side has no available pets, exit loop.
                 break;
@@ -351,136 +360,11 @@ impl Battle for Team {
             opponent.clear_team().apply_triggers(self);
         }
         if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
-            info!("Draw!")
+            info!(target: "dev", "Draw!")
         } else if self.friends.borrow().is_empty() {
-            info!("Your team won!")
+            info!(target: "dev", "Your team won!")
         } else {
-            info!("Enemy team won...")
+            info!(target: "dev", "Enemy team won...")
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::common::{
-        effect::Statistics, food::Food, foods::names::FoodName, pet::Pet, pets::names::PetName,
-        team::Battle, team::Team,
-    };
-
-    #[test]
-    fn test_build_team() {
-        let pet_1 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let pet_2 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let pet_3 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-
-        let pets = [Some(pet_1), Some(pet_2), Some(pet_3), None, None];
-
-        let team = Team::new(&pets);
-        println!("{:?}", team)
-    }
-
-    #[test]
-    fn test_battle_team() {
-        let pet_1 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let pet_2 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let pet_3 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let enemy_pet_1 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let enemy_pet_2 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            None,
-        )
-        .unwrap();
-        let enemy_pet_3 = Pet::new(
-            PetName::Ant,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            Some(Food::new(&FoodName::Honey)),
-        )
-        .unwrap();
-
-        let pets = [Some(pet_1), Some(pet_2), Some(pet_3), None, None];
-        let enemy_pets = [
-            Some(enemy_pet_1),
-            Some(enemy_pet_2),
-            Some(enemy_pet_3),
-            None,
-            None,
-        ];
-
-        let mut team = Team::new(&pets).unwrap();
-        let mut enemy_team = Team::new(&enemy_pets).unwrap();
-
-        team.fight(&mut enemy_team)
     }
 }

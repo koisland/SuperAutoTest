@@ -12,6 +12,11 @@ appenders:
     path: "log/db.log"
     encoder:
       pattern: "{d} {l} {M} - {m}{n}"
+  dev:
+    kind: file
+    path: "log/dev.log"
+    encoder:
+      pattern: "{d} {l} {M} - {m}{n}"
   server:
     kind: rolling_file
     path: "log/server.log"
@@ -46,4 +51,9 @@ loggers:
     level: info
     appenders:
       - scraper
+    additive: false
+  dev:
+    level: info
+    appenders:
+      - dev
     additive: false

@@ -1,9 +1,10 @@
 pub mod effect;
 pub mod food;
 pub mod foods;
-pub mod game;
 pub mod pack;
 pub mod pet;
 pub mod pets;
 pub mod record;
+pub mod regex_patterns;
 pub mod team;
+pub mod tests;

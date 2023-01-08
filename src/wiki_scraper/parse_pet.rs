@@ -1,6 +1,5 @@
 use itertools::Itertools;
 use log::{info, warn};
-use regex::Regex;
 use std::error::Error;
 
 use crate::{
@@ -8,22 +7,9 @@ use crate::{
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,
+        regex_patterns::*,
     },
 };
-
-lazy_static! {
-    static ref RGX_TIER: Regex = Regex::new(r#"<!--\sTIER\s(\d)\s-->"#).unwrap();
-    static ref RGX_PET_NAME: Regex = Regex::new(r#"pet\s=\s\{\{IconSAP\|(.*?)\|size"#).unwrap();
-    static ref RGX_PET_STATS: Regex =
-        Regex::new(r#"attack\s=\s(?P<attack>\d+)\s\|\shealth\s=\s(?P<health>\d+)"#).unwrap();
-    static ref RGX_PET_PACK: Regex = Regex::new(r#"(\w+pack)+"#).unwrap();
-    static ref RGX_PET_EFFECT_TRIGGER: Regex = Regex::new(r#"\| '''(.*?)'''+"#).unwrap();
-    // TODO: Misses animals with no triggers. (Tiger)
-    static ref RGX_PET_EFFECT: Regex = Regex::new(r#"→\s(.*?)\n"#).unwrap();
-    static ref RGX_PET_EFFECT_TRIGGERLESS: Regex = Regex::new(r#"\|\s([^[=]]*?\.*)\n"#).unwrap();
-    static ref RGX_ICON_NAME: Regex =
-        Regex::new(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|]*=[\w\.]+)*"#).unwrap();
-}
 
 /// Parse a block of Fandom wiki source text for a pet's stats.
 /// * Original text: `attack = 2 | health = 1`
