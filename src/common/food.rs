@@ -2,24 +2,19 @@ use std::{cell::RefCell, rc::Rc};
 
 use serde::{Deserialize, Serialize};
 
-use super::{
+use crate::common::{
     effect::{Effect, EffectAction, EffectType, Outcome, Position, Statistics, Status, Target},
     foods::names::FoodName,
     pet::Pet,
     pets::names::PetName,
+    trigger::*,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Food {
     pub name: FoodName,
     pub ability: Effect,
 }
-
-const TRIGGER_NONE: Outcome = Outcome {
-    status: Status::None,
-    target: Target::None,
-    position: Position::None,
-};
 
 #[allow(dead_code)]
 fn get_food_effect(name: &FoodName) -> Effect {

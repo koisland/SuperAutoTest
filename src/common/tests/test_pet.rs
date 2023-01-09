@@ -2,6 +2,7 @@ use crate::common::{
     effect::{Outcome, Position, Status, Target},
     pet::{BattleOutcome, Combat},
     tests::common::ant,
+    trigger::*,
 };
 use std::collections::VecDeque;
 
@@ -19,16 +20,8 @@ fn test_attack_pet() {
     assert_eq!(
         outcome,
         BattleOutcome {
-            friends: VecDeque::from_iter([Outcome {
-                status: Status::Faint,
-                target: Target::Friend,
-                position: Position::Specific(0)
-            }]),
-            opponents: VecDeque::from_iter([Outcome {
-                status: Status::Hurt,
-                target: Target::Friend,
-                position: Position::Specific(0)
-            }])
+            friends: VecDeque::from_iter([TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT]),
+            opponents: VecDeque::from_iter([TRIGGER_SELF_HURT])
         }
     )
 }

@@ -1,38 +1,23 @@
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::VecDeque, error::Error, fmt::Display, rc::Rc};
 
-use crate::db::{setup::get_connection, utils::map_row_to_pet};
-
-use super::{
-    effect::{
-        Effect, EffectAction, EffectType, Modify, Outcome, Position, Statistics, Status, Target,
+use crate::{
+    common::{
+        effect::{Effect, EffectAction, EffectType, Modify, Outcome, Position, Statistics, Target},
+        food::Food,
+        pets::names::PetName,
+        regex_patterns::*,
+        team::Team,
+        trigger::*,
     },
-    food::Food,
-    pets::names::PetName,
-    regex_patterns::*,
-    team::Team,
+    db::{setup::get_connection, utils::map_row_to_pet},
 };
 
 const MIN_DMG: usize = 1;
 const MAX_DMG: usize = 150;
 
-// * If a pet faints.
-// * Is a friend.
-// * Its position relative to the curr pet is 0 (self).
-const TRIGGER_SELF_FAINT: Outcome = Outcome {
-    status: Status::Faint,
-    target: Target::Friend,
-    position: Position::Specific(0),
-};
-
-const TRIGGER_SELF_HURT: Outcome = Outcome {
-    status: Status::Hurt,
-    target: Target::Friend,
-    position: Position::Specific(0),
-};
-
 /// A Super Auto Pet.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Pet {
     pub name: PetName,
     pub tier: usize,
@@ -82,11 +67,7 @@ pub fn get_pet_effect(
             effect_type: EffectType::Pet,
         }),
         PetName::Mosquito => Some(Effect {
-            trigger: Outcome {
-                status: Status::StartBattle,
-                position: Position::None,
-                target: Target::None,
-            },
+            trigger: TRIGGER_START_BATTLE,
             target: Target::Enemy,
             position: Position::Any,
             effect: EffectAction::Remove(effect_stats),
@@ -106,13 +87,9 @@ pub fn get_pet_effect(
             })
         }
         PetName::Horse => Some(Effect {
-            trigger: Outcome {
-                status: Status::Summoned,
-                position: Position::Any,
-                target: Target::Friend,
-            },
+            trigger: TRIGGER_ANY_SUMMON,
             target: Target::Friend,
-            position: Position::Trigger,
+            position: Position::Specific(0),
             effect: EffectAction::Add(effect_stats),
             uses: None,
             effect_type: EffectType::Pet,
@@ -181,11 +158,39 @@ impl Display for BattleOutcome {
 }
 
 pub trait Combat {
+    /// Handle the logic of a single pet interaction during the battle phase.
+    /// * Alters a `Pet`'s `stats.attack` and `stats.health`
+    /// * Decrements any held `Food`'s `uses` attribute.
+    /// * Returns `BattleOutcome` showing status of pets.
+    ///
+    /// ```
+    ///let ant_1 = Pet::new(PetName::Ant,
+    ///    Statistics {attack: 2, health: 1}, 1, None).unwrap();
+    ///let ant_2 = Pet::new(PetName::Ant,
+    ///    Statistics {attack: 2, health: 3}, 1, None).unwrap();
+    ///
+    ///let outcome = ant_t1.attack(&mut ant_t2);
+    /// ```
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
-    fn indirect_attack(&self, hit_stats: &Statistics) -> Outcome;
+    /// Perform a projectile/indirect attack on a `Pet`.
+    /// * `:param hit_stats:`
+    ///     * Amount of `Statistics` to reduce a `Pet`'s stats by.
+    ///
+    /// Returns:
+    /// * `Outcome`(s) of attack.
+    fn indirect_attack(&self, hit_stats: &Statistics) -> Vec<Outcome>;
+    /// Apply an `Effect` of a `Food` that:
+    ///  * Targets a `Pet` other than itself during combat
+    ///  * Does damage remove some `Statistics`.
+    ///  * And affects a specific `Position`.
     fn apply_food_effect(&mut self, opponent: &mut Team);
-    fn get_outcome(&self, new_health: usize) -> Outcome;
+    /// Get `Outcome` when health is altered.
+    fn get_outcome(&self, new_health: usize) -> Vec<Outcome>;
+    /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
+    ///
+    /// If a pet has no held food, no `Statistics` are provided.
     fn get_food_stat_modifier(&self) -> Statistics;
+    /// Check if pet is alive.
     fn is_alive(&self) -> bool;
 }
 
@@ -194,8 +199,7 @@ impl Combat for Pet {
         self.stats.borrow().health != 0
     }
 
-    /// Get `Outcome` when pet hit by a projectile/indirect attack.
-    fn indirect_attack(&self, hit_stats: &Statistics) -> Outcome {
+    fn indirect_attack(&self, hit_stats: &Statistics) -> Vec<Outcome> {
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
         // Subtract stat_modifer (150/2) from indirect attack.
@@ -213,11 +217,6 @@ impl Combat for Pet {
         outcome
     }
 
-    /// Apply an `Effect` of a `Food` that:
-    ///  * Targets a `Pet` other than itself during combat
-    ///  * Does damage remove some `Statistics`.
-    ///  * And affects a specific `Position`.
-    ///
     fn apply_food_effect(&mut self, opponent: &mut Team) {
         if let Some(food) = self.item.as_mut() {
             let food_effect = &food.ability;
@@ -234,44 +233,31 @@ impl Combat for Pet {
                     .map(|pet| pet.as_mut().unwrap())
                 {
                     let indir_atk_outcome = target.borrow().indirect_attack(stats);
-                    info!(
-                        "Used {:?}'s {:?} -> {:?} {:?}",
-                        self.name,
-                        food.name,
-                        target.borrow().name,
-                        indir_atk_outcome
-                    );
-                    opponent.triggers.borrow_mut().push_back(indir_atk_outcome);
+
+                    opponent.triggers.borrow_mut().extend(indir_atk_outcome);
                     food.ability.remove_uses(1);
                 }
             }
         }
     }
 
-    /// Get `Outcome` when health is altered.
-    fn get_outcome(&self, new_health: usize) -> Outcome {
+    fn get_outcome(&self, new_health: usize) -> Vec<Outcome> {
         let health_diff = self.stats.borrow().health.saturating_sub(new_health);
-        let outcome = if health_diff == self.stats.borrow().health {
+        let mut outcomes: Vec<Outcome> = vec![];
+        if health_diff == self.stats.borrow().health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
-            TRIGGER_SELF_FAINT
+            outcomes.extend([TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT])
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
-            Outcome {
-                status: Status::None,
-                target: Target::Friend,
-                position: Position::Specific(0),
-            }
+            outcomes.push(TRIGGER_SELF_UNHURT)
         } else {
             // Otherwise, pet was hurt.
-            TRIGGER_SELF_HURT
+            outcomes.push(TRIGGER_SELF_HURT)
         };
-        info!("Outcome for {:?}: {:?}", self.name, outcome);
-        outcome
+        outcomes
     }
-    /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
-    ///
-    /// If a pet has no held food, no `Statistics` are provided.
+
     fn get_food_stat_modifier(&self) -> Statistics {
         // If a pet has an item that alters stats...
         // Otherwise, no stat modifier added.
@@ -308,19 +294,7 @@ impl Combat for Pet {
             },
         )
     }
-    /// Handle the logic of a single pet interaction during the battle phase.
-    /// * Alters a `Pet`'s `stats.attack` and `stats.health`
-    /// * Decrements any held `Food`'s `uses` attribute.
-    /// * Returns `BattleOutcome` showing status of pets.
-    ///
-    /// ```
-    ///let ant_1 = Pet::new(PetName::Ant,
-    ///    Statistics {attack: 2, health: 1}, 1, None).unwrap();
-    ///let ant_2 = Pet::new(PetName::Ant,
-    ///    Statistics {attack: 2, health: 3}, 1, None).unwrap();
-    ///
-    ///let outcome = ant_t1.attack(&mut ant_t2);
-    /// ```
+
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome {
         // Get stat modifier from food.
         let stat_modifier = self.get_food_stat_modifier();
@@ -351,14 +325,11 @@ impl Combat for Pet {
         enemy.stats.borrow_mut().health = new_enemy_health;
 
         BattleOutcome {
-            friends: VecDeque::from_iter([
-                outcome,
-                // enemy_outcome.clone(),
-            ]),
-            opponents: VecDeque::from_iter([
+            friends: VecDeque::from_iter(outcome),
+            opponents: VecDeque::from_iter(
                 enemy_outcome,
                 // outcome,
-            ]),
+            ),
         }
     }
 }

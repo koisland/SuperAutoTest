@@ -4,7 +4,7 @@ use std::rc::Rc;
 
 use super::{food::Food, pet::Pet};
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
     pub attack: usize,
     pub health: usize,
@@ -17,6 +17,7 @@ impl Statistics {
         self.health = (self.health + stats.health).clamp(0, 50);
         self
     }
+    #[allow(dead_code)]
     /// Subtract some `Statistics` from another.
     pub fn sub(&mut self, stats: &Statistics) -> &Self {
         self.attack = self.attack.saturating_sub(stats.attack);
@@ -34,13 +35,13 @@ pub enum Position {
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum EffectType {
     Pet,
     Food,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Effect {
     pub effect_type: EffectType,
     pub trigger: Outcome,
@@ -97,13 +98,14 @@ pub enum Status {
     Attack,
     Hurt,
     Faint,
+    KnockOut,
     Summoned,
     Pushed,
     None,
     NotImplemented,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum EffectAction {
     Add(Statistics),
     Remove(Statistics),

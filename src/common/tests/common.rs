@@ -29,6 +29,54 @@ pub fn ant() -> Pet {
     }
 }
 
+pub fn cricket() -> Pet {
+    Pet {
+        name: PetName::Cricket,
+        tier: 1,
+        stats: Rc::new(RefCell::new(Statistics {
+            attack: 1,
+            health: 1,
+        })),
+        lvl: 1,
+        effect: get_pet_effect(
+            &PetName::Cricket,
+            Statistics {
+                attack: 1,
+                health: 1,
+            },
+            1,
+            1,
+        ),
+        item: None,
+    }
+}
+
+pub fn horse() -> Pet {
+    Pet {
+        name: PetName::Horse,
+        tier: 1,
+        stats: Rc::new(RefCell::new(Statistics {
+            attack: 2,
+            health: 1,
+        })),
+        lvl: 1,
+        effect: get_pet_effect(
+            &PetName::Horse,
+            Statistics {
+                attack: 1,
+                health: 0,
+            },
+            1,
+            1,
+        ),
+        item: None,
+    }
+}
+
 pub fn test_team() -> [Option<Pet>; 5] {
     [Some(ant()), Some(ant()), Some(ant()), None, None]
+}
+
+pub fn test_summon_team() -> [Option<Pet>; 5] {
+    [Some(cricket()), Some(cricket()), Some(horse()), None, None]
 }
