@@ -25,7 +25,7 @@ const MAX_DMG: usize = 150;
 pub struct Pet {
     pub name: PetName,
     pub tier: usize,
-    pub stats: Rc<RefCell<Statistics>>,
+    pub stats: Statistics,
     pub lvl: usize,
     pub effect: Option<Effect>,
     pub item: Option<Food>,
@@ -37,12 +37,7 @@ impl Display for Pet {
         write!(
             f,
             "[{}: ({},{}) (Level: {}) (Pos: {:?}) (Item: {:?})]",
-            self.name,
-            self.stats.borrow().attack,
-            self.stats.borrow().health,
-            self.lvl,
-            self.pos,
-            self.item
+            self.name, self.stats.attack, self.stats.health, self.lvl, self.pos, self.item
         )
     }
 }
@@ -84,7 +79,7 @@ pub fn get_pet_effect(
             let zombie_cricket = Box::new(Pet {
                 name: PetName::ZombieCricket,
                 tier: 1,
-                stats: Rc::new(RefCell::new(effect_stats)),
+                stats: effect_stats,
                 lvl,
                 effect: None,
                 item: None,
@@ -142,7 +137,7 @@ impl Pet {
         Ok(Pet {
             name,
             tier: pet_record.tier,
-            stats: Rc::new(RefCell::new(stats)),
+            stats,
             lvl: pet_record.lvl,
             effect,
             item,
@@ -193,7 +188,7 @@ pub trait Combat {
     ///
     /// Returns:
     /// * `Outcome`(s) of attack.
-    fn indirect_attack(&self, hit_stats: &Statistics) -> Vec<Outcome>;
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome>;
     /// Apply an `Effect` of a `Food` that:
     ///  * Targets a `Pet` other than itself during combat
     ///  * Does damage remove some `Statistics`.
@@ -211,10 +206,10 @@ pub trait Combat {
 
 impl Combat for Pet {
     fn is_alive(&self) -> bool {
-        self.stats.borrow().health != 0
+        self.stats.health != 0
     }
 
-    fn indirect_attack(&self, hit_stats: &Statistics) -> Vec<Outcome> {
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome> {
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
         // Subtract stat_modifer (150/2) from indirect attack.
@@ -223,12 +218,12 @@ impl Combat for Pet {
             .saturating_sub(stat_modifier.health)
             // Must do a minimum of 1 damage.
             .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.borrow().health.saturating_sub(enemy_atk);
+        let new_health = self.stats.health.saturating_sub(enemy_atk);
 
         // Use health difference to determine outcome.
         let outcome = self.get_outcome(new_health);
         // Set new health.
-        self.stats.borrow_mut().health = new_health;
+        self.stats.health = new_health;
         outcome
     }
 
@@ -247,7 +242,7 @@ impl Combat for Pet {
                     .get_mut(*idx)
                     .map(|pet| pet.as_mut().unwrap())
                 {
-                    let indir_atk_outcome = target.borrow().indirect_attack(stats);
+                    let indir_atk_outcome = target.borrow_mut().indirect_attack(stats);
 
                     opponent.triggers.borrow_mut().extend(indir_atk_outcome);
                     food.ability.remove_uses(1);
@@ -257,9 +252,9 @@ impl Combat for Pet {
     }
 
     fn get_outcome(&self, new_health: usize) -> Vec<Outcome> {
-        let health_diff = self.stats.borrow().health.saturating_sub(new_health);
+        let health_diff = self.stats.health.saturating_sub(new_health);
         let mut outcomes: Vec<Outcome> = vec![];
-        if health_diff == self.stats.borrow().health {
+        if health_diff == self.stats.health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
             let (mut self_faint, mut any_faint) = (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT);
@@ -325,15 +320,15 @@ impl Combat for Pet {
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk = (enemy.stats.borrow().attack + enemy_stat_modifier.attack)
+        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
             .saturating_sub(stat_modifier.health)
             .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.borrow().health.saturating_sub(enemy_atk);
+        let new_health = self.stats.health.saturating_sub(enemy_atk);
 
-        let atk = (self.stats.borrow().attack + stat_modifier.attack)
+        let atk = (self.stats.attack + stat_modifier.attack)
             .saturating_sub(enemy_stat_modifier.health)
             .clamp(MIN_DMG, MAX_DMG);
-        let new_enemy_health = enemy.stats.borrow().health.saturating_sub(atk);
+        let new_enemy_health = enemy.stats.health.saturating_sub(atk);
 
         // Decrement number of uses on items, if any.
         self.item.as_mut().map(|item| item.ability.remove_uses(1));
@@ -345,8 +340,8 @@ impl Combat for Pet {
         let enemy_outcome = enemy.get_outcome(new_enemy_health);
 
         // Set the new health of a pet.
-        self.stats.borrow_mut().health = new_health;
-        enemy.stats.borrow_mut().health = new_enemy_health;
+        self.stats.health = new_health;
+        enemy.stats.health = new_enemy_health;
 
         BattleOutcome {
             friends: VecDeque::from_iter(outcome),

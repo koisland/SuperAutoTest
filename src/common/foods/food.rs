@@ -59,10 +59,10 @@ fn get_food_effect(name: &FoodName) -> Effect {
             let bee = Box::new(Pet {
                 name: PetName::Bee,
                 tier: 1,
-                stats: Rc::new(RefCell::new(Statistics {
+                stats: Statistics {
                     attack: 1,
                     health: 1,
-                })),
+                },
                 lvl: 1,
                 effect: None,
                 item: None,

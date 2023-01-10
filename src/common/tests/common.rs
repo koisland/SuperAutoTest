@@ -13,10 +13,10 @@ pub fn ant() -> Pet {
     Pet {
         name: PetName::Ant,
         tier: 1,
-        stats: Rc::new(RefCell::new(Statistics {
+        stats: Statistics {
             attack: 2,
             health: 1,
-        })),
+        },
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Ant,
@@ -36,10 +36,10 @@ pub fn cricket() -> Pet {
     Pet {
         name: PetName::Cricket,
         tier: 1,
-        stats: Rc::new(RefCell::new(Statistics {
+        stats: Statistics {
             attack: 1,
             health: 1,
-        })),
+        },
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Cricket,
@@ -59,10 +59,10 @@ pub fn horse() -> Pet {
     Pet {
         name: PetName::Horse,
         tier: 1,
-        stats: Rc::new(RefCell::new(Statistics {
+        stats: Statistics {
             attack: 2,
             health: 1,
-        })),
+        },
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Horse,
@@ -82,10 +82,10 @@ pub fn mosquito() -> Pet {
     Pet {
         name: PetName::Mosquito,
         tier: 1,
-        stats: Rc::new(RefCell::new(Statistics {
+        stats: Statistics {
             attack: 2,
             health: 2,
-        })),
+        },
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Mosquito,

@@ -69,14 +69,14 @@ fn test_battle_summon_team() {
         PetName::Horse
     );
     assert_eq!(
-        *team.get_next_pet().unwrap().borrow().stats.borrow(),
+        team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 1,
             health: 1
         }
     );
     assert_eq!(
-        *enemy_team.get_next_pet().unwrap().borrow().stats.borrow(),
+        enemy_team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -97,14 +97,14 @@ fn test_battle_summon_team() {
         PetName::ZombieCricket
     );
     assert_eq!(
-        *team.get_next_pet().unwrap().borrow().stats.borrow(),
+        team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 1
         }
     );
     assert_eq!(
-        *enemy_team.get_next_pet().unwrap().borrow().stats.borrow(),
+        enemy_team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -130,7 +130,7 @@ fn test_battle_mosquito_team() {
     for pet in team.get_all_pets().iter() {
         // Mosquitoes are unhurt
         assert_eq!(
-            *pet.borrow().stats.borrow(),
+            pet.borrow().stats,
             Statistics {
                 attack: 2,
                 health: 2,

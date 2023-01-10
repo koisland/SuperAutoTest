@@ -11,11 +11,11 @@ fn test_attack_pet() {
     let mut ant_t2 = ant();
 
     // Set 2nd ant health to survive attack.
-    ant_t2.stats.borrow_mut().health = 3;
+    ant_t2.stats.health = 3;
 
     let outcome = ant_t1.attack(&mut ant_t2);
 
-    assert!(ant_t1.stats.borrow().health == 0 && ant_t2.stats.borrow().health == 1);
+    assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
     assert_eq!(
         outcome,
         BattleOutcome {

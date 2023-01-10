@@ -315,13 +315,13 @@ impl EffectApply for Team {
         match effect_type {
             EffectAction::Add(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
-                    target.borrow().stats.borrow_mut().add(stats);
+                    target.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, target.borrow());
                 }
             }
             EffectAction::Remove(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
-                    outcomes.extend(target.borrow().indirect_attack(stats));
+                    outcomes.extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
                 }
             }
@@ -346,13 +346,13 @@ impl EffectApply for Team {
         match effect_type {
             EffectAction::Add(stats) => {
                 if let Some(target) = self.get_any_pet() {
-                    target.borrow().stats.borrow_mut().add(stats);
+                    target.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, target.borrow());
                 }
             }
             EffectAction::Remove(stats) => {
                 if let Some(target) = self.get_any_pet() {
-                    outcomes.extend(target.borrow().indirect_attack(stats));
+                    outcomes.extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
                 }
             }
@@ -380,13 +380,13 @@ impl EffectApply for Team {
         match effect_type {
             EffectAction::Add(stats) => {
                 for pet in self.get_all_pets() {
-                    pet.borrow().stats.borrow_mut().add(stats);
+                    pet.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, pet.borrow());
                 }
             }
             EffectAction::Remove(stats) => {
                 for pet in self.get_all_pets() {
-                    outcomes.extend(pet.borrow().indirect_attack(stats));
+                    outcomes.extend(pet.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, pet.borrow());
                 }
             }
@@ -403,14 +403,14 @@ impl EffectApply for Team {
         match effect_type {
             EffectAction::Add(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
-                    affected_pet.borrow().stats.borrow_mut().add(stats);
+                    affected_pet.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, affected_pet.borrow())
                 }
             }
             EffectAction::Remove(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     info!(target: "dev", "Removed {} from {}.", stats, affected_pet.borrow());
-                    outcomes.extend(affected_pet.borrow().indirect_attack(stats));
+                    outcomes.extend(affected_pet.borrow_mut().indirect_attack(stats));
                 }
             }
             EffectAction::Gain(food) => {
@@ -488,12 +488,8 @@ impl EffectApply for Team {
                 .sorted_by(|(_, pet_1), (_, pet_2)| {
                     pet_1
                         .as_ref()
-                        .map_or(0, |pet| pet.borrow().stats.borrow().attack)
-                        .cmp(
-                            &pet_2
-                                .as_ref()
-                                .map_or(0, |pet| pet.borrow().stats.borrow().attack),
-                        )
+                        .map_or(0, |pet| pet.borrow().stats.attack)
+                        .cmp(&pet_2.as_ref().map_or(0, |pet| pet.borrow().stats.attack))
                 })
                 .rev()
             {
