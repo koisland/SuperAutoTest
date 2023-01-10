@@ -1,7 +1,7 @@
 use crate::common::{
-    pet::{BattleOutcome, Combat},
+    battle::trigger::*,
+    pets::pet::{BattleOutcome, Combat},
     tests::common::ant,
-    trigger::*,
 };
 use std::collections::VecDeque;
 

@@ -1,10 +1,10 @@
 use crate::common::{
-    effect::Statistics,
-    food::Food,
-    foods::names::FoodName,
-    pet::Pet,
-    pets::names::PetName,
-    team::{Battle, Team},
+    battle::{
+        effect::Statistics,
+        team::{Battle, Team},
+    },
+    foods::{food::Food, names::FoodName},
+    pets::{names::PetName, pet::Pet},
     tests::common::{ant, test_ant_team, test_mosq_team, test_summon_team},
 };
 

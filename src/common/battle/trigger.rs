@@ -1,4 +1,4 @@
-use crate::common::effect::{Outcome, Position, Status, Target};
+use crate::common::battle::effect::{Outcome, Position, Status, Target};
 
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     status: Status::StartBattle,

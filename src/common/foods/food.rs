@@ -3,11 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use serde::{Deserialize, Serialize};
 
 use crate::common::{
-    effect::{Effect, EffectAction, EffectType, Outcome, Position, Statistics, Status, Target},
+    battle::{
+        effect::{Effect, EffectAction, EffectType, Outcome, Position, Statistics, Status, Target},
+        trigger::*,
+    },
     foods::names::FoodName,
-    pet::Pet,
-    pets::names::PetName,
-    trigger::*,
+    pets::{names::PetName, pet::Pet},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

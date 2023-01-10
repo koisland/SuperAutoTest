@@ -3,12 +3,16 @@ use std::{cell::RefCell, collections::VecDeque, error::Error, fmt::Display, rc::
 
 use crate::{
     common::{
-        effect::{Effect, EffectAction, EffectType, Modify, Outcome, Position, Statistics, Target},
-        food::Food,
+        battle::{
+            effect::{
+                Effect, EffectAction, EffectType, Modify, Outcome, Position, Statistics, Target,
+            },
+            team::Team,
+            trigger::*,
+        },
+        foods::food::Food,
         pets::names::PetName,
         regex_patterns::*,
-        team::Team,
-        trigger::*,
     },
     db::{setup::get_connection, utils::map_row_to_pet},
 };

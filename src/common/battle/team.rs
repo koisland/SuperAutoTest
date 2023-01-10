@@ -1,8 +1,10 @@
 use crate::common::{
-    effect::{Effect, EffectAction, Outcome, Position, Target},
+    battle::{
+        effect::{Effect, EffectAction, Outcome, Position, Target},
+        trigger::*,
+    },
     error::TeamError,
-    pet::{Combat, Pet},
-    trigger::*,
+    pets::pet::{Combat, Pet},
 };
 
 use itertools::Itertools;

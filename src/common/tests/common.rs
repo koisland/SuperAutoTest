@@ -1,7 +1,9 @@
 use crate::common::{
-    effect::Statistics,
-    pet::{get_pet_effect, Pet},
-    pets::names::PetName,
+    battle::effect::Statistics,
+    pets::{
+        names::PetName,
+        pet::{get_pet_effect, Pet},
+    },
 };
 use std::{cell::RefCell, rc::Rc};
 

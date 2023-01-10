@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
-use crate::common::{food::Food, pet::Pet};
+use crate::common::{foods::food::Food, pets::pet::Pet};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
