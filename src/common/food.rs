@@ -32,8 +32,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: TRIGGER_NONE,
         },
         FoodName::Coconut => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             // Negate 150 health hit. Pretty much invulnerability.
             effect: EffectAction::Negate(Statistics {
                 attack: 0,
@@ -44,8 +44,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: TRIGGER_NONE,
         },
         FoodName::Garlic => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             effect: EffectAction::Negate(Statistics {
                 attack: 0,
                 health: 2,
@@ -65,23 +65,25 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 lvl: 1,
                 effect: None,
                 item: None,
+                pos: None,
             });
             Effect {
                 target: Target::Friend,
-                position: Position::Specific(0),
+                position: Position::Trigger,
                 effect: EffectAction::Summon(Some(bee)),
                 uses: None,
                 effect_type: EffectType::Food,
                 trigger: Outcome {
                     status: Status::Faint,
                     target: Target::Friend,
-                    position: Position::Specific(0),
+                    position: Position::OnSelf,
+                    idx: Some(0),
                 },
             }
         }
         FoodName::MeatBone => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             effect: EffectAction::Add(Statistics {
                 attack: 4,
                 health: 0,
@@ -91,8 +93,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: TRIGGER_NONE,
         },
         FoodName::Melon => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             effect: EffectAction::Negate(Statistics {
                 attack: 0,
                 health: 20,
@@ -103,7 +105,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         },
         FoodName::Mushroom => Effect {
             target: Target::Friend,
-            position: Position::Specific(0),
+            position: Position::Trigger,
             // Replace during runtime.
             effect: EffectAction::Summon(None),
             uses: Some(Rc::new(RefCell::new(1))),
@@ -111,12 +113,13 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: Outcome {
                 status: Status::Faint,
                 target: Target::Friend,
-                position: Position::Specific(0),
+                position: Position::OnSelf,
+                idx: None,
             },
         },
         FoodName::Peanuts => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             effect: EffectAction::Add(Statistics {
                 attack: 150,
                 health: 0,
@@ -126,8 +129,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
             trigger: TRIGGER_NONE,
         },
         FoodName::Steak => Effect {
-            target: Target::OnSelf,
-            position: Position::None,
+            target: Target::Friend,
+            position: Position::OnSelf,
             effect: EffectAction::Add(Statistics {
                 attack: 20,
                 health: 0,

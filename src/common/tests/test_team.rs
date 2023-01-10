@@ -1,12 +1,14 @@
 use crate::common::{
+    effect::Statistics,
     food::Food,
     foods::names::FoodName,
     pet::Pet,
+    pets::names::PetName,
     team::{Battle, Team},
     tests::common::{ant, test_summon_team, test_team},
 };
 
-// use crate::LOG_CONFIG;
+use crate::LOG_CONFIG;
 
 #[test]
 fn test_build_team() {
@@ -27,17 +29,14 @@ fn test_build_invalid_team() {
 }
 
 #[test]
-fn test_battle_team() {
-    // // Logger for debugging.
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
+fn test_battle_honey_team() {
     let pets = test_team();
     let enemy_pets = test_team();
 
     let mut team = Team::new("self", &pets).unwrap();
     let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
 
-    // Give last pet honey.
+    // Give last pet honey on first team.
     if let Some(last_pet) = &team.friends.borrow_mut()[2] {
         last_pet.borrow_mut().item = Some(Food::new(&FoodName::Honey))
     }
@@ -47,18 +46,66 @@ fn test_battle_team() {
     assert_eq!(winner, team);
 }
 
-// #[test]
-// fn test_battle_summon_team() {
-//     // // Logger for debugging.
-//     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+#[test]
+fn test_battle_summon_team() {
+    let pets = test_summon_team();
+    let enemy_pets = test_summon_team();
 
-//     let pets = test_summon_team();
-//     let enemy_pets = test_summon_team();
+    let mut team = Team::new("self", &pets).unwrap();
+    let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
 
-//     let mut team = Team::new("self", &pets).unwrap();
-//     let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
+    // First pets are crickets
+    // Horse is 3rd pet.
+    assert_eq!(team.get_next_pet().unwrap().borrow().name, PetName::Cricket);
+    assert_eq!(
+        enemy_team.get_next_pet().unwrap().borrow().name,
+        PetName::Cricket
+    );
+    assert_eq!(team.get_idx_pet(2).unwrap().borrow().name, PetName::Horse);
+    assert_eq!(
+        enemy_team.get_idx_pet(2).unwrap().borrow().name,
+        PetName::Horse
+    );
+    assert_eq!(
+        *team.get_next_pet().unwrap().borrow().stats.borrow(),
+        Statistics {
+            attack: 1,
+            health: 1
+        }
+    );
+    assert_eq!(
+        *enemy_team.get_next_pet().unwrap().borrow().stats.borrow(),
+        Statistics {
+            attack: 1,
+            health: 1
+        }
+    );
 
-//     let winner = team.fight(&mut enemy_team, None).unwrap().clone();
+    // After one turn.
+    team.fight(&mut enemy_team, Some(1));
 
-//     println!("{:?}", winner)
-// }
+    // Cricket dies and zombie cricket is spawned.
+    // Horse provides 1 attack.
+    assert_eq!(
+        team.get_next_pet().unwrap().borrow().name,
+        PetName::ZombieCricket
+    );
+    assert_eq!(
+        enemy_team.get_next_pet().unwrap().borrow().name,
+        PetName::ZombieCricket
+    );
+    assert_eq!(
+        *team.get_next_pet().unwrap().borrow().stats.borrow(),
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    assert_eq!(
+        *enemy_team.get_next_pet().unwrap().borrow().stats.borrow(),
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+}

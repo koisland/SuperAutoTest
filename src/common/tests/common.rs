@@ -26,6 +26,7 @@ pub fn ant() -> Pet {
             1,
         ),
         item: None,
+        pos: None,
     }
 }
 
@@ -48,6 +49,7 @@ pub fn cricket() -> Pet {
             1,
         ),
         item: None,
+        pos: None,
     }
 }
 
@@ -70,6 +72,7 @@ pub fn horse() -> Pet {
             1,
         ),
         item: None,
+        pos: None,
     }
 }
 

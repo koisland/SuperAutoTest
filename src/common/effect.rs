@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
-use super::{food::Food, pet::Pet};
+use crate::common::{food::Food, pet::Pet};
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
@@ -26,10 +25,17 @@ impl Statistics {
     }
 }
 
+impl Display for Statistics {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "({}, {})", self.attack, self.health)
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
     Any,
     All,
+    OnSelf,
     Trigger,
     Specific(usize),
     None,
@@ -79,17 +85,25 @@ impl Modify for Effect {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Target {
-    OnSelf,
     Friend,
     Enemy,
     None,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, Eq)]
 pub struct Outcome {
     pub status: Status,
     pub target: Target,
     pub position: Position,
+    pub idx: Option<usize>,
+}
+
+impl PartialEq for Outcome {
+    fn eq(&self, other: &Self) -> bool {
+        self.status == other.status
+            && self.target == other.target
+            && self.position == other.position
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

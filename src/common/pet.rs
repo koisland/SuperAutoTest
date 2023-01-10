@@ -25,17 +25,19 @@ pub struct Pet {
     pub lvl: usize,
     pub effect: Option<Effect>,
     pub item: Option<Food>,
+    pub pos: Option<usize>,
 }
 
 impl Display for Pet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}: ({},{}) (Level: {}) - Item: {:?}]",
+            "[{}: ({},{}) (Level: {}) (Pos: {:?}) (Item: {:?})]",
             self.name,
             self.stats.borrow().attack,
             self.stats.borrow().health,
             self.lvl,
+            self.pos,
             self.item
         )
     }
@@ -75,12 +77,19 @@ pub fn get_pet_effect(
             effect_type: EffectType::Pet,
         }),
         PetName::Cricket => {
-            let zombie_cricket =
-                Box::new(Pet::new(PetName::ZombieCricket, effect_stats, lvl, None).unwrap());
+            let zombie_cricket = Box::new(Pet {
+                name: PetName::ZombieCricket,
+                tier: 1,
+                stats: Rc::new(RefCell::new(effect_stats)),
+                lvl,
+                effect: None,
+                item: None,
+                pos: None,
+            });
             Some(Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Specific(0),
+                position: Position::OnSelf,
                 effect: EffectAction::Summon(Some(zombie_cricket)),
                 uses: Some(Rc::new(RefCell::new(n_triggers))),
                 effect_type: EffectType::Pet,
@@ -89,7 +98,7 @@ pub fn get_pet_effect(
         PetName::Horse => Some(Effect {
             trigger: TRIGGER_ANY_SUMMON,
             target: Target::Friend,
-            position: Position::Specific(0),
+            position: Position::Trigger,
             effect: EffectAction::Add(effect_stats),
             uses: None,
             effect_type: EffectType::Pet,
@@ -106,6 +115,7 @@ impl Pet {
         stats: Statistics,
         lvl: usize,
         item: Option<Food>,
+        pos: Option<usize>,
     ) -> Result<Pet, Box<dyn Error>> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets where name = ? and lvl = ?")?;
@@ -132,6 +142,7 @@ impl Pet {
             lvl: pet_record.lvl,
             effect,
             item,
+            pos,
         })
     }
 }
@@ -151,7 +162,7 @@ impl Display for BattleOutcome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Outcome (Friends)  - {:?}\nOutcome (Opponent) - {:?}",
+            "Friends: {:?}\nOpponent: {:?}",
             self.friends, self.opponents,
         )
     }
@@ -247,13 +258,22 @@ impl Combat for Pet {
         if health_diff == self.stats.borrow().health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
-            outcomes.extend([TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT])
+            let (mut self_faint, mut any_faint) = (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT);
+            (self_faint.idx, any_faint.idx) = (self.pos, self.pos);
+
+            outcomes.extend([self_faint, any_faint])
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
-            outcomes.push(TRIGGER_SELF_UNHURT)
+            let mut self_unhurt = TRIGGER_SELF_UNHURT;
+            self_unhurt.idx = self.pos;
+
+            outcomes.push(self_unhurt)
         } else {
             // Otherwise, pet was hurt.
-            outcomes.push(TRIGGER_SELF_HURT)
+            let mut self_hurt = TRIGGER_SELF_HURT;
+            self_hurt.idx = self.pos;
+
+            outcomes.push(self_hurt)
         };
         outcomes
     }
@@ -272,7 +292,7 @@ impl Combat for Pet {
                     .uses
                     .as_ref()
                     .map_or(&EffectAction::None, |uses| {
-                        if *uses.borrow() > 0 && food.ability.target == Target::OnSelf {
+                        if *uses.borrow() > 0 && food.ability.position == Position::OnSelf {
                             // Return the food effect.
                             &food.ability.effect
                         } else {

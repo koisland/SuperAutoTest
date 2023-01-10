@@ -34,6 +34,9 @@ pub trait Battle {
     /// Get a random available `Pet`.
     /// * Fainted `Pet`s and/or empty slots are ignored.
     fn get_any_pet(&self) -> Option<Rc<RefCell<Pet>>>;
+    /// Get an available `Pet` at the specified index.
+    /// * Fainted `Pet`s and/or empty slots are ignored.
+    fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>>;
     /// Get all available `Pet`s.
     /// * Fainted `Pet`s and/or empty slots are ignored.
     fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>>;
@@ -54,7 +57,7 @@ pub trait Battle {
     /// Apply a given effect to a team.
     fn apply_effect(
         &self,
-        pet_idx: usize,
+        trigger: Outcome,
         effect: Effect,
         opponent: &Team,
     ) -> Result<VecDeque<Outcome>, &'static str>;
@@ -64,6 +67,13 @@ pub trait Battle {
     fn _target_effect_specific(
         &self,
         pos: usize,
+        effect_type: &EffectAction,
+        outcomes: &mut VecDeque<Outcome>,
+    );
+    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_trigger(
+        &self,
+        trigger: Outcome,
         effect_type: &EffectAction,
         outcomes: &mut VecDeque<Outcome>,
     );
@@ -92,17 +102,22 @@ impl Team {
 
 impl Display for Team {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let friends_ref = self.friends.borrow();
-        let friends = friends_ref
+        writeln!(f, "Team: {}", self.name)?;
+        for friend in self
+            .friends
+            .borrow()
             .iter()
             .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
-            .collect_vec();
-        write!(f, "Team: {}\n{:?}", self.name, friends)
+        {
+            writeln!(f, "{}", friend)?;
+        }
+        Ok(())
     }
 }
 
 impl Battle for Team {
     fn clear_team(&self) -> &Self {
+        let mut new_idx_cnt = 0;
         let missing_pets = self
             .friends
             .borrow()
@@ -116,6 +131,10 @@ impl Battle for Team {
                     .as_ref()
                     .map_or(false, |pet| pet.borrow().is_alive())
                 {
+                    // Pet is Some so safe to unwrap.
+                    // Set new pet index and increment
+                    pet.as_ref().unwrap().borrow_mut().pos = Some(new_idx_cnt);
+                    new_idx_cnt += 1;
                     None
                 } else {
                     // Pet is dead.
@@ -123,12 +142,19 @@ impl Battle for Team {
                     Some(i)
                 }
             })
-            .rev()
             .collect_vec();
-        for rev_idx in missing_pets.iter() {
+        // Iterate in reverse to maintain correct removal order.
+        for rev_idx in missing_pets.iter().rev() {
             self.friends.borrow_mut().remove(*rev_idx);
         }
         self
+    }
+    fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
+        if let Some(Some(pet)) = self.friends.borrow().get(idx) {
+            pet.borrow().is_alive().then(|| pet.clone())
+        } else {
+            None
+        }
     }
     /// Get the next pet in team.
     fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
@@ -165,15 +191,23 @@ impl Battle for Team {
             });
         }
         if let Some(stored_pet) = pet.clone() {
-            info!(target: "dev", "Added pet to team: {:?}.", stored_pet);
+            info!(target: "dev", "Added pet to pos {pos} team: {}.", stored_pet);
             self.friends
                 .borrow_mut()
                 .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
+
+            let mut self_trigger = TRIGGER_SELF_SUMMON;
+            let mut any_trigger = TRIGGER_ANY_SUMMON;
+            let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
+
+            (self_trigger.idx, any_trigger.idx, any_enemy_trigger.idx) =
+                (Some(pos), Some(pos), Some(pos));
+
             Ok([
                 // May run into issue with mushroomed scorpion.
-                TRIGGER_SELF_SUMMON,
-                TRIGGER_ANY_SUMMON,
-                TRIGGER_ANY_ENEMY_SUMMON,
+                self_trigger,
+                any_trigger,
+                any_enemy_trigger,
             ])
         } else {
             Err(TeamError {
@@ -182,24 +216,61 @@ impl Battle for Team {
         }
     }
 
+    fn _target_effect_trigger(
+        &self,
+        trigger: Outcome,
+        effect_type: &EffectAction,
+        outcomes: &mut VecDeque<Outcome>,
+    ) {
+        let trigger_pos = trigger.idx.expect("No idx position given to apply effect.");
+        match effect_type {
+            EffectAction::Add(stats) => {
+                if let Some(target) = self.get_all_pets().get(trigger_pos) {
+                    target.borrow().stats.borrow_mut().add(stats);
+                    info!(target: "dev", "Added {} to {}.", stats, target.borrow());
+                }
+            }
+            EffectAction::Remove(stats) => {
+                if let Some(target) = self.get_all_pets().get(trigger_pos) {
+                    outcomes.extend(target.borrow().indirect_attack(stats));
+                    info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
+                }
+            }
+            EffectAction::Gain(food) => {
+                if let Some(target) = self.get_all_pets().get(trigger_pos) {
+                    target.borrow_mut().item = Some(*food.clone());
+                    info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
+                }
+            }
+            // Must also emit EffectTrigger for summon.
+            EffectAction::Summon(pet) => {
+                let summon_triggers = self.add_pet(pet, trigger_pos);
+                if let Ok(summon_triggers) = summon_triggers {
+                    outcomes.extend(summon_triggers.into_iter())
+                }
+            }
+            _ => {}
+        }
+    }
+
     fn _target_effect_any(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>) {
         match effect_type {
             EffectAction::Add(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     target.borrow().stats.borrow_mut().add(stats);
-                    info!(target: "dev", "Added {:?}\n\t({:?}).", stats, target.borrow());
+                    info!(target: "dev", "Added {} to {}.", stats, target.borrow());
                 }
             }
             EffectAction::Remove(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     outcomes.extend(target.borrow().indirect_attack(stats));
-                    info!(target: "dev", "Removed {:?}\n\t({:?}).", stats, target.borrow());
+                    info!(target: "dev", "Removed {:?} to {}.", stats, target.borrow());
                 }
             }
             EffectAction::Gain(food) => {
                 if let Some(target) = self.get_any_pet() {
                     target.borrow_mut().item = Some(*food.clone());
-                    info!(target: "dev", "Gave {:?}\n\t({:?}).", food, target.borrow());
+                    info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
             // Must also emit EffectTrigger for summon.
@@ -221,13 +292,13 @@ impl Battle for Team {
             EffectAction::Add(stats) => {
                 for pet in self.get_all_pets() {
                     pet.borrow().stats.borrow_mut().add(stats);
-                    info!(target: "dev", "Added {:?}\n\t({:?}).", stats, pet.borrow());
+                    info!(target: "dev", "Added {} to {}.", stats, pet.borrow());
                 }
             }
             EffectAction::Remove(stats) => {
                 for pet in self.get_all_pets() {
                     outcomes.extend(pet.borrow().indirect_attack(stats));
-                    info!(target: "dev", "Removed {:?}\n\t({:?}).", stats, pet.borrow());
+                    info!(target: "dev", "Removed {} to {}.", stats, pet.borrow());
                 }
             }
             _ => {}
@@ -244,18 +315,18 @@ impl Battle for Team {
             EffectAction::Add(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     affected_pet.borrow().stats.borrow_mut().add(stats);
-                    info!(target: "dev", "Added {:?} to pos {} pet\n\t{:?}.", stats, pos, affected_pet.borrow())
+                    info!(target: "dev", "Added {} to {}.", stats, affected_pet.borrow())
                 }
             }
             EffectAction::Remove(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
-                    info!(target: "dev", "Removed {:?} from pos {} pet\n\t{:?}.", stats, pos, affected_pet.borrow());
+                    info!(target: "dev", "Removed {} from {}.", stats, affected_pet.borrow());
                     outcomes.extend(affected_pet.borrow().indirect_attack(stats));
                 }
             }
             EffectAction::Gain(food) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
-                    info!(target: "dev", "Gave {:?} to pos {} pet\n\t{:?}.", food, pos, affected_pet.borrow());
+                    info!(target: "dev", "Gave {:?} to {}.", food, affected_pet.borrow());
                     affected_pet.borrow_mut().item = Some(*food.clone())
                 }
             }
@@ -271,7 +342,7 @@ impl Battle for Team {
 
     fn apply_effect(
         &self,
-        pet_idx: usize,
+        trigger: Outcome,
         effect: Effect,
         opponent: &Team,
     ) -> Result<VecDeque<Outcome>, &'static str> {
@@ -283,22 +354,30 @@ impl Battle for Team {
             Target::Friend => match &effect.position {
                 Position::Any => self._target_effect_any(&effect.effect, &mut outcomes),
                 Position::All => self._target_effect_all(&effect.effect, &mut outcomes),
-                Position::Trigger => todo!(),
+                Position::OnSelf | Position::Trigger => {
+                    self._target_effect_trigger(trigger, &effect.effect, &mut outcomes)
+                }
+                // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
                 Position::Specific(rel_pos) => {
-                    self._target_effect_specific(pet_idx + *rel_pos, &effect.effect, &mut outcomes)
+                    self._target_effect_specific(*rel_pos, &effect.effect, &mut outcomes)
                 }
                 _ => {}
             },
-            Target::Enemy => match effect.position {
+            Target::Enemy => match &effect.position {
                 Position::Any => opponent._target_effect_any(&effect.effect, &mut outcomes),
-                Position::All => todo!(),
-                Position::Trigger => todo!(),
-                Position::Specific(_) => todo!(),
-                Position::None => todo!(),
+                Position::All => opponent._target_effect_all(&effect.effect, &mut outcomes),
+                Position::OnSelf | Position::Trigger => {
+                    opponent._target_effect_trigger(trigger, &effect.effect, &mut outcomes)
+                }
+                // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
+                Position::Specific(rel_pos) => {
+                    opponent._target_effect_specific(*rel_pos, &effect.effect, &mut outcomes)
+                }
+                _ => {}
             },
-            Target::None | Target::OnSelf => {}
+            Target::None => {}
         };
-
+        info!(target: "dev", "Triggers:\n{:?}", outcomes);
         Ok(outcomes)
     }
 
@@ -308,19 +387,15 @@ impl Battle for Team {
         self.triggers.borrow_mut().clear();
 
         // Continue iterating until all triggers consumed.
-        while let Some(mut trigger) = curr_triggers.pop_front() {
-            let mut applied_effects: Vec<(usize, Effect)> = vec![];
+        while let Some(trigger) = curr_triggers.pop_front() {
+            let mut applied_effects: Vec<(Outcome, Effect)> = vec![];
+
             // Iterate through pets collecting valid effects.
             for (i, pet) in self.friends.borrow().iter().enumerate() {
-                // Adjust specific trigger positions to the current pet.
-                // Clamp to team size.
-                // If trigger is Specific(0) for a friendly team.,
-                // * 1st pet = Specific(0)
-                // * 2nd pet = Specific(1)
-                // * ...
-                if let Position::Specific(rel_pos) = trigger.position {
-                    trigger.position = Position::Specific((rel_pos + i).clamp(0, TEAM_SIZE - 1))
+                if trigger.position != Position::Any && trigger.idx != Some(i) {
+                    continue;
                 }
+
                 // Get food and pet effect based on if its trigger is equal to current trigger, if any.
                 if let Some(Some(food_effect)) = pet.as_ref().map(|pet| {
                     pet.borrow()
@@ -329,7 +404,7 @@ impl Battle for Team {
                         .filter(|food| food.ability.trigger == trigger)
                         .map(|food| food.ability.clone())
                 }) {
-                    applied_effects.push((i, food_effect))
+                    applied_effects.push((trigger.clone(), food_effect))
                 };
                 if let Some(Some(pet_effect)) = pet
                     .as_ref()
@@ -342,7 +417,7 @@ impl Battle for Team {
                     })
                     .map(|pet| pet.borrow().effect.clone())
                 {
-                    applied_effects.push((i, pet_effect))
+                    applied_effects.push((trigger.clone(), pet_effect))
                 };
             }
             // Apply effects.
@@ -351,7 +426,9 @@ impl Battle for Team {
                 applied_effects
                     .into_iter()
                     .rev()
-                    .filter_map(|(i, effect)| self.apply_effect(i, effect, opponent).ok())
+                    .filter_map(|(trigger, effect)| {
+                        self.apply_effect(trigger, effect, opponent).ok()
+                    })
                     .into_iter()
                     .flatten(),
             );
@@ -385,9 +462,10 @@ impl Battle for Team {
             let outcome = if let (Some(pet), Some(opponent_pet)) =
                 (self.get_next_pet(), opponent.get_next_pet())
             {
+                info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
                 // Attack
                 let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-                info!(target: "dev", "Outcome of fight: {:?}", outcome);
+                info!(target: "dev", "Outcome:\n{}", outcome);
                 info!(target: "dev", "Self:\n{}", self);
                 info!(target: "dev", "Opponent:\n{}", opponent);
                 outcome
@@ -415,11 +493,11 @@ impl Battle for Team {
             }
 
             // Apply effect triggers from combat phase.
-            self.apply_trigger_effects(opponent);
-            opponent.apply_trigger_effects(self);
+            self.apply_trigger_effects(opponent).clear_team();
+            opponent.apply_trigger_effects(self).clear_team();
 
             // Stop fight after desired number of turns.
-            if let Some(des_n_turns) = turns {
+            if let Some(des_n_turns) = turns.map(|n| n.saturating_sub(1)) {
                 if des_n_turns == n_turns {
                     break;
                 }

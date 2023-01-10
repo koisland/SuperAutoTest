@@ -18,7 +18,7 @@ fn write_pet_info(output: &str) {
             let file = File::create(output).expect("Can't create file.");
             to_writer_pretty(file, &all_pets).expect("Unable to serialize pet info.");
         } else {
-            error!(target: "scraper", "{:?}", res.unwrap_err())
+            error!(target: "scraper", "{}", res.unwrap_err())
         }
     }
 }
