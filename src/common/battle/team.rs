@@ -1,7 +1,7 @@
 use crate::common::{
     battle::{
         effect::{Effect, EffectAction, Outcome, Position, Target},
-        trigger::*
+        trigger::*,
     },
     error::TeamError,
     pets::pet::{Combat, Pet},
@@ -480,14 +480,21 @@ impl EffectApply for Team {
             let mut applied_effects: Vec<(Outcome, Effect)> = vec![];
 
             // Iterate through pets in descending order by attack strength collecting valid effects.
-            for (i, pet) in self.friends
+            for (i, pet) in self
+                .friends
                 .borrow()
                 .iter()
-                .sorted_by(|pet_1, pet_2|
-                    pet_1.as_ref().map_or(0, |pet| pet.borrow().stats.borrow().attack)
-                    .cmp(&pet_2.as_ref().map_or(0, |pet| pet.borrow().stats.borrow().attack))
-                )
                 .enumerate()
+                .sorted_by(|(_, pet_1), (_, pet_2)| {
+                    pet_1
+                        .as_ref()
+                        .map_or(0, |pet| pet.borrow().stats.borrow().attack)
+                        .cmp(
+                            &pet_2
+                                .as_ref()
+                                .map_or(0, |pet| pet.borrow().stats.borrow().attack),
+                        )
+                })
                 .rev()
             {
                 // This checks whether or not a trigger should cause a pet's effect to activate.

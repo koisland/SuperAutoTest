@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{
     battle::{
-        effect::{Effect, EffectAction, EffectType, Outcome, Position, Statistics, Status, Target},
+        effect::{Effect, EffectAction, EffectType, Position, Statistics, Target},
         trigger::*,
     },
     foods::names::FoodName,
@@ -74,12 +74,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 effect: EffectAction::Summon(Some(bee)),
                 uses: None,
                 effect_type: EffectType::Food,
-                trigger: Outcome {
-                    status: Status::Faint,
-                    target: Target::Friend,
-                    position: Position::OnSelf,
-                    idx: Some(0),
-                },
+                trigger: TRIGGER_SELF_FAINT,
             }
         }
         FoodName::MeatBone => Effect {
@@ -111,12 +106,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             effect: EffectAction::Summon(None),
             uses: Some(Rc::new(RefCell::new(1))),
             effect_type: EffectType::Food,
-            trigger: Outcome {
-                status: Status::Faint,
-                target: Target::Friend,
-                position: Position::OnSelf,
-                idx: None,
-            },
+            trigger: TRIGGER_SELF_FAINT,
         },
         FoodName::Peanuts => Effect {
             target: Target::Friend,

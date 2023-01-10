@@ -8,7 +8,7 @@ use crate::common::{
     tests::common::{ant, test_ant_team, test_mosq_team, test_summon_team},
 };
 
-// use crate::LOG_CONFIG;
+use crate::LOG_CONFIG;
 
 #[test]
 fn test_build_team() {
@@ -30,6 +30,8 @@ fn test_build_invalid_team() {
 
 #[test]
 fn test_battle_honey_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
     let pets = test_ant_team();
     let enemy_pets = test_ant_team();
 
@@ -136,3 +138,5 @@ fn test_battle_mosquito_team() {
         )
     }
 }
+
+// TODO: Write a test for effect turn order with crabs.
