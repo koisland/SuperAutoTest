@@ -76,10 +76,42 @@ pub fn horse() -> Pet {
     }
 }
 
-pub fn test_team() -> [Option<Pet>; 5] {
+pub fn mosquito() -> Pet {
+    Pet {
+        name: PetName::Mosquito,
+        tier: 1,
+        stats: Rc::new(RefCell::new(Statistics {
+            attack: 2,
+            health: 2,
+        })),
+        lvl: 1,
+        effect: get_pet_effect(
+            &PetName::Mosquito,
+            Statistics {
+                attack: 1,
+                health: 0,
+            },
+            1,
+            1,
+        ),
+        item: None,
+        pos: None,
+    }
+}
+pub fn test_ant_team() -> [Option<Pet>; 5] {
     [Some(ant()), Some(ant()), Some(ant()), None, None]
 }
 
 pub fn test_summon_team() -> [Option<Pet>; 5] {
     [Some(cricket()), Some(cricket()), Some(horse()), None, None]
+}
+
+pub fn test_mosq_team() -> [Option<Pet>; 5] {
+    [
+        Some(mosquito()),
+        Some(mosquito()),
+        Some(mosquito()),
+        None,
+        None,
+    ]
 }

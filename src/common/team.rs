@@ -25,6 +25,34 @@ pub trait Summary {
     fn mean(&self) -> f32;
     fn median(&self) -> f32;
 }
+
+trait EffectApply {
+    fn _target_effect_any(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_all(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_specific(
+        &self,
+        pos: usize,
+        effect_type: &EffectAction,
+        outcomes: &mut VecDeque<Outcome>,
+    );
+    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_trigger(
+        &self,
+        trigger: Outcome,
+        effect_type: &EffectAction,
+        outcomes: &mut VecDeque<Outcome>,
+    );
+    /// Apply effects based on a team's stored triggers.
+    fn _apply_trigger_effects(&self, opponent: &Team) -> &Self;
+    /// Apply a given effect to a team.
+    fn _apply_effect(
+        &self,
+        trigger: Outcome,
+        effect: Effect,
+        opponent: &Team,
+    ) -> Result<VecDeque<Outcome>, &'static str>;
+}
+
 pub trait Battle {
     /// Clear `Team` of empty slots and/or fainted `Pet`s.
     fn clear_team(&self) -> &Self;
@@ -52,31 +80,7 @@ pub trait Battle {
     /// Returns:
     /// * Array of `Outcome` type.
     fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<[Outcome; 3], TeamError>;
-    /// Apply effects based on a team's stored triggers.
-    fn apply_trigger_effects(&self, opponent: &Team) -> &Self;
-    /// Apply a given effect to a team.
-    fn apply_effect(
-        &self,
-        trigger: Outcome,
-        effect: Effect,
-        opponent: &Team,
-    ) -> Result<VecDeque<Outcome>, &'static str>;
     fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team>;
-    fn _target_effect_any(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
-    fn _target_effect_all(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
-    fn _target_effect_specific(
-        &self,
-        pos: usize,
-        effect_type: &EffectAction,
-        outcomes: &mut VecDeque<Outcome>,
-    );
-    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
-    fn _target_effect_trigger(
-        &self,
-        trigger: Outcome,
-        effect_type: &EffectAction,
-        outcomes: &mut VecDeque<Outcome>,
-    );
 }
 
 impl Team {
@@ -215,7 +219,90 @@ impl Battle for Team {
             })
         }
     }
+    fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team> {
+        let mut n_turns: usize = 0;
 
+        // Apply start of battle effects.
+        self.clear_team()._apply_trigger_effects(opponent);
+        opponent.clear_team()._apply_trigger_effects(self);
+
+        // Check that both teams have a pet that is alive.
+        loop {
+            // Trigger Before Attack && Friend Ahead attack.
+            self.triggers
+                .borrow_mut()
+                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+            opponent
+                .triggers
+                .borrow_mut()
+                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+
+            self.clear_team()._apply_trigger_effects(opponent);
+            opponent.clear_team()._apply_trigger_effects(self);
+
+            // Check that two pets exist and attack.
+            // Attack will result in triggers being added.
+            let outcome = if let (Some(pet), Some(opponent_pet)) =
+                (self.get_next_pet(), opponent.get_next_pet())
+            {
+                info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
+                // Attack
+                let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
+                info!(target: "dev", "Outcome:\n{}", outcome);
+                info!(target: "dev", "Self:\n{}", self);
+                info!(target: "dev", "Opponent:\n{}", opponent);
+                outcome
+            } else {
+                // If either side has no available pets, exit loop.
+                break;
+            };
+
+            // Add triggers to team from outcome of battle.
+            self.triggers
+                .borrow_mut()
+                .extend(outcome.friends.into_iter());
+            opponent
+                .triggers
+                .borrow_mut()
+                .extend(outcome.opponents.into_iter());
+
+            // Occurs even if pet fainted as fighting and applying effects occurs simultaneously.
+            // Apply any food effects that alter the opponents pets. ex. Chili
+            if let Some(pet) = self.get_next_pet() {
+                pet.borrow_mut().apply_food_effect(opponent)
+            }
+            if let Some(opponent_pet) = opponent.get_next_pet() {
+                opponent_pet.borrow_mut().apply_food_effect(self)
+            }
+
+            // Apply effect triggers from combat phase.
+            self._apply_trigger_effects(opponent).clear_team();
+            opponent._apply_trigger_effects(self).clear_team();
+
+            // Stop fight after desired number of turns.
+            if let Some(des_n_turns) = turns.map(|n| n.saturating_sub(1)) {
+                if des_n_turns == n_turns {
+                    break;
+                }
+            };
+
+            n_turns += 1;
+        }
+
+        if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
+            info!(target: "dev", "Draw!");
+            None
+        } else if !self.friends.borrow().is_empty() {
+            info!(target: "dev", "Your team won!");
+            Some(self)
+        } else {
+            info!(target: "dev", "Enemy team won...");
+            Some(opponent)
+        }
+    }
+}
+
+impl EffectApply for Team {
     fn _target_effect_trigger(
         &self,
         trigger: Outcome,
@@ -264,7 +351,7 @@ impl Battle for Team {
             EffectAction::Remove(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     outcomes.extend(target.borrow().indirect_attack(stats));
-                    info!(target: "dev", "Removed {:?} to {}.", stats, target.borrow());
+                    info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
                 }
             }
             EffectAction::Gain(food) => {
@@ -298,7 +385,7 @@ impl Battle for Team {
             EffectAction::Remove(stats) => {
                 for pet in self.get_all_pets() {
                     outcomes.extend(pet.borrow().indirect_attack(stats));
-                    info!(target: "dev", "Removed {} to {}.", stats, pet.borrow());
+                    info!(target: "dev", "Removed {} from {}.", stats, pet.borrow());
                 }
             }
             _ => {}
@@ -340,7 +427,7 @@ impl Battle for Team {
         }
     }
 
-    fn apply_effect(
+    fn _apply_effect(
         &self,
         trigger: Outcome,
         effect: Effect,
@@ -381,7 +468,7 @@ impl Battle for Team {
         Ok(outcomes)
     }
 
-    fn apply_trigger_effects(&self, opponent: &Team) -> &Self {
+    fn _apply_trigger_effects(&self, opponent: &Team) -> &Self {
         // Get ownership of current triggers and clear team triggers.
         let mut curr_triggers = self.triggers.borrow_mut().to_owned();
         self.triggers.borrow_mut().clear();
@@ -392,7 +479,14 @@ impl Battle for Team {
 
             // Iterate through pets collecting valid effects.
             for (i, pet) in self.friends.borrow().iter().enumerate() {
-                if trigger.position != Position::Any && trigger.idx != Some(i) {
+                // This checks whether or not a trigger should cause a pet's effect to activate.
+                // * Effects that trigger on Any position are automatically allowed.
+                // * Tests trigger idx so that multiple triggers aren't all activated.
+                //     * For pets with Position::OnSelf and idx 0 like Crickets.
+                if trigger.position != Position::Any
+                    && trigger.idx.is_some()
+                    && trigger.idx != Some(i)
+                {
                     continue;
                 }
 
@@ -427,94 +521,12 @@ impl Battle for Team {
                     .into_iter()
                     .rev()
                     .filter_map(|(trigger, effect)| {
-                        self.apply_effect(trigger, effect, opponent).ok()
+                        self._apply_effect(trigger, effect, opponent).ok()
                     })
                     .into_iter()
                     .flatten(),
             );
         }
         self
-    }
-
-    fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team> {
-        let mut n_turns: usize = 0;
-
-        // Apply start of battle effects.
-        self.clear_team().apply_trigger_effects(opponent);
-        opponent.clear_team().apply_trigger_effects(self);
-
-        // Check that both teams have a pet that is alive.
-        loop {
-            // Trigger Before Attack && Friend Ahead attack.
-            self.triggers
-                .borrow_mut()
-                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-            opponent
-                .triggers
-                .borrow_mut()
-                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-
-            self.clear_team().apply_trigger_effects(opponent);
-            opponent.clear_team().apply_trigger_effects(self);
-
-            // Check that two pets exist and attack.
-            // Attack will result in triggers being added.
-            let outcome = if let (Some(pet), Some(opponent_pet)) =
-                (self.get_next_pet(), opponent.get_next_pet())
-            {
-                info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-                // Attack
-                let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-                info!(target: "dev", "Outcome:\n{}", outcome);
-                info!(target: "dev", "Self:\n{}", self);
-                info!(target: "dev", "Opponent:\n{}", opponent);
-                outcome
-            } else {
-                // If either side has no available pets, exit loop.
-                break;
-            };
-
-            // Add triggers to team from outcome of battle.
-            self.triggers
-                .borrow_mut()
-                .extend(outcome.friends.into_iter());
-            opponent
-                .triggers
-                .borrow_mut()
-                .extend(outcome.opponents.into_iter());
-
-            // Occurs even if pet fainted as fighting and applying effects occurs simultaneously.
-            // Apply any food effects that alter the opponents pets. ex. Chili
-            if let Some(pet) = self.get_next_pet() {
-                pet.borrow_mut().apply_food_effect(opponent)
-            }
-            if let Some(opponent_pet) = opponent.get_next_pet() {
-                opponent_pet.borrow_mut().apply_food_effect(self)
-            }
-
-            // Apply effect triggers from combat phase.
-            self.apply_trigger_effects(opponent).clear_team();
-            opponent.apply_trigger_effects(self).clear_team();
-
-            // Stop fight after desired number of turns.
-            if let Some(des_n_turns) = turns.map(|n| n.saturating_sub(1)) {
-                if des_n_turns == n_turns {
-                    break;
-                }
-            };
-
-            n_turns += 1;
-        }
-
-        if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
-            info!(target: "dev", "Draw!");
-            None
-        } else if !self.friends.borrow().is_empty() {
-            info!(target: "dev", "Your team won!");
-            Some(self)
-        } else {
-            info!(target: "dev", "Enemy team won...");
-            Some(opponent)
-        }
     }
 }

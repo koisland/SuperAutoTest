@@ -5,14 +5,14 @@ use crate::common::{
     pet::Pet,
     pets::names::PetName,
     team::{Battle, Team},
-    tests::common::{ant, test_summon_team, test_team},
+    tests::common::{ant, test_ant_team, test_mosq_team, test_summon_team},
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_build_team() {
-    let pets: [Option<Pet>; 5] = test_team();
+    let pets: [Option<Pet>; 5] = test_ant_team();
     let team = Team::new("test", &pets);
 
     assert!(team.is_ok())
@@ -20,7 +20,7 @@ fn test_build_team() {
 
 #[test]
 fn test_build_invalid_team() {
-    let mut pets: Vec<Option<Pet>> = test_team().into_iter().collect();
+    let mut pets: Vec<Option<Pet>> = test_ant_team().into_iter().collect();
 
     // Make a invalid team of six pets.
     pets.push(Some(ant()));
@@ -30,8 +30,8 @@ fn test_build_invalid_team() {
 
 #[test]
 fn test_battle_honey_team() {
-    let pets = test_team();
-    let enemy_pets = test_team();
+    let pets = test_ant_team();
+    let enemy_pets = test_ant_team();
 
     let mut team = Team::new("self", &pets).unwrap();
     let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
@@ -108,4 +108,31 @@ fn test_battle_summon_team() {
             health: 1
         }
     );
+}
+
+#[test]
+fn test_battle_mosquito_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
+    let pets = test_mosq_team();
+    let enemy_pets = test_ant_team();
+
+    let mut team = Team::new("self", &pets).unwrap();
+    let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
+
+    let winner = team.fight(&mut enemy_team, None).unwrap().clone();
+
+    // Mosquitoes kill any team before game starts.
+    assert_eq!(winner, team);
+
+    for pet in team.get_all_pets().iter() {
+        // Mosquitoes are unhurt
+        assert_eq!(
+            *pet.borrow().stats.borrow(),
+            Statistics {
+                attack: 2,
+                health: 2,
+            }
+        )
+    }
 }
