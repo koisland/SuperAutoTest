@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::{fmt::Display, ops::RangeInclusive};
 
 use crate::common::{foods::food::Food, pets::pet::Pet};
 
@@ -37,7 +37,8 @@ pub enum Position {
     All,
     OnSelf,
     Trigger,
-    Specific(usize),
+    Range(RangeInclusive<isize>),
+    Specific(isize),
     None,
 }
 
@@ -54,7 +55,7 @@ pub struct Effect {
     pub target: Target,
     pub position: Position,
     pub effect: EffectAction,
-    pub uses: Option<Rc<RefCell<usize>>>,
+    pub uses: Option<usize>,
 }
 
 pub trait Modify {
@@ -68,15 +69,15 @@ pub trait Modify {
 impl Modify for Effect {
     fn add_uses(&mut self, n: usize) -> &Self {
         if let Some(uses) = self.uses.as_mut() {
-            *uses.borrow_mut() += n
+            *uses += n
         };
         self
     }
 
     fn remove_uses(&mut self, n: usize) -> &Self {
         if let Some(uses) = self.uses.as_mut() {
-            if *uses.borrow() >= n {
-                *uses.borrow_mut() -= n
+            if *uses >= n {
+                *uses -= n
             }
         };
         self
@@ -123,6 +124,7 @@ pub enum Status {
 pub enum EffectAction {
     Add(Statistics),
     Remove(Statistics),
+    CopyStatsHealthiest,
     Negate(Statistics),
     Gain(Box<Food>),
     Summon(Option<Box<Pet>>),

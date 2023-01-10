@@ -1,5 +1,3 @@
-use std::{cell::RefCell, rc::Rc};
-
 use serde::{Deserialize, Serialize};
 
 use crate::common::{
@@ -40,7 +38,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 0,
                 health: 150,
             }),
-            uses: Some(Rc::new(RefCell::new(1))),
+            uses: Some(1),
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
         },
@@ -95,7 +93,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 0,
                 health: 20,
             }),
-            uses: Some(Rc::new(RefCell::new(1))),
+            uses: Some(1),
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
         },
@@ -104,7 +102,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             position: Position::Trigger,
             // Replace during runtime.
             effect: EffectAction::Summon(None),
-            uses: Some(Rc::new(RefCell::new(1))),
+            uses: Some(1),
             effect_type: EffectType::Food,
             trigger: TRIGGER_SELF_FAINT,
         },
@@ -126,7 +124,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
                 attack: 20,
                 health: 0,
             }),
-            uses: Some(Rc::new(RefCell::new(1))),
+            uses: Some(1),
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
         },

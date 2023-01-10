@@ -40,7 +40,7 @@ trait EffectApply {
     // fn _target_effect_self(&self, trigger: Outcome, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
     fn _target_effect_trigger(
         &self,
-        trigger: Outcome,
+        trigger: &Outcome,
         effect_type: &EffectAction,
         outcomes: &mut VecDeque<Outcome>,
     );
@@ -49,6 +49,7 @@ trait EffectApply {
     /// Apply a given effect to a team.
     fn _apply_effect(
         &self,
+        effect_pet_idx: usize,
         trigger: Outcome,
         effect: Effect,
         opponent: &Team,
@@ -307,7 +308,7 @@ impl Battle for Team {
 impl EffectApply for Team {
     fn _target_effect_trigger(
         &self,
-        trigger: Outcome,
+        trigger: &Outcome,
         effect_type: &EffectAction,
         outcomes: &mut VecDeque<Outcome>,
     ) {
@@ -337,6 +338,25 @@ impl EffectApply for Team {
                 if let Ok(summon_triggers) = summon_triggers {
                     outcomes.extend(summon_triggers.into_iter())
                 }
+            }
+            EffectAction::CopyStatsHealthiest => {
+                // let healthiest_pet = self
+                //     .friends
+                //     .borrow()
+                //     .iter()
+                //     .enumerate()
+                //     .max_by(|(_, pet_1), (_, pet_2)| {
+                //         if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
+                //             pet_1
+                //                 .borrow()
+                //                 .stats
+                //                 .health
+                //                 .cmp(&pet_2.borrow().stats.health)
+                //         } else {
+                //             std::cmp::Ordering::Equal
+                //         }
+                //     })
+                //     .expect("No healthiest pet found.");
             }
             _ => {}
         }
@@ -431,6 +451,7 @@ impl EffectApply for Team {
 
     fn _apply_effect(
         &self,
+        effect_pet_idx: usize,
         trigger: Outcome,
         effect: Effect,
         opponent: &Team,
@@ -439,33 +460,51 @@ impl EffectApply for Team {
         // TODO: Look into changing so can use triggers from Team struct. Issues since iterating at same time.
         let mut outcomes: VecDeque<Outcome> = VecDeque::new();
 
-        match &effect.target {
-            Target::Friend => match &effect.position {
-                Position::Any => self._target_effect_any(&effect.effect, &mut outcomes),
-                Position::All => self._target_effect_all(&effect.effect, &mut outcomes),
-                Position::OnSelf | Position::Trigger => {
-                    self._target_effect_trigger(trigger, &effect.effect, &mut outcomes)
-                }
-                // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
-                Position::Specific(rel_pos) => {
-                    self._target_effect_specific(*rel_pos, &effect.effect, &mut outcomes)
-                }
-                _ => {}
-            },
-            Target::Enemy => match &effect.position {
-                Position::Any => opponent._target_effect_any(&effect.effect, &mut outcomes),
-                Position::All => opponent._target_effect_all(&effect.effect, &mut outcomes),
-                Position::OnSelf | Position::Trigger => {
-                    opponent._target_effect_trigger(trigger, &effect.effect, &mut outcomes)
-                }
-                // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
-                Position::Specific(rel_pos) => {
-                    opponent._target_effect_specific(*rel_pos, &effect.effect, &mut outcomes)
-                }
-                _ => {}
-            },
-            Target::None => {}
-        };
+        // Activate effect for each use.
+        for _ in 0..effect.uses.unwrap_or(1) {
+            match &effect.target {
+                Target::Friend => match &effect.position {
+                    Position::Any => self._target_effect_any(&effect.effect, &mut outcomes),
+                    Position::All => self._target_effect_all(&effect.effect, &mut outcomes),
+                    Position::OnSelf | Position::Trigger => {
+                        self._target_effect_trigger(&trigger, &effect.effect, &mut outcomes)
+                    }
+                    // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
+                    Position::Specific(rel_pos) => {
+                        let adj_idx: usize = (isize::try_from(effect_pet_idx)
+                            .expect("Can't convert current pet idx to isize.")
+                            + *rel_pos)
+                            .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
+                            .try_into()
+                            .expect("Can't calculate adjusted pet index.");
+                        self._target_effect_specific(adj_idx, &effect.effect, &mut outcomes)
+                    }
+                    Position::Range(_) => {}
+                    _ => {}
+                },
+                Target::Enemy => match &effect.position {
+                    Position::Any => opponent._target_effect_any(&effect.effect, &mut outcomes),
+                    Position::All => opponent._target_effect_all(&effect.effect, &mut outcomes),
+                    Position::OnSelf | Position::Trigger => {
+                        opponent._target_effect_trigger(&trigger, &effect.effect, &mut outcomes)
+                    }
+                    // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
+                    Position::Specific(rel_pos) => {
+                        let adj_idx: usize = (isize::try_from(effect_pet_idx)
+                            .expect("Can't convert current pet idx to isize.")
+                            + *rel_pos)
+                            .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
+                            .try_into()
+                            .expect("Can't calculate adjusted pet index.");
+                        opponent._target_effect_specific(adj_idx, &effect.effect, &mut outcomes)
+                    }
+                    Position::Range(_) => {}
+                    _ => {}
+                },
+                Target::None => {}
+            };
+        }
+
         info!(target: "dev", "Triggers:\n{:?}", outcomes);
         Ok(outcomes)
     }
@@ -477,10 +516,10 @@ impl EffectApply for Team {
 
         // Continue iterating until all triggers consumed.
         while let Some(trigger) = curr_triggers.pop_front() {
-            let mut applied_effects: Vec<(Outcome, Effect)> = vec![];
+            let mut applied_effects: Vec<(usize, Outcome, Effect)> = vec![];
 
             // Iterate through pets in descending order by attack strength collecting valid effects.
-            for (i, pet) in self
+            for (effect_pet_idx, pet) in self
                 .friends
                 .borrow()
                 .iter()
@@ -499,7 +538,7 @@ impl EffectApply for Team {
                 //     * For pets with Position::OnSelf and idx 0 like Crickets.
                 if trigger.position != Position::Any
                     && trigger.idx.is_some()
-                    && trigger.idx != Some(i)
+                    && trigger.idx != Some(effect_pet_idx)
                 {
                     continue;
                 }
@@ -512,7 +551,7 @@ impl EffectApply for Team {
                         .filter(|food| food.ability.trigger == trigger)
                         .map(|food| food.ability.clone())
                 }) {
-                    applied_effects.push((trigger.clone(), food_effect))
+                    applied_effects.push((effect_pet_idx, trigger.clone(), food_effect))
                 };
                 if let Some(Some(pet_effect)) = pet
                     .as_ref()
@@ -525,7 +564,7 @@ impl EffectApply for Team {
                     })
                     .map(|pet| pet.borrow().effect.clone())
                 {
-                    applied_effects.push((trigger.clone(), pet_effect))
+                    applied_effects.push((effect_pet_idx, trigger.clone(), pet_effect))
                 };
             }
             // Apply effects.
@@ -534,8 +573,9 @@ impl EffectApply for Team {
                 applied_effects
                     .into_iter()
                     .rev()
-                    .filter_map(|(trigger, effect)| {
-                        self._apply_effect(trigger, effect, opponent).ok()
+                    .filter_map(|(effect_pet_idx, trigger, effect)| {
+                        self._apply_effect(effect_pet_idx, trigger, effect, opponent)
+                            .ok()
                     })
                     .into_iter()
                     .flatten(),

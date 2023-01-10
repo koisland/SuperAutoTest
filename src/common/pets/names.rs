@@ -64,6 +64,7 @@ pub enum PetName {
     ZombieCricket,
     Ram,
     Bee,
+    DirtyRat,
 }
 
 impl std::fmt::Display for PetName {
@@ -131,6 +132,7 @@ impl std::fmt::Display for PetName {
             PetName::ZombieCricket => write!(f, "Zombie Cricket"),
             PetName::Ram => write!(f, "Ram"),
             PetName::Bee => write!(f, "Bee"),
+            PetName::DirtyRat => write!(f, "Dirty Rat"),
         }
     }
 }
