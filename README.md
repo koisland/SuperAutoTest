@@ -1,5 +1,6 @@
 # SuperAutoTest
 [![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
+[![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/test_framework/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
 
 <img src="docs/images/turtle_crystal_ball.png" width="40%" />
 
