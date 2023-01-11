@@ -63,7 +63,7 @@ pub fn get_pet_effect(
             trigger: TRIGGER_START_BATTLE,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::CopyStatsHealthiest,
+            action: Action::CopyStatsHealthiest(effect_stats),
             uses: Some(n_triggers),
             effect_type: EffectType::Pet,
         }),
@@ -76,7 +76,7 @@ pub fn get_pet_effect(
             effect_type: EffectType::Pet,
         }),
         PetName::Elephant => Some(Effect {
-            trigger: TRIGGER_AHEAD_ATTACK,
+            trigger: TRIGGER_SELF_ATTACK,
             target: Target::Friend,
             position: Position::Specific(-1),
             action: Action::Remove(effect_stats),

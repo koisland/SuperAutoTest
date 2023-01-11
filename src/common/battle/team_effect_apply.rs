@@ -38,6 +38,7 @@ pub trait EffectApply {
         effect: Effect,
         opponent: &Team,
     ) -> Result<VecDeque<Outcome>, &'static str>;
+    fn _cvt_rel_pos_to_adj_idx(curr_idx: usize, rel_idx: isize) -> usize;
 }
 
 impl EffectApply for Team {
@@ -74,7 +75,7 @@ impl EffectApply for Team {
                     outcomes.extend(summon_triggers.into_iter())
                 }
             }
-            Action::CopyStatsHealthiest => {
+            Action::CopyStatsHealthiest(_) => {
                 // let healthiest_pet = self
                 //     .friends
                 //     .borrow()
@@ -184,6 +185,22 @@ impl EffectApply for Team {
         }
     }
 
+    fn _cvt_rel_pos_to_adj_idx(curr_idx: usize, rel_idx: isize) -> usize {
+        let effect_pet_idx =
+            isize::try_from(curr_idx).expect("Can't convert current pet idx to isize.");
+        // Negative idx means behind.
+        // Positive idx mean ahead.
+        // We adjust so within bounds of team.
+        let adj_idx = if rel_idx.is_negative() {
+            -rel_idx + effect_pet_idx
+        } else {
+            rel_idx - effect_pet_idx
+        };
+        adj_idx
+            .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
+            .try_into()
+            .expect("Can't calculate adjusted pet index.")
+    }
     fn _apply_effect(
         &self,
         effect_pet_idx: usize,
@@ -206,12 +223,8 @@ impl EffectApply for Team {
                     }
                     // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
                     Position::Specific(rel_pos) => {
-                        let adj_idx: usize = (isize::try_from(effect_pet_idx)
-                            .expect("Can't convert current pet idx to isize.")
-                            + *rel_pos)
-                            .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
-                            .try_into()
-                            .expect("Can't calculate adjusted pet index.");
+                        let adj_idx: usize =
+                            Team::_cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos);
                         self._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                     }
                     Position::Range(_) => {}
@@ -225,12 +238,8 @@ impl EffectApply for Team {
                     }
                     // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
                     Position::Specific(rel_pos) => {
-                        let adj_idx: usize = (isize::try_from(effect_pet_idx)
-                            .expect("Can't convert current pet idx to isize.")
-                            + *rel_pos)
-                            .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
-                            .try_into()
-                            .expect("Can't calculate adjusted pet index.");
+                        let adj_idx: usize =
+                            Team::_cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos);
                         opponent._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                     }
                     Position::Range(_) => {}

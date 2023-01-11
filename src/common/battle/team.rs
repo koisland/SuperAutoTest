@@ -51,14 +51,8 @@ pub trait Battle {
 
 impl Team {
     #[allow(dead_code)]
-    pub fn new(name: &str, pets: &[Option<Pet>]) -> Result<Team, TeamError> {
-        if pets.len() != TEAM_SIZE {
-            return Err(TeamError {
-                reason: format!("Invalid team size. ({})", pets.len()),
-            });
-        };
-
-        Ok(Team {
+    pub fn new(name: &str, pets: &[Option<Pet>; TEAM_SIZE]) -> Team {
+        Team {
             name: name.to_string(),
             friends: RefCell::new(
                 pets.iter()
@@ -66,7 +60,7 @@ impl Team {
                     .collect_vec(),
             ),
             triggers: RefCell::new(VecDeque::from_iter([TRIGGER_START_BATTLE])),
-        })
+        }
     }
 }
 
@@ -155,7 +149,7 @@ impl Battle for Team {
     }
 
     fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<[Outcome; 3], TeamError> {
-        if self.get_all_pets().len() == 5 {
+        if self.get_all_pets().len() == TEAM_SIZE {
             return Err(TeamError {
                 reason: "Team is full. Cannot add new pet.".to_string(),
             });
@@ -257,6 +251,9 @@ impl Battle for Team {
 
         if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
             info!(target: "dev", "Draw!");
+            None
+        } else if !self.friends.borrow().is_empty() && !opponent.friends.borrow().is_empty() {
+            info!(target: "dev", "Incomplete.");
             None
         } else if !self.friends.borrow().is_empty() {
             info!(target: "dev", "Your team won!");

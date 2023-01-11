@@ -4,29 +4,13 @@ use crate::common::{
         team::{Battle, Team},
     },
     foods::{food::Food, names::FoodName},
-    pets::{names::PetName, pet::Pet},
-    tests::common::{ant, test_ant_team, test_mosq_team, test_summon_team},
+    pets::names::PetName,
+    tests::common::{test_ant_team, test_mosq_team, test_solo_hedgehog_team, test_summon_team},
 };
 
-// use crate::LOG_CONFIG;
+use crate::LOG_CONFIG;
 
-#[test]
-fn test_build_team() {
-    let pets: [Option<Pet>; 5] = test_ant_team();
-    let team = Team::new("test", &pets);
-
-    assert!(team.is_ok())
-}
-
-#[test]
-fn test_build_invalid_team() {
-    let mut pets: Vec<Option<Pet>> = test_ant_team().into_iter().collect();
-
-    // Make a invalid team of six pets.
-    pets.push(Some(ant()));
-
-    assert!(Team::new("test", &pets).is_err());
-}
+use super::common::test_elephant_peacock_team;
 
 #[test]
 fn test_battle_honey_team() {
@@ -35,8 +19,8 @@ fn test_battle_honey_team() {
     let pets = test_ant_team();
     let enemy_pets = test_ant_team();
 
-    let mut team = Team::new("self", &pets).unwrap();
-    let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
 
     // Give last pet honey on first team.
     if let Some(last_pet) = &team.friends.borrow_mut()[2] {
@@ -53,8 +37,8 @@ fn test_battle_summon_team() {
     let pets = test_summon_team();
     let enemy_pets = test_summon_team();
 
-    let mut team = Team::new("self", &pets).unwrap();
-    let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
 
     // First pets are crickets
     // Horse is 3rd pet.
@@ -119,8 +103,8 @@ fn test_battle_mosquito_team() {
     let pets = test_mosq_team();
     let enemy_pets = test_ant_team();
 
-    let mut team = Team::new("self", &pets).unwrap();
-    let mut enemy_team = Team::new("enemy", &enemy_pets).unwrap();
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
 
     let winner = team.fight(&mut enemy_team, None).unwrap().clone();
 
@@ -139,4 +123,30 @@ fn test_battle_mosquito_team() {
     }
 }
 
+#[test]
+fn test_battle_hedgehog_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
+    let pets = test_solo_hedgehog_team();
+    let enemy = test_ant_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy);
+
+    let winner = team.fight(&mut enemy_team, Some(1));
+
+    assert!(winner.is_none())
+}
+
+#[test]
+fn test_battle_elephant_peacock_team() {
+    log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_elephant_peacock_team();
+    let enemy_pets = test_ant_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
+
+    team.fight(&mut enemy_team, Some(1));
+}
 // TODO: Write a test for effect turn order with crabs.

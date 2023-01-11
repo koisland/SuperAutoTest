@@ -83,7 +83,7 @@ pub enum Status {
 pub enum Action {
     Add(Statistics),
     Remove(Statistics),
-    CopyStatsHealthiest,
+    CopyStatsHealthiest(Statistics),
     Negate(Statistics),
     Gain(Box<Food>),
     Summon(Option<Box<Pet>>),
