@@ -12,6 +12,8 @@ use crate::{
     db::{setup::get_connection, utils::map_row_to_pet},
 };
 
+pub const MAX_PET_HEALTH: usize = 50;
+
 #[allow(dead_code)]
 pub fn num_regex(pattern: &LRegex, string: &str) -> Result<usize, Box<dyn Error>> {
     Ok(pattern.captures(string).map_or(Ok(0), |cap| {

@@ -1,3 +1,5 @@
+use crate::common::pets::pet::MAX_PET_HEALTH;
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
     pub attack: usize,
@@ -7,8 +9,8 @@ pub struct Statistics {
 impl Statistics {
     /// Add some `Statistics` to another capping at `50`.
     pub fn add(&mut self, stats: &Statistics) -> &Self {
-        self.attack = (self.attack + stats.attack).clamp(0, 50);
-        self.health = (self.health + stats.health).clamp(0, 50);
+        self.attack = (self.attack + stats.attack).clamp(0, MAX_PET_HEALTH);
+        self.health = (self.health + stats.health).clamp(0, MAX_PET_HEALTH);
         self
     }
     #[allow(dead_code)]
