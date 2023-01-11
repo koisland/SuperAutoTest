@@ -1,4 +1,4 @@
-use crate::common::pack::Pack;
+use crate::db::pack::Pack;
 use serde::{Deserialize, Serialize};
 
 /// A record with information about a food from *Super Auto Pets*.

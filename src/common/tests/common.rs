@@ -1,11 +1,7 @@
 use crate::common::{
     battle::effect::Statistics,
-    pets::{
-        names::PetName,
-        pet::{get_pet_effect, Pet},
-    },
+    pets::{effects::get_pet_effect, names::PetName, pet::Pet},
 };
-use std::{cell::RefCell, rc::Rc};
 
 /// Manually specify ant pet. Done with DB call normally.
 /// TODO: Use with mock object.

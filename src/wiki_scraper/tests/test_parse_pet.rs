@@ -1,5 +1,4 @@
-use crate::common::pack::Pack;
-use crate::common::record::PetRecord;
+use crate::db::{pack::Pack, record::PetRecord};
 use crate::wiki_scraper::{
     common::remove_icon_names,
     parse_pet::{

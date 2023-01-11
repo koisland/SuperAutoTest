@@ -3,7 +3,7 @@ use log::{info, warn};
 use std::error::Error;
 
 use crate::{
-    common::{pack::Pack, record::PetRecord},
+    db::{pack::Pack, record::PetRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
         error::WikiParserError,

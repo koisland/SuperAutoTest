@@ -4,9 +4,7 @@ pub mod foods;
 pub mod pets;
 
 pub mod error;
-pub mod pack;
-pub mod record;
 pub mod regex_patterns;
 
 #[cfg(test)]
-pub mod tests;
+mod tests;

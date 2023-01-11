@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    common::pack::Pack,
+    db::pack::Pack,
     wiki_scraper::parse_food::{clean_link_text, get_cols, get_largest_table, FoodTableCols},
 };
 

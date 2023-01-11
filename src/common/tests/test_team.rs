@@ -8,7 +8,7 @@ use crate::common::{
     tests::common::{ant, test_ant_team, test_mosq_team, test_summon_team},
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_build_team() {
