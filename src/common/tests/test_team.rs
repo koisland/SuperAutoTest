@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        effect::Statistics,
+        state::Statistics,
         team::{Battle, Team},
     },
     foods::{food::Food, names::FoodName},

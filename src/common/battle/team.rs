@@ -1,5 +1,5 @@
 use crate::common::{
-    battle::{effect::Outcome, team_effect_apply::EffectApply, trigger::*},
+    battle::{state::Outcome, team_effect_apply::EffectApply, trigger::*},
     error::TeamError,
     pets::{combat::Combat, pet::Pet},
 };
@@ -17,11 +17,6 @@ pub struct Team {
     pub name: String,
     pub friends: RefCell<Vec<Option<Rc<RefCell<Pet>>>>>,
     pub triggers: RefCell<VecDeque<Outcome>>,
-}
-
-pub trait Summary {
-    fn mean(&self) -> f32;
-    fn median(&self) -> f32;
 }
 
 pub trait Battle {

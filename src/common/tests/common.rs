@@ -1,5 +1,5 @@
 use crate::common::{
-    battle::effect::Statistics,
+    battle::state::Statistics,
     pets::{effects::get_pet_effect, names::PetName, pet::Pet},
 };
 

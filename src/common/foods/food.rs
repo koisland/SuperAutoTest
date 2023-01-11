@@ -2,7 +2,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{
     battle::{
-        effect::{Effect, EffectAction, EffectType, Position, Statistics, Target},
+        effect::{Effect, EffectType},
+        state::{Action, Position, Statistics, Target},
         trigger::*,
     },
     foods::names::FoodName,
@@ -22,7 +23,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             target: Target::Enemy,
             // Next enemy relative to position.
             position: Position::Specific(1),
-            effect: EffectAction::Remove(Statistics {
+            action: Action::Remove(Statistics {
                 attack: 0,
                 health: 5,
             }),
@@ -34,7 +35,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             // Negate 150 health hit. Pretty much invulnerability.
-            effect: EffectAction::Negate(Statistics {
+            action: Action::Negate(Statistics {
                 attack: 0,
                 health: 150,
             }),
@@ -45,7 +46,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Garlic => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            effect: EffectAction::Negate(Statistics {
+            action: Action::Negate(Statistics {
                 attack: 0,
                 health: 2,
             }),
@@ -69,7 +70,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             Effect {
                 target: Target::Friend,
                 position: Position::Trigger,
-                effect: EffectAction::Summon(Some(bee)),
+                action: Action::Summon(Some(bee)),
                 uses: None,
                 effect_type: EffectType::Food,
                 trigger: TRIGGER_SELF_FAINT,
@@ -78,7 +79,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::MeatBone => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            effect: EffectAction::Add(Statistics {
+            action: Action::Add(Statistics {
                 attack: 4,
                 health: 0,
             }),
@@ -89,7 +90,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Melon => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            effect: EffectAction::Negate(Statistics {
+            action: Action::Negate(Statistics {
                 attack: 0,
                 health: 20,
             }),
@@ -101,7 +102,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             target: Target::Friend,
             position: Position::Trigger,
             // Replace during runtime.
-            effect: EffectAction::Summon(None),
+            action: Action::Summon(None),
             uses: Some(1),
             effect_type: EffectType::Food,
             trigger: TRIGGER_SELF_FAINT,
@@ -109,7 +110,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Peanuts => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            effect: EffectAction::Add(Statistics {
+            action: Action::Add(Statistics {
                 attack: 150,
                 health: 0,
             }),
@@ -120,7 +121,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Steak => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            effect: EffectAction::Add(Statistics {
+            action: Action::Add(Statistics {
                 attack: 20,
                 health: 0,
             }),

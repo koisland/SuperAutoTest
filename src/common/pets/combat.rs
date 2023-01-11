@@ -1,6 +1,7 @@
 use crate::common::{
     battle::{
-        effect::{EffectAction, Modify, Outcome, Position, Statistics, Target},
+        effect::Modify,
+        state::{Action, Outcome, Position, Statistics, Target},
         team::Team,
         trigger::*,
     },
@@ -75,9 +76,9 @@ impl Combat for Pet {
         if let Some(food) = self.item.as_mut() {
             let food_effect = &food.ability;
             // Food targets an enemy at a specific position and removes stats.
-            if let (Target::Enemy, EffectAction::Remove(stats), Position::Specific(idx)) = (
+            if let (Target::Enemy, Action::Remove(stats), Position::Specific(idx)) = (
                 &food_effect.target,
-                &food_effect.effect,
+                &food_effect.action,
                 &food_effect.position,
             ) {
                 let adj_idx =
@@ -132,24 +133,20 @@ impl Combat for Pet {
                 health: 0,
             },
             |food| {
-                let food_effect = food
-                    .ability
-                    .uses
-                    .as_ref()
-                    .map_or(&EffectAction::None, |uses| {
-                        if *uses > 0 && food.ability.position == Position::OnSelf {
-                            // Return the food effect.
-                            &food.ability.effect
-                        } else {
-                            &EffectAction::None
-                        }
-                    });
+                let food_effect = food.ability.uses.as_ref().map_or(&Action::None, |uses| {
+                    if *uses > 0 && food.ability.position == Position::OnSelf {
+                        // Return the food effect.
+                        &food.ability.action
+                    } else {
+                        &Action::None
+                    }
+                });
 
                 match food_effect {
                     // Get stat modifiers from effects.
-                    EffectAction::Add(stats)
-                    | EffectAction::Remove(stats)
-                    | EffectAction::Negate(stats) => stats.clone(),
+                    Action::Add(stats) | Action::Remove(stats) | Action::Negate(stats) => {
+                        stats.clone()
+                    }
                     // Otherwise, no change.
                     _ => Statistics {
                         attack: 0,

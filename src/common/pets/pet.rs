@@ -3,7 +3,8 @@ use std::{error::Error, fmt::Display};
 
 use crate::{
     common::{
-        battle::effect::{Effect, Statistics},
+        battle::effect::Effect,
+        battle::state::Statistics,
         foods::food::Food,
         pets::{effects::get_pet_effect, names::PetName},
         regex_patterns::*,

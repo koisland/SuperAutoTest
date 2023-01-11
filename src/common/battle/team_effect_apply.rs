@@ -1,6 +1,7 @@
 use crate::common::{
     battle::{
-        effect::{Effect, EffectAction, Outcome, Position, Target},
+        effect::Effect,
+        state::{Action, Outcome, Position, Target},
         team::{Battle, Team, TEAM_SIZE},
     },
     pets::combat::Combat,
@@ -12,19 +13,19 @@ use rand::seq::IteratorRandom;
 use std::collections::VecDeque;
 
 pub trait EffectApply {
-    fn _target_effect_any(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
-    fn _target_effect_all(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_any(&self, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
+    fn _target_effect_all(&self, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
     fn _target_effect_specific(
         &self,
         pos: usize,
-        effect_type: &EffectAction,
+        effect_type: &Action,
         outcomes: &mut VecDeque<Outcome>,
     );
-    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>);
+    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
     fn _target_effect_trigger(
         &self,
         trigger: &Outcome,
-        effect_type: &EffectAction,
+        effect_type: &Action,
         outcomes: &mut VecDeque<Outcome>,
     );
     /// Apply effects based on a team's stored triggers.
@@ -43,37 +44,37 @@ impl EffectApply for Team {
     fn _target_effect_trigger(
         &self,
         trigger: &Outcome,
-        effect_type: &EffectAction,
+        effect_type: &Action,
         outcomes: &mut VecDeque<Outcome>,
     ) {
         let trigger_pos = trigger.idx.expect("No idx position given to apply effect.");
         match effect_type {
-            EffectAction::Add(stats) => {
+            Action::Add(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
                     target.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, target.borrow());
                 }
             }
-            EffectAction::Remove(stats) => {
+            Action::Remove(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
                     outcomes.extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
                 }
             }
-            EffectAction::Gain(food) => {
+            Action::Gain(food) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
                     target.borrow_mut().item = Some(*food.clone());
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
             // Must also emit EffectTrigger for summon.
-            EffectAction::Summon(pet) => {
+            Action::Summon(pet) => {
                 let summon_triggers = self.add_pet(pet, trigger_pos);
                 if let Ok(summon_triggers) = summon_triggers {
                     outcomes.extend(summon_triggers.into_iter())
                 }
             }
-            EffectAction::CopyStatsHealthiest => {
+            Action::CopyStatsHealthiest => {
                 // let healthiest_pet = self
                 //     .friends
                 //     .borrow()
@@ -96,28 +97,28 @@ impl EffectApply for Team {
         }
     }
 
-    fn _target_effect_any(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>) {
+    fn _target_effect_any(&self, effect_type: &Action, outcomes: &mut VecDeque<Outcome>) {
         match effect_type {
-            EffectAction::Add(stats) => {
+            Action::Add(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     target.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, target.borrow());
                 }
             }
-            EffectAction::Remove(stats) => {
+            Action::Remove(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     outcomes.extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, target.borrow());
                 }
             }
-            EffectAction::Gain(food) => {
+            Action::Gain(food) => {
                 if let Some(target) = self.get_any_pet() {
                     target.borrow_mut().item = Some(*food.clone());
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
             // Must also emit EffectTrigger for summon.
-            EffectAction::Summon(pet) => {
+            Action::Summon(pet) => {
                 let mut rng = rand::thread_rng();
                 let random_pos = (0..5).choose(&mut rng).unwrap() as usize;
 
@@ -130,15 +131,15 @@ impl EffectApply for Team {
         }
     }
 
-    fn _target_effect_all(&self, effect_type: &EffectAction, outcomes: &mut VecDeque<Outcome>) {
+    fn _target_effect_all(&self, effect_type: &Action, outcomes: &mut VecDeque<Outcome>) {
         match effect_type {
-            EffectAction::Add(stats) => {
+            Action::Add(stats) => {
                 for pet in self.get_all_pets() {
                     pet.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, pet.borrow());
                 }
             }
-            EffectAction::Remove(stats) => {
+            Action::Remove(stats) => {
                 for pet in self.get_all_pets() {
                     outcomes.extend(pet.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "Removed {} from {}.", stats, pet.borrow());
@@ -151,29 +152,29 @@ impl EffectApply for Team {
     fn _target_effect_specific(
         &self,
         pos: usize,
-        effect_type: &EffectAction,
+        effect_type: &Action,
         outcomes: &mut VecDeque<Outcome>,
     ) {
         match effect_type {
-            EffectAction::Add(stats) => {
+            Action::Add(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     affected_pet.borrow_mut().stats.add(stats);
                     info!(target: "dev", "Added {} to {}.", stats, affected_pet.borrow())
                 }
             }
-            EffectAction::Remove(stats) => {
+            Action::Remove(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     info!(target: "dev", "Removed {} from {}.", stats, affected_pet.borrow());
                     outcomes.extend(affected_pet.borrow_mut().indirect_attack(stats));
                 }
             }
-            EffectAction::Gain(food) => {
+            Action::Gain(food) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     info!(target: "dev", "Gave {:?} to {}.", food, affected_pet.borrow());
                     affected_pet.borrow_mut().item = Some(*food.clone())
                 }
             }
-            EffectAction::Summon(pet) => {
+            Action::Summon(pet) => {
                 let summon_triggers = self.add_pet(pet, pos);
                 if let Ok(summon_triggers) = summon_triggers {
                     outcomes.extend(summon_triggers.into_iter())
@@ -198,10 +199,10 @@ impl EffectApply for Team {
         for _ in 0..effect.uses.unwrap_or(1) {
             match &effect.target {
                 Target::Friend => match &effect.position {
-                    Position::Any => self._target_effect_any(&effect.effect, &mut outcomes),
-                    Position::All => self._target_effect_all(&effect.effect, &mut outcomes),
+                    Position::Any => self._target_effect_any(&effect.action, &mut outcomes),
+                    Position::All => self._target_effect_all(&effect.action, &mut outcomes),
                     Position::OnSelf | Position::Trigger => {
-                        self._target_effect_trigger(&trigger, &effect.effect, &mut outcomes)
+                        self._target_effect_trigger(&trigger, &effect.action, &mut outcomes)
                     }
                     // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
                     Position::Specific(rel_pos) => {
@@ -211,16 +212,16 @@ impl EffectApply for Team {
                             .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
                             .try_into()
                             .expect("Can't calculate adjusted pet index.");
-                        self._target_effect_specific(adj_idx, &effect.effect, &mut outcomes)
+                        self._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                     }
                     Position::Range(_) => {}
                     _ => {}
                 },
                 Target::Enemy => match &effect.position {
-                    Position::Any => opponent._target_effect_any(&effect.effect, &mut outcomes),
-                    Position::All => opponent._target_effect_all(&effect.effect, &mut outcomes),
+                    Position::Any => opponent._target_effect_any(&effect.action, &mut outcomes),
+                    Position::All => opponent._target_effect_all(&effect.action, &mut outcomes),
                     Position::OnSelf | Position::Trigger => {
-                        opponent._target_effect_trigger(&trigger, &effect.effect, &mut outcomes)
+                        opponent._target_effect_trigger(&trigger, &effect.action, &mut outcomes)
                     }
                     // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect, &mut outcomes),
                     Position::Specific(rel_pos) => {
@@ -230,7 +231,7 @@ impl EffectApply for Team {
                             .clamp(0, TEAM_SIZE.try_into().expect("Invalid team size."))
                             .try_into()
                             .expect("Can't calculate adjusted pet index.");
-                        opponent._target_effect_specific(adj_idx, &effect.effect, &mut outcomes)
+                        opponent._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                     }
                     Position::Range(_) => {}
                     _ => {}
