@@ -1,5 +1,5 @@
 use crate::{
-    api::server::SapDB,
+    api::{server::SapDB, utils::capitalize_names},
     db::{
         query::{query_food, query_pet},
         record::{FoodRecord, PetRecord},
@@ -18,15 +18,6 @@ const QUERY_PET_PARAMS: [&str; 5] = ["name", "tier", "lvl", "pack", "effect_trig
 #[get("/")]
 pub fn index() -> &'static str {
     "Welcome to the unoffical Super Auto Pets API!"
-}
-
-pub fn capitalize_names(name: &str) -> String {
-    let cap_name: String = name
-        .chars()
-        .enumerate()
-        .map(|(i, c)| if i == 0 { c.to_ascii_uppercase() } else { c })
-        .collect();
-    cap_name
 }
 
 #[get("/pet?<name>&<level>&<tier>&<pack>&<effect_trigger>")]

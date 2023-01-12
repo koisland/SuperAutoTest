@@ -5,7 +5,10 @@ use crate::common::{
     },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
-    tests::common::{test_ant_team, test_mosq_team, test_solo_hedgehog_team, test_summon_team},
+    tests::common::{
+        test_ant_team, test_crab_team, test_dodo_team, test_mosq_team, test_solo_hedgehog_team,
+        test_summon_team,
+    },
 };
 
 use crate::LOG_CONFIG;
@@ -140,13 +143,96 @@ fn test_battle_hedgehog_team() {
 
 #[test]
 fn test_battle_elephant_peacock_team() {
-    log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
     let pets = test_elephant_peacock_team();
     let enemy_pets = test_ant_team();
 
     let mut team = Team::new("self", &pets);
     let mut enemy_team = Team::new("enemy", &enemy_pets);
 
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 5
+        }
+    );
     team.fight(&mut enemy_team, Some(1));
+    // Lvl.1 elephant deals 1 dmg once to pet at back.
+    // Lvl.1 peacock gains 4 atk.
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().borrow().stats,
+        Statistics {
+            attack: 6,
+            health: 4
+        }
+    );
 }
-// TODO: Write a test for effect turn order with crabs.
+
+#[test]
+fn test_battle_crab_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_crab_team();
+    let enemy_pets = test_ant_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
+
+    assert_eq!(
+        team.get_next_pet().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 1
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 50
+        }
+    );
+    team.fight(&mut enemy_team, Some(1));
+    // Crab at lvl. 1 copies 25 from big ant at pos 2.
+    // Gets hit for 2 dmg.
+    assert_eq!(
+        team.get_next_pet().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 23
+        }
+    );
+}
+
+#[test]
+fn test_battle_dodo_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_dodo_team();
+    let enemy_pets = test_ant_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
+
+    assert_eq!(
+        team.get_next_pet().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 5
+        }
+    );
+    // Dodo atk at lvl. 1 is 3.
+    // 3 * 0.33 = 1.
+    assert_eq!(
+        (team.get_idx_pet(1).unwrap().borrow().stats.attack as f32 * 0.33).round(),
+        1.0
+    );
+    team.fight(&mut enemy_team, Some(1));
+
+    assert_eq!(
+        team.get_next_pet().unwrap().borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 3
+        }
+    );
+}

@@ -6,16 +6,18 @@ use crate::common::{
 /// Manually specify ant pet. Done with DB call normally.
 /// TODO: Use with mock object.
 pub fn ant() -> Pet {
+    let stats = Statistics {
+        attack: 2,
+        health: 1,
+    };
     Pet {
         name: PetName::Ant,
         tier: 1,
-        stats: Statistics {
-            attack: 2,
-            health: 1,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Ant,
+            &stats,
             Statistics {
                 attack: 2,
                 health: 1,
@@ -29,16 +31,18 @@ pub fn ant() -> Pet {
 }
 
 pub fn cricket() -> Pet {
+    let stats = Statistics {
+        attack: 1,
+        health: 1,
+    };
     Pet {
         name: PetName::Cricket,
         tier: 1,
-        stats: Statistics {
-            attack: 1,
-            health: 1,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Cricket,
+            &stats,
             Statistics {
                 attack: 1,
                 health: 1,
@@ -52,16 +56,18 @@ pub fn cricket() -> Pet {
 }
 
 pub fn horse() -> Pet {
+    let stats = Statistics {
+        attack: 2,
+        health: 1,
+    };
     Pet {
         name: PetName::Horse,
         tier: 1,
-        stats: Statistics {
-            attack: 2,
-            health: 1,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Horse,
+            &stats,
             Statistics {
                 attack: 1,
                 health: 0,
@@ -75,16 +81,18 @@ pub fn horse() -> Pet {
 }
 
 pub fn mosquito() -> Pet {
+    let stats = Statistics {
+        attack: 2,
+        health: 2,
+    };
     Pet {
         name: PetName::Mosquito,
         tier: 1,
-        stats: Statistics {
-            attack: 2,
-            health: 2,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Mosquito,
+            &stats,
             Statistics {
                 attack: 1,
                 health: 0,
@@ -98,16 +106,18 @@ pub fn mosquito() -> Pet {
 }
 
 fn hedgehog() -> Pet {
+    let stats = Statistics {
+        attack: 3,
+        health: 2,
+    };
     Pet {
         name: PetName::Hedgehog,
         tier: 2,
-        stats: Statistics {
-            attack: 3,
-            health: 2,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Hedgehog,
+            &stats,
             Statistics {
                 attack: 2,
                 health: 0,
@@ -121,16 +131,18 @@ fn hedgehog() -> Pet {
 }
 
 fn peacock() -> Pet {
+    let stats = Statistics {
+        attack: 2,
+        health: 5,
+    };
     Pet {
         name: PetName::Peacock,
         tier: 2,
-        stats: Statistics {
-            attack: 2,
-            health: 5,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Peacock,
+            &stats,
             Statistics {
                 attack: 4,
                 health: 0,
@@ -143,16 +155,18 @@ fn peacock() -> Pet {
     }
 }
 fn crab() -> Pet {
+    let stats = Statistics {
+        attack: 3,
+        health: 1,
+    };
     Pet {
         name: PetName::Crab,
         tier: 2,
-        stats: Statistics {
-            attack: 3,
-            health: 1,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Crab,
+            &stats,
             // Instead of raw values, treat as percentage.
             Statistics {
                 attack: 0,
@@ -167,20 +181,20 @@ fn crab() -> Pet {
 }
 
 fn dodo() -> Pet {
-    let base_stats = Statistics {
+    let stats = Statistics {
         attack: 3,
         health: 5,
     };
-    let effect_atk = base_stats.attack as f32;
     Pet {
         name: PetName::Dodo,
         tier: 2,
-        stats: base_stats.clone(),
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Dodo,
+            &stats,
             Statistics {
-                attack: (effect_atk * 0.33) as usize,
+                attack: 33,
                 health: 0,
             },
             1,
@@ -192,16 +206,18 @@ fn dodo() -> Pet {
 }
 
 fn elephant() -> Pet {
+    let stats = Statistics {
+        attack: 3,
+        health: 5,
+    };
     Pet {
         name: PetName::Elephant,
         tier: 2,
-        stats: Statistics {
-            attack: 3,
-            health: 5,
-        },
+        stats: stats.clone(),
         lvl: 1,
         effect: get_pet_effect(
             &PetName::Elephant,
+            &stats,
             Statistics {
                 attack: 0,
                 health: 1,
@@ -241,5 +257,11 @@ pub fn test_elephant_peacock_team() -> [Option<Pet>; 5] {
 }
 
 pub fn test_dodo_team() -> [Option<Pet>; 5] {
-    [Some(ant()), Some(dodo()), None, None, None]
+    [Some(dodo()), Some(dodo()), None, None, None]
+}
+
+pub fn test_crab_team() -> [Option<Pet>; 5] {
+    let mut big_ant = ant();
+    big_ant.stats.health = 50;
+    [Some(crab()), Some(big_ant), Some(ant()), None, None]
 }

@@ -12,7 +12,7 @@ use crate::{
     db::{setup::get_connection, utils::map_row_to_pet},
 };
 
-pub const MAX_PET_HEALTH: usize = 50;
+pub const MAX_PET_STATS: usize = 50;
 
 #[allow(dead_code)]
 pub fn num_regex(pattern: &LRegex, string: &str) -> Result<usize, Box<dyn Error>> {
@@ -70,7 +70,7 @@ impl Pet {
         }
         let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).ok().unwrap_or(1);
         // TODO: Parse from pet description.
-        let effect = get_pet_effect(&name, effect_stats, lvl, n_triggers);
+        let effect = get_pet_effect(&name, &stats, effect_stats, lvl, n_triggers);
 
         Ok(Pet {
             name,

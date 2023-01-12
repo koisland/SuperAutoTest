@@ -1,5 +1,9 @@
 use crate::common::{
-    battle::{state::Outcome, team_effect_apply::EffectApply, trigger::*},
+    battle::{
+        state::{Condition, Outcome},
+        team_effect_apply::EffectApply,
+        trigger::*,
+    },
     error::TeamError,
     pets::{combat::Combat, pet::Pet},
 };
@@ -34,6 +38,8 @@ pub trait Battle {
     /// Get all available `Pet`s.
     /// * Fainted `Pet`s and/or empty slots are ignored.
     fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>>;
+    /// Get a single pet by a given `Condition`.
+    fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>>;
     /// Add a `Pet` to a `Team`.
     /// * `:param pet:`
     ///     * `Pet` to be summoned.
@@ -93,7 +99,7 @@ impl Battle for Team {
                     Some(i)
                 } else if pet
                     .as_ref()
-                    .map_or(false, |pet| pet.borrow().is_alive())
+                    .map_or(false, |pet| pet.borrow().stats.health != 0)
                 {
                     // Pet is Some so safe to unwrap.
                     // Set new pet index and increment
@@ -113,9 +119,82 @@ impl Battle for Team {
         }
         self
     }
+    fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>> {
+        match cond {
+            Condition::Healthiest => {
+                if let Some(healthiest_pet) = self.friends.borrow().iter().max_by(|pet_1, pet_2| {
+                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .health
+                            .cmp(&pet_2.borrow().stats.health)
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                }) {
+                    healthiest_pet.clone()
+                } else {
+                    None
+                }
+            }
+            Condition::Illest => {
+                if let Some(illest_pet) = self.friends.borrow().iter().min_by(|pet_1, pet_2| {
+                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .health
+                            .cmp(&pet_2.borrow().stats.health)
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                }) {
+                    illest_pet.clone()
+                } else {
+                    None
+                }
+            }
+            Condition::Strongest => {
+                if let Some(strongest_pet) = self.friends.borrow().iter().max_by(|pet_1, pet_2| {
+                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .attack
+                            .cmp(&pet_2.borrow().stats.attack)
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                }) {
+                    strongest_pet.clone()
+                } else {
+                    None
+                }
+            }
+            Condition::Weakest => {
+                if let Some(weakest_pet) = self.friends.borrow().iter().min_by(|pet_1, pet_2| {
+                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .attack
+                            .cmp(&pet_2.borrow().stats.attack)
+                    } else {
+                        std::cmp::Ordering::Equal
+                    }
+                }) {
+                    weakest_pet.clone()
+                } else {
+                    None
+                }
+            }
+        }
+    }
+
     fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
         if let Some(Some(pet)) = self.friends.borrow().get(idx) {
-            pet.borrow().is_alive().then(|| pet.clone())
+            (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
             None
         }
@@ -123,7 +202,7 @@ impl Battle for Team {
     /// Get the next pet in team.
     fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
         if let Some(Some(pet)) = self.friends.borrow().iter().next() {
-            pet.borrow().is_alive().then(|| pet.clone())
+            (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
             None
         }
@@ -140,7 +219,7 @@ impl Battle for Team {
             .iter()
             .filter_map(|pet| {
                 if let Some(pet) = pet {
-                    pet.borrow().is_alive().then(|| pet.clone())
+                    (pet.borrow().stats.health != 0).then(|| pet.clone())
                 } else {
                     None
                 }

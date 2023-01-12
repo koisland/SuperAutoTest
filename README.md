@@ -34,8 +34,11 @@ From here, you can query pets by the following parameters:
 
 Or foods with the following parameters:
 1. `name`
+  * Name of food.
 2. `tier`
+  * Tier of food.
 3. `pack`
+  * Pack food belongs to.
 
 ### Testing
 This is still a WIP.
@@ -45,6 +48,9 @@ The general idea is that a user would submit a `JSON` payload of pets for two te
 The output `JSON` would detail:
 * The winning team.
 * Each events in the fight.
+
+
+To see API usage, see [`docs/README.md`](docs/README.md)
 
 ---
 

@@ -8,7 +8,7 @@ use crate::{
 use log::error;
 use rusqlite::{Error, Row};
 use serde_json::to_writer_pretty;
-use std::{fmt::Write, fs::File};
+use std::{fmt::Write, fs::File, str::FromStr};
 
 #[allow(dead_code)]
 fn write_pet_info(output: &str) {
@@ -30,7 +30,7 @@ pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
         tier: pet_row.get(2)?,
         attack: pet_row.get(3)?,
         health: pet_row.get(4)?,
-        pack: Pack::new(&pack),
+        pack: Pack::from_str(&pack).unwrap(),
         effect_trigger: pet_row.get(6)?,
         effect: pet_row.get(7)?,
         lvl: pet_row.get(8)?,
@@ -43,7 +43,7 @@ pub fn map_row_to_food(food_row: &Row) -> Result<FoodRecord, Error> {
         name: food_row.get(1)?,
         tier: food_row.get(2)?,
         effect: food_row.get(3)?,
-        pack: Pack::new(&pack),
+        pack: Pack::from_str(&pack).unwrap(),
     })
 }
 

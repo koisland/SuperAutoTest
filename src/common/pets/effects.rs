@@ -1,7 +1,7 @@
 use crate::common::{
     battle::{
         effect::{Effect, EffectType},
-        state::{Action, Position, Statistics, Target},
+        state::{Action, Condition, CopyAttr, Position, Statistics, Target},
         trigger::*,
     },
     pets::{names::PetName, pet::Pet},
@@ -11,6 +11,7 @@ use crate::common::{
 /// Maps a pet to its effects.
 pub fn get_pet_effect(
     pet: &PetName,
+    pet_stats: &Statistics,
     effect_stats: Statistics,
     lvl: usize,
     n_triggers: usize,
@@ -63,18 +64,24 @@ pub fn get_pet_effect(
             trigger: TRIGGER_START_BATTLE,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::CopyStatsHealthiest(effect_stats),
+            action: Action::Copy(
+                CopyAttr::PercentStats(effect_stats),
+                Position::Condition(Condition::Healthiest),
+            ),
             uses: Some(n_triggers),
             effect_type: EffectType::Pet,
         }),
-        PetName::Dodo => Some(Effect {
-            trigger: TRIGGER_START_BATTLE,
-            target: Target::Friend,
-            position: Position::Specific(1),
-            action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
-            effect_type: EffectType::Pet,
-        }),
+        PetName::Dodo => {
+            let add_stats = pet_stats.mult(&effect_stats);
+            Some(Effect {
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Friend,
+                position: Position::Specific(1),
+                action: Action::Add(add_stats),
+                uses: Some(n_triggers),
+                effect_type: EffectType::Pet,
+            })
+        }
         PetName::Elephant => Some(Effect {
             trigger: TRIGGER_SELF_ATTACK,
             target: Target::Friend,

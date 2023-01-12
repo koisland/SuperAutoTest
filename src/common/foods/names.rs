@@ -14,6 +14,7 @@ pub enum FoodName {
 }
 
 impl std::fmt::Display for FoodName {
+    #[cfg(not(tarpaulin_include))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             FoodName::Chili => write!(f, "Chili"),

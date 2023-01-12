@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::fmt;
+use std::{fmt, str::FromStr};
+
+use crate::{api::utils::capitalize_names, wiki_scraper::error::WikiParserError};
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Pack {
@@ -10,19 +12,23 @@ pub enum Pack {
     Unknown,
 }
 
-impl Pack {
-    pub fn new(name: &str) -> Pack {
-        match name {
-            "Turtle" => Pack::Turtle,
-            "Puppy" => Pack::Puppy,
-            "Star" => Pack::Star,
-            "Weekly" => Pack::Weekly,
-            _ => Pack::Unknown,
+impl FromStr for Pack {
+    type Err = WikiParserError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let capitalized_s = capitalize_names(s);
+        match &capitalized_s[..] {
+            "Turtle" => Ok(Pack::Turtle),
+            "Puppy" => Ok(Pack::Puppy),
+            "Star" => Ok(Pack::Star),
+            "Weekly" => Ok(Pack::Weekly),
+            _ => Ok(Pack::Unknown),
         }
     }
 }
 
 impl fmt::Display for Pack {
+    #[cfg(not(tarpaulin_include))]
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Pack::Turtle => write!(f, "Turtle"),
@@ -32,4 +38,12 @@ impl fmt::Display for Pack {
             Pack::Unknown => write!(f, "Unknown"),
         }
     }
+}
+
+#[test]
+fn test_str_to_pack() {
+    assert_eq!(Pack::Turtle, Pack::from_str("Turtle").unwrap());
+    assert_eq!(Pack::Turtle, Pack::from_str("turtle").unwrap());
+    assert_ne!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
+    assert_eq!(Pack::Unknown, Pack::from_str("Golden").unwrap());
 }

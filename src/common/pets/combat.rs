@@ -45,15 +45,9 @@ pub trait Combat {
     ///
     /// If a pet has no held food, no `Statistics` are provided.
     fn get_food_stat_modifier(&self) -> Statistics;
-    /// Check if pet is alive.
-    fn is_alive(&self) -> bool;
 }
 
 impl Combat for Pet {
-    fn is_alive(&self) -> bool {
-        self.stats.health != 0
-    }
-
     fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome> {
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
@@ -127,34 +121,23 @@ impl Combat for Pet {
     fn get_food_stat_modifier(&self) -> Statistics {
         // If a pet has an item that alters stats...
         // Otherwise, no stat modifier added.
-        self.item.as_ref().map_or(
-            Statistics {
-                attack: 0,
-                health: 0,
-            },
-            |food| {
-                let food_effect = food.ability.uses.as_ref().map_or(&Action::None, |uses| {
-                    if *uses > 0 && food.ability.position == Position::OnSelf {
-                        // Return the food effect.
-                        &food.ability.action
-                    } else {
-                        &Action::None
-                    }
-                });
-
-                match food_effect {
-                    // Get stat modifiers from effects.
-                    Action::Add(stats) | Action::Remove(stats) | Action::Negate(stats) => {
-                        stats.clone()
-                    }
-                    // Otherwise, no change.
-                    _ => Statistics {
-                        attack: 0,
-                        health: 0,
-                    },
+        self.item.as_ref().map_or(Statistics::default(), |food| {
+            let food_effect = food.ability.uses.as_ref().map_or(&Action::None, |uses| {
+                if *uses > 0 && food.ability.position == Position::OnSelf {
+                    // Return the food effect.
+                    &food.ability.action
+                } else {
+                    &Action::None
                 }
-            },
-        )
+            });
+
+            match food_effect {
+                // Get stat modifiers from effects.
+                Action::Add(stats) | Action::Remove(stats) | Action::Negate(stats) => stats.clone(),
+                // Otherwise, no change.
+                _ => Statistics::default(),
+            }
+        })
     }
 
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome {

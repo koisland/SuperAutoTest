@@ -68,6 +68,7 @@ pub enum PetName {
 }
 
 impl std::fmt::Display for PetName {
+    #[cfg(not(tarpaulin_include))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             PetName::Ant => write!(f, "Ant"),
