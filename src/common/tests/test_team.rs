@@ -6,14 +6,13 @@ use crate::common::{
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
-        test_ant_team, test_crab_team, test_dodo_team, test_mosq_team, test_solo_hedgehog_team,
-        test_summon_team,
+        test_ant_team, test_crab_team, test_dodo_team, test_elephant_peacock_team,
+        test_flamingo_team, test_mosq_team, test_rat_team, test_solo_hedgehog_team,
+        test_spider_team, test_summon_team,
     },
 };
 
 use crate::LOG_CONFIG;
-
-use super::common::test_elephant_peacock_team;
 
 #[test]
 fn test_battle_honey_team() {
@@ -37,6 +36,7 @@ fn test_battle_honey_team() {
 
 #[test]
 fn test_battle_summon_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
     let pets = test_summon_team();
     let enemy_pets = test_summon_team();
 
@@ -59,19 +59,19 @@ fn test_battle_summon_team() {
         team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 1,
-            health: 1
+            health: 2
         }
     );
     assert_eq!(
         enemy_team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 1,
-            health: 1
+            health: 2
         }
     );
 
     // After one turn.
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team, Some(2));
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
@@ -217,7 +217,7 @@ fn test_battle_dodo_team() {
         team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 3,
-            health: 5
+            health: 3
         }
     );
     // Dodo atk at lvl. 1 is 3.
@@ -232,7 +232,86 @@ fn test_battle_dodo_team() {
         team.get_next_pet().unwrap().borrow().stats,
         Statistics {
             attack: 4,
-            health: 3
+            health: 1
         }
     );
+}
+
+#[test]
+fn test_battle_flamingo_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_flamingo_team();
+    let enemy_pets = test_ant_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
+
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(2).unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    team.fight(&mut enemy_team, Some(1));
+
+    // Flamingo faints giving two pets behind (1, 1).
+    assert_eq!(
+        team.get_idx_pet(0).unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+}
+
+#[test]
+fn test_battle_rat_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_rat_team();
+    let enemy_pets = test_rat_team();
+
+    let mut team_lvl_1 = Team::new("self", &pets);
+    let mut enemy_team_lvl_1 = Team::new("enemy", &enemy_pets);
+
+    team_lvl_1.fight(&mut enemy_team_lvl_1, Some(2));
+
+    assert_eq!(
+        team_lvl_1.get_next_pet().unwrap().borrow().name,
+        PetName::DirtyRat
+    );
+    assert_eq!(
+        enemy_team_lvl_1.get_next_pet().unwrap().borrow().name,
+        PetName::DirtyRat
+    );
+}
+
+#[test]
+fn test_battle_spider_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let pets = test_spider_team();
+    let enemy_pets = test_spider_team();
+
+    let mut team = Team::new("self", &pets);
+    let mut enemy_team = Team::new("enemy", &enemy_pets);
+
+    team.fight(&mut enemy_team, Some(1));
+
+    // Spiders kill themselves and both spawn a random tier 3 pet from the Turtle pack.
+    assert_eq!(team.get_next_pet().unwrap().borrow().tier, 3);
+    assert_eq!(enemy_team.get_next_pet().unwrap().borrow().tier, 3);
 }

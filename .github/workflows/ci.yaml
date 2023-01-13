@@ -28,6 +28,14 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+      - name: Build sapdb executable.
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+      - name: Init database.
+        run: |
+          ./target/release/sapdb init
       - uses: actions-rs/cargo@v1
         with:
           command: test

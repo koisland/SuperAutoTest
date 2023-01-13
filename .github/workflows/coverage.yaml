@@ -15,6 +15,16 @@ jobs:
           toolchain: stable
           override: true
 
+      - name: Build executable to init database.
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Init database.
+        run: |
+          ./target/release/sapdb init
+
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
 

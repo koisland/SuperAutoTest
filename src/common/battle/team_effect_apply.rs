@@ -10,7 +10,7 @@ use crate::common::{
 use itertools::Itertools;
 use log::info;
 use rand::seq::IteratorRandom;
-use std::{collections::VecDeque, error::Error};
+use std::{collections::VecDeque, error::Error, ops::RangeInclusive};
 
 pub trait EffectApply {
     fn _target_effect_any(&self, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
@@ -34,6 +34,13 @@ pub trait EffectApply {
         effect_type: &Action,
         outcomes: &mut VecDeque<Outcome>,
     ) -> Result<(), Box<dyn Error>>;
+    fn _target_effect_range(
+        &self,
+        effect_pet_idx: usize,
+        range_idxs: &RangeInclusive<isize>,
+        effect_type: &Action,
+        outcomes: &mut VecDeque<Outcome>,
+    );
     /// Apply effects based on a team's stored triggers.
     fn _apply_trigger_effects(&self, opponent: &Team) -> &Self;
     /// Apply a given effect to a team.
@@ -158,7 +165,6 @@ impl EffectApply for Team {
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
-            // Must also emit EffectTrigger for summon.
             Action::Summon(pet) => {
                 let summon_triggers = self.add_pet(pet, effect_pet_idx);
                 if let Ok(summon_triggers) = summon_triggers {
@@ -267,6 +273,36 @@ impl EffectApply for Team {
         }
     }
 
+    fn _target_effect_range(
+        &self,
+        effect_pet_idx: usize,
+        range_idxs: &RangeInclusive<isize>,
+        effect_type: &Action,
+        outcomes: &mut VecDeque<Outcome>,
+    ) {
+        for pos in range_idxs
+            .clone()
+            .into_iter()
+            .filter_map(|rel_idx| Team::_cvt_rel_pos_to_adj_idx(effect_pet_idx, rel_idx).ok())
+        {
+            match effect_type {
+                Action::Add(stats) => {
+                    if let Some(pet) = self.get_idx_pet(pos) {
+                        pet.borrow_mut().stats.add(stats);
+                        info!(target: "dev", "Added {} to {}.", stats, pet.borrow());
+                    }
+                }
+                Action::Remove(stats) => {
+                    if let Some(pet) = self.get_idx_pet(pos) {
+                        outcomes.extend(pet.borrow_mut().indirect_attack(stats));
+                        info!(target: "dev", "Removed {} from {}.", stats, pet.borrow());
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
     fn _target_effect_specific(
         &self,
         pos: usize,
@@ -332,7 +368,7 @@ impl EffectApply for Team {
 
         // Activate effect for each use.
         for _ in 0..effect.uses.unwrap_or(1) {
-            match &effect.target {
+            match effect.target {
                 Target::Friend => match &effect.position {
                     Position::Any => self._target_effect_any(&effect.action, &mut outcomes),
                     Position::All => self._target_effect_all(&effect.action, &mut outcomes),
@@ -349,7 +385,12 @@ impl EffectApply for Team {
                             self._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                         }
                     }
-                    Position::Range(_) => {}
+                    Position::Range(effect_range) => self._target_effect_range(
+                        effect_pet_idx,
+                        effect_range,
+                        &effect.action,
+                        &mut outcomes,
+                    ),
                     _ => {}
                 },
                 Target::Enemy => match &effect.position {
@@ -370,7 +411,12 @@ impl EffectApply for Team {
                             opponent._target_effect_specific(adj_idx, &effect.action, &mut outcomes)
                         }
                     }
-                    Position::Range(_) => {}
+                    Position::Range(effect_range) => opponent._target_effect_range(
+                        effect_pet_idx,
+                        effect_range,
+                        &effect.action,
+                        &mut outcomes,
+                    ),
                     _ => {}
                 },
                 Target::None => {}

@@ -1,10 +1,15 @@
-use crate::common::{
-    battle::{
-        effect::{Effect, EffectType},
-        state::{Action, Condition, CopyAttr, Position, Statistics, Target},
-        trigger::*,
+use std::str::FromStr;
+
+use crate::{
+    common::{
+        battle::{
+            effect::{Effect, EffectType},
+            state::{Action, Condition, CopyAttr, Position, Statistics, Target},
+            trigger::*,
+        },
+        pets::{names::PetName, pet::Pet},
     },
-    pets::{names::PetName, pet::Pet},
+    db::{setup::get_connection, utils::map_row_to_pet},
 };
 
 #[allow(dead_code)]
@@ -92,7 +97,7 @@ pub fn get_pet_effect(
         }),
         PetName::Flamingo => Some(Effect {
             trigger: TRIGGER_SELF_FAINT,
-            target: Target::Enemy,
+            target: Target::Friend,
             position: Position::Range(-2..=-1),
             action: Action::Add(effect_stats),
             uses: None,
@@ -118,10 +123,7 @@ pub fn get_pet_effect(
             let dirty_rat = Box::new(Pet {
                 name: PetName::DirtyRat,
                 tier: 1,
-                stats: Statistics {
-                    attack: 1,
-                    health: 1,
-                },
+                stats: effect_stats,
                 lvl: 1,
                 effect: None,
                 item: None,
@@ -137,7 +139,27 @@ pub fn get_pet_effect(
                 effect_type: EffectType::Pet,
             })
         }
-        PetName::Spider => None,
+        PetName::Spider => {
+            let conn = get_connection().expect("Can't get connection.");
+            let mut stmt = conn
+                .prepare("SELECT * FROM pets where lvl = ? and tier = 3 and pack = 'Turtle' ORDER BY RANDOM() LIMIT 1")
+                .unwrap();
+            let pet_record = stmt
+                .query_row([lvl.to_string()], map_row_to_pet)
+                .expect("No row found.");
+            let name = PetName::from_str(&pet_record.name).expect("Can't get pet.");
+
+            let summoned_pet =
+                Box::new(Pet::new(name, Some(effect_stats), lvl, None, None).unwrap());
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_SELF_FAINT,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Summon(Some(summoned_pet)),
+                uses: Some(n_triggers),
+            })
+        }
         _ => None,
     }
 }

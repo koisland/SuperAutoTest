@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// A record with information about a food from *Super Auto Pets*.
 ///
 /// This information is queried and parsed from the *Super Auto Pets* *Fandom* wiki.
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct FoodRecord {
     pub name: String,
     pub tier: usize,
@@ -24,5 +24,9 @@ pub struct PetRecord {
     pub pack: Pack,
     pub effect_trigger: Option<String>,
     pub effect: Option<String>,
+    pub effect_atk: usize,
+    pub effect_health: usize,
+    pub n_triggers: usize,
+    pub temp_effect: bool,
     pub lvl: usize,
 }

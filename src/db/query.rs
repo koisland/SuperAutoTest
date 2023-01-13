@@ -67,6 +67,10 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
                     .clone()
                     .unwrap_or_else(|| "None".to_string()),
                 &pet.effect.clone().unwrap_or_else(|| "None".to_string()),
+                &pet.effect_atk.to_string(),
+                &pet.effect_health.to_string(),
+                &pet.n_triggers.to_string(),
+                &pet.temp_effect.to_string(),
                 &pet.lvl.to_string(),
             ],
         )?;

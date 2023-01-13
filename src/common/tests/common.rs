@@ -1,233 +1,52 @@
-use crate::common::{
-    battle::state::Statistics,
-    pets::{effects::get_pet_effect, names::PetName, pet::Pet},
-};
+use crate::common::pets::{names::PetName, pet::Pet};
 
 /// Manually specify ant pet. Done with DB call normally.
 /// TODO: Use with mock object.
 pub fn ant() -> Pet {
-    let stats = Statistics {
-        attack: 2,
-        health: 1,
-    };
-    Pet {
-        name: PetName::Ant,
-        tier: 1,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Ant,
-            &stats,
-            Statistics {
-                attack: 2,
-                health: 1,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Ant, None, 1, None, None).unwrap()
 }
 
 pub fn cricket() -> Pet {
-    let stats = Statistics {
-        attack: 1,
-        health: 1,
-    };
-    Pet {
-        name: PetName::Cricket,
-        tier: 1,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Cricket,
-            &stats,
-            Statistics {
-                attack: 1,
-                health: 1,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Cricket, None, 1, None, None).unwrap()
 }
 
 pub fn horse() -> Pet {
-    let stats = Statistics {
-        attack: 2,
-        health: 1,
-    };
-    Pet {
-        name: PetName::Horse,
-        tier: 1,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Horse,
-            &stats,
-            Statistics {
-                attack: 1,
-                health: 0,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Horse, None, 1, None, None).unwrap()
 }
 
 pub fn mosquito() -> Pet {
-    let stats = Statistics {
-        attack: 2,
-        health: 2,
-    };
-    Pet {
-        name: PetName::Mosquito,
-        tier: 1,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Mosquito,
-            &stats,
-            Statistics {
-                attack: 1,
-                health: 0,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Mosquito, None, 1, None, None).unwrap()
 }
 
 fn hedgehog() -> Pet {
-    let stats = Statistics {
-        attack: 3,
-        health: 2,
-    };
-    Pet {
-        name: PetName::Hedgehog,
-        tier: 2,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Hedgehog,
-            &stats,
-            Statistics {
-                attack: 2,
-                health: 0,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Hedgehog, None, 1, None, None).unwrap()
 }
 
 fn peacock() -> Pet {
-    let stats = Statistics {
-        attack: 2,
-        health: 5,
-    };
-    Pet {
-        name: PetName::Peacock,
-        tier: 2,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Peacock,
-            &stats,
-            Statistics {
-                attack: 4,
-                health: 0,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Peacock, None, 1, None, None).unwrap()
 }
 fn crab() -> Pet {
-    let stats = Statistics {
-        attack: 3,
-        health: 1,
-    };
-    Pet {
-        name: PetName::Crab,
-        tier: 2,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Crab,
-            &stats,
-            // Instead of raw values, treat as percentage.
-            Statistics {
-                attack: 0,
-                health: 50,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Crab, None, 1, None, None).unwrap()
 }
 
 fn dodo() -> Pet {
-    let stats = Statistics {
-        attack: 3,
-        health: 5,
-    };
-    Pet {
-        name: PetName::Dodo,
-        tier: 2,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Dodo,
-            &stats,
-            Statistics {
-                attack: 33,
-                health: 0,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Dodo, None, 1, None, None).unwrap()
 }
 
 fn elephant() -> Pet {
-    let stats = Statistics {
-        attack: 3,
-        health: 5,
-    };
-    Pet {
-        name: PetName::Elephant,
-        tier: 2,
-        stats: stats.clone(),
-        lvl: 1,
-        effect: get_pet_effect(
-            &PetName::Elephant,
-            &stats,
-            Statistics {
-                attack: 0,
-                health: 1,
-            },
-            1,
-            1,
-        ),
-        item: None,
-        pos: None,
-    }
+    Pet::new(PetName::Elephant, None, 1, None, None).unwrap()
+}
+
+fn flamingo() -> Pet {
+    Pet::new(PetName::Flamingo, None, 1, None, None).unwrap()
+}
+
+fn rat() -> Pet {
+    Pet::new(PetName::Rat, None, 1, None, None).unwrap()
+}
+
+fn spider() -> Pet {
+    Pet::new(PetName::Spider, None, 1, None, None).unwrap()
 }
 
 pub fn test_ant_team() -> [Option<Pet>; 5] {
@@ -258,6 +77,18 @@ pub fn test_elephant_peacock_team() -> [Option<Pet>; 5] {
 
 pub fn test_dodo_team() -> [Option<Pet>; 5] {
     [Some(dodo()), Some(dodo()), None, None, None]
+}
+
+pub fn test_flamingo_team() -> [Option<Pet>; 5] {
+    [Some(flamingo()), Some(ant()), Some(ant()), None, None]
+}
+
+pub fn test_rat_team() -> [Option<Pet>; 5] {
+    [Some(rat()), None, None, None, None]
+}
+
+pub fn test_spider_team() -> [Option<Pet>; 5] {
+    [Some(spider()), None, None, None, None]
 }
 
 pub fn test_crab_team() -> [Option<Pet>; 5] {

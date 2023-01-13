@@ -16,7 +16,7 @@ const QUERY_PET_PARAMS: [&str; 5] = ["name", "tier", "lvl", "pack", "effect_trig
 
 // TODO: Add static html doc to show basic routes.
 #[get("/")]
-pub fn index() -> &'static str {
+pub fn home() -> &'static str {
     "Welcome to the unoffical Super Auto Pets API!"
 }
 
@@ -123,5 +123,164 @@ pub async fn foods(
         Some(RawJson(to_string_pretty(&res).unwrap()))
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use crate::db::{
+        pack::Pack,
+        record::{FoodRecord, PetRecord},
+    };
+    use crate::server::rocket;
+    use rocket::http::Status;
+    use rocket::local::blocking::Client;
+
+    #[test]
+    fn test_home() {
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client.get(uri!(super::home)).dispatch();
+        assert_eq!(response.status(), Status::Ok);
+        assert_eq!(
+            response.into_string(),
+            Some("Welcome to the unoffical Super Auto Pets API!".into())
+        );
+    }
+
+    #[test]
+    fn test_get_single_pet_entry() {
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client
+            .get("/pet?name=ant&level=1&tier=1&pack=Turtle")
+            .dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+
+        let records: Vec<PetRecord> =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+
+        assert!(records.len() == 1);
+        assert_eq!(
+            records.get(0).unwrap(),
+            &PetRecord {
+                name: "Ant".to_string(),
+                tier: 1,
+                attack: 2,
+                health: 1,
+                pack: Pack::Turtle,
+                effect_trigger: Some("Faint".to_string(),),
+                effect: Some("Give one random friend +2 attack and +1 health.".to_string(),),
+                effect_atk: 2,
+                effect_health: 1,
+                n_triggers: 1,
+                temp_effect: false,
+                lvl: 1,
+            }
+        )
+    }
+
+    #[test]
+    fn test_get_multiple_pet_entries() {
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client
+            .get("/pet?name=ant&level=1&tier=1&pack=Turtle&name=cricket")
+            .dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+
+        let records: Vec<PetRecord> =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+
+        assert!(records.len() == 2);
+
+        assert_eq!(
+            records,
+            vec![
+                PetRecord {
+                    name: "Ant".to_string(),
+                    tier: 1,
+                    attack: 2,
+                    health: 1,
+                    pack: Pack::Turtle,
+                    effect_trigger: Some("Faint".to_string(),),
+                    effect: Some("Give one random friend +2 attack and +1 health.".to_string(),),
+                    effect_atk: 2,
+                    effect_health: 1,
+                    n_triggers: 1,
+                    temp_effect: false,
+                    lvl: 1,
+                },
+                PetRecord {
+                    name: "Cricket".to_string(),
+                    tier: 1,
+                    attack: 1,
+                    health: 2,
+                    pack: Pack::Turtle,
+                    effect_trigger: Some("Faint".to_string(),),
+                    effect: Some("Summon one 1/1 Zombie Cricket.".to_string(),),
+                    effect_atk: 1,
+                    effect_health: 1,
+                    n_triggers: 1,
+                    temp_effect: false,
+                    lvl: 1,
+                },
+            ]
+        )
+    }
+
+    #[test]
+    fn test_get_single_food_entry() {
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client
+            .get("/food?tier=3&pack=Star&name=pineapple")
+            .dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+
+        let records: Vec<FoodRecord> =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+
+        assert!(records.len() == 1);
+
+        assert_eq!(
+            records.get(0).unwrap(),
+            &FoodRecord {
+                name: "Pineapple".to_string(),
+                tier: 3,
+                effect: "Give one pet Pineapple. Ability deals +2 damage".to_string(),
+                pack: Pack::Star,
+            }
+        );
+    }
+
+    #[test]
+    fn test_get_multiple_food_entries() {
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client.get("/food?tier=3&pack=Star").dispatch();
+
+        assert_eq!(response.status(), Status::Ok);
+
+        let records: Vec<FoodRecord> =
+            serde_json::from_str(&response.into_string().unwrap()).unwrap();
+
+        assert!(records.len() == 2);
+
+        assert_eq!(
+            records,
+            vec![
+                FoodRecord {
+                    name: "Pineapple".to_string(),
+                    tier: 3,
+                    effect: "Give one pet Pineapple. Ability deals +2 damage".to_string(),
+                    pack: Pack::Star,
+                },
+                FoodRecord {
+                    name: "Cucumber".to_string(),
+                    tier: 3,
+                    effect: "Give one pet Cucumber. Gain +1 health at end of turn".to_string(),
+                    pack: Pack::Star,
+                },
+            ]
+        );
     }
 }

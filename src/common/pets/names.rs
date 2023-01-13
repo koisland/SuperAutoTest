@@ -1,4 +1,8 @@
+use std::{fmt::Display, str::FromStr};
+
 use serde::{Deserialize, Serialize};
+
+use crate::wiki_scraper::error::WikiParserError;
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum PetName {
@@ -67,7 +71,79 @@ pub enum PetName {
     DirtyRat,
 }
 
-impl std::fmt::Display for PetName {
+impl FromStr for PetName {
+    type Err = WikiParserError;
+
+    #[cfg(not(tarpaulin_include))]
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "Ant" => Ok(PetName::Ant),
+            "Badger" => Ok(PetName::Badger),
+            "Beaver" => Ok(PetName::Beaver),
+            "Bison" => Ok(PetName::Bison),
+            "Blowfish" => Ok(PetName::Blowfish),
+            "Boar" => Ok(PetName::Boar),
+            "Camel" => Ok(PetName::Camel),
+            "Cat" => Ok(PetName::Cat),
+            "Cow" => Ok(PetName::Cow),
+            "Crab" => Ok(PetName::Crab),
+            "Cricket" => Ok(PetName::Cricket),
+            "Crocodile" => Ok(PetName::Crocodile),
+            "Deer" => Ok(PetName::Deer),
+            "Dodo" => Ok(PetName::Dodo),
+            "Dog" => Ok(PetName::Dog),
+            "Dolphin" => Ok(PetName::Dolphin),
+            "Dragon" => Ok(PetName::Dragon),
+            "Duck" => Ok(PetName::Duck),
+            "Elephant" => Ok(PetName::Elephant),
+            "Fish" => Ok(PetName::Fish),
+            "Flamingo" => Ok(PetName::Flamingo),
+            "Fly" => Ok(PetName::Fly),
+            "Giraffe" => Ok(PetName::Giraffe),
+            "Gorilla" => Ok(PetName::Gorilla),
+            "Hedgehog" => Ok(PetName::Hedgehog),
+            "Hippo" => Ok(PetName::Hippo),
+            "Horse" => Ok(PetName::Horse),
+            "Kangaroo" => Ok(PetName::Kangaroo),
+            "Leopard" => Ok(PetName::Leopard),
+            "Mammoth" => Ok(PetName::Mammoth),
+            "Monkey" => Ok(PetName::Monkey),
+            "Mosquito" => Ok(PetName::Mosquito),
+            "Otter" => Ok(PetName::Otter),
+            "Ox" => Ok(PetName::Ox),
+            "Parrot" => Ok(PetName::Parrot),
+            "Peacock" => Ok(PetName::Peacock),
+            "Penguin" => Ok(PetName::Penguin),
+            "Pig" => Ok(PetName::Pig),
+            "Rabbit" => Ok(PetName::Rabbit),
+            "Rat" => Ok(PetName::Rat),
+            "Rhino" => Ok(PetName::Rhino),
+            "Rooster" => Ok(PetName::Rooster),
+            "Scorpion" => Ok(PetName::Scorpion),
+            "Seal" => Ok(PetName::Seal),
+            "Shark" => Ok(PetName::Shark),
+            "Sheep" => Ok(PetName::Sheep),
+            "Shrimp" => Ok(PetName::Shrimp),
+            "Skunk" => Ok(PetName::Skunk),
+            "Sloth" => Ok(PetName::Sloth),
+            "Snail" => Ok(PetName::Snail),
+            "Snake" => Ok(PetName::Snake),
+            "Spider" => Ok(PetName::Spider),
+            "Squirrel" => Ok(PetName::Squirrel),
+            "Swan" => Ok(PetName::Swan),
+            "Tiger" => Ok(PetName::Tiger),
+            "Turkey" => Ok(PetName::Turkey),
+            "Turtle" => Ok(PetName::Turtle),
+            "Whale" => Ok(PetName::Whale),
+            "Worm" => Ok(PetName::Worm),
+            _ => Err(WikiParserError {
+                reason: format!("Unknown pet. {}", s),
+            }),
+        }
+    }
+}
+
+impl Display for PetName {
     #[cfg(not(tarpaulin_include))]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {

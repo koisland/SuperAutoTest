@@ -3,6 +3,7 @@ use log::{info, warn};
 use std::error::Error;
 
 use crate::{
+    common::{battle::state::Statistics, pets::pet::num_regex, regex_patterns::*},
     db::{pack::Pack, record::PetRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
@@ -99,6 +100,48 @@ pub fn parse_pet_effects(line: &str, pet_effect_found: bool) -> Vec<String> {
         .collect_vec()
 }
 
+/// Extracts effect information.
+///
+/// **Note: This only gets raw stats**
+pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, bool) {
+    let effect = effect.clone().unwrap_or_else(|| "None".to_string());
+
+    // Check if end of battle.
+    let end_of_battle_effect = RGX_END_OF_BATTLE.is_match(&effect);
+
+    // Remove '%' and " of " so pattern for num_regex can work for percentages.
+    let pet_effect = effect.replace(" of ", " ").replace('%', "");
+
+    // If a pet has a summon effect, use attack and health stats from effect_stats.
+    let parsed_num_effect_stats = if pet_effect.contains("Summon") {
+        (
+            num_regex(RGX_SUMMON_ATK, &pet_effect),
+            num_regex(RGX_SUMMON_HEALTH, &pet_effect),
+        )
+    } else {
+        let raw_stats = (
+            num_regex(RGX_ATK, &pet_effect),
+            num_regex(RGX_HEALTH, &pet_effect),
+        );
+
+        if raw_stats.0.is_some() || raw_stats.1.is_some() {
+            raw_stats
+        } else {
+            // Check for damage dealing effects.
+            (num_regex(RGX_DMG, &pet_effect), None)
+        }
+    };
+
+    let effect_stats = Statistics {
+        attack: parsed_num_effect_stats.0.unwrap_or(0),
+        health: parsed_num_effect_stats.1.unwrap_or(0),
+    };
+
+    let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).unwrap_or(1);
+
+    (effect_stats, n_triggers, end_of_battle_effect)
+}
+
 /// Parse a block of Fandom wiki source text to generate a `Pet` and update pets found.
 pub fn parse_single_pet(
     block: &str,
@@ -145,6 +188,8 @@ pub fn parse_single_pet(
         for pack in pet_packs.iter() {
             for lvl in 0..3 {
                 let pet_lvl_effect = pet_effects.get(lvl).cloned();
+                let (effect_stats, n_triggers, temp_effect) =
+                    extract_pet_effect_info(&pet_lvl_effect);
                 let pet = PetRecord {
                     name: pet_name.to_string(),
                     tier: *curr_tier,
@@ -153,6 +198,10 @@ pub fn parse_single_pet(
                     pack: pack.clone(),
                     effect_trigger: pet_effect_trigger.clone(),
                     effect: pet_lvl_effect,
+                    effect_atk: effect_stats.attack,
+                    effect_health: effect_stats.health,
+                    n_triggers,
+                    temp_effect,
                     lvl: lvl + 1,
                 };
 

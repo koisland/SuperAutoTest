@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        state::{Condition, Outcome},
+        state::{Condition, Outcome, Position, Target},
         team_effect_apply::EffectApply,
         trigger::*,
     },
@@ -234,17 +234,48 @@ impl Battle for Team {
             });
         }
         if let Some(stored_pet) = pet.clone() {
-            info!(target: "dev", "Added pet to pos {pos} team: {}.", stored_pet);
-            self.friends
-                .borrow_mut()
-                .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
+            // Handle case where pet in front faints and vector is empty.
+            // Would panic attempting to insert at any position not at 0.
+            // Also update position to be correct.
+            let pos = if self.friends.borrow().is_empty() {
+                self.friends
+                    .borrow_mut()
+                    .push(Some(Rc::new(RefCell::new(*stored_pet))));
+                0
+            } else {
+                self.friends
+                    .borrow_mut()
+                    .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
+                pos
+            };
 
+            info!(target: "dev", "Added pet to pos {pos} on team {}: {}.", self.name, self.get_idx_pet(pos).unwrap().borrow());
+
+            // Set summon triggers.
             let mut self_trigger = TRIGGER_SELF_SUMMON;
             let mut any_trigger = TRIGGER_ANY_SUMMON;
             let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
 
             (self_trigger.idx, any_trigger.idx, any_enemy_trigger.idx) =
                 (Some(pos), Some(pos), Some(pos));
+
+            // Update old triggers and their positions that store a pet's idx after inserting new pet.
+            // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
+            for trigger in self.triggers.borrow_mut().iter_mut() {
+                match (&mut trigger.position, &mut trigger.target) {
+                    (Position::Specific(orig_pos), Target::Friend)
+                    | (Position::Specific(orig_pos), Target::Enemy) => *orig_pos += 1,
+                    (Position::Trigger, Target::Friend)
+                    | (Position::Trigger, Target::Enemy)
+                    | (Position::OnSelf, Target::Friend)
+                    | (Position::OnSelf, Target::Enemy) => {
+                        if let Some(idx) = trigger.idx.as_mut() {
+                            *idx += 1
+                        }
+                    }
+                    _ => {}
+                }
+            }
 
             Ok([
                 // May run into issue with mushroomed scorpion.

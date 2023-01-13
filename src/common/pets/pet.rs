@@ -15,11 +15,13 @@ use crate::{
 pub const MAX_PET_STATS: usize = 50;
 
 #[allow(dead_code)]
-pub fn num_regex(pattern: &LRegex, string: &str) -> Result<usize, Box<dyn Error>> {
-    Ok(pattern.captures(string).map_or(Ok(0), |cap| {
+pub fn num_regex(pattern: &LRegex, string: &str) -> Option<usize> {
+    if let Some(cap) = pattern.captures(string) {
         cap.get(1)
-            .map_or(Ok(0), |mtch| mtch.as_str().parse::<usize>())
-    })?)
+            .map(|mtch| mtch.as_str().parse::<usize>().unwrap())
+    } else {
+        None
+    }
 }
 
 /// A Super Auto Pet.
@@ -49,37 +51,64 @@ impl Pet {
     /// Create a new `Pet` with given stats and level
     pub fn new(
         name: PetName,
-        stats: Statistics,
+        stats: Option<Statistics>,
         lvl: usize,
         item: Option<Food>,
         pos: Option<usize>,
     ) -> Result<Pet, Box<dyn Error>> {
         let conn = get_connection()?;
-        let mut stmt = conn.prepare("SELECT * FROM pets where name = ? and lvl = ?")?;
+        let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         let pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
-        let pet_effect = pet_record.effect.unwrap_or_else(|| "None".to_string());
 
-        let mut effect_stats = Statistics {
-            attack: num_regex(RGX_ATK, &pet_effect).ok().unwrap_or(0),
-            health: num_regex(RGX_HEALTH, &pet_effect).ok().unwrap_or(0),
-        };
-        // If a pet has a summon effect, replace attack and health stats from effect_stats.
-        if pet_effect.contains("Summon") {
-            effect_stats.attack = num_regex(RGX_SUMMON_ATK, &pet_effect).ok().unwrap_or(1);
-            effect_stats.health = num_regex(RGX_SUMMON_HEALTH, &pet_effect).ok().unwrap_or(1);
-        }
-        let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).ok().unwrap_or(1);
-        // TODO: Parse from pet description.
-        let effect = get_pet_effect(&name, &stats, effect_stats, lvl, n_triggers);
+        // Use default stats at level if stats not provided.
+        let pet_stats = stats.unwrap_or(Statistics {
+            attack: pet_record.attack,
+            health: pet_record.health,
+        });
+
+        let effect = get_pet_effect(
+            &name,
+            &pet_stats,
+            Statistics {
+                attack: pet_record.effect_atk,
+                health: pet_record.effect_health,
+            },
+            lvl,
+            pet_record.n_triggers,
+        );
 
         Ok(Pet {
             name,
             tier: pet_record.tier,
-            stats,
+            stats: pet_stats,
             lvl: pet_record.lvl,
             effect,
             item,
             pos,
         })
+    }
+
+    pub fn levelup(&mut self) -> Result<&mut Self, Box<dyn Error>> {
+        let conn = get_connection()?;
+        let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
+        let pet_record = stmt.query_row(
+            [self.name.to_string(), self.lvl.clamp(1, 3).to_string()],
+            map_row_to_pet,
+        )?;
+
+        // Get new effect and replace.
+        let effect = get_pet_effect(
+            &self.name,
+            &self.stats,
+            Statistics {
+                attack: pet_record.effect_atk,
+                health: pet_record.effect_health,
+            },
+            (self.lvl + 1).clamp(1, 3),
+            pet_record.n_triggers,
+        );
+        self.effect = effect;
+
+        Ok(self)
     }
 }

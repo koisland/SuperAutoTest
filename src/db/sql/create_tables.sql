@@ -8,6 +8,10 @@ CREATE TABLE IF NOT EXISTS pets (
     pack TEXT NOT NULL,
     effect_trigger TEXT NOT NULL,
     effect TEXT NOT NULL,
+    effect_atk INTEGER NOT NULL,
+    effect_health INTEGER NOT NULL,
+    n_triggers INTEGER NOT NULL,
+    temp_effect BOOLEAN NOT NULL,
     lvl INTEGER NOT NULL,
     CONSTRAINT unq UNIQUE (name, pack, lvl)
 );

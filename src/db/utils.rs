@@ -25,6 +25,7 @@ fn write_pet_info(output: &str) {
 
 pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
     let pack: String = pet_row.get(5)?;
+    let is_temp_effect_str: String = pet_row.get(11)?;
     Ok(PetRecord {
         name: pet_row.get(1)?,
         tier: pet_row.get(2)?,
@@ -33,7 +34,11 @@ pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
         pack: Pack::from_str(&pack).unwrap(),
         effect_trigger: pet_row.get(6)?,
         effect: pet_row.get(7)?,
-        lvl: pet_row.get(8)?,
+        effect_atk: pet_row.get(8)?,
+        effect_health: pet_row.get(9)?,
+        n_triggers: pet_row.get(10)?,
+        temp_effect: is_temp_effect_str == *"true",
+        lvl: pet_row.get(12)?,
     })
 }
 

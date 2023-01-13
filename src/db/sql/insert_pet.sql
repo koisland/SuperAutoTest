@@ -1,6 +1,6 @@
-INSERT INTO pets (name, tier, attack, health, pack, effect_trigger, effect, lvl)
-VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
-ON CONFLICT(name, pack, lvl) DO UPDATE SET 
+INSERT INTO pets (name, tier, attack, health, pack, effect_trigger, effect, effect_atk, effect_health, n_triggers, temp_effect, lvl)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+ON CONFLICT(name, pack, lvl) DO UPDATE SET
     tier = ?2,
     attack = ?3,
     health = ?4,
