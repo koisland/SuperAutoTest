@@ -27,7 +27,11 @@ fn test_attack_pet() {
     assert_eq!(
         outcome,
         BattleOutcome {
-            friends: VecDeque::from_iter([TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT]),
+            friends: VecDeque::from_iter([
+                TRIGGER_SELF_FAINT,
+                TRIGGER_ANY_FAINT,
+                TRIGGER_AHEAD_FAINT
+            ]),
             opponents: VecDeque::from_iter([TRIGGER_SELF_HURT])
         }
     )

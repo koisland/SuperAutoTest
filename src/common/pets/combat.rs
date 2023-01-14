@@ -5,14 +5,18 @@ use crate::common::{
         team::Team,
         trigger::*,
     },
+    foods::names::FoodName,
     pets::pet::Pet,
 };
 use std::{collections::VecDeque, fmt::Display};
 
 const MIN_DMG: usize = 1;
 const MAX_DMG: usize = 150;
+const FULL_DMG_NEG_ITEMS: [Option<FoodName>; 2] = [Some(FoodName::Coconut), Some(FoodName::Melon)];
 
 pub trait Combat {
+    /// Perform damage calculation and get new health for self and opponent.
+    fn calculate_damage(&self, enemy: &Pet) -> (usize, usize);
     /// Handle the logic of a single pet interaction during the battle phase.
     /// * Alters a `Pet`'s `stats.attack` and `stats.health`
     /// * Decrements any held `Food`'s `uses` attribute.
@@ -49,6 +53,10 @@ pub trait Combat {
 
 impl Combat for Pet {
     fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome> {
+        // If pet already dead, return early.
+        if self.stats.health == 0 {
+            return vec![];
+        }
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
         // Subtract stat_modifer (150/2) from indirect attack.
@@ -98,10 +106,12 @@ impl Combat for Pet {
         if health_diff == self.stats.health {
             // If difference between health before and after battle is equal the before battle health,
             // pet lost all health during fight and has fainted.
-            let (mut self_faint, mut any_faint) = (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT);
-            (self_faint.idx, any_faint.idx) = (self.pos, self.pos);
+            let (mut self_faint, mut any_faint, mut ahead_faint) =
+                (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT, TRIGGER_AHEAD_FAINT);
+            (self_faint.idx, any_faint.idx, ahead_faint.idx) =
+                (self.pos, self.pos, self.pos.map(|pos| pos + 1));
 
-            outcomes.extend([self_faint, any_faint])
+            outcomes.extend([self_faint, any_faint, ahead_faint])
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
@@ -140,21 +150,41 @@ impl Combat for Pet {
         })
     }
 
-    fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome {
+    fn calculate_damage(&self, enemy: &Pet) -> (usize, usize) {
         // Get stat modifier from food.
         let stat_modifier = self.get_food_stat_modifier();
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
+        // If has melon or coconut, minimum dmg can be 0, Otherwise, should be 1.
+        let min_enemy_dmg =
+            if FULL_DMG_NEG_ITEMS.contains(&self.item.as_ref().map(|food| food.name.clone())) {
+                0
+            } else {
+                MIN_DMG
+            };
+        let min_dmg =
+            if FULL_DMG_NEG_ITEMS.contains(&enemy.item.as_ref().map(|food| food.name.clone())) {
+                0
+            } else {
+                MIN_DMG
+            };
+
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
         let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
             .saturating_sub(stat_modifier.health)
-            .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.health.saturating_sub(enemy_atk);
+            .clamp(min_enemy_dmg, MAX_DMG);
 
         let atk = (self.stats.attack + stat_modifier.attack)
             .saturating_sub(enemy_stat_modifier.health)
-            .clamp(MIN_DMG, MAX_DMG);
+            .clamp(min_dmg, MAX_DMG);
+
+        let new_health = self.stats.health.saturating_sub(enemy_atk);
         let new_enemy_health = enemy.stats.health.saturating_sub(atk);
+        (new_health, new_enemy_health)
+    }
+
+    fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome {
+        let (new_health, new_enemy_health) = self.calculate_damage(enemy);
 
         // Decrement number of uses on items, if any.
         self.item.as_mut().map(|item| item.ability.remove_uses(1));
@@ -171,10 +201,7 @@ impl Combat for Pet {
 
         BattleOutcome {
             friends: VecDeque::from_iter(outcome),
-            opponents: VecDeque::from_iter(
-                enemy_outcome,
-                // outcome,
-            ),
+            opponents: VecDeque::from_iter(enemy_outcome),
         }
     }
 }

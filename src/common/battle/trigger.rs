@@ -31,6 +31,13 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     idx: Some(0),
 };
 
+// pub const TRIGGER_SELF_BEFORE_FAINT: Outcome = Outcome {
+//     status: Status::BeforeFaint,
+//     target: Target::Friend,
+//     position: Position::OnSelf,
+//     idx: Some(0),
+// };
+
 pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     status: Status::Faint,
     target: Target::Friend,

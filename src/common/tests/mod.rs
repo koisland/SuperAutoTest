@@ -2,7 +2,13 @@
 mod test_pet;
 
 #[cfg(test)]
-mod test_team;
+mod test_team_t1;
+
+#[cfg(test)]
+mod test_team_t2;
+
+#[cfg(test)]
+mod test_team_t3;
 
 #[cfg(test)]
 mod common;

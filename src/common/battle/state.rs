@@ -44,6 +44,11 @@ impl Statistics {
         }
         self
     }
+    /// Invert attack and health.
+    pub fn invert(&mut self) -> &mut Self {
+        std::mem::swap(&mut self.attack, &mut self.health);
+        self
+    }
 }
 
 impl Display for Statistics {
@@ -99,6 +104,17 @@ impl PartialEq for Outcome {
             && self.position == other.position
     }
 }
+
+impl Display for Outcome {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[Status: {:?}, Target: {:?}, Position: {:?}, Index: {:?}]",
+            self.status, self.target, self.position, self.idx
+        )
+    }
+}
+
 use serde::{Deserialize, Serialize};
 use std::{fmt::Display, ops::RangeInclusive};
 

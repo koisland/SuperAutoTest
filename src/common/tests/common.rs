@@ -16,7 +16,7 @@ pub fn test_ant_team(name: &str) -> Team {
     )
 }
 
-pub fn test_summon_team(name: &str) -> Team {
+pub fn test_cricket_horse_team(name: &str) -> Team {
     Team::new(
         name,
         &[
@@ -125,5 +125,97 @@ pub fn test_crab_team(name: &str) -> Team {
             None,
             None,
         ],
+    )
+}
+
+pub fn test_badger_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Badger)),
+            Some(Pet::from(PetName::Elephant)),
+            None,
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_blowfish_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Elephant)),
+            Some(Pet::from(PetName::Blowfish)),
+            None,
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_camel_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Elephant)),
+            Some(Pet::from(PetName::Camel)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_dog_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Dog)),
+            None,
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_dolphin_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Dolphin)), None, None, None, None],
+    )
+}
+
+pub fn test_kangaroo_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Kangaroo)),
+            None,
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_ox_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Ox)),
+            None,
+            None,
+            None,
+        ],
+    )
+}
+
+pub fn test_sheep_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Sheep)), None, None, None, None],
     )
 }

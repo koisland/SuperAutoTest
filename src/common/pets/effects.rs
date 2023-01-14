@@ -187,7 +187,7 @@ pub fn get_pet_effect(
             effect_type: EffectType::Pet,
             trigger: TRIGGER_SELF_HURT,
             target: Target::Friend,
-            position: Position::Specific(1),
+            position: Position::Specific(-1),
             action: Action::Add(effect_stats),
             uses: Some(n_triggers),
         }),

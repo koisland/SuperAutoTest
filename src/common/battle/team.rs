@@ -72,7 +72,6 @@ impl Team {
 
 impl Display for Team {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        writeln!(f, "Team: {}", self.name)?;
         for friend in self
             .friends
             .borrow()
@@ -108,7 +107,7 @@ impl Battle for Team {
                     None
                 } else {
                     // Pet is dead.
-                    info!(target: "dev", "Pet ({i}) {} is dead. Removing.", pet.as_ref().unwrap().borrow());
+                    info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap().borrow());
                     Some(i)
                 }
             })
@@ -230,7 +229,10 @@ impl Battle for Team {
     fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<[Outcome; 3], TeamError> {
         if self.get_all_pets().len() == TEAM_SIZE {
             return Err(TeamError {
-                reason: "Team is full. Cannot add new pet.".to_string(),
+                reason: format!(
+                    "(\"{}\")\nMaximum number of pets reached. Cannot add {:?}.",
+                    self.name, pet
+                ),
             });
         }
         if let Some(stored_pet) = pet.clone() {
@@ -249,7 +251,7 @@ impl Battle for Team {
                 pos
             };
 
-            info!(target: "dev", "Added pet to pos {pos} on team {}: {}.", self.name, self.get_idx_pet(pos).unwrap().borrow());
+            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name, self.get_idx_pet(pos).unwrap().borrow());
 
             // Set summon triggers.
             let mut self_trigger = TRIGGER_SELF_SUMMON;
@@ -292,6 +294,9 @@ impl Battle for Team {
     fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team> {
         let mut n_turns: usize = 0;
 
+        info!(target: "dev", "(\"{}\")\n{}", self.name, self);
+        info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+
         // Apply start of battle effects.
         self.clear_team()._apply_trigger_effects(opponent);
         opponent.clear_team()._apply_trigger_effects(self);
@@ -307,20 +312,19 @@ impl Battle for Team {
                 .borrow_mut()
                 .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
-            self.clear_team()._apply_trigger_effects(opponent);
-            opponent.clear_team()._apply_trigger_effects(self);
+            self._apply_trigger_effects(opponent).clear_team();
+            opponent._apply_trigger_effects(self).clear_team();
 
             // Check that two pets exist and attack.
             // Attack will result in triggers being added.
             let outcome = if let (Some(pet), Some(opponent_pet)) =
                 (self.get_next_pet(), opponent.get_next_pet())
             {
+                // Attack and get outcome of fight.
                 info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-                // Attack
                 let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-                info!(target: "dev", "Outcome:\n{}", outcome);
-                info!(target: "dev", "Self:\n{}", self);
-                info!(target: "dev", "Opponent:\n{}", opponent);
+                info!(target: "dev", "(\"{}\")\n{}", self.name, self);
+                info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
                 outcome
             } else {
                 // If either side has no available pets, exit loop.
@@ -350,6 +354,8 @@ impl Battle for Team {
             n_turns += 1;
         }
 
+        info!(target: "dev", "(\"{}\")\n{}", self.name, self);
+        info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
         if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
             info!(target: "dev", "Draw!");
             None
