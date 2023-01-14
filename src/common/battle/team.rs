@@ -23,7 +23,7 @@ pub struct Team {
     pub triggers: RefCell<VecDeque<Outcome>>,
 }
 
-pub trait Battle {
+pub trait Battle: EffectApply {
     /// Clear `Team` of empty slots and/or fainted `Pet`s.
     fn clear_team(&self) -> &Self;
     /// Get the next available `Pet`.
@@ -103,7 +103,7 @@ impl Battle for Team {
                 {
                     // Pet is Some so safe to unwrap.
                     // Set new pet index and increment
-                    pet.as_ref().unwrap().borrow_mut().pos = Some(new_idx_cnt);
+                    pet.as_ref().unwrap().borrow_mut().set_pos(new_idx_cnt).unwrap();
                     new_idx_cnt += 1;
                     None
                 } else {
@@ -237,7 +237,7 @@ impl Battle for Team {
             // Handle case where pet in front faints and vector is empty.
             // Would panic attempting to insert at any position not at 0.
             // Also update position to be correct.
-            let pos = if self.friends.borrow().is_empty() {
+            let pos = if pos > self.friends.borrow().len() {
                 self.friends
                     .borrow_mut()
                     .push(Some(Rc::new(RefCell::new(*stored_pet))));
@@ -335,15 +335,6 @@ impl Battle for Team {
                 .triggers
                 .borrow_mut()
                 .extend(outcome.opponents.into_iter());
-
-            // Occurs even if pet fainted as fighting and applying effects occurs simultaneously.
-            // Apply any food effects that alter the opponents pets. ex. Chili
-            if let Some(pet) = self.get_next_pet() {
-                pet.borrow_mut().apply_food_effect(opponent)
-            }
-            if let Some(opponent_pet) = opponent.get_next_pet() {
-                opponent_pet.borrow_mut().apply_food_effect(self)
-            }
 
             // Apply effect triggers from combat phase.
             self._apply_trigger_effects(opponent).clear_team();

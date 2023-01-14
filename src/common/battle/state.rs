@@ -21,13 +21,18 @@ impl Statistics {
         self
     }
     /// Multiply some `Statistics` by another.
-    pub fn mult(&self, perc_stats_mult: &Statistics) -> Statistics {
+    pub fn mult(&mut self, perc_stats_mult: &Statistics) -> &mut Self {
         let new_atk = (self.attack as f32 * (perc_stats_mult.attack as f32 / 100.0)).round();
         let new_health = (self.health as f32 * (perc_stats_mult.health as f32 / 100.0)).round();
-        Statistics {
-            attack: (new_atk as usize).clamp(0, MAX_PET_STATS),
-            health: (new_health as usize).clamp(0, MAX_PET_STATS),
-        }
+
+        self.attack = new_atk as usize;
+        self.health = new_health as usize;
+        self
+    }
+    pub fn clamp(&mut self, min: usize, max: usize) -> &mut Self {
+        self.attack = self.attack.clamp(min, max);
+        self.health = self.health.clamp(min, max);
+        self
     }
     /// Set `Statistics` to another given `Statistics` based on if values are less than or equal to a given `min` value.
     pub fn comp_set_value(&mut self, other: &Statistics, min: usize) -> &Self {
@@ -66,6 +71,7 @@ pub enum Position {
     Range(RangeInclusive<isize>),
     Specific(isize),
     Condition(Condition),
+    Multiple(Vec<Position>),
     None,
 }
 
@@ -74,6 +80,7 @@ pub enum Position {
 pub enum Target {
     Friend,
     Enemy,
+    Either,
     None,
 }
 
@@ -127,6 +134,7 @@ pub enum Action {
     Negate(Statistics),
     Gain(Box<Food>),
     Summon(Option<Box<Pet>>),
+    Multiple(Vec<Action>),
     None,
     NotImplemented,
 }

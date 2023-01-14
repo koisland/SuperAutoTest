@@ -1,14 +1,11 @@
 use crate::common::{
-    battle::{
-        state::Statistics,
-        team::{Battle, Team},
-    },
+    battle::{state::Statistics, team::Battle},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_crab_team, test_dodo_team, test_elephant_peacock_team,
-        test_flamingo_team, test_mosq_team, test_rat_team, test_solo_hedgehog_team,
-        test_spider_team, test_summon_team,
+        test_flamingo_team, test_hedgehog_team, test_mosq_team, test_rat_team, test_spider_team,
+        test_summon_team,
     },
 };
 
@@ -18,16 +15,14 @@ use crate::LOG_CONFIG;
 fn test_battle_honey_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let pets = test_ant_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_ant_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     // Give last pet honey on first team.
-    if let Some(last_pet) = &team.friends.borrow_mut()[2] {
-        last_pet.borrow_mut().item = Some(Food::new(&FoodName::Honey))
-    }
+    let last_pet = team.friends.borrow()[2].clone().unwrap();
+    last_pet
+        .borrow_mut()
+        .set_item(Some(Food::new(&FoodName::Honey)));
 
     let winner = team.fight(&mut enemy_team, None).unwrap().clone();
 
@@ -37,11 +32,8 @@ fn test_battle_honey_team() {
 #[test]
 fn test_battle_summon_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_summon_team();
-    let enemy_pets = test_summon_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_summon_team("self");
+    let mut enemy_team = test_summon_team("enemy");
 
     // First pets are crickets
     // Horse is 3rd pet.
@@ -103,11 +95,8 @@ fn test_battle_summon_team() {
 fn test_battle_mosquito_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let pets = test_mosq_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_mosq_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     let winner = team.fight(&mut enemy_team, None).unwrap().clone();
 
@@ -130,11 +119,8 @@ fn test_battle_mosquito_team() {
 fn test_battle_hedgehog_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let pets = test_solo_hedgehog_team();
-    let enemy = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy);
+    let mut team = test_hedgehog_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     let winner = team.fight(&mut enemy_team, Some(1));
 
@@ -144,11 +130,8 @@ fn test_battle_hedgehog_team() {
 #[test]
 fn test_battle_elephant_peacock_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_elephant_peacock_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_elephant_peacock_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     assert_eq!(
         team.get_idx_pet(1).unwrap().borrow().stats,
@@ -172,11 +155,8 @@ fn test_battle_elephant_peacock_team() {
 #[test]
 fn test_battle_crab_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_crab_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_crab_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     assert_eq!(
         team.get_next_pet().unwrap().borrow().stats,
@@ -207,11 +187,8 @@ fn test_battle_crab_team() {
 #[test]
 fn test_battle_dodo_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_dodo_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_dodo_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     assert_eq!(
         team.get_next_pet().unwrap().borrow().stats,
@@ -240,11 +217,8 @@ fn test_battle_dodo_team() {
 #[test]
 fn test_battle_flamingo_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_flamingo_team();
-    let enemy_pets = test_ant_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_flamingo_team("self");
+    let mut enemy_team = test_ant_team("enemy");
 
     assert_eq!(
         team.get_idx_pet(1).unwrap().borrow().stats,
@@ -280,13 +254,9 @@ fn test_battle_flamingo_team() {
 }
 
 #[test]
-fn test_battle_rat_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_rat_team();
-    let enemy_pets = test_rat_team();
-
-    let mut team_lvl_1 = Team::new("self", &pets);
-    let mut enemy_team_lvl_1 = Team::new("enemy", &enemy_pets);
+fn test_battle_rat_lvl_1_team() {
+    let mut team_lvl_1 = test_rat_team("self", 1);
+    let mut enemy_team_lvl_1 = test_rat_team("enemy", 1);
 
     team_lvl_1.fight(&mut enemy_team_lvl_1, Some(2));
 
@@ -301,13 +271,39 @@ fn test_battle_rat_team() {
 }
 
 #[test]
+fn test_battle_rat_lvl_2_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();s
+
+    let mut team_lvl_2 = test_rat_team("self_2", 2);
+    let mut enemy_team_lvl_2 = test_rat_team("enemy_self_2", 2);
+
+    // Both rats are level 2.
+    assert_eq!(team_lvl_2.get_next_pet().unwrap().borrow().lvl, 2);
+    assert_eq!(enemy_team_lvl_2.get_next_pet().unwrap().borrow().lvl, 2);
+
+    team_lvl_2.fight(&mut enemy_team_lvl_2, Some(2));
+
+    // Both rats die and summon two dirty rats.
+    assert_eq!(team_lvl_2.get_all_pets().len(), 2);
+    assert_eq!(enemy_team_lvl_2.get_all_pets().len(), 2);
+
+    // All pets on both teams are dirty rats.
+    for team in [team_lvl_2, enemy_team_lvl_2].iter() {
+        for pet_name in team
+            .get_all_pets()
+            .iter()
+            .map(|pet| pet.borrow().name.clone())
+        {
+            assert_eq!(pet_name, PetName::DirtyRat)
+        }
+    }
+}
+
+#[test]
 fn test_battle_spider_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-    let pets = test_spider_team();
-    let enemy_pets = test_spider_team();
-
-    let mut team = Team::new("self", &pets);
-    let mut enemy_team = Team::new("enemy", &enemy_pets);
+    let mut team = test_spider_team("self");
+    let mut enemy_team = test_spider_team("enemy");
 
     team.fight(&mut enemy_team, Some(1));
 

@@ -39,6 +39,13 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     idx: None,
 };
 
+pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
+    status: Status::Faint,
+    target: Target::Friend,
+    position: Position::Specific(1),
+    idx: Some(1),
+};
+
 pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     status: Status::Hurt,
     target: Target::Friend,

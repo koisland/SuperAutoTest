@@ -3,8 +3,8 @@ use std::{error::Error, fmt::Display};
 
 use crate::{
     common::{
-        battle::effect::Effect,
-        battle::state::Statistics,
+        battle::{effect::Effect, state::Statistics, team::TEAM_SIZE},
+        error::TeamError,
         foods::food::Food,
         pets::{effects::get_pet_effect, names::PetName},
         regex_patterns::*,
@@ -12,6 +12,9 @@ use crate::{
     db::{setup::get_connection, utils::map_row_to_pet},
 };
 
+pub const MIN_PET_LEVEL: usize = 1;
+pub const MAX_PET_LEVEL: usize = 3;
+pub const MIN_PET_STATS: usize = 0;
 pub const MAX_PET_STATS: usize = 50;
 
 #[allow(dead_code)]
@@ -46,15 +49,18 @@ impl Display for Pet {
     }
 }
 
-#[allow(dead_code)]
+impl From<PetName> for Pet {
+    fn from(value: PetName) -> Pet {
+        Pet::new(value, None, 1).expect("Cannot create default pet.")
+    }
+}
+
 impl Pet {
-    /// Create a new `Pet` with given stats and level
+    /// Create a new `Pet` with given stats and level.
     pub fn new(
         name: PetName,
         stats: Option<Statistics>,
         lvl: usize,
-        item: Option<Food>,
-        pos: Option<usize>,
     ) -> Result<Pet, Box<dyn Error>> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
@@ -62,16 +68,16 @@ impl Pet {
 
         // Use default stats at level if stats not provided.
         let pet_stats = stats.unwrap_or(Statistics {
-            attack: pet_record.attack,
-            health: pet_record.health,
+            attack: pet_record.attack.clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: pet_record.health.clamp(MIN_PET_STATS, MAX_PET_STATS),
         });
 
         let effect = get_pet_effect(
             &name,
             &pet_stats,
             Statistics {
-                attack: pet_record.effect_atk,
-                health: pet_record.effect_health,
+                attack: pet_record.effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: pet_record.effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
             lvl,
             pet_record.n_triggers,
@@ -83,16 +89,20 @@ impl Pet {
             stats: pet_stats,
             lvl: pet_record.lvl,
             effect,
-            item,
-            pos,
+            item: None,
+            pos: None,
         })
     }
 
+    #[allow(dead_code)]
     pub fn levelup(&mut self) -> Result<&mut Self, Box<dyn Error>> {
+        // Increase level if within max level bounds.
+        self.lvl = (self.lvl + 1).clamp(MIN_PET_LEVEL, MAX_PET_LEVEL);
+
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         let pet_record = stmt.query_row(
-            [self.name.to_string(), self.lvl.clamp(1, 3).to_string()],
+            [self.name.to_string(), self.lvl.to_string()],
             map_row_to_pet,
         )?;
 
@@ -101,14 +111,36 @@ impl Pet {
             &self.name,
             &self.stats,
             Statistics {
-                attack: pet_record.effect_atk,
-                health: pet_record.effect_health,
+                attack: pet_record.effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: pet_record.effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
-            (self.lvl + 1).clamp(1, 3),
+            self.lvl,
             pet_record.n_triggers,
         );
         self.effect = effect;
 
         Ok(self)
+    }
+
+    pub fn set_item(&mut self, item: Option<Food>) -> &mut Self {
+        self.item = item;
+        self
+    }
+
+    /// Helper function to set pet position for matching on effect triggers.
+    ///
+    /// * Note: This does not update other pets on the same team.
+    pub fn set_pos(&mut self, pos: usize) -> Result<&mut Self, TeamError> {
+        if pos > TEAM_SIZE {
+            Err(TeamError {
+                reason: format!(
+                    "Cannot set a pet's position to be greater than the default team size of {}.",
+                    TEAM_SIZE
+                ),
+            })
+        } else {
+            self.pos = Some(pos);
+            Ok(self)
+        }
     }
 }

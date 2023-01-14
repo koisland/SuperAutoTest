@@ -16,6 +16,12 @@ pub struct Food {
     pub ability: Effect,
 }
 
+impl From<FoodName> for Food {
+    fn from(value: FoodName) -> Self {
+        Food::new(&value)
+    }
+}
+
 #[allow(dead_code)]
 fn get_food_effect(name: &FoodName) -> Effect {
     match name {
@@ -29,7 +35,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             }),
             uses: None,
             effect_type: EffectType::Food,
-            trigger: TRIGGER_NONE,
+            trigger: TRIGGER_SELF_ATTACK,
         },
         FoodName::Coconut => Effect {
             target: Target::Friend,

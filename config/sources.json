@@ -1,4 +1,5 @@
 {
     "pets": "https://superautopets.fandom.com/wiki/Pets?action=raw",
-    "food": "https://superautopets.fandom.com/wiki/Food?action=raw"
+    "food": "https://superautopets.fandom.com/wiki/Food?action=raw",
+    "tokens": "https://superautopets.fandom.com/wiki/Tokens?action=raw"
 }

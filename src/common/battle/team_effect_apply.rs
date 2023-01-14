@@ -4,7 +4,10 @@ use crate::common::{
         state::{Action, CopyAttr, Outcome, Position, Target},
         team::{Battle, Team, TEAM_SIZE},
     },
-    pets::combat::Combat,
+    pets::{
+        combat::Combat,
+        pet::{MAX_PET_STATS, MIN_PET_STATS},
+    },
 };
 
 use itertools::Itertools;
@@ -79,7 +82,7 @@ impl EffectApply for Team {
             }
             Action::Gain(food) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
-                    target.borrow_mut().item = Some(*food.clone());
+                    target.borrow_mut().set_item(Some(*food.clone()));
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
@@ -115,8 +118,11 @@ impl EffectApply for Team {
                             CopyAttr::PercentStats(perc_stats_mult) => {
                                 // Multiply the stats of a chosen pet by some multiplier
                                 // If the stats are 0, use the target's original stats, otherwise, use the news stats.
-                                let mut new_stats =
-                                    chosen_pet.borrow().stats.mult(&perc_stats_mult);
+                                let mut new_stats = chosen_pet.borrow().stats.clone();
+                                new_stats
+                                    .mult(&perc_stats_mult)
+                                    .clamp(MIN_PET_STATS, MAX_PET_STATS);
+
                                 let old_stats = target.borrow().stats.clone();
                                 info!(
                                     target: "dev", "Copied {}% atk and {}% health from {} to {}.",
@@ -161,7 +167,7 @@ impl EffectApply for Team {
             }
             Action::Gain(food) => {
                 if let Some(target) = self.get_all_pets().get(effect_pet_idx) {
-                    target.borrow_mut().item = Some(*food.clone());
+                    target.borrow_mut().set_item(Some(*food.clone()));
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
@@ -196,9 +202,13 @@ impl EffectApply for Team {
                             CopyAttr::PercentStats(perc_stats_mult) => {
                                 // Multiply the stats of a chosen pet by some multiplier
                                 // If the stats are 0, use the target's original stats, otherwise, use the news stats.
-                                let mut new_stats =
-                                    chosen_pet.borrow().stats.mult(&perc_stats_mult);
+                                let mut new_stats = chosen_pet.borrow().stats.clone();
+                                new_stats
+                                    .mult(&perc_stats_mult)
+                                    .clamp(MIN_PET_STATS, MAX_PET_STATS);
+
                                 let old_stats = target.borrow().stats.clone();
+
                                 info!(
                                     target: "dev", "Copied {}% atk and {}% health from {} to {}.",
                                     perc_stats_mult.attack,
@@ -237,7 +247,7 @@ impl EffectApply for Team {
             }
             Action::Gain(food) => {
                 if let Some(target) = self.get_any_pet() {
-                    target.borrow_mut().item = Some(*food.clone());
+                    target.borrow_mut().set_item(Some(*food.clone()));
                     info!(target: "dev", "Gave {:?} to {}.", food, target.borrow());
                 }
             }
@@ -325,7 +335,7 @@ impl EffectApply for Team {
             Action::Gain(food) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     info!(target: "dev", "Gave {:?} to {}.", food, affected_pet.borrow());
-                    affected_pet.borrow_mut().item = Some(*food.clone())
+                    affected_pet.borrow_mut().set_item(Some(*food.clone()));
                 }
             }
             Action::Summon(pet) => {
@@ -417,6 +427,14 @@ impl EffectApply for Team {
                         &effect.action,
                         &mut outcomes,
                     ),
+                    _ => {}
+                },
+                Target::Either => match &effect.position {
+                    Position::Specific(_) => {}
+                    Position::All => {
+                        self._target_effect_all(&effect.action, &mut outcomes);
+                        opponent._target_effect_all(&effect.action, &mut outcomes);
+                    }
                     _ => {}
                 },
                 Target::None => {}

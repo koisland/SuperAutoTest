@@ -1,98 +1,129 @@
-use crate::common::pets::{names::PetName, pet::Pet};
+use crate::common::{
+    battle::team::Team,
+    pets::{names::PetName, pet::Pet},
+};
 
-/// Manually specify ant pet. Done with DB call normally.
-/// TODO: Use with mock object.
-pub fn ant() -> Pet {
-    Pet::new(PetName::Ant, None, 1, None, None).unwrap()
+pub fn test_ant_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+        ],
+    )
 }
 
-pub fn cricket() -> Pet {
-    Pet::new(PetName::Cricket, None, 1, None, None).unwrap()
+pub fn test_summon_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Horse)),
+            None,
+            None,
+        ],
+    )
 }
 
-pub fn horse() -> Pet {
-    Pet::new(PetName::Horse, None, 1, None, None).unwrap()
+pub fn test_mosq_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Mosquito)),
+            Some(Pet::from(PetName::Mosquito)),
+            Some(Pet::from(PetName::Mosquito)),
+            None,
+            None,
+        ],
+    )
 }
 
-pub fn mosquito() -> Pet {
-    Pet::new(PetName::Mosquito, None, 1, None, None).unwrap()
+pub fn test_hedgehog_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Hedgehog)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+    )
 }
 
-fn hedgehog() -> Pet {
-    Pet::new(PetName::Hedgehog, None, 1, None, None).unwrap()
+pub fn test_elephant_peacock_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Elephant)),
+            Some(Pet::from(PetName::Peacock)),
+            None,
+            None,
+            None,
+        ],
+    )
 }
 
-fn peacock() -> Pet {
-    Pet::new(PetName::Peacock, None, 1, None, None).unwrap()
-}
-fn crab() -> Pet {
-    Pet::new(PetName::Crab, None, 1, None, None).unwrap()
-}
-
-fn dodo() -> Pet {
-    Pet::new(PetName::Dodo, None, 1, None, None).unwrap()
-}
-
-fn elephant() -> Pet {
-    Pet::new(PetName::Elephant, None, 1, None, None).unwrap()
+pub fn test_dodo_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Dodo)),
+            Some(Pet::from(PetName::Dodo)),
+            None,
+            None,
+            None,
+        ],
+    )
 }
 
-fn flamingo() -> Pet {
-    Pet::new(PetName::Flamingo, None, 1, None, None).unwrap()
+pub fn test_flamingo_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Flamingo)),
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+        ],
+    )
 }
 
-fn rat() -> Pet {
-    Pet::new(PetName::Rat, None, 1, None, None).unwrap()
+pub fn test_rat_team(name: &str, lvl: usize) -> Team {
+    let mut rat = Pet::from(PetName::Rat);
+    for _ in 1..lvl {
+        if let Err(error) = rat.levelup() {
+            println!("{:?}", error)
+        };
+    }
+
+    let pets = [Some(rat), None, None, None, None];
+    Team::new(name, &pets)
 }
 
-fn spider() -> Pet {
-    Pet::new(PetName::Spider, None, 1, None, None).unwrap()
+pub fn test_spider_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Spider)), None, None, None, None],
+    )
 }
 
-pub fn test_ant_team() -> [Option<Pet>; 5] {
-    [Some(ant()), Some(ant()), Some(ant()), None, None]
-}
-
-pub fn test_summon_team() -> [Option<Pet>; 5] {
-    [Some(cricket()), Some(cricket()), Some(horse()), None, None]
-}
-
-pub fn test_mosq_team() -> [Option<Pet>; 5] {
-    [
-        Some(mosquito()),
-        Some(mosquito()),
-        Some(mosquito()),
-        None,
-        None,
-    ]
-}
-
-pub fn test_solo_hedgehog_team() -> [Option<Pet>; 5] {
-    [Some(hedgehog()), None, None, None, None]
-}
-
-pub fn test_elephant_peacock_team() -> [Option<Pet>; 5] {
-    [Some(elephant()), Some(peacock()), None, None, None]
-}
-
-pub fn test_dodo_team() -> [Option<Pet>; 5] {
-    [Some(dodo()), Some(dodo()), None, None, None]
-}
-
-pub fn test_flamingo_team() -> [Option<Pet>; 5] {
-    [Some(flamingo()), Some(ant()), Some(ant()), None, None]
-}
-
-pub fn test_rat_team() -> [Option<Pet>; 5] {
-    [Some(rat()), None, None, None, None]
-}
-
-pub fn test_spider_team() -> [Option<Pet>; 5] {
-    [Some(spider()), None, None, None, None]
-}
-
-pub fn test_crab_team() -> [Option<Pet>; 5] {
-    let mut big_ant = ant();
+pub fn test_crab_team(name: &str) -> Team {
+    let mut big_ant = Pet::from(PetName::Ant);
     big_ant.stats.health = 50;
-    [Some(crab()), Some(big_ant), Some(ant()), None, None]
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Crab)),
+            Some(big_ant),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+        ],
+    )
 }
