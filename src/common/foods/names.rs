@@ -11,6 +11,7 @@ pub enum FoodName {
     Mushroom,
     Peanuts,
     Steak,
+    Weakness,
 }
 
 impl std::fmt::Display for FoodName {
@@ -21,11 +22,12 @@ impl std::fmt::Display for FoodName {
             FoodName::Coconut => write!(f, "Coconut"),
             FoodName::Garlic => write!(f, "Garlic"),
             FoodName::Honey => write!(f, "Honey"),
-            FoodName::MeatBone => write!(f, "MeatBone"),
+            FoodName::MeatBone => write!(f, "Meat Bone"),
             FoodName::Melon => write!(f, "Melon"),
             FoodName::Mushroom => write!(f, "Mushroom"),
             FoodName::Peanuts => write!(f, "Peanuts"),
             FoodName::Steak => write!(f, "Steak"),
+            FoodName::Weakness => write!(f, "Weakness"),
         }
     }
 }

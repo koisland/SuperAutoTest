@@ -3,6 +3,10 @@ use log::{error, info};
 use std::{error::Error, str::FromStr};
 
 use crate::{
+    common::regex_patterns::{
+        RGX_ATK, RGX_DMG, RGX_DMG_REDUCE, RGX_END_OF_BATTLE, RGX_END_TURN, RGX_HEALTH, RGX_ONE_USE,
+        RGX_RANDOM, RGX_START_TURN, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
+    },
     db::{pack::Pack, record::FoodRecord},
     wiki_scraper::{
         common::{get_page_info, remove_icon_names},
@@ -12,6 +16,8 @@ use crate::{
 };
 
 const TABLE_STR_DELIM: &str = "|-";
+const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
+const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weakness", "Peanuts"];
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum FoodTableCols {
@@ -137,6 +143,61 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
                 })
                 .collect_vec();
 
+            let holdable_item = effect.1.contains(&format!("Give one pet {}", name.1))
+                || HOLDABLE_ITEMS_EXCEPTIONS.contains(&name.1);
+            let temp_effect = RGX_END_OF_BATTLE.is_match(effect.1);
+            // Hardcode single use items for now.
+            let single_use = RGX_ONE_USE.is_match(effect.1)
+                || SINGLE_USE_ITEMS_EXCEPTIONS.contains(&name.1)
+                || temp_effect;
+
+            let (random, n_targets) = if let Some(Some(n_random_target)) =
+                RGX_RANDOM.captures(effect.1).map(|cap| cap.get(1))
+            {
+                let n = n_random_target.as_str();
+                (
+                    true,
+                    match n {
+                        "one" | "a" => 1,
+                        "two" => 2,
+                        "three" => 3,
+                        _ => n.parse()?,
+                    },
+                )
+            } else {
+                (false, 1)
+            };
+            let turn_effect = RGX_START_TURN.is_match(effect.1) || RGX_END_TURN.is_match(effect.1);
+            let end_of_battle = RGX_END_OF_BATTLE.is_match(effect.1);
+            let effect_atk = if let Some(Some(atk_buff)) =
+                RGX_ATK.captures(effect.1).map(|cap| cap.get(1))
+            {
+                atk_buff.as_str().parse::<isize>()?
+            } else if let Some(Some(atk_buff)) = RGX_DMG.captures(effect.1).map(|cap| cap.get(1)) {
+                atk_buff.as_str().parse::<isize>()?
+            } else if let Some(Some(reduced_dmg)) =
+                RGX_DMG_REDUCE.captures(effect.1).map(|cap| cap.get(1))
+            {
+                reduced_dmg.as_str().parse::<isize>()?
+            } else if let Some(Some(summon_atk)) =
+                RGX_SUMMON_ATK.captures(effect.1).map(|cap| cap.get(1))
+            {
+                summon_atk.as_str().parse::<isize>()?
+            } else {
+                0
+            };
+            let effect_health = if let Some(Some(health_buff)) =
+                RGX_HEALTH.captures(effect.1).map(|cap| cap.get(1))
+            {
+                health_buff.as_str().parse::<isize>()?
+            } else if let Some(Some(summon_health)) =
+                RGX_SUMMON_HEALTH.captures(effect.1).map(|cap| cap.get(1))
+            {
+                summon_health.as_str().parse::<isize>()?
+            } else {
+                0
+            };
+
             // Attempt convert tier to usize.
             if let Ok(tier_n) = tier.1.parse::<usize>() {
                 for pack in packs {
@@ -146,6 +207,14 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
                         // Remove newlines and replace any in-between effect desc.
                         effect: effect.1.replace('\n', " "),
                         pack,
+                        holdable: holdable_item,
+                        single_use,
+                        end_of_battle,
+                        random,
+                        n_targets,
+                        effect_atk,
+                        effect_health,
+                        turn_effect,
                     });
                 }
             } else {

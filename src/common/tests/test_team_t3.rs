@@ -141,7 +141,7 @@ fn test_battle_ox_team() {
     team.fight(&mut enemy_team, Some(2));
 
     // Gets melon armor.
-    assert_eq!(ox.borrow().item, Some(Food::new(&FoodName::Melon)));
+    assert_eq!(ox.borrow().item, Some(Food::new(&FoodName::Melon).unwrap()));
     // And an extra attack.
     assert_eq!(
         ox.borrow().stats,

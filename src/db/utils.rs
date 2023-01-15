@@ -1,27 +1,9 @@
-use crate::{
-    db::{
-        pack::Pack,
-        record::{FoodRecord, PetRecord},
-    },
-    wiki_scraper::{common::read_wiki_url, parse_pet::parse_pet_info},
+use crate::db::{
+    pack::Pack,
+    record::{FoodRecord, PetRecord},
 };
-use log::error;
 use rusqlite::{Error, Row};
-use serde_json::to_writer_pretty;
-use std::{fmt::Write, fs::File, str::FromStr};
-
-#[allow(dead_code)]
-fn write_pet_info(output: &str) {
-    if let Ok(wiki_urls) = read_wiki_url(crate::SCRAPER_SOURCES) {
-        let res = parse_pet_info(&wiki_urls.pets);
-        if let Ok(all_pets) = res {
-            let file = File::create(output).expect("Can't create file.");
-            to_writer_pretty(file, &all_pets).expect("Unable to serialize pet info.");
-        } else {
-            error!(target: "scraper", "{}", res.unwrap_err())
-        }
-    }
-}
+use std::{fmt::Write, str::FromStr};
 
 pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
     let pack: String = pet_row.get(5)?;
@@ -44,11 +26,24 @@ pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
 
 pub fn map_row_to_food(food_row: &Row) -> Result<FoodRecord, Error> {
     let pack: String = food_row.get(4)?;
+    let holdable_str: String = food_row.get(5)?;
+    let single_use_str: String = food_row.get(6)?;
+    let end_of_battle_str: String = food_row.get(7)?;
+    let random_str: String = food_row.get(8)?;
+    let turn_effect_str: String = food_row.get(12)?;
     Ok(FoodRecord {
         name: food_row.get(1)?,
         tier: food_row.get(2)?,
         effect: food_row.get(3)?,
         pack: Pack::from_str(&pack).unwrap(),
+        holdable: holdable_str == *"true",
+        single_use: single_use_str == *"true",
+        end_of_battle: end_of_battle_str == *"true",
+        random: random_str == *"true",
+        n_targets: food_row.get(9)?,
+        effect_atk: food_row.get(10)?,
+        effect_health: food_row.get(11)?,
+        turn_effect: turn_effect_str == *"true",
     })
 }
 
@@ -81,4 +76,27 @@ pub fn setup_param_query(table: &str, params: &[(&str, &Vec<String>)]) -> String
         }
     }
     sql_stmt
+}
+
+#[cfg(test)]
+mod test {
+    use super::setup_param_query;
+
+    #[test]
+    fn test_build_param_query() {
+        let name_params = vec!["apple".to_string(), "coconut".to_string()];
+        let stmt = setup_param_query("foods", &[("name", &name_params)]);
+        assert_eq!("SELECT * FROM foods WHERE name IN (?, ?)", &stmt)
+    }
+
+    #[test]
+    fn test_build_empty_param_query() {
+        let name_params = vec!["apple".to_string(), "coconut".to_string()];
+        let pack_params: Vec<String> = vec![];
+        let stmt = setup_param_query("foods", &[("name", &name_params), ("pack", &pack_params)]);
+        assert_eq!(
+            "SELECT * FROM foods WHERE name IN (?, ?) AND pack NOT IN ()",
+            &stmt
+        )
+    }
 }

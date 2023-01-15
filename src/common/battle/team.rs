@@ -119,75 +119,37 @@ impl Battle for Team {
         self
     }
     fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>> {
+        let pets = self.get_all_pets().into_iter();
+
         match cond {
-            Condition::Healthiest => {
-                if let Some(healthiest_pet) = self.friends.borrow().iter().max_by(|pet_1, pet_2| {
-                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .health
-                            .cmp(&pet_2.borrow().stats.health)
-                    } else {
-                        std::cmp::Ordering::Equal
-                    }
-                }) {
-                    healthiest_pet.clone()
-                } else {
-                    None
-                }
-            }
-            Condition::Illest => {
-                if let Some(illest_pet) = self.friends.borrow().iter().min_by(|pet_1, pet_2| {
-                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .health
-                            .cmp(&pet_2.borrow().stats.health)
-                    } else {
-                        std::cmp::Ordering::Equal
-                    }
-                }) {
-                    illest_pet.clone()
-                } else {
-                    None
-                }
-            }
-            Condition::Strongest => {
-                if let Some(strongest_pet) = self.friends.borrow().iter().max_by(|pet_1, pet_2| {
-                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .attack
-                            .cmp(&pet_2.borrow().stats.attack)
-                    } else {
-                        std::cmp::Ordering::Equal
-                    }
-                }) {
-                    strongest_pet.clone()
-                } else {
-                    None
-                }
-            }
-            Condition::Weakest => {
-                if let Some(weakest_pet) = self.friends.borrow().iter().min_by(|pet_1, pet_2| {
-                    if let (Some(pet_1), Some(pet_2)) = (pet_1, pet_2) {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .attack
-                            .cmp(&pet_2.borrow().stats.attack)
-                    } else {
-                        std::cmp::Ordering::Equal
-                    }
-                }) {
-                    weakest_pet.clone()
-                } else {
-                    None
-                }
-            }
+            Condition::Healthiest => pets.max_by(|pet_1, pet_2| {
+                pet_1
+                    .borrow()
+                    .stats
+                    .health
+                    .cmp(&pet_2.borrow().stats.health)
+            }),
+            Condition::Illest => pets.min_by(|pet_1, pet_2| {
+                pet_1
+                    .borrow()
+                    .stats
+                    .health
+                    .cmp(&pet_2.borrow().stats.health)
+            }),
+            Condition::Strongest => pets.max_by(|pet_1, pet_2| {
+                pet_1
+                    .borrow()
+                    .stats
+                    .attack
+                    .cmp(&pet_2.borrow().stats.attack)
+            }),
+            Condition::Weakest => pets.min_by(|pet_1, pet_2| {
+                pet_1
+                    .borrow()
+                    .stats
+                    .attack
+                    .cmp(&pet_2.borrow().stats.attack)
+            }),
         }
     }
 

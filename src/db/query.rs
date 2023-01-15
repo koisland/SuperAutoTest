@@ -95,6 +95,14 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
                 &food.tier.to_string(),
                 &food.effect,
                 &food.pack.to_string(),
+                &food.holdable.to_string(),
+                &food.single_use.to_string(),
+                &food.end_of_battle.to_string(),
+                &food.random.to_string(),
+                &food.n_targets.to_string(),
+                &food.effect_atk.to_string(),
+                &food.effect_health.to_string(),
+                &food.turn_effect.to_string(),
             ],
         )?;
         n_rows_updated += n_rows;

@@ -21,6 +21,14 @@ CREATE TABLE IF NOT EXISTS foods (
     tier INTEGER NOT NULL,
     effect TEXT NOT NULL,
     pack TEXT NOT NULL,
+    holdable BOOLEAN NOT NULL,
+    single_use BOOLEAN NOT NULL,
+    end_of_battle BOOLEAN NOT NULL,
+    random BOOLEAN NOT NULL,
+    n_targets INTEGER NOT NULL,
+    effect_atk INTEGER NOT NULL,
+    effect_health INTEGER NOT NULL,
+    turn_effect BOOLEAN NOT NULL,
     CONSTRAINT unq UNIQUE (name, pack)
 );
 COMMIT;

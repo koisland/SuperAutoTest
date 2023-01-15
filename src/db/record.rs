@@ -10,6 +10,14 @@ pub struct FoodRecord {
     pub tier: usize,
     pub effect: String,
     pub pack: Pack,
+    pub holdable: bool,
+    pub single_use: bool,
+    pub end_of_battle: bool,
+    pub random: bool,
+    pub n_targets: usize,
+    pub effect_atk: isize,
+    pub effect_health: isize,
+    pub turn_effect: bool,
 }
 
 /// A record with information about a pet from *Super Auto Pets*.

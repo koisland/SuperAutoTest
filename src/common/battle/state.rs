@@ -1,10 +1,32 @@
 use crate::common::pets::pet::MAX_PET_STATS;
+use serde::{Deserialize, Serialize};
+use std::{fmt::Display, ops::RangeInclusive};
+
+use crate::common::{foods::food::Food, pets::pet::Pet};
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
     pub attack: usize,
     pub health: usize,
 }
+
+// impl AddAssign for Statistics {
+//     fn add_assign(&mut self, rhs: Self) {
+//         todo!()
+//     }
+// }
+
+// impl SubAssign for Statistics {
+//     fn sub_assign(&mut self, rhs: Self) {
+//         todo!()
+//     }
+// }
+
+// impl MulAssign for Statistics {
+//     fn mul_assign(&mut self, rhs: Self) {
+//         todo!()
+//     }
+// }
 
 impl Statistics {
     /// Add some `Statistics` to another capping at `50`.
@@ -115,11 +137,6 @@ impl Display for Outcome {
     }
 }
 
-use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ops::RangeInclusive};
-
-use crate::common::{foods::food::Food, pets::pet::Pet};
-
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Status {
     StartBattle,
@@ -148,6 +165,9 @@ pub enum Action {
     Remove(Statistics),
     Copy(CopyAttr, Position),
     Negate(Statistics),
+    Critical(usize),
+    Kill,
+    Invincible,
     Gain(Box<Food>),
     Summon(Option<Box<Pet>>),
     Multiple(Vec<Action>),

@@ -18,7 +18,7 @@ fn test_battle_ant_honey_team() {
     let last_pet = team.friends.borrow()[2].clone().unwrap();
     last_pet
         .borrow_mut()
-        .set_item(Some(Food::new(&FoodName::Honey)));
+        .set_item(Some(Food::new(&FoodName::Honey).unwrap()));
 
     let winner = team.fight(&mut enemy_team, None).unwrap().clone();
 

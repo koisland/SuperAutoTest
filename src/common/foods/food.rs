@@ -1,13 +1,21 @@
+use std::error::Error;
+
 use serde::{Deserialize, Serialize};
 
-use crate::common::{
-    battle::{
-        effect::{Effect, EffectType},
-        state::{Action, Position, Statistics, Target},
-        trigger::*,
+use crate::{
+    common::{
+        battle::{
+            effect::{Effect, EffectType},
+            state::{Action, Position, Statistics, Target},
+            trigger::*,
+        },
+        foods::names::FoodName,
+        pets::{
+            names::PetName,
+            pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
+        },
     },
-    foods::names::FoodName,
-    pets::{names::PetName, pet::Pet},
+    db::{setup::get_connection, utils::map_row_to_food},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -18,21 +26,18 @@ pub struct Food {
 
 impl From<FoodName> for Food {
     fn from(value: FoodName) -> Self {
-        Food::new(&value)
+        Food::new(&value).unwrap()
     }
 }
 
 #[allow(dead_code)]
-fn get_food_effect(name: &FoodName) -> Effect {
+fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<usize>) -> Effect {
     match name {
         FoodName::Chili => Effect {
             target: Target::Enemy,
             // Next enemy relative to position.
             position: Position::Specific(1),
-            action: Action::Remove(Statistics {
-                attack: 0,
-                health: 5,
-            }),
+            action: Action::Remove(effect_stats),
             uses: None,
             effect_type: EffectType::Food,
             trigger: TRIGGER_SELF_ATTACK,
@@ -40,22 +45,15 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Coconut => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            // Negate 150 health hit. Pretty much invulnerability.
-            action: Action::Negate(Statistics {
-                attack: 0,
-                health: 150,
-            }),
-            uses: Some(1),
+            action: Action::Invincible,
+            uses,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
         },
         FoodName::Garlic => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Negate(Statistics {
-                attack: 0,
-                health: 2,
-            }),
+            action: Action::Negate(effect_stats),
             uses: None,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
@@ -64,10 +62,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
             let bee = Box::new(Pet {
                 name: PetName::Bee,
                 tier: 1,
-                stats: Statistics {
-                    attack: 1,
-                    health: 1,
-                },
+                stats: effect_stats,
                 lvl: 1,
                 effect: None,
                 item: None,
@@ -85,10 +80,7 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::MeatBone => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(Statistics {
-                attack: 4,
-                health: 0,
-            }),
+            action: Action::Add(effect_stats),
             uses: None,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
@@ -96,11 +88,8 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Melon => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Negate(Statistics {
-                attack: 0,
-                health: 20,
-            }),
-            uses: Some(1),
+            action: Action::Negate(effect_stats),
+            uses,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
         },
@@ -109,17 +98,14 @@ fn get_food_effect(name: &FoodName) -> Effect {
             position: Position::Trigger,
             // Replace during runtime.
             action: Action::Summon(None),
-            uses: Some(1),
+            uses,
             effect_type: EffectType::Food,
             trigger: TRIGGER_SELF_FAINT,
         },
         FoodName::Peanuts => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(Statistics {
-                attack: 150,
-                health: 0,
-            }),
+            action: Action::Kill,
             uses: None,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
@@ -127,13 +113,18 @@ fn get_food_effect(name: &FoodName) -> Effect {
         FoodName::Steak => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(Statistics {
-                attack: 20,
-                health: 0,
-            }),
-            uses: Some(1),
+            action: Action::Add(effect_stats),
+            uses,
             effect_type: EffectType::Food,
             trigger: TRIGGER_NONE,
+        },
+        FoodName::Weakness => Effect {
+            effect_type: EffectType::Food,
+            trigger: TRIGGER_SELF_HURT,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Remove(effect_stats),
+            uses: None,
         },
     }
 }
@@ -141,11 +132,27 @@ fn get_food_effect(name: &FoodName) -> Effect {
 #[allow(dead_code)]
 impl Food {
     /// Create a `Food` from `FoodName`.
-    pub fn new(name: &FoodName) -> Food {
-        // TODO: Regex to get food effect stats.
-        Food {
+    pub fn new(name: &FoodName) -> Result<Food, Box<dyn Error>> {
+        let conn = get_connection()?;
+        let mut stmt = conn.prepare("SELECT * FROM foods WHERE name = ?")?;
+        let food_record = stmt.query_row([name.to_string()], map_row_to_food)?;
+
+        // TODO: Change Statistics to be isize.
+        let effect_atk: usize = food_record.effect_atk.try_into()?;
+        let effect_health: usize = food_record.effect_health.try_into()?;
+
+        let effect = get_food_effect(
+            name,
+            Statistics {
+                attack: effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
+            },
+            food_record.single_use.then_some(1),
+        );
+
+        Ok(Food {
             name: name.clone(),
-            ability: get_food_effect(name),
-        }
+            ability: effect,
+        })
     }
 }

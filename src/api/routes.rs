@@ -7,6 +7,7 @@ use crate::{
     },
 };
 use itertools::Itertools;
+use log::info;
 use rocket::response::content::RawJson;
 use rusqlite::Error;
 use serde_json::to_string_pretty;
@@ -79,6 +80,7 @@ pub async fn pets(
     if let Ok(res) = query {
         Some(RawJson(to_string_pretty(&res).unwrap()))
     } else {
+        info!(target: "api", "{:?}", query.unwrap_err());
         None
     }
 }
@@ -122,6 +124,7 @@ pub async fn foods(
     if let Ok(res) = query {
         Some(RawJson(to_string_pretty(&res).unwrap()))
     } else {
+        info!(target: "api", "{:?}", query.unwrap_err());
         None
     }
 }
@@ -249,6 +252,14 @@ mod test {
                 tier: 3,
                 effect: "Give one pet Pineapple. Ability deals +2 damage".to_string(),
                 pack: Pack::Star,
+                holdable: true,
+                single_use: false,
+                end_of_battle: false,
+                random: false,
+                n_targets: 1,
+                effect_atk: 2,
+                effect_health: 0,
+                turn_effect: false
             }
         );
     }
@@ -273,12 +284,28 @@ mod test {
                     tier: 3,
                     effect: "Give one pet Pineapple. Ability deals +2 damage".to_string(),
                     pack: Pack::Star,
+                    holdable: true,
+                    single_use: false,
+                    end_of_battle: false,
+                    random: false,
+                    n_targets: 1,
+                    effect_atk: 2,
+                    effect_health: 0,
+                    turn_effect: false
                 },
                 FoodRecord {
                     name: "Cucumber".to_string(),
                     tier: 3,
                     effect: "Give one pet Cucumber. Gain +1 health at end of turn".to_string(),
                     pack: Pack::Star,
+                    holdable: true,
+                    single_use: false,
+                    end_of_battle: false,
+                    random: false,
+                    n_targets: 1,
+                    effect_atk: 0,
+                    effect_health: 1,
+                    turn_effect: true
                 },
             ]
         );
