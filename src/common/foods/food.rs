@@ -1,4 +1,4 @@
-use std::error::Error;
+use std::{convert::TryFrom, error::Error};
 
 use serde::{Deserialize, Serialize};
 
@@ -144,8 +144,8 @@ impl Food {
         let effect = get_food_effect(
             name,
             Statistics {
-                attack: effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
-                health: effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                attack: isize::try_from(effect_atk)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: isize::try_from(effect_health)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
             food_record.single_use.then_some(1),
         );

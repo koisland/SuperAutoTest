@@ -1,6 +1,6 @@
 use itertools::Itertools;
 use log::{info, warn};
-use std::error::Error;
+use std::{convert::TryInto, error::Error};
 
 use crate::{
     common::{battle::state::Statistics, pets::pet::num_regex, regex_patterns::*},
@@ -133,8 +133,8 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
     };
 
     let effect_stats = Statistics {
-        attack: parsed_num_effect_stats.0.unwrap_or(0),
-        health: parsed_num_effect_stats.1.unwrap_or(0),
+        attack: parsed_num_effect_stats.0.unwrap_or(0).try_into().unwrap(),
+        health: parsed_num_effect_stats.1.unwrap_or(0).try_into().unwrap(),
     };
 
     let n_triggers = num_regex(RGX_N_TRIGGERS, &pet_effect).unwrap_or(1);
@@ -147,7 +147,7 @@ pub fn parse_single_pet(
     block: &str,
     curr_tier: &mut usize,
     pets: &mut Vec<PetRecord>,
-) -> Result<(), WikiParserError> {
+) -> Result<(), Box<dyn Error>> {
     // Update the pet tier.
     if RGX_TIER.is_match(block) {
         *curr_tier = RGX_TIER
@@ -163,17 +163,17 @@ pub fn parse_single_pet(
         {
             name.as_str()
         } else {
-            return Err(WikiParserError {
+            return Err(Box::new(WikiParserError {
                 reason: format!("Unable to get pet name in: {block}"),
-            });
+            }));
         };
 
         let (pet_atk, pet_health) = if let Ok(pet_stats) = parse_pet_stats(block) {
             (pet_stats.0, pet_stats.1)
         } else {
-            return Err(WikiParserError {
+            return Err(Box::new(WikiParserError {
                 reason: format!("No pet stats found in {block}."),
-            });
+            }));
         };
 
         let pet_packs = parse_pet_packs(block);
@@ -198,8 +198,8 @@ pub fn parse_single_pet(
                     pack: pack.clone(),
                     effect_trigger: pet_effect_trigger.clone(),
                     effect: pet_lvl_effect,
-                    effect_atk: effect_stats.attack,
-                    effect_health: effect_stats.health,
+                    effect_atk: effect_stats.attack.try_into()?,
+                    effect_health: effect_stats.health.try_into()?,
                     n_triggers,
                     temp_effect,
                     lvl: lvl + 1,

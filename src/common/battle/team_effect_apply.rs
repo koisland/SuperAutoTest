@@ -79,7 +79,7 @@ impl EffectApply for Team {
         match effect_type {
             Action::Add(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
-                    target.borrow_mut().stats.add(stats);
+                    target.borrow_mut().stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, target.borrow());
                 }
             }
@@ -132,9 +132,8 @@ impl EffectApply for Team {
                                 // Multiply the stats of a chosen pet by some multiplier
                                 // If the stats are 0, use the target's original stats, otherwise, use the news stats.
                                 let mut new_stats = chosen_pet.borrow().stats.clone();
-                                new_stats
-                                    .mult(&perc_stats_mult)
-                                    .clamp(MIN_PET_STATS, MAX_PET_STATS);
+                                new_stats *= perc_stats_mult.clone();
+                                new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
 
                                 let old_stats = target.borrow().stats.clone();
                                 info!(
@@ -173,7 +172,7 @@ impl EffectApply for Team {
         match effect_type {
             Action::Add(stats) => {
                 if let Some(target) = self.get_idx_pet(effect_pet_idx) {
-                    target.borrow_mut().stats.add(stats);
+                    target.borrow_mut().stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, target.borrow());
                 }
             }
@@ -230,9 +229,8 @@ impl EffectApply for Team {
                                 // Multiply the stats of a chosen pet by some multiplier
                                 // If the stats are 0, use the target's original stats, otherwise, use the news stats.
                                 let mut new_stats = chosen_pet.borrow().stats.clone();
-                                new_stats
-                                    .mult(&perc_stats_mult)
-                                    .clamp(MIN_PET_STATS, MAX_PET_STATS);
+                                new_stats *= perc_stats_mult.clone();
+                                new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
 
                                 let old_stats = target.borrow().stats.clone();
 
@@ -263,7 +261,7 @@ impl EffectApply for Team {
         match effect_type {
             Action::Add(stats) => {
                 if let Some(target) = self.get_any_pet() {
-                    target.borrow_mut().stats.add(stats);
+                    target.borrow_mut().stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, target.borrow());
                 }
             }
@@ -301,7 +299,7 @@ impl EffectApply for Team {
         match effect_type {
             Action::Add(stats) => {
                 for pet in self.get_all_pets() {
-                    pet.borrow_mut().stats.add(stats);
+                    pet.borrow_mut().stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, pet.borrow());
                 }
             }
@@ -333,7 +331,7 @@ impl EffectApply for Team {
             match (target, effect_type) {
                 (Target::Friend, Action::Add(stats)) => {
                     if let Some(pet) = self.get_idx_pet(pos) {
-                        pet.borrow_mut().stats.add(stats);
+                        pet.borrow_mut().stats += stats.clone();
                         info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, pet.borrow());
                     }
                 }
@@ -354,7 +352,7 @@ impl EffectApply for Team {
         match effect_type {
             Action::Add(stats) => {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
-                    affected_pet.borrow_mut().stats.add(stats);
+                    affected_pet.borrow_mut().stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, affected_pet.borrow())
                 }
             }

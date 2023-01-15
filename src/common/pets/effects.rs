@@ -79,7 +79,7 @@ pub fn get_pet_effect(
         }),
         PetName::Dodo => {
             let mut add_stats = pet_stats.clone();
-            add_stats.mult(&effect_stats);
+            add_stats *= effect_stats;
 
             Some(Effect {
                 trigger: TRIGGER_START_BATTLE,
@@ -164,7 +164,7 @@ pub fn get_pet_effect(
         }
         PetName::Badger => {
             let mut effect_dmg_stats = pet_stats.clone();
-            effect_dmg_stats.mult(&effect_stats);
+            effect_dmg_stats *= effect_stats;
 
             Some(Effect {
                 effect_type: EffectType::Pet,

@@ -5,7 +5,7 @@ use crate::common::{
     tests::common::{test_ant_team, test_cricket_horse_team, test_mosq_team},
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_ant_honey_team() {

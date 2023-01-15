@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::Display};
+use std::{convert::TryFrom, error::Error, fmt::Display};
 
 use crate::{
     common::{
@@ -14,8 +14,8 @@ use crate::{
 
 pub const MIN_PET_LEVEL: usize = 1;
 pub const MAX_PET_LEVEL: usize = 3;
-pub const MIN_PET_STATS: usize = 0;
-pub const MAX_PET_STATS: usize = 50;
+pub const MIN_PET_STATS: isize = 0;
+pub const MAX_PET_STATS: isize = 50;
 
 #[allow(dead_code)]
 pub fn num_regex(pattern: &LRegex, string: &str) -> Option<usize> {
@@ -68,16 +68,17 @@ impl Pet {
 
         // Use default stats at level if stats not provided.
         let pet_stats = stats.unwrap_or(Statistics {
-            attack: pet_record.attack.clamp(MIN_PET_STATS, MAX_PET_STATS),
-            health: pet_record.health.clamp(MIN_PET_STATS, MAX_PET_STATS),
+            attack: isize::try_from(pet_record.attack)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: isize::try_from(pet_record.health)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
         });
 
         let effect = get_pet_effect(
             &name,
             &pet_stats,
             Statistics {
-                attack: pet_record.effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
-                health: pet_record.effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                attack: isize::try_from(pet_record.effect_atk)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: isize::try_from(pet_record.effect_health)?
+                    .clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
             lvl,
             pet_record.n_triggers,
@@ -111,8 +112,9 @@ impl Pet {
             &self.name,
             &self.stats,
             Statistics {
-                attack: pet_record.effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
-                health: pet_record.effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                attack: isize::try_from(pet_record.effect_atk)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
+                health: isize::try_from(pet_record.effect_health)?
+                    .clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
             self.lvl,
             pet_record.n_triggers,

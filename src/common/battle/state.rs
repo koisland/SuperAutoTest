@@ -1,63 +1,45 @@
-use crate::common::pets::pet::MAX_PET_STATS;
 use serde::{Deserialize, Serialize};
-use std::{fmt::Display, ops::RangeInclusive};
+use std::{
+    fmt::Display,
+    ops::{AddAssign, MulAssign, RangeInclusive},
+};
 
-use crate::common::{foods::food::Food, pets::pet::Pet};
+use crate::common::{
+    foods::food::Food,
+    pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
+};
 
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
-    pub attack: usize,
-    pub health: usize,
+    pub attack: isize,
+    pub health: isize,
 }
 
-// impl AddAssign for Statistics {
-//     fn add_assign(&mut self, rhs: Self) {
-//         todo!()
-//     }
-// }
+impl AddAssign for Statistics {
+    fn add_assign(&mut self, rhs: Self) {
+        self.attack = (self.attack + rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.health = (self.health + rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS);
+    }
+}
 
-// impl SubAssign for Statistics {
-//     fn sub_assign(&mut self, rhs: Self) {
-//         todo!()
-//     }
-// }
+impl MulAssign for Statistics {
+    fn mul_assign(&mut self, rhs: Self) {
+        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
+        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
 
-// impl MulAssign for Statistics {
-//     fn mul_assign(&mut self, rhs: Self) {
-//         todo!()
-//     }
-// }
+        self.attack = (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.health = (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
+    }
+}
 
 impl Statistics {
-    /// Add some `Statistics` to another capping at `50`.
-    pub fn add(&mut self, stats: &Statistics) -> &mut Self {
-        self.attack = (self.attack + stats.attack).clamp(1, MAX_PET_STATS);
-        self.health = (self.health + stats.health).clamp(1, MAX_PET_STATS);
-        self
-    }
-    #[allow(dead_code)]
-    /// Subtract some `Statistics` from another.
-    pub fn sub(&mut self, stats: &Statistics) -> &mut Self {
-        self.attack = self.attack.saturating_sub(stats.attack);
-        self.health = self.health.saturating_sub(stats.health);
-        self
-    }
-    /// Multiply some `Statistics` by another.
-    pub fn mult(&mut self, perc_stats_mult: &Statistics) -> &mut Self {
-        let new_atk = (self.attack as f32 * (perc_stats_mult.attack as f32 / 100.0)).round();
-        let new_health = (self.health as f32 * (perc_stats_mult.health as f32 / 100.0)).round();
-
-        self.attack = new_atk as usize;
-        self.health = new_health as usize;
-        self
-    }
-    pub fn clamp(&mut self, min: usize, max: usize) -> &mut Self {
+    pub fn clamp(&mut self, min: isize, max: isize) -> &mut Self {
         self.attack = self.attack.clamp(min, max);
         self.health = self.health.clamp(min, max);
         self
     }
     /// Set `Statistics` to another given `Statistics` based on if values are less than or equal to a given `min` value.
-    pub fn comp_set_value(&mut self, other: &Statistics, min: usize) -> &Self {
+    pub fn comp_set_value(&mut self, other: &Statistics, min: isize) -> &Self {
         if self.attack <= min {
             self.attack = other.attack
         }
