@@ -36,9 +36,22 @@ impl Team {
                 ),
             })
         } else {
+            // Index pets.
+            let mut idx = 0;
+            let idx_pets = pets
+                .iter()
+                .cloned()
+                .map(|mut slot| {
+                    if let Some(pet) = slot.as_mut() {
+                        pet.pos = Some(idx);
+                        idx += 1;
+                    }
+                    slot
+                })
+                .collect_vec();
             Ok(Team {
                 name: name.to_string(),
-                friends: pets.iter().cloned().collect_vec(),
+                friends: idx_pets,
                 max_size,
                 triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
             })
@@ -77,21 +90,21 @@ impl Team {
     }
 
     /// Get a single pet by a given `Condition`.
-    pub fn get_pet_by_cond(&mut self, cond: &Condition) -> Option<&mut Pet> {
-        let pets = self.get_all_pets().into_iter();
+    pub fn get_pet_by_cond(&mut self, cond: &Condition) -> Option<(usize, &mut Pet)> {
+        let pets = self.get_all_pets().into_iter().enumerate();
 
         match cond {
             Condition::Healthiest => {
-                pets.max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                pets.max_by(|(_, pet_1), (_, pet_2)| pet_1.stats.health.cmp(&pet_2.stats.health))
             }
             Condition::Illest => {
-                pets.min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                pets.min_by(|(_, pet_1), (_, pet_2)| pet_1.stats.health.cmp(&pet_2.stats.health))
             }
             Condition::Strongest => {
-                pets.max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                pets.max_by(|(_, pet_1), (_, pet_2)| pet_1.stats.attack.cmp(&pet_2.stats.attack))
             }
             Condition::Weakest => {
-                pets.min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                pets.min_by(|(_, pet_1), (_, pet_2)| pet_1.stats.attack.cmp(&pet_2.stats.attack))
             }
         }
     }

@@ -1,7 +1,7 @@
 use crate::common::{
     battle::{
         effect::Effect,
-        state::{Action, CopyAttr, Outcome, Position, Status, Target},
+        state::{Action, CopyAttr, Outcome, Position, Target},
         team::Team,
     },
     pets::{
@@ -13,38 +13,12 @@ use crate::common::{
 use itertools::Itertools;
 use log::info;
 use rand::seq::IteratorRandom;
-use std::{error::Error, ops::RangeInclusive};
-
-use super::state::Condition;
+use std::error::Error;
 
 pub trait EffectApply {
-    fn _target_effect_any(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
-    fn _target_effect_all(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
     fn _target_effect_specific(
         &mut self,
-        pos: usize,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>>;
-    // fn _target_effect_self(&mut self, trigger: Outcome, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
-    fn _target_effect_trigger(
-        &mut self,
-        trigger: &Outcome,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>>;
-    fn _target_effect_onself(
-        &mut self,
-        effect_pet_idx: usize,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>>;
-    fn _target_effect_range(
-        &mut self,
-        effect_pet_idx: usize,
-        range_idxs: &RangeInclusive<isize>,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>>;
-    fn _target_effect_condition(
-        &mut self,
-        condition: &Condition,
+        target_pos: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
     /// Apply effects based on a team's stored triggers.
@@ -62,7 +36,6 @@ pub trait EffectApply {
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     fn _match_position_either_team(
         &mut self,
@@ -79,152 +52,41 @@ pub trait EffectApply {
 }
 
 impl EffectApply for Team {
-    fn _target_effect_trigger(
+    fn _target_effect_specific(
         &mut self,
-        trigger: &Outcome,
+        target_pos: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
-        let trigger_pos = trigger
-            .idx
-            .ok_or("No idx position given to apply effect.")?;
         let name = self.name.clone();
         match effect_type {
             Action::Add(stats) => {
-                if let Some(target) = self.get_all_pets().get_mut(trigger_pos) {
+                if let Some(target) = self.get_idx_pet(target_pos) {
                     target.stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, target);
                 }
             }
             Action::Remove(stats) => {
                 let mut outcomes: Vec<Outcome> = vec![];
-                if let Some(target) = self.get_all_pets().get_mut(trigger_pos) {
-                    outcomes.extend(target.indirect_attack(stats));
-                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), target);
-                }
-                self.triggers.extend(outcomes);
-            }
-            Action::Gain(food) => {
-                if let Some(target) = self.get_all_pets().get_mut(trigger_pos) {
-                    target.set_item(Some(*food.clone()));
-                    info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, target);
-                }
-            }
-            // Must also emit EffectTrigger for summon.
-            Action::Summon(pet) => {
-                if self.add_pet(pet, trigger_pos).is_err() {
-                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, pet, trigger_pos);
-                }
-            }
-            // TODO: May need to also choose to copy from an enemy pet at some point.
-            Action::Copy(attr, pos) => {
-                // Based on position, select the pet to copy.
-                let chosen_pet = match pos {
-                    Position::Any => self.get_any_pet(),
-                    Position::Specific(rel_pos) => {
-                        let (team, adj_idx) =
-                            self._cvt_rel_pos_to_adj_idx(trigger_pos, *rel_pos)?;
-                        if team == Target::Friend {
-                            self.get_idx_pet(adj_idx)
-                        } else {
-                            None
-                        }
-                    }
-                    Position::Condition(condition) => self.get_pet_by_cond(condition),
-                    _ => None,
-                };
-                let copied_attr = if let Some(pet) = chosen_pet {
-                    match attr.clone() {
-                        CopyAttr::PercentStats(perc_stats_mult) => {
-                            // Multiply the stats of a chosen pet by some multiplier
-                            let mut new_stats = pet.stats.clone();
-                            new_stats *= perc_stats_mult.clone();
-                            new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
-                            info!(
-                                target: "dev", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
-                                name,
-                                perc_stats_mult.attack,
-                                perc_stats_mult.health,
-                                pet
-                            );
-                            Some(CopyAttr::Stats(new_stats))
-                        }
-                        CopyAttr::Effect(_) => Some(CopyAttr::Effect(Box::new(pet.effect.clone()))),
-                        _ => None,
-                    }
-                } else {
-                    None
-                };
-
-                // Chose the target of recipient of copied pet stats/effect.
-                if let Some(target) = self.get_all_pets().get_mut(trigger_pos) {
-                    // Calculate stats or set ability.
-                    match copied_attr.unwrap_or(CopyAttr::None) {
-                        CopyAttr::Stats(mut new_stats) => {
-                            // If the stats are 0, use the target's original stats, otherwise, use the news stats.
-                            let old_stats = target.stats.clone();
-
-                            target.stats = new_stats.comp_set_value(&old_stats, 0).clone();
-
-                            info!(
-                                target: "dev", "(\"{}\")\nSet stats for {} to {}.",
-                                name,
-                                target,
-                                target.stats
-                            );
-                        }
-                        CopyAttr::Effect(effect) => {
-                            target.effect = *effect;
-                            info!(
-                                target: "dev", "(\"{}\")\nSet effect for {} to {:?}.",
-                                name,
-                                target,
-                                target.effect
-                            );
-                        }
-                        CopyAttr::None => {}
-                        CopyAttr::PercentStats(_) => {}
-                    }
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-    fn _target_effect_onself(
-        &mut self,
-        effect_pet_idx: usize,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>> {
-        let name = self.name.clone();
-        match effect_type {
-            Action::Add(stats) => {
-                if let Some(target) = self.get_idx_pet(effect_pet_idx) {
-                    target.stats += stats.clone();
-                    info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, target);
-                }
-            }
-            Action::Remove(stats) => {
-                let mut outcomes: Vec<Outcome> = vec![];
-                if let Some(target) = self.get_idx_pet(effect_pet_idx) {
+                if let Some(target) = self.get_idx_pet(target_pos) {
                     outcomes.extend(target.indirect_attack(stats));
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), target);
                 }
                 self.triggers.extend(outcomes)
             }
             Action::Gain(food) => {
-                if let Some(target) = self.get_idx_pet(effect_pet_idx) {
+                if let Some(target) = self.get_idx_pet(target_pos) {
                     target.set_item(Some(*food.clone()));
                     info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, target);
                 }
             }
             Action::Summon(pet) => {
-                if self.add_pet(pet, effect_pet_idx).is_err() {
-                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, pet, effect_pet_idx);
+                if self.add_pet(pet, target_pos).is_err() {
+                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, pet, target_pos);
                 }
             }
             Action::Multiple(actions) => {
                 for action in actions {
-                    self._target_effect_onself(effect_pet_idx, action)?
+                    self._target_effect_specific(target_pos, action)?
                 }
             }
             // TODO: May need to also choose to copy from an enemy pet at some point.
@@ -233,15 +95,16 @@ impl EffectApply for Team {
                 let chosen_pet = match pos {
                     Position::Any => self.get_any_pet(),
                     Position::Specific(rel_pos) => {
-                        let (team, adj_idx) =
-                            self._cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos)?;
+                        let (team, adj_idx) = self._cvt_rel_pos_to_adj_idx(target_pos, *rel_pos)?;
                         if team == Target::Friend {
                             self.get_idx_pet(adj_idx)
                         } else {
                             None
                         }
                     }
-                    Position::Condition(condition) => self.get_pet_by_cond(condition),
+                    Position::Condition(condition) => {
+                        self.get_pet_by_cond(condition).map(|(_, pet)| pet)
+                    }
                     _ => None,
                 };
                 let copied_attr = if let Some(pet) = chosen_pet {
@@ -268,7 +131,7 @@ impl EffectApply for Team {
                 };
 
                 // Chose the target of recipient of copied pet stats/effect.
-                if let Some(target) = self.get_all_pets().get_mut(effect_pet_idx) {
+                if let Some(target) = self.get_idx_pet(target_pos) {
                     // Calculate stats or set ability.
                     match copied_attr.unwrap_or(CopyAttr::None) {
                         CopyAttr::Stats(mut new_stats) => {
@@ -300,160 +163,6 @@ impl EffectApply for Team {
             }
             _ => {}
         }
-        Ok(())
-    }
-
-    fn _target_effect_any(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
-        let name = self.name.clone();
-        match effect_type {
-            Action::Add(stats) => {
-                if let Some(target) = self.get_any_pet() {
-                    target.stats += stats.clone();
-                    info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, target);
-                }
-            }
-            Action::Remove(stats) => {
-                let mut outcomes = vec![];
-                if let Some(target) = self.get_any_pet() {
-                    outcomes.extend(target.indirect_attack(stats));
-                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), target);
-                }
-                self.triggers.extend(outcomes)
-            }
-            Action::Gain(food) => {
-                if let Some(target) = self.get_any_pet() {
-                    target.set_item(Some(*food.clone()));
-                    info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, target);
-                }
-            }
-            // Must also emit EffectTrigger for summon.
-            Action::Summon(pet) => {
-                let mut rng = rand::thread_rng();
-                let random_pos = (0..5).choose(&mut rng).unwrap() as usize;
-                if self.add_pet(pet, random_pos).is_err() {
-                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", self.name, pet, random_pos);
-                }
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn _target_effect_all(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
-        let name = self.name.clone();
-        match effect_type {
-            Action::Add(stats) => {
-                for pet in self.get_all_pets() {
-                    pet.stats += stats.clone();
-                    info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, pet);
-                }
-            }
-            Action::Remove(stats) => {
-                let mut outcomes = vec![];
-                for pet in self.get_all_pets() {
-                    outcomes.extend(pet.indirect_attack(stats));
-                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), pet);
-                }
-                self.triggers.extend(outcomes)
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn _target_effect_range(
-        &mut self,
-        effect_pet_idx: usize,
-        range_idxs: &RangeInclusive<isize>,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>> {
-        let pet_ranges = range_idxs
-            .clone()
-            .into_iter()
-            .filter_map(|rel_idx| self._cvt_rel_pos_to_adj_idx(effect_pet_idx, rel_idx).ok())
-            .collect_vec();
-        let name = self.name.clone();
-
-        for (target, pos) in pet_ranges {
-            // self._cvt_rel_pos_to_adj_idx may return a pet idx from either team.
-            // Because each _target_* method operates only on a single team, it must match on own team to be valid.
-            match (target, effect_type) {
-                (Target::Friend, Action::Add(stats)) => {
-                    if let Some(pet) = self.get_idx_pet(pos) {
-                        pet.stats += stats.clone();
-                        info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, pet);
-                    }
-                }
-                (Target::Friend, Action::Remove(stats)) => {
-                    let mut outcomes = vec![];
-                    if let Some(pet) = self.get_idx_pet(pos) {
-                        outcomes.extend(pet.indirect_attack(stats));
-                        info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), pet);
-                    }
-                    self.triggers.extend(outcomes)
-                }
-                _ => {}
-            }
-        }
-        Ok(())
-    }
-
-    fn _target_effect_specific(
-        &mut self,
-        pos: usize,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>> {
-        let name = self.name.clone();
-        match effect_type {
-            Action::Add(stats) => {
-                if let Some(affected_pet) = self.get_all_pets().get_mut(pos) {
-                    affected_pet.stats += stats.clone();
-                    info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, affected_pet)
-                }
-            }
-            Action::Remove(stats) => {
-                let mut outcomes = vec![];
-                if let Some(affected_pet) = self.get_all_pets().get_mut(pos) {
-                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), affected_pet);
-                    outcomes.extend(affected_pet.indirect_attack(stats));
-                }
-                self.triggers.extend(outcomes)
-            }
-            Action::Gain(food) => {
-                if let Some(affected_pet) = self.get_all_pets().get_mut(pos) {
-                    info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, affected_pet);
-                    affected_pet.set_item(Some(*food.clone()));
-                }
-            }
-            Action::Summon(pet) => {
-                self.add_pet(pet, pos)?;
-            }
-            _ => {}
-        }
-        Ok(())
-    }
-
-    fn _target_effect_condition(
-        &mut self,
-        condition: &Condition,
-        effect_type: &Action,
-    ) -> Result<(), Box<dyn Error>> {
-        let name = self.name.clone();
-        let pet = self.get_pet_by_cond(condition);
-
-        match effect_type {
-            Action::Remove(stats) => {
-                let mut outcomes = vec![];
-                if let Some(affected_pet) = pet {
-                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), affected_pet);
-                    outcomes.extend(affected_pet.indirect_attack(stats));
-                }
-                self.triggers.extend(outcomes)
-            }
-            Action::Add(_) => {}
-            _ => {}
-        }
-
         Ok(())
     }
 
@@ -496,22 +205,51 @@ impl EffectApply for Team {
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         match &effect.position {
-            Position::Any => self._target_effect_any(&effect.action)?,
-            Position::All => self._target_effect_all(&effect.action)?,
-            Position::OnSelf => self._target_effect_onself(effect_pet_idx, &effect.action)?,
-            Position::Trigger => self._target_effect_trigger(trigger, &effect.action)?,
-            // Position::Trigger => self._target_effect_trigger(trigger, &effect.effect),
+            Position::Any => {
+                let mut rng = rand::thread_rng();
+                if let Some(Some(random_pet_idx)) = self
+                    .get_all_pets()
+                    .iter()
+                    .choose(&mut rng)
+                    .map(|pet| pet.pos)
+                {
+                    self._target_effect_specific(random_pet_idx, &effect.action)?
+                }
+            }
+            Position::All => {
+                for pet_idx in 0..self.get_all_pets().len() {
+                    self._target_effect_specific(pet_idx, &effect.action)?
+                }
+            }
+            Position::OnSelf => self._target_effect_specific(effect_pet_idx, &effect.action)?,
+            Position::Trigger => {
+                let trigger_pos = trigger
+                    .idx
+                    .ok_or("No idx position given to apply effect.")?;
+                self._target_effect_specific(trigger_pos, &effect.action)?
+            }
             Position::Specific(rel_pos) => {
                 let (team, adj_idx) = self._cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos)?;
+                // One team so should only target self team.
                 if team == Target::Friend {
                     self._target_effect_specific(adj_idx, &effect.action)?
                 }
             }
             Position::Range(effect_range) => {
-                self._target_effect_range(effect_pet_idx, effect_range, &effect.action)?
+                let adj_idxs = effect_range
+                    .clone()
+                    .into_iter()
+                    .filter_map(|rel_idx| {
+                        self._cvt_rel_pos_to_adj_idx(effect_pet_idx, rel_idx).ok()
+                    })
+                    .collect_vec();
+                for (team, adj_idx) in adj_idxs {
+                    if team == Target::Friend {
+                        self._target_effect_specific(adj_idx, &effect.action)?
+                    }
+                }
             }
             Position::Multiple(positions) => {
                 for pos in positions {
@@ -523,11 +261,13 @@ impl EffectApply for Team {
                     effect_copy.position = pos.clone();
                     effect_copy.uses = Some(1);
 
-                    self._apply_effect(effect_pet_idx, trigger.clone(), effect_copy, opponent)?
+                    self._match_position_one_team(effect_pet_idx, trigger, &effect_copy)?
                 }
             }
             Position::Condition(condition) => {
-                self._target_effect_condition(condition, &effect.action)?
+                if let Some((idx, _)) = self.get_pet_by_cond(condition) {
+                    self._target_effect_specific(idx, &effect.action)?
+                }
             }
             _ => {}
         }
@@ -544,22 +284,20 @@ impl EffectApply for Team {
     ) -> Result<(), Box<dyn Error>> {
         match &effect.position {
             Position::Specific(rel_pos) => {
-                let (team, mut adj_idx) = self._cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos)?;
+                let (team, adj_idx) = self._cvt_rel_pos_to_adj_idx(effect_pet_idx, *rel_pos)?;
                 match team {
                     Target::Enemy => opponent._target_effect_specific(adj_idx, &effect.action)?,
-                    Target::Friend => {
-                        // Adjust index if targets specific friendly position and also faints.
-                        if let Status::Faint = trigger.status {
-                            adj_idx -= 1
-                        }
-                        self._target_effect_specific(adj_idx, &effect.action)?
-                    }
+                    Target::Friend => self._target_effect_specific(adj_idx, &effect.action)?,
                     _ => unreachable!("Cannot return other types."),
                 }
             }
             Position::All => {
-                self._target_effect_all(&effect.action)?;
-                opponent._target_effect_all(&effect.action)?;
+                for pet_idx in 0..self.get_all_pets().len() {
+                    self._target_effect_specific(pet_idx, &effect.action)?
+                }
+                for pet_idx in 0..opponent.get_all_pets().len() {
+                    opponent._target_effect_specific(pet_idx, &effect.action)?
+                }
             }
             Position::Multiple(positions) => {
                 for pos in positions {
@@ -591,10 +329,10 @@ impl EffectApply for Team {
         for _ in 0..effect.uses.unwrap_or(1) {
             match effect.target {
                 Target::Friend => {
-                    self._match_position_one_team(effect_pet_idx, &trigger, &effect, opponent)?
+                    self._match_position_one_team(effect_pet_idx, &trigger, &effect)?
                 }
                 Target::Enemy => {
-                    opponent._match_position_one_team(effect_pet_idx, &trigger, &effect, self)?
+                    opponent._match_position_one_team(effect_pet_idx, &trigger, &effect)?
                 }
                 Target::Either => {
                     self._match_position_either_team(effect_pet_idx, &trigger, &effect, opponent)?

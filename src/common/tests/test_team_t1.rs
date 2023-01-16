@@ -92,6 +92,7 @@ fn test_battle_mosquito_team() {
 
     // Mosquitoes kill any team before game starts.
     assert_eq!(winner.clone(), team.name);
+    assert_eq!(team.friends.len(), 3);
 
     for pet in team.get_all_pets().iter() {
         // Mosquitoes are unhurt
