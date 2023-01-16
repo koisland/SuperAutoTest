@@ -2,10 +2,7 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
-use crate::common::battle::{
-    state::Statistics,
-    team::{Battle, Team},
-};
+use crate::common::battle::{state::Statistics, team::Team};
 use crate::common::foods::names::FoodName;
 use crate::common::pets::{names::PetName, pet::Pet};
 
@@ -59,7 +56,9 @@ pub fn battle(teams: Json<Teams>) -> Status {
             convert_pet(&teams.friends.p4),
             convert_pet(&teams.friends.p5),
         ],
-    );
+        5,
+    )
+    .unwrap();
     let mut enemy_team = Team::new(
         &teams.enemies.name,
         &[
@@ -69,9 +68,11 @@ pub fn battle(teams: Json<Teams>) -> Status {
             convert_pet(&teams.enemies.p4),
             convert_pet(&teams.enemies.p5),
         ],
-    );
+        5,
+    )
+    .unwrap();
 
-    friends_team.fight(&mut enemy_team, None);
+    for _ in friends_team.fight(&mut enemy_team) {}
     Status::Ok
 }
 

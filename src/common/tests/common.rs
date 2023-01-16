@@ -13,7 +13,9 @@ pub fn test_ant_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_cricket_horse_team(name: &str) -> Team {
@@ -26,7 +28,9 @@ pub fn test_cricket_horse_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_mosq_team(name: &str) -> Team {
@@ -39,7 +43,9 @@ pub fn test_mosq_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_hedgehog_team(name: &str) -> Team {
@@ -52,7 +58,9 @@ pub fn test_hedgehog_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_elephant_peacock_team(name: &str) -> Team {
@@ -65,7 +73,9 @@ pub fn test_elephant_peacock_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_dodo_team(name: &str) -> Team {
@@ -78,7 +88,9 @@ pub fn test_dodo_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_flamingo_team(name: &str) -> Team {
@@ -91,7 +103,9 @@ pub fn test_flamingo_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_rat_team(name: &str, lvl: usize) -> Team {
@@ -103,14 +117,16 @@ pub fn test_rat_team(name: &str, lvl: usize) -> Team {
     }
 
     let pets = [Some(rat), None, None, None, None];
-    Team::new(name, &pets)
+    Team::new(name, &pets, 5).unwrap()
 }
 
 pub fn test_spider_team(name: &str) -> Team {
     Team::new(
         name,
         &[Some(Pet::from(PetName::Spider)), None, None, None, None],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_crab_team(name: &str) -> Team {
@@ -125,7 +141,9 @@ pub fn test_crab_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_badger_team(name: &str) -> Team {
@@ -138,7 +156,9 @@ pub fn test_badger_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_blowfish_team(name: &str) -> Team {
@@ -151,7 +171,9 @@ pub fn test_blowfish_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_camel_team(name: &str) -> Team {
@@ -164,7 +186,9 @@ pub fn test_camel_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_dog_team(name: &str) -> Team {
@@ -177,14 +201,18 @@ pub fn test_dog_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_dolphin_team(name: &str) -> Team {
     Team::new(
         name,
         &[Some(Pet::from(PetName::Dolphin)), None, None, None, None],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_kangaroo_team(name: &str) -> Team {
@@ -197,7 +225,9 @@ pub fn test_kangaroo_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_ox_team(name: &str) -> Team {
@@ -210,12 +240,16 @@ pub fn test_ox_team(name: &str) -> Team {
             None,
             None,
         ],
+        5,
     )
+    .unwrap()
 }
 
 pub fn test_sheep_team(name: &str) -> Team {
     Team::new(
         name,
         &[Some(Pet::from(PetName::Sheep)), None, None, None, None],
+        5,
     )
+    .unwrap()
 }

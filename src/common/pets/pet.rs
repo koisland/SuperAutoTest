@@ -3,8 +3,7 @@ use std::{convert::TryFrom, error::Error, fmt::Display};
 
 use crate::{
     common::{
-        battle::{effect::Effect, state::Statistics, team::TEAM_SIZE},
-        error::TeamError,
+        battle::{effect::Effect, state::Statistics},
         foods::food::Food,
         pets::{effects::get_pet_effect, names::PetName},
         regex_patterns::*,
@@ -132,17 +131,8 @@ impl Pet {
     /// Helper function to set pet position for matching on effect triggers.
     ///
     /// * Note: This does not update other pets on the same team.
-    pub fn set_pos(&mut self, pos: usize) -> Result<&mut Self, TeamError> {
-        if pos > TEAM_SIZE {
-            Err(TeamError {
-                reason: format!(
-                    "Cannot set a pet's position to be greater than the default team size of {}.",
-                    TEAM_SIZE
-                ),
-            })
-        } else {
-            self.pos = Some(pos);
-            Ok(self)
-        }
+    pub fn set_pos(&mut self, pos: usize) -> &mut Self {
+        self.pos = Some(pos);
+        self
     }
 }

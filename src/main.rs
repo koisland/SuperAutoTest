@@ -10,10 +10,6 @@ mod common;
 mod db;
 mod wiki_scraper;
 
-use log::info;
-use rusqlite::Connection;
-use std::error::Error;
-
 use crate::{
     api::server,
     cli::cli,
@@ -22,6 +18,9 @@ use crate::{
         setup::{create_tables, get_connection},
     },
 };
+use log::info;
+use rusqlite::Connection;
+use std::error::Error;
 
 pub const LOG_CONFIG: &str = "./config/log_config.yaml";
 pub const SCRAPER_SOURCES: &str = "./config/sources.json";

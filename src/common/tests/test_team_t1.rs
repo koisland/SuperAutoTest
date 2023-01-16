@@ -1,5 +1,7 @@
+use itertools::Itertools;
+
 use crate::common::{
-    battle::{state::Statistics, team::Battle},
+    battle::state::Statistics,
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{test_ant_team, test_cricket_horse_team, test_mosq_team},
@@ -20,9 +22,10 @@ fn test_battle_ant_honey_team() {
         .borrow_mut()
         .set_item(Some(Food::new(&FoodName::Honey).unwrap()));
 
-    let winner = team.fight(&mut enemy_team, None).unwrap().clone();
+    let steps = team.fight(&mut enemy_team).collect_vec();
+    let winner = &steps.last().unwrap().as_ref().unwrap().name;
 
-    assert_eq!(winner, team);
+    assert_eq!(winner.clone(), team.name);
 }
 
 #[test]
@@ -59,7 +62,8 @@ fn test_battle_cricket_horse_team() {
     );
 
     // After one turn.
-    team.fight(&mut enemy_team, Some(2));
+    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team).next();
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
@@ -94,10 +98,11 @@ fn test_battle_mosquito_team() {
     let mut team = test_mosq_team("self");
     let mut enemy_team = test_ant_team("enemy");
 
-    let winner = team.fight(&mut enemy_team, None).unwrap().clone();
+    let steps = team.fight(&mut enemy_team).collect_vec();
+    let winner = &steps.last().unwrap().as_ref().unwrap().name;
 
     // Mosquitoes kill any team before game starts.
-    assert_eq!(winner, team);
+    assert_eq!(winner.clone(), team.name);
 
     for pet in team.get_all_pets().iter() {
         // Mosquitoes are unhurt

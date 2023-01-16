@@ -1,5 +1,7 @@
+use itertools::Itertools;
+
 use crate::common::{
-    battle::{state::Statistics, team::Battle},
+    battle::state::Statistics,
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
@@ -20,9 +22,10 @@ fn test_battle_badger_team() {
     assert_eq!(team.get_idx_pet(1).unwrap().borrow().stats.health, 5);
     // Dolphin immediately kills badger.
     // Badger's effect triggers dealing 3 dmg to both adjacent pets.
-    let winner = team.fight(&mut enemy_team, None).unwrap().clone();
+    let steps = team.fight(&mut enemy_team).collect_vec();
+    let winner = &steps.last().unwrap().as_ref().unwrap().name;
 
-    assert_eq!(winner, team);
+    assert_eq!(winner.clone(), team.name);
     assert_eq!(team.get_next_pet().unwrap().borrow().stats.health, 2)
 }
 
@@ -35,7 +38,7 @@ fn test_battle_blowfish_team() {
 
     assert_eq!(team.get_idx_pet(1).unwrap().borrow().stats.health, 5);
 
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team).next();
 
     // One pet dies to blowfish indirect attack.
     // Another dies to elephant attack.
@@ -55,7 +58,7 @@ fn test_battle_camel_team() {
     // Ant has 1 health.
     assert_eq!(team.get_idx_pet(2).unwrap().borrow().stats.health, 1);
 
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team).next();
 
     // Camel takes 1 dmg from elephant.
     assert_eq!(team.get_idx_pet(1).unwrap().borrow().stats.health, 5);
@@ -78,7 +81,7 @@ fn test_battle_dog_team() {
             health: 4
         }
     );
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team).next();
 
     assert_eq!(
         team.get_idx_pet(0).unwrap().borrow().name,
@@ -108,7 +111,7 @@ fn test_battle_kangaroo_team() {
             health: 2
         }
     );
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team).next();
 
     // Friend ahead attacks once increasing stats by (2,2)
     assert_eq!(
@@ -138,7 +141,8 @@ fn test_battle_ox_team() {
         }
     );
 
-    team.fight(&mut enemy_team, Some(2));
+    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team).next();
 
     // Gets melon armor.
     assert_eq!(ox.borrow().item, Some(Food::new(&FoodName::Melon).unwrap()));
@@ -161,7 +165,7 @@ fn test_battle_sheep_team() {
 
     assert_eq!(team.get_all_pets().len(), 1);
     // Sheep faint and summon two ram.
-    team.fight(&mut enemy_team, Some(1));
+    team.fight(&mut enemy_team).next();
 
     for team in [team, enemy_team].iter() {
         let pets = team.get_all_pets();

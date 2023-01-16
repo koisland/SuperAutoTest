@@ -18,6 +18,7 @@ itertools = "0.10.5"
 log = "0.4.17"
 log4rs = {version = "1.2.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
 clap = { version = "4.0.32", features = ["derive"] }
+genawaiter = "0.99.1"
 
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0-rc.2"

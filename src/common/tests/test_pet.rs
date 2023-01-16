@@ -161,17 +161,8 @@ fn test_set_remove_item() {
 #[test]
 fn test_set_pos() {
     let mut test_ant = Pet::from(PetName::Ant);
-
-    assert!(test_ant.set_pos(0).is_ok());
+    test_ant.set_pos(0);
     assert!(test_ant.pos == Some(0))
-}
-
-#[test]
-fn test_set_invalid_pos() {
-    let mut test_ant = Pet::from(PetName::Ant);
-
-    assert!(test_ant.set_pos(7).is_err());
-    assert!(test_ant.pos == None)
 }
 
 // #[test]

@@ -8,84 +8,49 @@ use crate::common::{
     pets::{combat::Combat, pet::Pet},
 };
 
+use genawaiter::{rc::gen, yield_};
 use itertools::Itertools;
 use log::info;
 use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, collections::VecDeque, fmt::Display, rc::Rc};
 
-pub const TEAM_SIZE: usize = 5;
-
+/// A Super Auto Pets team.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Team {
     pub name: String,
     pub friends: RefCell<Vec<Option<Rc<RefCell<Pet>>>>>,
+    pub max_size: usize,
     pub triggers: RefCell<VecDeque<Outcome>>,
 }
 
-pub trait Battle: EffectApply {
-    /// Clear `Team` of empty slots and/or fainted `Pet`s.
-    fn clear_team(&self) -> &Self;
-    /// Get the next available `Pet`.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
-    fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>>;
-    /// Get a random available `Pet`.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
-    fn get_any_pet(&self) -> Option<Rc<RefCell<Pet>>>;
-    /// Get an available `Pet` at the specified index.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
-    fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>>;
-    /// Get all available `Pet`s.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
-    fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>>;
-    /// Get a single pet by a given `Condition`.
-    fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>>;
-    /// Add a `Pet` to a `Team`.
-    /// * `:param pet:`
-    ///     * `Pet` to be summoned.
-    /// * `:param pos:`
-    ///     * Index on `self.friends` to add `Pet` to.
-    ///
-    /// Raises `Error`:
-    /// * If `self.friends` at size limit of `TEAM_SIZE` (Default: 5)
-    ///
-    /// Returns:
-    /// * Array of `Outcome` type.
-    fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<[Outcome; 3], TeamError>;
-    fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team>;
-}
-
 impl Team {
-    #[allow(dead_code)]
-    pub fn new(name: &str, pets: &[Option<Pet>; TEAM_SIZE]) -> Team {
-        Team {
-            name: name.to_string(),
-            friends: RefCell::new(
-                pets.iter()
-                    .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
-                    .collect_vec(),
-            ),
-            triggers: RefCell::new(VecDeque::from_iter([TRIGGER_START_BATTLE])),
+    /// Create a new team of a given size.
+    pub fn new(name: &str, pets: &[Option<Pet>], max_size: usize) -> Result<Team, TeamError> {
+        if pets.len() > max_size {
+            Err(TeamError {
+                reason: format!(
+                    "Pets provided exceed specified max size. {} > {}",
+                    pets.len(),
+                    max_size
+                ),
+            })
+        } else {
+            Ok(Team {
+                name: name.to_string(),
+                friends: RefCell::new(
+                    pets.iter()
+                        .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
+                        .collect_vec(),
+                ),
+                max_size,
+                triggers: RefCell::new(VecDeque::from_iter([TRIGGER_START_BATTLE])),
+            })
         }
     }
-}
 
-impl Display for Team {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for friend in self
-            .friends
-            .borrow()
-            .iter()
-            .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
-        {
-            writeln!(f, "{}", friend)?;
-        }
-        Ok(())
-    }
-}
-
-impl Battle for Team {
-    fn clear_team(&self) -> &Self {
+    /// Clear `Team` of empty slots and/or fainted `Pet`s.
+    pub fn clear_team(&self) -> &Self {
         let mut new_idx_cnt = 0;
         let missing_pets = self
             .friends
@@ -102,7 +67,7 @@ impl Battle for Team {
                 {
                     // Pet is Some so safe to unwrap.
                     // Set new pet index and increment
-                    pet.as_ref().unwrap().borrow_mut().set_pos(new_idx_cnt).unwrap();
+                    pet.as_ref().unwrap().borrow_mut().set_pos(new_idx_cnt);
                     new_idx_cnt += 1;
                     None
                 } else {
@@ -118,7 +83,9 @@ impl Battle for Team {
         }
         self
     }
-    fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>> {
+
+    /// Get a single pet by a given `Condition`.
+    pub fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>> {
         let pets = self.get_all_pets().into_iter();
 
         match cond {
@@ -153,15 +120,18 @@ impl Battle for Team {
         }
     }
 
-    fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
+    /// Get an available `Pet` at the specified index.
+    /// * Fainted `Pet`s and/or empty slots are ignored.
+    pub fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
         if let Some(Some(pet)) = self.friends.borrow().get(idx) {
             (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
             None
         }
     }
-    /// Get the next pet in team.
-    fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
+    /// Get the next available `Pet`.
+    /// * Fainted `Pet`s and/or empty slots are ignored.
+    pub fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
         if let Some(Some(pet)) = self.friends.borrow().iter().next() {
             (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
@@ -169,12 +139,16 @@ impl Battle for Team {
         }
     }
 
-    fn get_any_pet(&self) -> Option<Rc<RefCell<Pet>>> {
+    /// Get a random available `Pet`.
+    /// * Fainted `Pet`s and/or empty slots are ignored.
+    pub fn get_any_pet(&self) -> Option<Rc<RefCell<Pet>>> {
         let mut rng = rand::thread_rng();
         self.get_all_pets().into_iter().choose(&mut rng)
     }
 
-    fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>> {
+    /// Get all available `Pet`s.
+    /// * Fainted `Pet`s and/or empty slots are ignored.
+    pub fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>> {
         self.friends
             .borrow()
             .iter()
@@ -188,8 +162,16 @@ impl Battle for Team {
             .collect_vec()
     }
 
-    fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<[Outcome; 3], TeamError> {
-        if self.get_all_pets().len() == TEAM_SIZE {
+    /// Add a `Pet` to a `Team`.
+    /// * `:param pet:`
+    ///     * `Pet` to be summoned.
+    /// * `:param pos:`
+    ///     * Index on `self.friends` to add `Pet` to.
+    ///
+    /// Raises `TeamError`:
+    /// * If `self.friends` at speciedd size limit of `self.max_size`
+    pub fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<(), TeamError> {
+        if self.get_all_pets().len() == self.max_size {
             return Err(TeamError {
                 reason: format!(
                     "(\"{}\")\nMaximum number of pets reached. Cannot add {:?}.",
@@ -241,95 +223,106 @@ impl Battle for Team {
                 }
             }
 
-            Ok([
+            self.triggers.borrow_mut().extend([
                 // May run into issue with mushroomed scorpion.
                 self_trigger,
                 any_trigger,
                 any_enemy_trigger,
-            ])
+            ]);
+            Ok(())
         } else {
             Err(TeamError {
                 reason: "No pet to add.".to_string(),
             })
         }
     }
-    fn fight<'a>(&'a mut self, opponent: &'a mut Team, turns: Option<usize>) -> Option<&Team> {
-        let mut n_turns: usize = 0;
 
+    pub fn fight<'a>(
+        &'a mut self,
+        opponent: &'a mut Team,
+    ) -> impl Iterator<Item = Option<&mut Team>> {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
         // Apply start of battle effects.
-        self.clear_team()._apply_trigger_effects(opponent);
-        opponent.clear_team()._apply_trigger_effects(self);
+        self.clear_team().apply_trigger_effects(opponent);
+        opponent.clear_team().apply_trigger_effects(self);
 
         // Check that both teams have a pet that is alive.
-        loop {
-            // Trigger Before Attack && Friend Ahead attack.
-            self.triggers
-                .borrow_mut()
-                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-            opponent
-                .triggers
-                .borrow_mut()
-                .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+        gen!({
+            loop {
+                // Trigger Before Attack && Friend Ahead attack.
+                self.triggers
+                    .borrow_mut()
+                    .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+                opponent
+                    .triggers
+                    .borrow_mut()
+                    .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
-            self._apply_trigger_effects(opponent).clear_team();
-            opponent._apply_trigger_effects(self).clear_team();
+                self.apply_trigger_effects(opponent).clear_team();
+                opponent.apply_trigger_effects(self).clear_team();
 
-            // Check that two pets exist and attack.
-            // Attack will result in triggers being added.
-            let outcome = if let (Some(pet), Some(opponent_pet)) =
-                (self.get_next_pet(), opponent.get_next_pet())
-            {
-                // Attack and get outcome of fight.
-                info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-                let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-                info!(target: "dev", "(\"{}\")\n{}", self.name, self);
-                info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
-                outcome
-            } else {
-                // If either side has no available pets, exit loop.
-                break;
-            };
+                // Check that two pets exist and attack.
+                // Attack will result in triggers being added.
+                if let (Some(pet), Some(opponent_pet)) =
+                    (self.get_next_pet(), opponent.get_next_pet())
+                {
+                    // Attack and get outcome of fight.
+                    info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
+                    let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
+                    info!(target: "dev", "(\"{}\")\n{}", self.name, self);
+                    info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
-            // Add triggers to team from outcome of battle.
-            self.triggers
-                .borrow_mut()
-                .extend(outcome.friends.into_iter());
-            opponent
-                .triggers
-                .borrow_mut()
-                .extend(outcome.opponents.into_iter());
+                    // Add triggers to team from outcome of battle.
+                    self.triggers
+                        .borrow_mut()
+                        .extend(outcome.friends.into_iter());
+                    opponent
+                        .triggers
+                        .borrow_mut()
+                        .extend(outcome.opponents.into_iter());
 
-            // Apply effect triggers from combat phase.
-            self._apply_trigger_effects(opponent).clear_team();
-            opponent._apply_trigger_effects(self).clear_team();
+                    // Apply effect triggers from combat phase.
+                    self.apply_trigger_effects(opponent).clear_team();
+                    opponent.apply_trigger_effects(self).clear_team();
 
-            // Stop fight after desired number of turns.
-            if let Some(des_n_turns) = turns.map(|n| n.saturating_sub(1)) {
-                if des_n_turns == n_turns {
+                    yield_!(None)
+                } else {
                     break;
-                }
+                };
+            }
+            // If either side has no available pets, exit loop.
+            info!(target: "dev", "(\"{}\")\n{}", self.name, self);
+            info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+            let res = if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
+                info!(target: "dev", "Draw!");
+                None
+            } else if !self.friends.borrow().is_empty() && !opponent.friends.borrow().is_empty() {
+                info!(target: "dev", "Incomplete.");
+                None
+            } else if !self.friends.borrow().is_empty() {
+                info!(target: "dev", "Your team won!");
+                Some(self)
+            } else {
+                info!(target: "dev", "Enemy team won...");
+                Some(opponent)
             };
+            yield_!(res)
+        }).into_iter()
+    }
+}
 
-            n_turns += 1;
+impl Display for Team {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for friend in self
+            .friends
+            .borrow()
+            .iter()
+            .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
+        {
+            writeln!(f, "{}", friend)?;
         }
-
-        info!(target: "dev", "(\"{}\")\n{}", self.name, self);
-        info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
-        if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
-            info!(target: "dev", "Draw!");
-            None
-        } else if !self.friends.borrow().is_empty() && !opponent.friends.borrow().is_empty() {
-            info!(target: "dev", "Incomplete.");
-            None
-        } else if !self.friends.borrow().is_empty() {
-            info!(target: "dev", "Your team won!");
-            Some(self)
-        } else {
-            info!(target: "dev", "Enemy team won...");
-            Some(opponent)
-        }
+        Ok(())
     }
 }
