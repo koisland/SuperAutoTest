@@ -13,13 +13,13 @@ use itertools::Itertools;
 use log::info;
 use rand::seq::IteratorRandom;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, collections::VecDeque, fmt::Display, rc::Rc};
+use std::{collections::VecDeque, fmt::Display};
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Team {
     pub name: String,
-    pub friends: Vec<Option<Rc<RefCell<Pet>>>>,
+    pub friends: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
 }
@@ -38,10 +38,7 @@ impl Team {
         } else {
             Ok(Team {
                 name: name.to_string(),
-                friends: pets
-                    .iter()
-                    .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
-                    .collect_vec(),
+                friends: pets.iter().cloned().collect_vec(),
                 max_size,
                 triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
             })
@@ -53,24 +50,21 @@ impl Team {
         let mut new_idx_cnt = 0;
         let missing_pets = self
             .friends
-            .iter()
+            .iter_mut()
             .enumerate()
             .filter_map(|(i, pet)| {
                 // Check if empty slot
                 if pet.is_none() {
                     Some(i)
-                } else if pet
-                    .as_ref()
-                    .map_or(false, |pet| pet.borrow().stats.health != 0)
-                {
+                } else if pet.as_ref().map_or(false, |pet| pet.stats.health != 0) {
                     // Pet is Some so safe to unwrap.
                     // Set new pet index and increment
-                    pet.as_ref().unwrap().borrow_mut().set_pos(new_idx_cnt);
+                    pet.as_mut().unwrap().set_pos(new_idx_cnt);
                     new_idx_cnt += 1;
                     None
                 } else {
                     // Pet is dead.
-                    info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap().borrow());
+                    info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap());
                     Some(i)
                 }
             })
@@ -83,55 +77,39 @@ impl Team {
     }
 
     /// Get a single pet by a given `Condition`.
-    pub fn get_pet_by_cond(&self, cond: &Condition) -> Option<Rc<RefCell<Pet>>> {
+    pub fn get_pet_by_cond(&mut self, cond: &Condition) -> Option<&mut Pet> {
         let pets = self.get_all_pets().into_iter();
 
         match cond {
-            Condition::Healthiest => pets.max_by(|pet_1, pet_2| {
-                pet_1
-                    .borrow()
-                    .stats
-                    .health
-                    .cmp(&pet_2.borrow().stats.health)
-            }),
-            Condition::Illest => pets.min_by(|pet_1, pet_2| {
-                pet_1
-                    .borrow()
-                    .stats
-                    .health
-                    .cmp(&pet_2.borrow().stats.health)
-            }),
-            Condition::Strongest => pets.max_by(|pet_1, pet_2| {
-                pet_1
-                    .borrow()
-                    .stats
-                    .attack
-                    .cmp(&pet_2.borrow().stats.attack)
-            }),
-            Condition::Weakest => pets.min_by(|pet_1, pet_2| {
-                pet_1
-                    .borrow()
-                    .stats
-                    .attack
-                    .cmp(&pet_2.borrow().stats.attack)
-            }),
+            Condition::Healthiest => {
+                pets.max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+            }
+            Condition::Illest => {
+                pets.min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+            }
+            Condition::Strongest => {
+                pets.max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+            }
+            Condition::Weakest => {
+                pets.min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+            }
         }
     }
 
     /// Get an available `Pet` at the specified index.
     /// * Fainted `Pet`s and/or empty slots are ignored.
-    pub fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(Some(pet)) = self.friends.get(idx) {
-            (pet.borrow().stats.health != 0).then(|| pet.clone())
+    pub fn get_idx_pet(&mut self, idx: usize) -> Option<&mut Pet> {
+        if let Some(Some(pet)) = self.friends.get_mut(idx) {
+            (pet.stats.health != 0).then_some(pet)
         } else {
             None
         }
     }
     /// Get the next available `Pet`.
     /// * Fainted `Pet`s and/or empty slots are ignored.
-    pub fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(Some(pet)) = self.friends.first() {
-            (pet.borrow().stats.health != 0).then(|| pet.clone())
+    pub fn get_next_pet(&mut self) -> Option<&mut Pet> {
+        if let Some(Some(pet)) = self.friends.first_mut() {
+            (pet.stats.health != 0).then_some(pet)
         } else {
             None
         }
@@ -139,19 +117,19 @@ impl Team {
 
     /// Get a random available `Pet`.
     /// * Fainted `Pet`s and/or empty slots are ignored.
-    pub fn get_any_pet(&self) -> Option<Rc<RefCell<Pet>>> {
+    pub fn get_any_pet(&mut self) -> Option<&mut Pet> {
         let mut rng = rand::thread_rng();
         self.get_all_pets().into_iter().choose(&mut rng)
     }
 
     /// Get all available `Pet`s.
     /// * Fainted `Pet`s and/or empty slots are ignored.
-    pub fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>> {
+    pub fn get_all_pets(&mut self) -> Vec<&mut Pet> {
         self.friends
-            .iter()
+            .iter_mut()
             .filter_map(|pet| {
-                if let Some(pet) = pet {
-                    (pet.borrow().stats.health != 0).then(|| pet.clone())
+                if let Some(pet) = pet.as_mut() {
+                    (pet.stats.health != 0).then_some(pet)
                 } else {
                     None
                 }
@@ -181,15 +159,14 @@ impl Team {
             // Would panic attempting to insert at any position not at 0.
             // Also update position to be correct.
             let pos = if pos > self.friends.len() {
-                self.friends.push(Some(Rc::new(RefCell::new(*stored_pet))));
+                self.friends.push(Some(*stored_pet));
                 0
             } else {
-                self.friends
-                    .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
+                self.friends.insert(pos, Some(*stored_pet));
                 pos
             };
 
-            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name, self.get_idx_pet(pos).unwrap().borrow());
+            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.get_idx_pet(pos).unwrap());
 
             // Set summon triggers.
             let mut self_trigger = TRIGGER_SELF_SUMMON;
@@ -261,17 +238,14 @@ impl Team {
                     (self.get_next_pet(), opponent.get_next_pet())
                 {
                     // Attack and get outcome of fight.
-                    info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-                    let outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
+                    info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet, opponent_pet);
+                    let outcome = pet.attack(opponent_pet);
                     info!(target: "dev", "(\"{}\")\n{}", self.name, self);
                     info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
                     // Add triggers to team from outcome of battle.
-                    self.triggers
-                        .extend(outcome.friends.into_iter());
-                    opponent
-                        .triggers
-                        .extend(outcome.opponents.into_iter());
+                    self.triggers.extend(outcome.friends.into_iter());
+                    opponent.triggers.extend(outcome.opponents.into_iter());
 
                     // Apply effect triggers from combat phase.
                     self.apply_trigger_effects(opponent).clear_team();
@@ -299,17 +273,14 @@ impl Team {
                 Some(opponent)
             };
             yield_!(res)
-        }).into_iter()
+        })
+        .into_iter()
     }
 }
 
 impl Display for Team {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for friend in self
-            .friends
-            .iter()
-            .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
-        {
+        for friend in self.friends.iter().filter_map(|pet| pet.as_ref()) {
             writeln!(f, "{}", friend)?;
         }
         Ok(())

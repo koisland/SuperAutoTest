@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::common::{
+    battle::effect::Effect,
     foods::food::Food,
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
 };
@@ -138,7 +139,9 @@ pub enum Status {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum CopyAttr {
     PercentStats(Statistics),
-    Effect,
+    Stats(Statistics),
+    Effect(Box<Option<Effect>>),
+    None,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

@@ -17,10 +17,8 @@ fn test_battle_ant_honey_team() {
     let mut enemy_team = test_ant_team("enemy");
 
     // Give last pet honey on first team.
-    let last_pet = team.friends[2].clone().unwrap();
-    last_pet
-        .borrow_mut()
-        .set_item(Some(Food::new(&FoodName::Honey).unwrap()));
+    let last_pet = team.friends.get_mut(2).unwrap().as_mut().unwrap();
+    last_pet.set_item(Some(Food::new(&FoodName::Honey).unwrap()));
 
     let steps = team.fight(&mut enemy_team).collect_vec();
     let winner = &steps.last().unwrap().as_ref().unwrap().name;
@@ -36,25 +34,19 @@ fn test_battle_cricket_horse_team() {
 
     // First pets are crickets
     // Horse is 3rd pet.
-    assert_eq!(team.get_next_pet().unwrap().borrow().name, PetName::Cricket);
+    assert_eq!(team.get_next_pet().unwrap().name, PetName::Cricket);
+    assert_eq!(enemy_team.get_next_pet().unwrap().name, PetName::Cricket);
+    assert_eq!(team.get_idx_pet(2).unwrap().name, PetName::Horse);
+    assert_eq!(enemy_team.get_idx_pet(2).unwrap().name, PetName::Horse);
     assert_eq!(
-        enemy_team.get_next_pet().unwrap().borrow().name,
-        PetName::Cricket
-    );
-    assert_eq!(team.get_idx_pet(2).unwrap().borrow().name, PetName::Horse);
-    assert_eq!(
-        enemy_team.get_idx_pet(2).unwrap().borrow().name,
-        PetName::Horse
-    );
-    assert_eq!(
-        team.get_next_pet().unwrap().borrow().stats,
+        team.get_next_pet().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
         }
     );
     assert_eq!(
-        enemy_team.get_next_pet().unwrap().borrow().stats,
+        enemy_team.get_next_pet().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -67,23 +59,20 @@ fn test_battle_cricket_horse_team() {
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
+    assert_eq!(team.get_next_pet().unwrap().name, PetName::ZombieCricket);
     assert_eq!(
-        team.get_next_pet().unwrap().borrow().name,
+        enemy_team.get_next_pet().unwrap().name,
         PetName::ZombieCricket
     );
     assert_eq!(
-        enemy_team.get_next_pet().unwrap().borrow().name,
-        PetName::ZombieCricket
-    );
-    assert_eq!(
-        team.get_next_pet().unwrap().borrow().stats,
+        team.get_next_pet().unwrap().stats,
         Statistics {
             attack: 2,
             health: 1
         }
     );
     assert_eq!(
-        enemy_team.get_next_pet().unwrap().borrow().stats,
+        enemy_team.get_next_pet().unwrap().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -107,7 +96,7 @@ fn test_battle_mosquito_team() {
     for pet in team.get_all_pets().iter() {
         // Mosquitoes are unhurt
         assert_eq!(
-            pet.borrow().stats,
+            pet.stats,
             Statistics {
                 attack: 2,
                 health: 2,
