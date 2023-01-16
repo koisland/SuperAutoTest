@@ -1,4 +1,4 @@
-use crate::api::routes;
+use crate::api::{route_battle, route_foods, route_home, route_pets};
 
 use rocket::{Build, Rocket};
 use rocket_sync_db_pools::{database, rusqlite};
@@ -9,7 +9,15 @@ pub struct SapDB(rusqlite::Connection);
 #[launch]
 pub fn rocket() -> Rocket<Build> {
     rocket::build()
-        .mount("/", routes![routes::home, routes::pets, routes::foods])
+        .mount(
+            "/",
+            routes![
+                route_home::home,
+                route_pets::pets,
+                route_foods::foods,
+                route_battle::battle
+            ],
+        )
         // Attach DB connection pool.
         .attach(SapDB::fairing())
 }

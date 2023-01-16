@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use log::{info, warn};
+use log::{error, info, warn};
 use std::{convert::TryInto, error::Error};
 
 use crate::{
@@ -220,12 +220,11 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, Box<dyn Error>> {
 
     for block in response.split("\n\n") {
         // Update pets and continue if cannot.
-        if parse_single_pet(block, &mut curr_tier, &mut pets).is_err() {
+        if let Err(error_msg) = parse_single_pet(block, &mut curr_tier, &mut pets) {
+            error!(target: "wiki_scraper", "{:?}", error_msg);
             continue;
         }
     }
     info!(target: "wiki_scraper", "Retrieved {} pets.", pets.len());
     Ok(pets)
 }
-
-mod tests {}

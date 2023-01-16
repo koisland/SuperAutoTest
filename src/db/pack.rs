@@ -40,10 +40,16 @@ impl fmt::Display for Pack {
     }
 }
 
-#[test]
-fn test_str_to_pack() {
-    assert_eq!(Pack::Turtle, Pack::from_str("Turtle").unwrap());
-    assert_eq!(Pack::Turtle, Pack::from_str("turtle").unwrap());
-    assert_ne!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
-    assert_eq!(Pack::Unknown, Pack::from_str("Golden").unwrap());
+#[cfg(test)]
+mod test {
+    use super::Pack;
+    use std::str::FromStr;
+
+    #[test]
+    fn test_str_to_pack() {
+        assert_eq!(Pack::Turtle, Pack::from_str("Turtle").unwrap());
+        assert_eq!(Pack::Turtle, Pack::from_str("turtle").unwrap());
+        assert_ne!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
+        assert_eq!(Pack::Unknown, Pack::from_str("Golden").unwrap());
+    }
 }

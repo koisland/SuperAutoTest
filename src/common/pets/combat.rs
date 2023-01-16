@@ -15,7 +15,7 @@ use super::pet::{MAX_PET_STATS, MIN_PET_STATS};
 
 pub const MIN_DMG: isize = 1;
 pub const MAX_DMG: isize = 150;
-const FULL_DMG_NEG_ITEMS: [Option<FoodName>; 2] = [Some(FoodName::Coconut), Some(FoodName::Melon)];
+const FULL_DMG_NEG_ITEMS: [FoodName; 2] = [FoodName::Coconut, FoodName::Melon];
 
 pub trait Combat {
     /// Perform damage calculation and get new health for self and opponent.
@@ -147,29 +147,55 @@ impl Combat for Pet {
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
 
         // If has melon or coconut, minimum dmg can be 0, Otherwise, should be 1.
-        let min_enemy_dmg =
-            if FULL_DMG_NEG_ITEMS.contains(&self.item.as_ref().map(|food| food.name.clone())) {
-                0
-            } else {
-                MIN_DMG
-            };
-        let min_dmg =
-            if FULL_DMG_NEG_ITEMS.contains(&enemy.item.as_ref().map(|food| food.name.clone())) {
-                0
-            } else {
-                MIN_DMG
-            };
+        let min_enemy_dmg = if self
+            .item
+            .as_ref()
+            .map_or(false, |food| FULL_DMG_NEG_ITEMS.contains(&food.name))
+        {
+            0
+        } else {
+            MIN_DMG
+        };
+        let min_dmg = if enemy
+            .item
+            .as_ref()
+            .map_or(false, |food| FULL_DMG_NEG_ITEMS.contains(&food.name))
+        {
+            0
+        } else {
+            MIN_DMG
+        };
+
+        // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
+        let max_enemy_dmg = if self
+            .item
+            .as_ref()
+            .map_or(false, |food| food.ability.action == Action::Invincible)
+        {
+            0
+        } else {
+            MAX_DMG
+        };
+        let max_dmg = if enemy
+            .item
+            .as_ref()
+            .map_or(false, |food| food.ability.action == Action::Invincible)
+        {
+            0
+        } else {
+            MAX_DMG
+        };
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
         let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
             .sub(stat_modifier.health)
-            .clamp(min_enemy_dmg, MAX_DMG);
+            .clamp(min_enemy_dmg, max_enemy_dmg);
 
         let atk = (self.stats.attack + stat_modifier.attack)
             .sub(enemy_stat_modifier.health)
-            .clamp(min_dmg, MAX_DMG);
+            .clamp(min_dmg, max_dmg);
 
-        // Insta-kill if any amount of damage is dealt.
+        // Insta-kill if any amount of damage is dealt and enemy has death's touch.
         let new_health = if enemy_atk != 0
             && enemy
                 .item

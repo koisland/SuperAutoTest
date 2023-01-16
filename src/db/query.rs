@@ -110,3 +110,37 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
     info!(target: "db", "{} rows updated in \"food\" table.", n_rows_updated);
     Ok(())
 }
+
+#[cfg(test)]
+mod test {
+    use super::{query_food, query_pet, update_food_info, update_pet_info};
+    use crate::db::setup::get_connection;
+
+    #[test]
+    fn test_query_foods() {
+        let conn = get_connection().unwrap();
+        let sql = "SELECT * FROM foods";
+        let params: Vec<String> = vec![];
+        assert!(query_food(&conn, sql, &params).is_ok())
+    }
+
+    #[test]
+    fn test_query_pets() {
+        let conn = get_connection().unwrap();
+        let sql = "SELECT * FROM pets";
+        let params: Vec<String> = vec![];
+        assert!(query_pet(&conn, sql, &params).is_ok())
+    }
+
+    #[test]
+    fn test_update_foods() {
+        let conn = get_connection().unwrap();
+        assert!(update_pet_info(&conn).is_ok())
+    }
+
+    #[test]
+    fn test_update_pets() {
+        let conn = get_connection().unwrap();
+        assert!(update_food_info(&conn).is_ok())
+    }
+}

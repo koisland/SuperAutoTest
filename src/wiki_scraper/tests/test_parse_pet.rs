@@ -1,4 +1,6 @@
 use crate::db::{pack::Pack, record::PetRecord};
+use crate::wiki_scraper::common::read_wiki_url;
+use crate::wiki_scraper::parse_pet::parse_pet_info;
 use crate::wiki_scraper::{
     common::remove_icon_names,
     parse_pet::{
@@ -207,4 +209,11 @@ fn test_create_pet_record() {
             .filter(|&(a, b)| a == b)
             .count()
     )
+}
+
+#[test]
+fn test_parse_pet_info() {
+    let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES).unwrap();
+
+    assert!(parse_pet_info(&wiki_urls.pets).is_ok())
 }

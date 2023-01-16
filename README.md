@@ -1,4 +1,5 @@
 # SuperAutoTest
+[![Release](https://img.shields.io/github/v/release/koisland/SuperAutoTest)]()
 [![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/test_framework/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
 
@@ -13,13 +14,13 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 ## Usage
 Run the `sapdb.exe` in `./bin`.
 ```bash
-./bin/sapdb.exe
+./bin/sapdb.exe run
 ```
 
 This will setup a server locally at [127.0.0.1:8000](http://127.0.0.1:8000)
 
 ### Database
-From here, you can query pets by the following parameters:
+From here, you can query pets (`pet/`) by the following parameters:
 1. `name`
     * Name of pet.
 2. `level`
@@ -32,25 +33,67 @@ From here, you can query pets by the following parameters:
 5. `effect_trigger`
     * Effect trigger for pet.
 
-Or foods with the following parameters:
+Or foods (`/food`) with the following parameters:
 1. `name`
-  * Name of food.
+    * Name of food.
 2. `tier`
-  * Tier of food.
+    * Tier of food.
 3. `pack`
-  * Pack food belongs to.
+    * Pack food belongs to.
 
 ### Testing
-This is still a WIP.
+Submit two teams to simulate a battle.
+* Currently, only pets from the `Turtle` pack are supported.
+* To check which ones are allowed:
+  * `SQL`
+    ```bash
+    ./bin/sapdb.exe init && sqlite3 sap.db
+    ```
+    ```sql
+    SELECT DISTINCT name FROM pets WHERE pack='Turtle';
+    ```
+  * `API`
+    ```bash
+    curl http://127.0.0.1:8000/pet?pack=Turtle | jq '.[].name' | uniq
+    ```
 
-The general idea is that a user would submit a `JSON` payload of pets for two teams to simulate a battle.
 
-The output `JSON` would detail:
-* The winning team.
-* Each events in the fight.
+Build your team of pets. A maximum of five are allowed.
+* View examples at `docs/examples/`.
+```json
+{
+    "friends": {
+        "name": "self",
+        "p1": {
+            "name": "Ant",
+            "attack": 2,
+            "health": 1,
+            "level": 1
+        }
+    },
+    "enemies": {
+        "name": "enemy",
+        "p1": {
+            "name": "Ant",
+            "attack": 2,
+            "health": 1,
+            "level": 1
+        }
+    }
 
+}
+```
 
+Then submit them to the `battle/` endpoint.
+```bash
+curl -X POST http://127.0.0.1:8000/battle  -H "Content-Type: application/json" -d @docs/examples/battle_invalid.json
+```
+
+---
+
+## API
 To see API usage, see [`docs/README.md`](docs/README.md)
+* WIP
 
 ---
 
@@ -104,5 +147,5 @@ Check the logs saved to `~/logs` to debug any issues.
 
 
 ### Sources
-https://superautopets.fandom.com/wiki
-https://emoji.supply/kitchen/
+* https://superautopets.fandom.com/wiki
+* https://emoji.supply/kitchen/
