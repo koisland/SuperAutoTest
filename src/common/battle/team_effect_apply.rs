@@ -16,61 +16,61 @@ use rand::seq::IteratorRandom;
 use std::{cell::RefCell, error::Error, ops::RangeInclusive, rc::Rc};
 
 pub trait EffectApply {
-    fn _target_effect_any(&self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
-    fn _target_effect_all(&self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
+    fn _target_effect_any(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
+    fn _target_effect_all(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>>;
     fn _target_effect_specific(
-        &self,
+        &mut self,
         pos: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
-    // fn _target_effect_self(&self, trigger: Outcome, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
+    // fn _target_effect_self(&mut self, trigger: Outcome, effect_type: &Action, outcomes: &mut VecDeque<Outcome>);
     fn _target_effect_trigger(
-        &self,
+        &mut self,
         trigger: &Outcome,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
     fn _target_effect_onself(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
     fn _target_effect_range(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         range_idxs: &RangeInclusive<isize>,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
     fn _target_effect_condition(
-        &self,
+        &mut self,
         pet: Rc<RefCell<Pet>>,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>>;
     /// Apply effects based on a team's stored triggers.
-    fn apply_trigger_effects(&self, opponent: &Team) -> &Self;
+    fn apply_trigger_effects(&mut self, opponent: &mut Team) -> &mut Self;
     /// Apply a given effect to a team.
     fn _apply_effect(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: Outcome,
         effect: Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     fn _match_position_one_team(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     fn _match_position_either_team(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     fn _cvt_rel_pos_to_adj_idx(
-        &self,
+        &mut self,
         curr_idx: usize,
         rel_idx: isize,
     ) -> Result<(Target, usize), Box<dyn Error>>;
@@ -78,7 +78,7 @@ pub trait EffectApply {
 
 impl EffectApply for Team {
     fn _target_effect_trigger(
-        &self,
+        &mut self,
         trigger: &Outcome,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
@@ -95,7 +95,6 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 if let Some(target) = self.get_all_pets().get(trigger_pos) {
                     self.triggers
-                        .borrow_mut()
                         .extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), target.borrow());
                 }
@@ -171,7 +170,7 @@ impl EffectApply for Team {
         Ok(())
     }
     fn _target_effect_onself(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
@@ -185,7 +184,6 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 if let Some(target) = self.get_idx_pet(effect_pet_idx) {
                     self.triggers
-                        .borrow_mut()
                         .extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), target.borrow());
                 }
@@ -260,7 +258,7 @@ impl EffectApply for Team {
         Ok(())
     }
 
-    fn _target_effect_any(&self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
+    fn _target_effect_any(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
         match effect_type {
             Action::Add(stats) => {
                 if let Some(target) = self.get_any_pet() {
@@ -271,7 +269,6 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 if let Some(target) = self.get_any_pet() {
                     self.triggers
-                        .borrow_mut()
                         .extend(target.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), target.borrow());
                 }
@@ -295,7 +292,7 @@ impl EffectApply for Team {
         Ok(())
     }
 
-    fn _target_effect_all(&self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
+    fn _target_effect_all(&mut self, effect_type: &Action) -> Result<(), Box<dyn Error>> {
         match effect_type {
             Action::Add(stats) => {
                 for pet in self.get_all_pets() {
@@ -306,7 +303,6 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 for pet in self.get_all_pets() {
                     self.triggers
-                        .borrow_mut()
                         .extend(pet.borrow_mut().indirect_attack(stats));
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), pet.borrow());
                 }
@@ -317,16 +313,18 @@ impl EffectApply for Team {
     }
 
     fn _target_effect_range(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         range_idxs: &RangeInclusive<isize>,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
-        for (target, pos) in range_idxs
+        let pet_ranges = range_idxs
             .clone()
             .into_iter()
             .filter_map(|rel_idx| self._cvt_rel_pos_to_adj_idx(effect_pet_idx, rel_idx).ok())
-        {
+            .collect_vec();
+
+        for (target, pos) in pet_ranges {
             // self._cvt_rel_pos_to_adj_idx may return a pet idx from either team.
             // Because each _target_* method operates only on a single team, it must match on own team to be valid.
             match (target, effect_type) {
@@ -339,7 +337,6 @@ impl EffectApply for Team {
                 (Target::Friend, Action::Remove(stats)) => {
                     if let Some(pet) = self.get_idx_pet(pos) {
                         self.triggers
-                            .borrow_mut()
                             .extend(pet.borrow_mut().indirect_attack(stats));
                         info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), pet.borrow());
                     }
@@ -351,7 +348,7 @@ impl EffectApply for Team {
     }
 
     fn _target_effect_specific(
-        &self,
+        &mut self,
         pos: usize,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
@@ -366,7 +363,6 @@ impl EffectApply for Team {
                 if let Some(affected_pet) = self.get_all_pets().get(pos) {
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), affected_pet.borrow());
                     self.triggers
-                        .borrow_mut()
                         .extend(affected_pet.borrow_mut().indirect_attack(stats));
                 }
             }
@@ -385,7 +381,7 @@ impl EffectApply for Team {
     }
 
     fn _target_effect_condition(
-        &self,
+        &mut self,
         pet: Rc<RefCell<Pet>>,
         effect_type: &Action,
     ) -> Result<(), Box<dyn Error>> {
@@ -393,7 +389,6 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", self.name, stats.clone().invert(), pet.borrow());
                 self.triggers
-                    .borrow_mut()
                     .extend(pet.borrow_mut().indirect_attack(stats));
             }
             Action::Add(_) => {}
@@ -412,7 +407,7 @@ impl EffectApply for Team {
     /// Output:
     /// * Value of the new index on a team represented by a variant in the enum `Target`.
     fn _cvt_rel_pos_to_adj_idx(
-        &self,
+        &mut self,
         curr_idx: usize,
         rel_idx: isize,
     ) -> Result<(Target, usize), Box<dyn Error>> {
@@ -438,11 +433,11 @@ impl EffectApply for Team {
     }
 
     fn _match_position_one_team(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         match &effect.position {
             Position::Any => self._target_effect_any(&effect.action)?,
@@ -484,11 +479,11 @@ impl EffectApply for Team {
     }
 
     fn _match_position_either_team(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         match &effect.position {
             Position::Specific(rel_pos) => {
@@ -529,11 +524,11 @@ impl EffectApply for Team {
     }
 
     fn _apply_effect(
-        &self,
+        &mut self,
         effect_pet_idx: usize,
         trigger: Outcome,
         effect: Effect,
-        opponent: &Team,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         // Activate effect for each use.
         for _ in 0..effect.uses.unwrap_or(1) {
@@ -554,10 +549,10 @@ impl EffectApply for Team {
         Ok(())
     }
 
-    fn apply_trigger_effects(&self, opponent: &Team) -> &Self {
+    fn apply_trigger_effects(&mut self, opponent: &mut Team) -> &mut Self {
         // Get ownership of current triggers and clear team triggers.
-        let mut curr_triggers = self.triggers.borrow_mut().to_owned();
-        self.triggers.borrow_mut().clear();
+        let mut curr_triggers = self.triggers.to_owned();
+        self.triggers.clear();
 
         info!(target: "dev", "(\"{}\")\nTriggers:\n{}", self.name, curr_triggers.iter().join("\n"));
 
@@ -568,7 +563,6 @@ impl EffectApply for Team {
             // Iterate through pets in descending order by attack strength collecting valid effects.
             for (effect_pet_idx, pet) in self
                 .friends
-                .borrow()
                 .iter()
                 .enumerate()
                 .sorted_by(|(_, pet_1), (_, pet_2)| {
@@ -621,8 +615,8 @@ impl EffectApply for Team {
                     println!("(\"{}\")\nSomething went wrong. {:?}", self.name, err)
                 };
             }
-            curr_triggers.extend(self.triggers.borrow().iter().cloned());
-            self.triggers.borrow_mut().clear();
+            curr_triggers.extend(self.triggers.iter().cloned());
+            self.triggers.clear();
         }
         self
     }

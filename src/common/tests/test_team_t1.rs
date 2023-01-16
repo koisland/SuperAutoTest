@@ -17,7 +17,7 @@ fn test_battle_ant_honey_team() {
     let mut enemy_team = test_ant_team("enemy");
 
     // Give last pet honey on first team.
-    let last_pet = team.friends.borrow()[2].clone().unwrap();
+    let last_pet = team.friends[2].clone().unwrap();
     last_pet
         .borrow_mut()
         .set_item(Some(Food::new(&FoodName::Honey).unwrap()));

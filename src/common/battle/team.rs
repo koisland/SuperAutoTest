@@ -19,9 +19,9 @@ use std::{cell::RefCell, collections::VecDeque, fmt::Display, rc::Rc};
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Team {
     pub name: String,
-    pub friends: RefCell<Vec<Option<Rc<RefCell<Pet>>>>>,
+    pub friends: Vec<Option<Rc<RefCell<Pet>>>>,
     pub max_size: usize,
-    pub triggers: RefCell<VecDeque<Outcome>>,
+    pub triggers: VecDeque<Outcome>,
 }
 
 impl Team {
@@ -38,23 +38,21 @@ impl Team {
         } else {
             Ok(Team {
                 name: name.to_string(),
-                friends: RefCell::new(
-                    pets.iter()
-                        .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
-                        .collect_vec(),
-                ),
+                friends: pets
+                    .iter()
+                    .map(|pet| pet.as_ref().map(|pet| Rc::new(RefCell::new(pet.clone()))))
+                    .collect_vec(),
                 max_size,
-                triggers: RefCell::new(VecDeque::from_iter([TRIGGER_START_BATTLE])),
+                triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
             })
         }
     }
 
     /// Clear `Team` of empty slots and/or fainted `Pet`s.
-    pub fn clear_team(&self) -> &Self {
+    pub fn clear_team(&mut self) -> &mut Self {
         let mut new_idx_cnt = 0;
         let missing_pets = self
             .friends
-            .borrow()
             .iter()
             .enumerate()
             .filter_map(|(i, pet)| {
@@ -79,7 +77,7 @@ impl Team {
             .collect_vec();
         // Iterate in reverse to maintain correct removal order.
         for rev_idx in missing_pets.iter().rev() {
-            self.friends.borrow_mut().remove(*rev_idx);
+            self.friends.remove(*rev_idx);
         }
         self
     }
@@ -123,7 +121,7 @@ impl Team {
     /// Get an available `Pet` at the specified index.
     /// * Fainted `Pet`s and/or empty slots are ignored.
     pub fn get_idx_pet(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(Some(pet)) = self.friends.borrow().get(idx) {
+        if let Some(Some(pet)) = self.friends.get(idx) {
             (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
             None
@@ -132,7 +130,7 @@ impl Team {
     /// Get the next available `Pet`.
     /// * Fainted `Pet`s and/or empty slots are ignored.
     pub fn get_next_pet(&self) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(Some(pet)) = self.friends.borrow().iter().next() {
+        if let Some(Some(pet)) = self.friends.first() {
             (pet.borrow().stats.health != 0).then(|| pet.clone())
         } else {
             None
@@ -150,7 +148,6 @@ impl Team {
     /// * Fainted `Pet`s and/or empty slots are ignored.
     pub fn get_all_pets(&self) -> Vec<Rc<RefCell<Pet>>> {
         self.friends
-            .borrow()
             .iter()
             .filter_map(|pet| {
                 if let Some(pet) = pet {
@@ -170,7 +167,7 @@ impl Team {
     ///
     /// Raises `TeamError`:
     /// * If `self.friends` at speciedd size limit of `self.max_size`
-    pub fn add_pet(&self, pet: &Option<Box<Pet>>, pos: usize) -> Result<(), TeamError> {
+    pub fn add_pet(&mut self, pet: &Option<Box<Pet>>, pos: usize) -> Result<(), TeamError> {
         if self.get_all_pets().len() == self.max_size {
             return Err(TeamError {
                 reason: format!(
@@ -183,14 +180,11 @@ impl Team {
             // Handle case where pet in front faints and vector is empty.
             // Would panic attempting to insert at any position not at 0.
             // Also update position to be correct.
-            let pos = if pos > self.friends.borrow().len() {
-                self.friends
-                    .borrow_mut()
-                    .push(Some(Rc::new(RefCell::new(*stored_pet))));
+            let pos = if pos > self.friends.len() {
+                self.friends.push(Some(Rc::new(RefCell::new(*stored_pet))));
                 0
             } else {
                 self.friends
-                    .borrow_mut()
                     .insert(pos, Some(Rc::new(RefCell::new(*stored_pet))));
                 pos
             };
@@ -207,7 +201,7 @@ impl Team {
 
             // Update old triggers and their positions that store a pet's idx after inserting new pet.
             // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
-            for trigger in self.triggers.borrow_mut().iter_mut() {
+            for trigger in self.triggers.iter_mut() {
                 match (&mut trigger.position, &mut trigger.target) {
                     (Position::Specific(orig_pos), Target::Friend)
                     | (Position::Specific(orig_pos), Target::Enemy) => *orig_pos += 1,
@@ -223,7 +217,7 @@ impl Team {
                 }
             }
 
-            self.triggers.borrow_mut().extend([
+            self.triggers.extend([
                 // May run into issue with mushroomed scorpion.
                 self_trigger,
                 any_trigger,
@@ -253,11 +247,9 @@ impl Team {
             loop {
                 // Trigger Before Attack && Friend Ahead attack.
                 self.triggers
-                    .borrow_mut()
                     .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
                 opponent
                     .triggers
-                    .borrow_mut()
                     .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
                 self.apply_trigger_effects(opponent).clear_team();
@@ -276,11 +268,9 @@ impl Team {
 
                     // Add triggers to team from outcome of battle.
                     self.triggers
-                        .borrow_mut()
                         .extend(outcome.friends.into_iter());
                     opponent
                         .triggers
-                        .borrow_mut()
                         .extend(outcome.opponents.into_iter());
 
                     // Apply effect triggers from combat phase.
@@ -295,13 +285,13 @@ impl Team {
             // If either side has no available pets, exit loop.
             info!(target: "dev", "(\"{}\")\n{}", self.name, self);
             info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
-            let res = if self.friends.borrow().is_empty() && opponent.friends.borrow().is_empty() {
+            let res = if self.friends.is_empty() && opponent.friends.is_empty() {
                 info!(target: "dev", "Draw!");
                 None
-            } else if !self.friends.borrow().is_empty() && !opponent.friends.borrow().is_empty() {
+            } else if !self.friends.is_empty() && !opponent.friends.is_empty() {
                 info!(target: "dev", "Incomplete.");
                 None
-            } else if !self.friends.borrow().is_empty() {
+            } else if !self.friends.is_empty() {
                 info!(target: "dev", "Your team won!");
                 Some(self)
             } else {
@@ -317,7 +307,6 @@ impl Display for Team {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for friend in self
             .friends
-            .borrow()
             .iter()
             .filter_map(|pet| pet.as_ref().map(|pet| pet.borrow()))
         {
