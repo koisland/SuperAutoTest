@@ -137,7 +137,7 @@ pub fn get_pet_effect(
             Some(Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Enemy,
-                position: Position::Specific(0),
+                position: Position::OnSelf,
                 action: Action::Summon(Some(dirty_rat)),
                 // Activates multiple times per trigger.
                 uses: Some(lvl),

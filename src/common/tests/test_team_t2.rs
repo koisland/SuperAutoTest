@@ -1,5 +1,3 @@
-use petgraph::dot::Dot;
-
 use crate::common::{
     battle::state::{Statistics, TeamFightOutcome},
     pets::names::PetName,

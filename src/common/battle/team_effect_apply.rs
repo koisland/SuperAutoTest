@@ -32,12 +32,14 @@ pub trait EffectApply {
         effect: Effect,
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
+    /// Match statement applying effect to exclusively one `Team`.
     fn _match_position_one_team(
         &mut self,
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &mut Effect,
     ) -> Result<(), Box<dyn Error>>;
+    /// Match statement applying effect to either self or opponent `Team`.
     fn _match_position_either_team(
         &mut self,
         effect_pet_idx: usize,
@@ -45,6 +47,7 @@ pub trait EffectApply {
         effect: &mut Effect,
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
+    /// Create a node logging an effect's result for a `Team`'s history.
     fn create_node(&mut self, trigger: &Outcome) -> &mut Self;
     /// Calculates an adjusted index based on the current index and a relative index.
     /// * `:param curr_idx:` The current index.
@@ -68,30 +71,14 @@ impl EffectApply for Team {
         effect: &mut Effect,
     ) -> Result<(), Box<dyn Error>> {
         let name = self.name.clone();
+        let mut target_ids: Vec<Option<String>> = vec![];
         match &effect.action {
             Action::Add(stats) => {
-                let target_id = if let Some(target) = self.get_idx_pet(target_idx) {
+                if let Some(target) = self.get_idx_pet(target_idx) {
                     target.stats += stats.clone();
                     info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, target);
-                    target.id.clone()
-                } else {
-                    None
-                };
-                // Create edge.
-                if let (Some(prev_node), Some(curr_node)) =
-                    (self.history.prev_node, self.history.curr_node)
-                {
-                    self.history.effect_graph.add_edge(
-                        prev_node,
-                        curr_node,
-                        (
-                            effect.target.clone(),
-                            effect.position.clone(),
-                            effect.action.clone(),
-                            target_id.unwrap_or_else(|| "None".to_string()),
-                        ),
-                    );
-                };
+                    target_ids.push(target.id.clone())
+                }
             }
             Action::Remove(stats) => {
                 let mut outcomes: Vec<Outcome> = vec![];
@@ -102,69 +89,22 @@ impl EffectApply for Team {
                 } else {
                     None
                 };
-                // Create edge.
-                if let (Some(prev_node), Some(curr_node)) =
-                    (self.history.prev_node, self.history.curr_node)
-                {
-                    self.history.effect_graph.add_edge(
-                        prev_node,
-                        curr_node,
-                        (
-                            effect.target.clone(),
-                            effect.position.clone(),
-                            effect.action.clone(),
-                            target_id.unwrap_or_else(|| "None".to_string()),
-                        ),
-                    );
-                };
-                self.triggers.extend(outcomes)
+                self.triggers.extend(outcomes);
+                target_ids.push(target_id)
             }
             Action::Gain(food) => {
-                let target_id = if let Some(target) = self.get_idx_pet(target_idx) {
+                if let Some(target) = self.get_idx_pet(target_idx) {
                     target.set_item(Some(*food.clone()));
                     info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, target);
-                    target.id.clone()
-                } else {
-                    None
-                };
-                // Create edge.
-                if let (Some(prev_node), Some(curr_node)) =
-                    (self.history.prev_node, self.history.curr_node)
-                {
-                    self.history.effect_graph.add_edge(
-                        prev_node,
-                        curr_node,
-                        (
-                            effect.target.clone(),
-                            effect.position.clone(),
-                            effect.action.clone(),
-                            target_id.unwrap_or_else(|| "None".to_string()),
-                        ),
-                    );
-                };
+                    target_ids.push(target.id.clone())
+                }
             }
             Action::Summon(pet) => {
-                let summon_id = if let Ok(Some(summoned_pet)) = self.add_pet(pet, target_idx) {
-                    summoned_pet.id.clone()
+                if let Ok(Some(summoned_pet)) = self.add_pet(pet, target_idx) {
+                    target_ids.push(summoned_pet.id.clone())
                 } else {
                     info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, pet, target_idx);
-                    None
-                };
-                // Create edge.
-                if let (Some(prev_node), Some(curr_node)) =
-                    (self.history.prev_node, self.history.curr_node)
-                {
-                    self.history.effect_graph.add_edge(
-                        prev_node,
-                        curr_node,
-                        (
-                            effect.target.clone(),
-                            effect.position.clone(),
-                            effect.action.clone(),
-                            summon_id.unwrap_or_else(|| "None".to_string()),
-                        ),
-                    );
-                };
+                }
             }
             Action::Multiple(actions) => {
                 for action in actions {
@@ -216,7 +156,7 @@ impl EffectApply for Team {
                 };
 
                 // Chose the target of recipient of copied pet stats/effect.
-                let target_id = if let Some(target) = self.get_idx_pet(target_idx) {
+                if let Some(target) = self.get_idx_pet(target_idx) {
                     // Calculate stats or set ability.
                     match copied_attr.unwrap_or(CopyAttr::None) {
                         CopyAttr::Stats(mut new_stats) => {
@@ -247,28 +187,28 @@ impl EffectApply for Team {
                         CopyAttr::None => {}
                         CopyAttr::PercentStats(_) => {}
                     }
-                    target.id.clone()
-                } else {
-                    None
-                };
-                // Create edge.
-                if let (Some(prev_node), Some(curr_node)) =
-                    (self.history.prev_node, self.history.curr_node)
-                {
-                    self.history.effect_graph.add_edge(
-                        prev_node,
-                        curr_node,
-                        (
-                            effect.target.clone(),
-                            effect.position.clone(),
-                            effect.action.clone(),
-                            target_id.unwrap_or_else(|| "None".to_string()),
-                        ),
-                    );
-                };
+                    target_ids.push(target.id.clone())
+                }
             }
             _ => {}
         }
+        // Create edge by iterating over all targets affected.
+        if let (Some(prev_node), Some(curr_node)) = (self.history.prev_node, self.history.curr_node)
+        {
+            for target_id in target_ids {
+                self.history.effect_graph.add_edge(
+                    prev_node,
+                    curr_node,
+                    (
+                        effect.target.clone(),
+                        effect.position.clone(),
+                        effect.action.clone(),
+                        // If added, may not have and id. Default to 'None'.
+                        target_id.unwrap_or_else(|| "None".to_string()),
+                    ),
+                );
+            }
+        };
         Ok(())
     }
 

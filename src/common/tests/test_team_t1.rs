@@ -4,23 +4,8 @@ use crate::common::{
     pets::names::PetName,
     tests::common::{test_ant_team, test_cricket_horse_team, test_mosq_team},
 };
-use crate::LOG_CONFIG;
-use petgraph::dot::Dot;
-
-#[test]
-fn test_battle_graph() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
-    let mut team = test_ant_team("self");
-    let mut enemy_team = test_ant_team("enemy");
-
-    let mut fight = team.fight(&mut enemy_team);
-    while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
-    }
-
-    assert_eq!(fight, TeamFightOutcome::Draw);
-}
+// use crate::LOG_CONFIG;
+// use petgraph::{dot::Dot, visit::Dfs};
 
 #[test]
 fn test_battle_ant_honey_team() {
@@ -106,7 +91,6 @@ fn test_battle_mosquito_team() {
     while let TeamFightOutcome::None = fight {
         fight = team.fight(&mut enemy_team)
     }
-
     // Mosquitoes kill any team before game starts.
     assert_eq!(fight, TeamFightOutcome::Win);
     assert_eq!(team.friends.len(), 3);

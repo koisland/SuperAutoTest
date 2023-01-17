@@ -20,6 +20,7 @@ use std::{collections::VecDeque, fmt::Display};
 pub struct Team {
     pub name: String,
     pub friends: Vec<Option<Pet>>,
+    pub fainted: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
     pub history: History,
@@ -61,11 +62,11 @@ impl Team {
             let mut team = Team {
                 name: name.to_string(),
                 friends: idx_pets,
+                fainted: vec![],
                 max_size,
                 triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
                 history: History {
                     curr_turn: 0,
-                    dead: vec![],
                     curr_node: None,
                     prev_node: None,
                     effect_graph: Graph::new(),
@@ -108,7 +109,7 @@ impl Team {
         for rev_idx in missing_pets.iter().rev() {
             // Remove the pet and store its id.
             let dead_pet = self.friends.remove(*rev_idx);
-            self.history.dead.push(dead_pet);
+            self.fainted.push(dead_pet);
         }
         self
     }
@@ -188,6 +189,10 @@ impl Team {
         pos: usize,
     ) -> Result<&Option<Pet>, TeamError> {
         if self.get_all_pets().len() == self.max_size {
+            // Add overflow to dead pets.
+            if let Some(stored_pet) = pet.clone() {
+                self.fainted.push(Some(*stored_pet));
+            }
             return Err(TeamError {
                 reason: format!(
                     "(\"{}\")\nMaximum number of pets reached. Cannot add {:?}.",
@@ -206,14 +211,9 @@ impl Team {
             // Handle case where pet in front faints and vector is empty.
             // Would panic attempting to insert at any position not at 0.
             // Also update position to be correct.
-            let pos = if pos > self.friends.len() {
-                self.friends.push(Some(*stored_pet));
-                0
-            } else {
-                self.friends.insert(pos, Some(*stored_pet));
-                pos
-            };
+            let pos = if pos > self.friends.len() { 0 } else { pos };
 
+            self.friends.insert(pos, Some(*stored_pet));
             info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.get_idx_pet(pos).unwrap());
 
             // Set summon triggers.
@@ -261,8 +261,12 @@ impl Team {
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
         // Apply start of battle effects.
-        self.clear_team().trigger_effects(opponent);
-        opponent.clear_team().trigger_effects(self);
+        self.clear_team();
+        opponent.clear_team();
+        while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
+            self.trigger_effects(opponent);
+            opponent.trigger_effects(self);
+        }
 
         // Check that both teams have a pet that is alive.
         // Increment turn counter.
@@ -275,8 +279,13 @@ impl Team {
             .triggers
             .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
-        self.trigger_effects(opponent).clear_team();
-        opponent.trigger_effects(self).clear_team();
+        while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
+            self.trigger_effects(opponent);
+            opponent.trigger_effects(self);
+        }
+
+        self.clear_team();
+        opponent.clear_team();
 
         // Check that two pets exist and attack.
         // Attack will result in triggers being added.
@@ -286,6 +295,10 @@ impl Team {
             let outcome = pet.attack(opponent_pet);
             info!(target: "dev", "(\"{}\")\n{}", self.name, self);
             info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+
+            // Create attack node.
+            self.create_node(&TRIGGER_SELF_ATTACK);
+            opponent.create_node(&TRIGGER_SELF_ATTACK);
 
             if let Some(hurt_trigger) = outcome
                 .friends
@@ -308,8 +321,12 @@ impl Team {
             opponent.triggers.extend(outcome.opponents.into_iter());
 
             // Apply effect triggers from combat phase.
-            self.trigger_effects(opponent).clear_team();
-            opponent.trigger_effects(self).clear_team();
+            while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
+                self.trigger_effects(opponent);
+                opponent.trigger_effects(self);
+            }
+            self.clear_team();
+            opponent.clear_team();
         }
         if !self.friends.is_empty() && !opponent.friends.is_empty() {
             TeamFightOutcome::None

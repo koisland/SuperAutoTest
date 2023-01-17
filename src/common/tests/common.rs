@@ -1,5 +1,5 @@
 use crate::common::{
-    battle::team::Team,
+    battle::{state::Statistics, team::Team},
     pets::{names::PetName, pet::Pet},
 };
 
@@ -252,4 +252,33 @@ pub fn test_sheep_team(name: &str) -> Team {
         5,
     )
     .unwrap()
+}
+
+pub fn test_filled_sheep_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Sheep)),
+            Some(Pet::from(PetName::Sheep)),
+            Some(Pet::from(PetName::Sheep)),
+            Some(Pet::from(PetName::Sheep)),
+            Some(Pet::from(PetName::Sheep)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_blowfish_rally_team(name: &str) -> Team {
+    let blowfish = Pet::new(
+        PetName::Blowfish,
+        None,
+        Some(Statistics {
+            attack: 1,
+            health: 50,
+        }),
+        1,
+    )
+    .unwrap();
+    Team::new(name, &[Some(blowfish.clone()), None, None, None, None], 5).unwrap()
 }

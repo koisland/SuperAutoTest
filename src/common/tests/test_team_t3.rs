@@ -1,14 +1,17 @@
 use crate::common::{
-    battle::state::{Statistics, TeamFightOutcome},
+    battle::state::{Statistics, Status, TeamFightOutcome},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
-        test_ant_team, test_badger_team, test_blowfish_team, test_camel_team, test_dog_team,
-        test_dolphin_team, test_kangaroo_team, test_ox_team, test_sheep_team,
+        test_ant_team, test_badger_team, test_blowfish_rally_team, test_blowfish_team,
+        test_camel_team, test_dog_team, test_dolphin_team, test_kangaroo_team, test_ox_team,
+        test_sheep_team,
     },
 };
 
-// use crate::LOG_CONFIG;
+use crate::LOG_CONFIG;
+
+use super::common::test_filled_sheep_team;
 
 #[test]
 fn test_battle_badger_team() {
@@ -47,6 +50,30 @@ fn test_battle_blowfish_team() {
     assert_eq!(team.get_idx_pet(1).unwrap().stats.health, 4);
 }
 
+#[test]
+fn test_battle_blowfish_rally_battle() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
+    let mut team = test_blowfish_rally_team("self");
+    let mut enemy_team = test_blowfish_rally_team("enemy");
+
+    let mut fight = team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        fight = team.fight(&mut enemy_team)
+    }
+
+    // Only one attack occurs in fight.
+    let n_atks: usize = team
+        .history
+        .effect_graph
+        .raw_nodes()
+        .iter()
+        .filter_map(|node| (node.weight.status == Status::Attack).then_some(1))
+        .sum();
+    assert_eq!(1, n_atks);
+    // 25 atks occur 1 + 50 = 51 dmg.
+    assert_eq!(25, team.history.effect_graph.raw_edges().len())
+}
 #[test]
 fn test_battle_camel_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
@@ -176,4 +203,20 @@ fn test_battle_sheep_team() {
             assert_eq!(pet.name, PetName::Ram)
         }
     }
+}
+
+#[test]
+fn test_battle_filled_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    let mut team = test_filled_sheep_team("self");
+    let mut enemy_team = test_filled_sheep_team("enemy");
+
+    team.fight(&mut enemy_team);
+
+    // Overflow in pets (ram in this case) gets added to team's dead.
+    assert_eq!(2, team.fainted.len());
+    assert_eq!(
+        PetName::Ram,
+        team.fainted.first().unwrap().as_ref().unwrap().name
+    )
 }
