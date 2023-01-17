@@ -78,6 +78,10 @@ impl Combat for Pet {
             .health
             .sub(new_health)
             .clamp(MIN_PET_STATS, MAX_PET_STATS);
+        let health_diff_stats = Some(Statistics {
+            health: health_diff,
+            attack: 0,
+        });
         let mut outcomes: Vec<Outcome> = vec![];
         if health_diff == self.stats.health {
             // If difference between health before and after battle is equal the before battle health,
@@ -86,18 +90,27 @@ impl Combat for Pet {
                 (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT, TRIGGER_AHEAD_FAINT);
             (self_faint.idx, any_faint.idx, ahead_faint.idx) =
                 (self.pos, self.pos, self.pos.map(|pos| pos + 1));
+            (
+                self_faint.stat_diff,
+                any_faint.stat_diff,
+                ahead_faint.stat_diff,
+            ) = (
+                health_diff_stats.clone(),
+                health_diff_stats.clone(),
+                health_diff_stats,
+            );
 
             outcomes.extend([self_faint, any_faint, ahead_faint])
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
-            self_unhurt.idx = self.pos;
+            (self_unhurt.idx, self_unhurt.stat_diff) = (self.pos, health_diff_stats);
 
             outcomes.push(self_unhurt)
         } else {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
-            self_hurt.idx = self.pos;
+            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
 
             outcomes.push(self_hurt)
         };

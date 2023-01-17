@@ -1,7 +1,7 @@
-use itertools::Itertools;
+use petgraph::dot::Dot;
 
 use crate::common::{
-    battle::state::Statistics,
+    battle::state::{Statistics, TeamFightOutcome},
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_crab_team, test_dodo_team, test_elephant_peacock_team,
@@ -18,10 +18,12 @@ fn test_battle_hedgehog_team() {
     let mut team = test_hedgehog_team("self");
     let mut enemy_team = test_ant_team("enemy");
 
-    let steps = team.fight(&mut enemy_team).collect_vec();
-    let winner = &steps.last().unwrap().as_ref();
+    let mut fight = team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        fight = team.fight(&mut enemy_team)
+    }
 
-    assert!(winner.is_none())
+    assert_eq!(fight, TeamFightOutcome::Draw);
 }
 
 #[test]
@@ -37,7 +39,7 @@ fn test_battle_elephant_peacock_team() {
             health: 5
         }
     );
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
 
     // Lvl.1 elephant deals 1 dmg once to pet at back.
     // Lvl.1 peacock gains 4 atk.
@@ -70,7 +72,7 @@ fn test_battle_crab_team() {
             health: 50
         }
     );
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
 
     // Crab at lvl. 1 copies 25 from big ant at pos 2.
     // Gets hit for 2 dmg.
@@ -102,7 +104,7 @@ fn test_battle_dodo_team() {
         (team.get_idx_pet(1).unwrap().stats.attack as f32 * 0.33).round(),
         1.0
     );
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
 
     assert_eq!(
         team.get_next_pet().unwrap().stats,
@@ -133,7 +135,7 @@ fn test_battle_flamingo_team() {
             health: 1
         }
     );
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
 
     // Flamingo faints giving two pets behind (1, 1).
     assert_eq!(
@@ -157,8 +159,8 @@ fn test_battle_rat_lvl_1_team() {
     let mut team_lvl_1 = test_rat_team("self", 1);
     let mut enemy_team_lvl_1 = test_rat_team("enemy", 1);
 
-    team_lvl_1.fight(&mut enemy_team_lvl_1).next();
-    team_lvl_1.fight(&mut enemy_team_lvl_1).next();
+    team_lvl_1.fight(&mut enemy_team_lvl_1);
+    team_lvl_1.fight(&mut enemy_team_lvl_1);
 
     assert_eq!(team_lvl_1.get_next_pet().unwrap().name, PetName::DirtyRat);
     assert_eq!(
@@ -178,8 +180,8 @@ fn test_battle_rat_lvl_2_team() {
     assert_eq!(team_lvl_2.get_next_pet().unwrap().lvl, 2);
     assert_eq!(enemy_team_lvl_2.get_next_pet().unwrap().lvl, 2);
 
-    team_lvl_2.fight(&mut enemy_team_lvl_2).next();
-    team_lvl_2.fight(&mut enemy_team_lvl_2).next();
+    team_lvl_2.fight(&mut enemy_team_lvl_2);
+    team_lvl_2.fight(&mut enemy_team_lvl_2);
 
     // Both rats die and summon two dirty rats.
     assert_eq!(team_lvl_2.get_all_pets().len(), 2);
@@ -199,7 +201,7 @@ fn test_battle_spider_team() {
     let mut team = test_spider_team("self");
     let mut enemy_team = test_spider_team("enemy");
 
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
 
     // Spiders kill themselves and both spawn a random tier 3 pet from the Turtle pack.
     assert_eq!(team.get_next_pet().unwrap().tier, 3);

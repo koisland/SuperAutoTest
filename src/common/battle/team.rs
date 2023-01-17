@@ -1,27 +1,29 @@
 use crate::common::{
     battle::{
-        state::{Condition, Outcome, Position, Target},
+        state::{Condition, Outcome, Position, Status, Target, TeamFightOutcome},
         team_effect_apply::EffectApply,
         trigger::*,
     },
     error::TeamError,
+    graph::effect_graph::History,
     pets::{combat::Combat, pet::Pet},
 };
 
-use genawaiter::{rc::gen, yield_};
 use itertools::Itertools;
 use log::info;
+use petgraph::Graph;
 use rand::seq::IteratorRandom;
-use serde::{Deserialize, Serialize};
 use std::{collections::VecDeque, fmt::Display};
 
 /// A Super Auto Pets team.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug)]
 pub struct Team {
     pub name: String,
     pub friends: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
+    pub history: History,
+    pub pet_count: usize,
 }
 
 impl Team {
@@ -37,24 +39,44 @@ impl Team {
             })
         } else {
             // Index pets.
-            let mut idx = 0;
+            let mut pet_count = 0;
             let idx_pets = pets
                 .iter()
                 .cloned()
                 .map(|mut slot| {
                     if let Some(pet) = slot.as_mut() {
-                        pet.pos = Some(idx);
-                        idx += 1;
+                        pet.set_pos(pet_count);
+                        // Create id if one not assigned.
+                        pet.id = Some(
+                            pet.id
+                                .clone()
+                                .unwrap_or(format!("{}_{}", pet.name, pet_count)),
+                        );
+
+                        pet_count += 1;
                     }
                     slot
                 })
                 .collect_vec();
-            Ok(Team {
+            let mut team = Team {
                 name: name.to_string(),
                 friends: idx_pets,
                 max_size,
                 triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
-            })
+                history: History {
+                    curr_turn: 0,
+                    dead: vec![],
+                    curr_node: None,
+                    prev_node: None,
+                    effect_graph: Graph::new(),
+                },
+                pet_count,
+            };
+            // Set starting node.
+            let starting_node = team.history.effect_graph.add_node(TRIGGER_START_BATTLE);
+            team.history.prev_node = Some(starting_node);
+            team.history.curr_node = Some(starting_node);
+            Ok(team)
         }
     }
 
@@ -84,7 +106,9 @@ impl Team {
             .collect_vec();
         // Iterate in reverse to maintain correct removal order.
         for rev_idx in missing_pets.iter().rev() {
-            self.friends.remove(*rev_idx);
+            // Remove the pet and store its id.
+            let dead_pet = self.friends.remove(*rev_idx);
+            self.history.dead.push(dead_pet);
         }
         self
     }
@@ -158,7 +182,11 @@ impl Team {
     ///
     /// Raises `TeamError`:
     /// * If `self.friends` at speciedd size limit of `self.max_size`
-    pub fn add_pet(&mut self, pet: &Option<Box<Pet>>, pos: usize) -> Result<(), TeamError> {
+    pub fn add_pet(
+        &mut self,
+        pet: &Option<Box<Pet>>,
+        pos: usize,
+    ) -> Result<&Option<Pet>, TeamError> {
         if self.get_all_pets().len() == self.max_size {
             return Err(TeamError {
                 reason: format!(
@@ -167,7 +195,14 @@ impl Team {
                 ),
             });
         }
-        if let Some(stored_pet) = pet.clone() {
+        if let Some(mut stored_pet) = pet.clone() {
+            // Assign id to pet if not any.
+            stored_pet.id = Some(stored_pet.id.clone().unwrap_or(format!(
+                "{}_{}",
+                stored_pet.name,
+                self.pet_count + 1
+            )));
+
             // Handle case where pet in front faints and vector is empty.
             // Would panic attempting to insert at any position not at 0.
             // Also update position to be correct.
@@ -213,7 +248,7 @@ impl Team {
                 any_trigger,
                 any_enemy_trigger,
             ]);
-            Ok(())
+            Ok(self.friends.get(pos).unwrap())
         } else {
             Err(TeamError {
                 reason: "No pet to add.".to_string(),
@@ -221,73 +256,79 @@ impl Team {
         }
     }
 
-    pub fn fight<'a>(
-        &'a mut self,
-        opponent: &'a mut Team,
-    ) -> impl Iterator<Item = Option<&mut Team>> {
+    pub fn fight(&mut self, opponent: &mut Team) -> TeamFightOutcome {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
         // Apply start of battle effects.
-        self.clear_team().apply_trigger_effects(opponent);
-        opponent.clear_team().apply_trigger_effects(self);
+        self.clear_team().trigger_effects(opponent);
+        opponent.clear_team().trigger_effects(self);
 
         // Check that both teams have a pet that is alive.
-        gen!({
-            loop {
-                // Trigger Before Attack && Friend Ahead attack.
-                self.triggers
-                    .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-                opponent
-                    .triggers
-                    .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+        // Increment turn counter.
+        self.history.curr_turn += 1;
 
-                self.apply_trigger_effects(opponent).clear_team();
-                opponent.apply_trigger_effects(self).clear_team();
+        // Trigger Before Attack && Friend Ahead attack.
+        self.triggers
+            .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+        opponent
+            .triggers
+            .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
 
-                // Check that two pets exist and attack.
-                // Attack will result in triggers being added.
-                if let (Some(pet), Some(opponent_pet)) =
-                    (self.get_next_pet(), opponent.get_next_pet())
-                {
-                    // Attack and get outcome of fight.
-                    info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet, opponent_pet);
-                    let outcome = pet.attack(opponent_pet);
-                    info!(target: "dev", "(\"{}\")\n{}", self.name, self);
-                    info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+        self.trigger_effects(opponent).clear_team();
+        opponent.trigger_effects(self).clear_team();
 
-                    // Add triggers to team from outcome of battle.
-                    self.triggers.extend(outcome.friends.into_iter());
-                    opponent.triggers.extend(outcome.opponents.into_iter());
-
-                    // Apply effect triggers from combat phase.
-                    self.apply_trigger_effects(opponent).clear_team();
-                    opponent.apply_trigger_effects(self).clear_team();
-
-                    yield_!(None)
-                } else {
-                    break;
-                };
-            }
-            // If either side has no available pets, exit loop.
+        // Check that two pets exist and attack.
+        // Attack will result in triggers being added.
+        if let (Some(pet), Some(opponent_pet)) = (self.get_next_pet(), opponent.get_next_pet()) {
+            // Attack and get outcome of fight.
+            info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet, opponent_pet);
+            let outcome = pet.attack(opponent_pet);
             info!(target: "dev", "(\"{}\")\n{}", self.name, self);
             info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
-            let res = if self.friends.is_empty() && opponent.friends.is_empty() {
+
+            if let Some(hurt_trigger) = outcome
+                .friends
+                .iter()
+                .find(|trigger| trigger.status == Status::Hurt)
+            {
+                self.create_node(hurt_trigger);
+            }
+
+            if let Some(opponent_hurt_trigger) = outcome
+                .opponents
+                .iter()
+                .find(|trigger| trigger.status == Status::Hurt)
+            {
+                opponent.create_node(opponent_hurt_trigger);
+            }
+
+            // Add triggers to team from outcome of battle.
+            self.triggers.extend(outcome.friends.into_iter());
+            opponent.triggers.extend(outcome.opponents.into_iter());
+
+            // Apply effect triggers from combat phase.
+            self.trigger_effects(opponent).clear_team();
+            opponent.trigger_effects(self).clear_team();
+        }
+        if !self.friends.is_empty() && !opponent.friends.is_empty() {
+            TeamFightOutcome::None
+        } else {
+            // Add end of battle node.
+            self.history.prev_node = self.history.curr_node;
+            self.history.curr_node = Some(self.history.effect_graph.add_node(TRIGGER_END_BATTLE));
+
+            if self.friends.is_empty() && opponent.friends.is_empty() {
                 info!(target: "dev", "Draw!");
-                None
-            } else if !self.friends.is_empty() && !opponent.friends.is_empty() {
-                info!(target: "dev", "Incomplete.");
-                None
-            } else if !self.friends.is_empty() {
-                info!(target: "dev", "Your team won!");
-                Some(self)
-            } else {
+                TeamFightOutcome::Draw
+            } else if !opponent.friends.is_empty() {
                 info!(target: "dev", "Enemy team won...");
-                Some(opponent)
-            };
-            yield_!(res)
-        })
-        .into_iter()
+                TeamFightOutcome::Loss
+            } else {
+                info!(target: "dev", "Your team won!");
+                TeamFightOutcome::Win
+            }
+        }
     }
 }
 

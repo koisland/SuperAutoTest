@@ -1,13 +1,26 @@
-use itertools::Itertools;
-
 use crate::common::{
-    battle::state::Statistics,
+    battle::state::{Statistics, TeamFightOutcome},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{test_ant_team, test_cricket_horse_team, test_mosq_team},
 };
+use crate::LOG_CONFIG;
+use petgraph::dot::Dot;
 
-// use crate::LOG_CONFIG;
+#[test]
+fn test_battle_graph() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
+    let mut team = test_ant_team("self");
+    let mut enemy_team = test_ant_team("enemy");
+
+    let mut fight = team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        fight = team.fight(&mut enemy_team)
+    }
+
+    assert_eq!(fight, TeamFightOutcome::Draw);
+}
 
 #[test]
 fn test_battle_ant_honey_team() {
@@ -20,10 +33,12 @@ fn test_battle_ant_honey_team() {
     let last_pet = team.friends.get_mut(2).unwrap().as_mut().unwrap();
     last_pet.set_item(Some(Food::new(&FoodName::Honey).unwrap()));
 
-    let steps = team.fight(&mut enemy_team).collect_vec();
-    let winner = &steps.last().unwrap().as_ref().unwrap().name;
+    let mut fight = team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        fight = team.fight(&mut enemy_team);
+    }
 
-    assert_eq!(winner.clone(), team.name);
+    assert_eq!(fight, TeamFightOutcome::Win);
 }
 
 #[test]
@@ -54,8 +69,8 @@ fn test_battle_cricket_horse_team() {
     );
 
     // After one turn.
-    team.fight(&mut enemy_team).next();
-    team.fight(&mut enemy_team).next();
+    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team);
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
@@ -87,11 +102,13 @@ fn test_battle_mosquito_team() {
     let mut team = test_mosq_team("self");
     let mut enemy_team = test_ant_team("enemy");
 
-    let steps = team.fight(&mut enemy_team).collect_vec();
-    let winner = &steps.last().unwrap().as_ref().unwrap().name;
+    let mut fight = team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        fight = team.fight(&mut enemy_team)
+    }
 
     // Mosquitoes kill any team before game starts.
-    assert_eq!(winner.clone(), team.name);
+    assert_eq!(fight, TeamFightOutcome::Win);
     assert_eq!(team.friends.len(), 3);
 
     for pet in team.get_all_pets().iter() {

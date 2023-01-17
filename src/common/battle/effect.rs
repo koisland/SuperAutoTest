@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub enum EffectType {
     Pet,
     Food,
+    None,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

@@ -29,6 +29,7 @@ pub fn num_regex(pattern: &LRegex, string: &str) -> Option<usize> {
 /// A Super Auto Pet.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Pet {
+    pub id: Option<String>,
     pub name: PetName,
     pub tier: usize,
     pub stats: Statistics,
@@ -50,14 +51,16 @@ impl Display for Pet {
 
 impl From<PetName> for Pet {
     fn from(value: PetName) -> Pet {
-        Pet::new(value, None, 1).expect("Cannot create default pet.")
+        let def_name = value.to_string();
+        Pet::new(value, Some(def_name), None, 1).expect("Cannot create default pet.")
     }
 }
 
 impl Pet {
-    /// Create a new `Pet` with given stats and level.
+    /// Create a new `Pet` with given id, stats, and level.
     pub fn new(
         name: PetName,
+        id: Option<String>,
         stats: Option<Statistics>,
         lvl: usize,
     ) -> Result<Pet, Box<dyn Error>> {
@@ -84,6 +87,7 @@ impl Pet {
         );
 
         Ok(Pet {
+            id,
             name,
             tier: pet_record.tier,
             stats: pet_stats,
@@ -133,6 +137,9 @@ impl Pet {
     /// * Note: This does not update other pets on the same team.
     pub fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
+        if let Some(effect) = self.effect.as_mut() {
+            effect.trigger.idx = Some(pos)
+        }
         self
     }
 }

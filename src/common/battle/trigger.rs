@@ -5,6 +5,15 @@ pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     target: Target::None,
     position: Position::None,
     idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_END_BATTLE: Outcome = Outcome {
+    status: Status::EndOfBattle,
+    target: Target::None,
+    position: Position::None,
+    idx: None,
+    stat_diff: None,
 };
 
 pub const TRIGGER_NONE: Outcome = Outcome {
@@ -12,6 +21,7 @@ pub const TRIGGER_NONE: Outcome = Outcome {
     target: Target::None,
     position: Position::None,
     idx: None,
+    stat_diff: None,
 };
 
 pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
@@ -19,6 +29,7 @@ pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
     target: Target::Friend,
     position: Position::OnSelf,
     idx: Some(0),
+    stat_diff: None,
 };
 
 // * If a pet faints.
@@ -29,6 +40,7 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     target: Target::Friend,
     position: Position::OnSelf,
     idx: Some(0),
+    stat_diff: None,
 };
 
 // pub const TRIGGER_SELF_BEFORE_FAINT: Outcome = Outcome {
@@ -44,6 +56,7 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     position: Position::Any,
     // Gets replaced at runtime.
     idx: None,
+    stat_diff: None,
 };
 
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
@@ -51,6 +64,7 @@ pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     target: Target::Friend,
     position: Position::Specific(1),
     idx: Some(1),
+    stat_diff: None,
 };
 
 pub const TRIGGER_SELF_HURT: Outcome = Outcome {
@@ -58,6 +72,7 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     target: Target::Friend,
     position: Position::OnSelf,
     idx: Some(0),
+    stat_diff: None,
 };
 
 // If a pet is attacking
@@ -68,6 +83,7 @@ pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     target: Target::Friend,
     position: Position::OnSelf,
     idx: Some(0),
+    stat_diff: None,
 };
 
 pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
@@ -75,6 +91,7 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     target: Target::Friend,
     position: Position::Specific(1),
     idx: Some(1),
+    stat_diff: None,
 };
 
 pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
@@ -82,6 +99,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     target: Target::Friend,
     position: Position::OnSelf,
     idx: Some(0),
+    stat_diff: None,
 };
 
 pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
@@ -89,6 +107,7 @@ pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     target: Target::Friend,
     position: Position::Any,
     idx: None,
+    stat_diff: None,
 };
 
 pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
@@ -96,4 +115,5 @@ pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     target: Target::Enemy,
     position: Position::Any,
     idx: None,
+    stat_diff: None,
 };

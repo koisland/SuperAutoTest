@@ -61,6 +61,7 @@ fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<usize
         FoodName::Honey => {
             let bee = Box::new(Pet {
                 name: PetName::Bee,
+                id: None,
                 tier: 1,
                 stats: effect_stats,
                 lvl: 1,

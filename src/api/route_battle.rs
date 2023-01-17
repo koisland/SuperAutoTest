@@ -2,9 +2,12 @@ use rocket::http::Status;
 use rocket::serde::json::Json;
 use serde::{Deserialize, Serialize};
 
+use crate::common::battle::state::TeamFightOutcome;
 use crate::common::battle::{state::Statistics, team::Team};
 use crate::common::foods::names::FoodName;
 use crate::common::pets::{names::PetName, pet::Pet};
+
+const TURN_LIMIT: usize = 300;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Teams {
@@ -16,6 +19,7 @@ pub struct Teams {
 #[serde(deny_unknown_fields)]
 pub struct SimplePet {
     name: PetName,
+    id: Option<String>,
     attack: u8,
     health: u8,
     level: u8,
@@ -28,7 +32,13 @@ fn convert_pet(simple_pet: &Option<SimplePet>) -> Option<Pet> {
             attack: pet.attack as isize,
             health: pet.health as isize,
         };
-        Pet::new(pet.name.clone(), Some(stats), pet.level as usize).ok()
+        Pet::new(
+            pet.name.clone(),
+            pet.id.clone(),
+            Some(stats),
+            pet.level as usize,
+        )
+        .ok()
     } else {
         None
     }
@@ -72,7 +82,14 @@ pub fn battle(teams: Json<Teams>) -> Status {
     )
     .unwrap();
 
-    for _ in friends_team.fight(&mut enemy_team) {}
+    let mut fight = friends_team.fight(&mut enemy_team);
+    while let TeamFightOutcome::None = fight {
+        if friends_team.history.curr_turn == TURN_LIMIT {
+            return Status::BadRequest;
+        }
+        fight = friends_team.fight(&mut enemy_team)
+    }
+
     Status::Ok
 }
 

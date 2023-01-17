@@ -44,6 +44,7 @@ fn test_create_def_pet() {
     assert_eq!(
         pet,
         Pet {
+            id: Some("Ant".to_string()),
             name: PetName::Ant,
             tier: 1,
             stats: Statistics {
@@ -105,6 +106,7 @@ fn test_levelup() {
 fn test_create_pet() {
     let test_ant = Pet::new(
         PetName::Ant,
+        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -117,6 +119,7 @@ fn test_create_pet() {
         test_ant,
         Pet {
             name: PetName::Ant,
+            id: None,
             tier: 1,
             stats: Statistics {
                 attack: 50,

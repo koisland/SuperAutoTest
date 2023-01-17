@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    ops::{AddAssign, MulAssign, RangeInclusive},
+    ops::{AddAssign, MulAssign, RangeInclusive, Sub},
 };
 
 use crate::common::{
@@ -10,10 +10,29 @@ use crate::common::{
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
 };
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum TeamFightOutcome {
+    Win,
+    Loss,
+    Draw,
+    None,
+}
+
 #[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
     pub attack: isize,
     pub health: isize,
+}
+
+impl Sub for Statistics {
+    type Output = Statistics;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        Statistics {
+            attack: self.attack - rhs.attack,
+            health: self.health - rhs.health,
+        }
+    }
 }
 
 impl AddAssign for Statistics {
@@ -100,6 +119,7 @@ pub struct Outcome {
     pub target: Target,
     pub position: Position,
     pub idx: Option<usize>,
+    pub stat_diff: Option<Statistics>,
 }
 
 impl PartialEq for Outcome {
@@ -123,6 +143,7 @@ impl Display for Outcome {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Status {
     StartBattle,
+    EndOfBattle,
     Attack,
     Hurt,
     Faint,

@@ -41,6 +41,7 @@ pub fn get_pet_effect(
         }),
         PetName::Cricket => {
             let zombie_cricket = Box::new(Pet {
+                id: None,
                 name: PetName::ZombieCricket,
                 tier: 1,
                 stats: effect_stats,
@@ -125,6 +126,7 @@ pub fn get_pet_effect(
         PetName::Rat => {
             let dirty_rat = Box::new(Pet {
                 name: PetName::DirtyRat,
+                id: None,
                 tier: 1,
                 stats: effect_stats,
                 lvl: 1,
@@ -152,7 +154,7 @@ pub fn get_pet_effect(
                 .expect("No row found.");
             let name = PetName::from_str(&pet_record.name).expect("Can't get pet.");
 
-            let summoned_pet = Box::new(Pet::new(name, Some(effect_stats), lvl).unwrap());
+            let summoned_pet = Box::new(Pet::new(name, None, Some(effect_stats), lvl).unwrap());
             Some(Effect {
                 effect_type: EffectType::Pet,
                 trigger: TRIGGER_SELF_FAINT,
@@ -229,6 +231,7 @@ pub fn get_pet_effect(
         PetName::Sheep => {
             let ram = Box::new(Pet {
                 name: PetName::Ram,
+                id: None,
                 tier: 1,
                 stats: effect_stats,
                 lvl: 1,
