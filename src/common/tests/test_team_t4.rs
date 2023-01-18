@@ -9,13 +9,11 @@ use crate::common::{
     pets::{effects::get_pet_effect, names::PetName, pet::Pet},
     tests::common::{
         test_ant_team, test_deer_team, test_hippo_team, test_ox_team, test_parrot_team,
-        test_rooster_team, test_skunk_team, test_turtle_team,
+        test_rooster_team, test_skunk_team, test_turtle_team, test_whale_team,
     },
 };
 
 use crate::LOG_CONFIG;
-
-use super::common::test_whale_team;
 
 #[test]
 fn test_battle_deer_team() {

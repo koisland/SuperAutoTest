@@ -118,7 +118,6 @@ impl Pet {
         ))
     }
 
-    #[allow(dead_code)]
     /// Set the level of this `Pet`.
     pub fn set_level(&mut self, lvl: usize) -> Result<&mut Self, Box<dyn Error>> {
         if !(MIN_PET_LEVEL..=MAX_PET_LEVEL).contains(&lvl) {

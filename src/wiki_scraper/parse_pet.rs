@@ -114,10 +114,20 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
 
     // If a pet has a summon effect, use attack and health stats from effect_stats.
     let parsed_num_effect_stats = if pet_effect.contains("Summon") {
-        (
+        let raw_summon_stats = (
             num_regex(RGX_SUMMON_ATK, &pet_effect),
             num_regex(RGX_SUMMON_HEALTH, &pet_effect),
-        )
+        );
+        // If any is seen return atk/health values.
+        if raw_summon_stats.0.is_some() || raw_summon_stats.1.is_some() {
+            raw_summon_stats
+        } else {
+            // Check for percents or single values.
+            (
+                num_regex(RGX_ATK, &pet_effect),
+                num_regex(RGX_HEALTH, &pet_effect),
+            )
+        }
     } else {
         let raw_stats = (
             num_regex(RGX_ATK, &pet_effect),

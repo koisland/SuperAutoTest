@@ -462,29 +462,24 @@ impl EffectApply for Team {
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         let mut effect_copy = effect.clone();
-        // Activate effect for each use.
-        for _ in 0..effect.uses.unwrap_or(1) {
-            match effect.target {
-                Target::Friend => self._match_position_one_team(
-                    effect_pet_idx,
-                    &trigger,
-                    &mut effect_copy,
-                    opponent,
-                )?,
-                Target::Enemy => opponent._match_position_one_team(
-                    effect_pet_idx,
-                    &trigger,
-                    &mut effect_copy,
-                    self,
-                )?,
-                Target::Either => self._match_position_either_team(
-                    effect_pet_idx,
-                    &trigger,
-                    &mut effect_copy,
-                    opponent,
-                )?,
-                _ => {}
+
+        match effect.target {
+            Target::Friend => {
+                self._match_position_one_team(effect_pet_idx, &trigger, &mut effect_copy, opponent)?
             }
+            Target::Enemy => opponent._match_position_one_team(
+                effect_pet_idx,
+                &trigger,
+                &mut effect_copy,
+                self,
+            )?,
+            Target::Either => self._match_position_either_team(
+                effect_pet_idx,
+                &trigger,
+                &mut effect_copy,
+                opponent,
+            )?,
+            _ => {}
         }
 
         Ok(())

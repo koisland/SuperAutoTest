@@ -133,13 +133,14 @@ pub fn get_pet_effect(
                 item: None,
                 pos: None,
             });
+            let rats_summoned = vec![Action::Summon(Some(dirty_rat)); lvl];
             Some(Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Enemy,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(dirty_rat)),
+                action: Action::Multiple(rats_summoned),
                 // Activates multiple times per trigger.
-                uses: Some(lvl),
+                uses: Some(n_triggers),
                 effect_type: EffectType::Pet,
             })
         }
@@ -243,10 +244,11 @@ pub fn get_pet_effect(
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(ram)),
-                // Multiple ways to do this with Action::Multiple as another option.
-                // Hard-coded unless more regex parsing shenanigans.
-                uses: Some(2),
+                action: Action::Multiple(vec![
+                    Action::Summon(Some(ram.clone())),
+                    Action::Summon(Some(ram)),
+                ]),
+                uses: Some(n_triggers),
             })
         }
         // TODO: Tier 4/5/6
@@ -305,13 +307,14 @@ pub fn get_pet_effect(
                 item: None,
                 pos: None,
             });
+            let n_chicks = vec![Action::Summon(Some(chick)); lvl];
             Some(Effect {
                 effect_type: EffectType::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(chick)),
-                uses: Some(lvl),
+                action: Action::Multiple(n_chicks),
+                uses: Some(n_triggers),
             })
         }
         PetName::Skunk => Some(Effect {
@@ -408,7 +411,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Gain(Box::new(Food::from(FoodName::Coconut))),
-            uses: None,
+            uses: Some(n_triggers),
         }),
         PetName::Leopard => {
             let mut effect_dmg = pet_stats.clone();

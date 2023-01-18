@@ -111,6 +111,12 @@ fn test_levelup() {
 }
 
 #[test]
+fn test_invalid_levelup() {
+    let mut test_ant = Pet::from(PetName::Ant);
+    assert!(test_ant.set_level(5).is_err());
+}
+
+#[test]
 fn test_create_pet() {
     let test_ant = Pet::new(
         PetName::Ant,

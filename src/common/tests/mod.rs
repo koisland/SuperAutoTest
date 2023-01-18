@@ -17,4 +17,7 @@ mod test_team_t3;
 mod test_team_t4;
 
 #[cfg(test)]
+mod test_team_t5;
+
+#[cfg(test)]
 mod common;
