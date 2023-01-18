@@ -1,5 +1,6 @@
 use crate::common::battle::state::{Action, Outcome, Position, Target};
 use serde::{Deserialize, Serialize};
+use std::fmt::Display;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum EffectType {
@@ -16,6 +17,16 @@ pub struct Effect {
     pub position: Position,
     pub action: Action,
     pub uses: Option<usize>,
+}
+
+impl Display for Effect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "[Effect (Uses: {:?}): ({:?}) - Trigger: {} - Action: {:?} on {:?} ({:?}) ]",
+            self.uses, self.effect_type, self.trigger, self.action, self.target, self.position
+        )
+    }
 }
 
 pub trait Modify {

@@ -1,7 +1,50 @@
-use crate::common::battle::state::{Outcome, Position, Status, Target};
+use crate::common::battle::state::{Outcome, Position, Statistics, Status, Target};
+
+pub fn get_self_enemy_faint_triggers(
+    pos: Option<usize>,
+    health_diff_stats: &Option<Statistics>,
+) -> [Outcome; 2] {
+    // Add triggers for enemy.
+    let mut enemy_faint = TRIGGER_SPEC_ENEMY_FAINT;
+    let mut enemy_any_faint = TRIGGER_ANY_ENEMY_FAINT;
+    enemy_faint.position = Position::Specific(pos.unwrap_or(0).try_into().unwrap());
+    (enemy_faint.idx, enemy_any_faint.idx) = (pos, pos);
+    (enemy_faint.stat_diff, enemy_any_faint.stat_diff) =
+        (health_diff_stats.clone(), health_diff_stats.clone());
+    [enemy_faint, enemy_any_faint]
+}
+
+pub fn get_self_faint_triggers(
+    pos: Option<usize>,
+    health_diff_stats: &Option<Statistics>,
+) -> [Outcome; 3] {
+    let (mut self_faint, mut any_faint, mut ahead_faint) =
+        (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT, TRIGGER_AHEAD_FAINT);
+
+    (self_faint.idx, any_faint.idx, ahead_faint.idx) = (pos, pos, pos.map(|pos| pos + 1));
+    (
+        self_faint.stat_diff,
+        any_faint.stat_diff,
+        ahead_faint.stat_diff,
+    ) = (
+        health_diff_stats.clone(),
+        health_diff_stats.clone(),
+        health_diff_stats.clone(),
+    );
+
+    [self_faint, any_faint, ahead_faint]
+}
 
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     status: Status::StartBattle,
+    target: Target::None,
+    position: Position::None,
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_START_TURN: Outcome = Outcome {
+    status: Status::StartTurn,
     target: Target::None,
     position: Position::None,
     idx: None,
@@ -28,7 +71,7 @@ pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
     status: Status::None,
     target: Target::Friend,
     position: Position::OnSelf,
-    idx: Some(0),
+    idx: None,
     stat_diff: None,
 };
 
@@ -39,7 +82,7 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     status: Status::Faint,
     target: Target::Friend,
     position: Position::OnSelf,
-    idx: Some(0),
+    idx: None,
     stat_diff: None,
 };
 
@@ -47,7 +90,7 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
 //     status: Status::BeforeFaint,
 //     target: Target::Friend,
 //     position: Position::OnSelf,
-//     idx: Some(0),
+//     idx: None,
 // };
 
 pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
@@ -59,11 +102,45 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     stat_diff: None,
 };
 
+pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
+    status: Status::Faint,
+    target: Target::Enemy,
+    position: Position::Any,
+    // Gets replaced at runtime.
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
+    status: Status::KnockOut,
+    target: Target::Enemy,
+    position: Position::Specific(0),
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
+    status: Status::Faint,
+    target: Target::Enemy,
+    position: Position::Specific(0),
+    idx: None,
+    stat_diff: None,
+};
+
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
     target: Target::Friend,
-    position: Position::Specific(1),
-    idx: Some(1),
+    position: Position::Specific(-1),
+    idx: None,
+    stat_diff: None,
+};
+
+/// Is there a friend ahead?
+pub const TRIGGER_AHEAD_FRIEND: Outcome = Outcome {
+    status: Status::None,
+    target: Target::Friend,
+    position: Position::Specific(-1),
+    idx: None,
     stat_diff: None,
 };
 
@@ -71,7 +148,25 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     status: Status::Hurt,
     target: Target::Friend,
     position: Position::OnSelf,
-    idx: Some(0),
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_ANY_HURT: Outcome = Outcome {
+    status: Status::Hurt,
+    target: Target::Friend,
+    position: Position::Any,
+    // Gets replaced at runtime.
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
+    status: Status::Hurt,
+    target: Target::Enemy,
+    position: Position::Any,
+    // Gets replaced at runtime.
+    idx: None,
     stat_diff: None,
 };
 
@@ -82,7 +177,7 @@ pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     status: Status::Attack,
     target: Target::Friend,
     position: Position::OnSelf,
-    idx: Some(0),
+    idx: None,
     stat_diff: None,
 };
 
@@ -90,7 +185,7 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     status: Status::Attack,
     target: Target::Friend,
     position: Position::Specific(1),
-    idx: Some(1),
+    idx: None,
     stat_diff: None,
 };
 
@@ -98,7 +193,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
     target: Target::Friend,
     position: Position::OnSelf,
-    idx: Some(0),
+    idx: None,
     stat_diff: None,
 };
 

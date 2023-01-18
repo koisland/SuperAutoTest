@@ -3,7 +3,9 @@ use crate::common::{
         effect::Effect,
         state::{Action, CopyAttr, Outcome, Position, Target},
         team::Team,
+        trigger::{get_self_enemy_faint_triggers, get_self_faint_triggers, TRIGGER_SELF_FAINT},
     },
+    error::TeamError,
     pets::{
         combat::Combat,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
@@ -17,10 +19,11 @@ use std::error::Error;
 
 pub trait EffectApply {
     /// Apply an `Action` to a target idx on a `Team`.
-    fn _target_effect_specific(
+    fn _target_effect_idx(
         &mut self,
         target_idx: usize,
         effect: &mut Effect,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     /// Apply effects based on a team's stored triggers.
     fn trigger_effects(&mut self, opponent: &mut Team) -> &mut Self;
@@ -38,6 +41,7 @@ pub trait EffectApply {
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &mut Effect,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     /// Match statement applying effect to either self or opponent `Team`.
     fn _match_position_either_team(
@@ -65,13 +69,15 @@ pub trait EffectApply {
 }
 
 impl EffectApply for Team {
-    fn _target_effect_specific(
+    fn _target_effect_idx(
         &mut self,
         target_idx: usize,
         effect: &mut Effect,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         let name = self.name.clone();
         let mut target_ids: Vec<Option<String>> = vec![];
+
         match &effect.action {
             Action::Add(stats) => {
                 if let Some(target) = self.get_idx_pet(target_idx) {
@@ -83,7 +89,11 @@ impl EffectApply for Team {
             Action::Remove(stats) => {
                 let mut outcomes: Vec<Outcome> = vec![];
                 let target_id = if let Some(target) = self.get_idx_pet(target_idx) {
-                    outcomes.extend(target.indirect_attack(stats));
+                    let (triggers, enemy_triggers) = target.indirect_attack(stats);
+                    // Collectr triggers for both teams.
+                    outcomes.extend(triggers);
+                    opponent.triggers.extend(enemy_triggers);
+
                     info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, stats.clone().invert(), target);
                     target.id.clone()
                 } else {
@@ -95,7 +105,7 @@ impl EffectApply for Team {
             Action::Gain(food) => {
                 if let Some(target) = self.get_idx_pet(target_idx) {
                     target.set_item(Some(*food.clone()));
-                    info!(target: "dev", "(\"{}\")\nGave {:?} to {}.", name, food, target);
+                    info!(target: "dev", "(\"{}\")\nGave {} to {}.", name, food, target);
                     target_ids.push(target.id.clone())
                 }
             }
@@ -111,7 +121,86 @@ impl EffectApply for Team {
                     // Create new effect with single action.
                     let mut effect_copy = effect.clone();
                     effect_copy.action = action.clone();
-                    self._target_effect_specific(target_idx, &mut effect_copy)?
+                    self._target_effect_idx(target_idx, &mut effect_copy, opponent)?
+                }
+            }
+            Action::Kill => {
+                let dead_pet_pos = self.get_idx_pet(target_idx).map(|pet| {
+                    pet.stats.health = 0;
+                    info!(target: "dev", "(\"{}\")\nKilled pet {}.", name, pet);
+                    pet.pos
+                });
+                if let Some(trigger_pos) = dead_pet_pos {
+                    // Add death triggers.
+                    self.triggers
+                        .extend(get_self_faint_triggers(trigger_pos, &None));
+
+                    opponent
+                        .triggers
+                        .extend(get_self_enemy_faint_triggers(trigger_pos, &None));
+                }
+                if let Some(target_pet) = self.get_idx_pet(target_idx) {
+                    // Set pet health to 0 and allow clear_team() to do the rest.
+                    target_pet.stats.health = 0;
+                }
+            }
+            Action::Debuff(perc_stats) => {
+                if let Some(pet) = self.get_idx_pet(target_idx) {
+                    let mut debuff_stats = pet.stats.clone();
+                    debuff_stats *= perc_stats.clone();
+                    pet.stats -= debuff_stats;
+                    info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", name, pet, perc_stats)
+                }
+            }
+            Action::Evolve(lvl, rel_pos) => {
+                // Based on a specific relative position, select the pet to 'swallow' and remove.
+                let chosen_pet = if let Position::Specific(rel_pos) = rel_pos {
+                    // Do in new scope so mut ref to pet is dropped.
+                    let (_, adj_idx) = self._cvt_rel_idx_to_adj_idx(target_idx, *rel_pos)?;
+                    let evolved_pet = self.get_idx_pet(adj_idx).map(|pet| {
+                        let mut pet_copy = pet.clone();
+                        if let Ok(leveled_pet) = pet_copy.set_level(*lvl) {
+                            pet.stats.health = 0;
+                            info!(target: "dev", "(\"{}\")\nKilled pet {}.", name, pet);
+                            Some(leveled_pet.clone())
+                        } else {
+                            None
+                        }
+                    });
+                    if let Some(Some(evolved_pet)) = evolved_pet {
+                        // Add death triggers.
+                        self.triggers
+                            .extend(get_self_faint_triggers(evolved_pet.pos, &None));
+                        opponent
+                            .triggers
+                            .extend(get_self_enemy_faint_triggers(evolved_pet.pos, &None));
+                        Some(evolved_pet)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                // Upgrade the chosen pet's abilities. And get the target pet.
+                if let (Some(leveled_pet), Some(Some(target_pet))) =
+                    (chosen_pet, self.friends.get_mut(target_idx))
+                {
+                    // Set the target's pet ability to summon the pet.
+                    if let Some(old_effect) = target_pet.effect.as_mut() {
+                        old_effect.position = Position::OnSelf;
+                        old_effect.action = Action::Summon(Some(Box::new(leveled_pet.clone())));
+                        old_effect.trigger = TRIGGER_SELF_FAINT;
+                        info!(target: "dev", "(\"{}\")\nEvolving {}.", name, leveled_pet);
+                        info!(target: "dev", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", name, target_pet);
+                    }
+                } else {
+                    return Err(Box::new(TeamError {
+                        reason: format!(
+                            "Cannot access leveled pet at {:?} or targeted pet at {}.",
+                            rel_pos, target_idx
+                        ),
+                    }));
                 }
             }
             // TODO: May need to also choose to copy from an enemy pet at some point.
@@ -148,7 +237,10 @@ impl EffectApply for Team {
                             );
                             Some(CopyAttr::Stats(new_stats))
                         }
-                        CopyAttr::Effect(_) => Some(CopyAttr::Effect(Box::new(pet.effect.clone()))),
+                        CopyAttr::Effect(_, lvl) => Some(CopyAttr::Effect(
+                            Box::new(pet.get_effect(lvl.unwrap_or(1))?),
+                            lvl,
+                        )),
                         _ => None,
                     }
                 } else {
@@ -175,7 +267,7 @@ impl EffectApply for Team {
                                 target.stats
                             );
                         }
-                        CopyAttr::Effect(effect) => {
+                        CopyAttr::Effect(effect, _) => {
                             target.effect = *effect;
                             info!(
                                 target: "dev", "(\"{}\")\nSet effect for {} to {:?}.",
@@ -243,6 +335,7 @@ impl EffectApply for Team {
         effect_pet_idx: usize,
         trigger: &Outcome,
         effect: &mut Effect,
+        opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
         match &effect.position {
             Position::Any => {
@@ -253,26 +346,26 @@ impl EffectApply for Team {
                     .choose(&mut rng)
                     .map(|pet| pet.pos)
                 {
-                    self._target_effect_specific(random_pet_idx, effect)?
+                    self._target_effect_idx(random_pet_idx, effect, opponent)?
                 }
             }
             Position::All => {
                 for pet_idx in 0..self.get_all_pets().len() {
-                    self._target_effect_specific(pet_idx, effect)?
+                    self._target_effect_idx(pet_idx, effect, opponent)?
                 }
             }
-            Position::OnSelf => self._target_effect_specific(effect_pet_idx, effect)?,
+            Position::OnSelf => self._target_effect_idx(effect_pet_idx, effect, opponent)?,
             Position::Trigger => {
                 let trigger_pos = trigger
                     .idx
                     .ok_or("No idx position given to apply effect.")?;
-                self._target_effect_specific(trigger_pos, effect)?
+                self._target_effect_idx(trigger_pos, effect, opponent)?
             }
             Position::Specific(rel_pos) => {
                 let (team, adj_idx) = self._cvt_rel_idx_to_adj_idx(effect_pet_idx, *rel_pos)?;
                 // One team so should only target self team.
                 if team == Target::Friend {
-                    self._target_effect_specific(adj_idx, effect)?
+                    self._target_effect_idx(adj_idx, effect, opponent)?
                 }
             }
             Position::Range(effect_range) => {
@@ -285,7 +378,7 @@ impl EffectApply for Team {
                     .collect_vec();
                 for (team, adj_idx) in adj_idxs {
                     if team == Target::Friend {
-                        self._target_effect_specific(adj_idx, effect)?
+                        self._target_effect_idx(adj_idx, effect, opponent)?
                     }
                 }
             }
@@ -299,12 +392,17 @@ impl EffectApply for Team {
                     effect_copy.position = pos.clone();
                     effect_copy.uses = Some(1);
 
-                    self._match_position_one_team(effect_pet_idx, trigger, &mut effect_copy)?
+                    self._match_position_one_team(
+                        effect_pet_idx,
+                        trigger,
+                        &mut effect_copy,
+                        opponent,
+                    )?
                 }
             }
             Position::Condition(condition) => {
                 if let Some((idx, _)) = self.get_pet_by_cond(condition) {
-                    self._target_effect_specific(idx, effect)?
+                    self._target_effect_idx(idx, effect, opponent)?
                 }
             }
             _ => {}
@@ -324,17 +422,17 @@ impl EffectApply for Team {
             Position::Specific(rel_pos) => {
                 let (team, adj_idx) = self._cvt_rel_idx_to_adj_idx(effect_pet_idx, *rel_pos)?;
                 match team {
-                    Target::Enemy => opponent._target_effect_specific(adj_idx, effect)?,
-                    Target::Friend => self._target_effect_specific(adj_idx, effect)?,
+                    Target::Enemy => opponent._target_effect_idx(adj_idx, effect, self)?,
+                    Target::Friend => self._target_effect_idx(adj_idx, effect, opponent)?,
                     _ => unreachable!("Cannot return other types."),
                 }
             }
             Position::All => {
                 for pet_idx in 0..self.get_all_pets().len() {
-                    self._target_effect_specific(pet_idx, effect)?
+                    self._target_effect_idx(pet_idx, effect, opponent)?
                 }
                 for pet_idx in 0..opponent.get_all_pets().len() {
-                    opponent._target_effect_specific(pet_idx, effect)?
+                    opponent._target_effect_idx(pet_idx, effect, self)?
                 }
             }
             Position::Multiple(positions) => {
@@ -367,12 +465,18 @@ impl EffectApply for Team {
         // Activate effect for each use.
         for _ in 0..effect.uses.unwrap_or(1) {
             match effect.target {
-                Target::Friend => {
-                    self._match_position_one_team(effect_pet_idx, &trigger, &mut effect_copy)?
-                }
-                Target::Enemy => {
-                    opponent._match_position_one_team(effect_pet_idx, &trigger, &mut effect_copy)?
-                }
+                Target::Friend => self._match_position_one_team(
+                    effect_pet_idx,
+                    &trigger,
+                    &mut effect_copy,
+                    opponent,
+                )?,
+                Target::Enemy => opponent._match_position_one_team(
+                    effect_pet_idx,
+                    &trigger,
+                    &mut effect_copy,
+                    self,
+                )?,
                 Target::Either => self._match_position_either_team(
                     effect_pet_idx,
                     &trigger,

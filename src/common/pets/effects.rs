@@ -13,7 +13,6 @@ use crate::{
     db::{setup::get_connection, utils::map_row_to_pet},
 };
 
-#[allow(dead_code)]
 /// Maps a pet to its effects.
 pub fn get_pet_effect(
     pet: &PetName,
@@ -250,7 +249,203 @@ pub fn get_pet_effect(
                 uses: Some(2),
             })
         }
-        // For tiger, create new effect trigger, EffectActivated
+        // TODO: Tier 4/5/6
+        PetName::Deer => {
+            let bus = Box::new(Pet {
+                name: PetName::Bus,
+                id: None,
+                tier: 1,
+                stats: effect_stats,
+                lvl,
+                effect: None,
+                item: Some(Food::from(FoodName::Chili)),
+                pos: None,
+            });
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_SELF_FAINT,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Summon(Some(bus)),
+                uses: Some(n_triggers),
+            })
+        }
+        PetName::Hippo => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_KNOCKOUT,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(effect_stats),
+            uses: None,
+        }),
+        PetName::Parrot => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_START_TURN,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Copy(
+                CopyAttr::Effect(Box::new(None), Some(lvl)),
+                Position::Specific(1),
+            ),
+            uses: None,
+        }),
+        PetName::Rooster => {
+            // TODO: Parser fails here. Fix.
+            let mut chick_stats = pet_stats.clone();
+            chick_stats *= effect_stats;
+            chick_stats.comp_set_value(pet_stats, 0);
+
+            let chick = Box::new(Pet {
+                name: PetName::Chick,
+                id: None,
+                tier: 1,
+                stats: chick_stats,
+                lvl,
+                effect: None,
+                item: None,
+                pos: None,
+            });
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_SELF_FAINT,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Summon(Some(chick)),
+                uses: Some(lvl),
+            })
+        }
+        PetName::Skunk => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_START_BATTLE,
+            target: Target::Enemy,
+            position: Position::Condition(Condition::Healthiest),
+            action: Action::Debuff(effect_stats),
+            uses: Some(1),
+        }),
+        PetName::Turtle => {
+            let max_pets_behind: isize = lvl.try_into().unwrap();
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_SELF_FAINT,
+                target: Target::Friend,
+                position: Position::Range(-max_pets_behind..=-1),
+                action: Action::Gain(Box::new(Food::from(FoodName::Melon))),
+                uses: Some(1),
+            })
+        }
+        PetName::Whale => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_START_BATTLE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Evolve(lvl, Position::Specific(1)),
+            uses: Some(1),
+        }),
+        PetName::Crocodile => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_START_BATTLE,
+            target: Target::Enemy,
+            position: Position::Last,
+            action: Action::Remove(effect_stats),
+            uses: Some(lvl),
+        }),
+        PetName::Rhino => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_KNOCKOUT,
+            target: Target::Enemy,
+            position: Position::Specific(0),
+            action: Action::Rhino(effect_stats),
+            uses: None,
+        }),
+        PetName::Shark => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_ANY_FAINT,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(effect_stats),
+            uses: None,
+        }),
+        PetName::Turkey => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_ANY_SUMMON,
+            target: Target::Friend,
+            position: Position::Trigger,
+            action: Action::Add(effect_stats),
+            uses: None,
+        }),
+        PetName::Boar => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_SELF_ATTACK,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(effect_stats),
+            uses: None,
+        }),
+        PetName::Fly => {
+            let zombie_fly = Box::new(Pet {
+                id: None,
+                name: PetName::ZombieFly,
+                tier: 1,
+                stats: effect_stats,
+                lvl,
+                effect: None,
+                item: None,
+                pos: None,
+            });
+            // Add exception for other zombie flies.
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_ANY_FAINT,
+                target: Target::Friend,
+                position: Position::Trigger,
+                action: Action::Summon(Some(zombie_fly)),
+                uses: Some(3),
+            })
+        }
+        PetName::Gorilla => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_SELF_HURT,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Gain(Box::new(Food::from(FoodName::Coconut))),
+            uses: None,
+        }),
+        PetName::Leopard => {
+            let mut effect_dmg = pet_stats.clone();
+            effect_dmg *= effect_stats;
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::Any,
+                action: Action::Remove(effect_dmg),
+                uses: Some(lvl),
+            })
+        }
+        PetName::Mammoth => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_SELF_FAINT,
+            target: Target::Friend,
+            position: Position::All,
+            action: Action::Add(effect_stats),
+            uses: None,
+        }),
+        PetName::Snake => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_AHEAD_ATTACK,
+            target: Target::Enemy,
+            position: Position::Any,
+            action: Action::Remove(effect_stats),
+            uses: None,
+        }),
+        PetName::Tiger => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_AHEAD_FRIEND,
+            target: Target::Friend,
+            position: Position::Trigger,
+            action: Action::Repeat,
+            uses: None,
+        }),
         _ => None,
     }
 }

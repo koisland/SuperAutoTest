@@ -24,15 +24,23 @@ fn test_attack_pet() {
     let outcome = ant_t1.attack(&mut ant_t2);
 
     assert!(ant_t1.stats.health == 0 && ant_t2.stats.health == 1);
+    // Note stat_diff and idx not checked.
     assert_eq!(
         outcome,
         BattleOutcome {
             friends: VecDeque::from_iter([
                 TRIGGER_SELF_FAINT,
                 TRIGGER_ANY_FAINT,
-                TRIGGER_AHEAD_FAINT
+                TRIGGER_AHEAD_FAINT,
+                TRIGGER_ANY_ENEMY_HURT
             ]),
-            opponents: VecDeque::from_iter([TRIGGER_SELF_HURT])
+            opponents: VecDeque::from_iter([
+                TRIGGER_SELF_HURT,
+                TRIGGER_ANY_HURT,
+                TRIGGER_KNOCKOUT,
+                TRIGGER_SPEC_ENEMY_FAINT,
+                TRIGGER_ANY_ENEMY_FAINT,
+            ])
         }
     )
 }
@@ -87,7 +95,7 @@ fn test_levelup() {
         )
     }
 
-    test_ant.levelup().unwrap();
+    test_ant.set_level(2).unwrap();
 
     // Lvl 2 effect adds (4,2)
     assert_eq!(test_ant.lvl, 2);

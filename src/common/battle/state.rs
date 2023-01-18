@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    ops::{AddAssign, MulAssign, RangeInclusive, Sub},
+    ops::{AddAssign, MulAssign, RangeInclusive, Sub, SubAssign},
 };
 
 use crate::common::{
@@ -39,6 +39,13 @@ impl AddAssign for Statistics {
     fn add_assign(&mut self, rhs: Self) {
         self.attack = (self.attack + rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS);
         self.health = (self.health + rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS);
+    }
+}
+
+impl SubAssign for Statistics {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.attack = (self.attack - rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.health = (self.health - rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS);
     }
 }
 
@@ -97,6 +104,7 @@ pub enum Position {
     All,
     OnSelf,
     Trigger,
+    Last,
     Range(RangeInclusive<isize>),
     Specific(isize),
     Condition(Condition),
@@ -142,6 +150,8 @@ impl Display for Outcome {
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Status {
+    StartTurn,
+    EndTurn,
     StartBattle,
     EndOfBattle,
     Attack,
@@ -161,22 +171,43 @@ pub enum Status {
 pub enum CopyAttr {
     PercentStats(Statistics),
     Stats(Statistics),
-    Effect(Box<Option<Effect>>),
+    Effect(Box<Option<Effect>>, Option<usize>),
     None,
 }
 
+/// Pet actions.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Action {
+    /// Add some amount of `Statistics` to a `Pet`.
     Add(Statistics),
+    /// Remove some amount of `Statistics` from a `Pet`.
     Remove(Statistics),
+    /// Debuff a `Pet` by subtracting some **percent** of `Statistics` from it.
+    Debuff(Statistics),
+    /// Copy some attribute from a `Pet` to a given `Position`.
     Copy(CopyAttr, Position),
+    /// WIP: Repeat this `Pet`'s `Effect`.
+    Repeat,
+    /// WIP: Negate some amount of `Statistics` damage.
     Negate(Statistics),
+    /// WIP: Do a critical attack with a percent probability dealing double damage.
     Critical(usize),
+    /// Evolve a `Pet` at a specified index by leveling it and spawning it on faint.
+    Evolve(usize, Position),
+    /// Instantly kill a `Pet`.
     Kill,
+    /// WIP: Take no damage.
     Invincible,
+    /// Gain a `Food` item.
     Gain(Box<Food>),
+    /// Summon a `Pet`.
     Summon(Option<Box<Pet>>),
+    /// Do multiple `Action`s.
     Multiple(Vec<Action>),
+    /// WIP: Hardcoded Rhino ability.
+    Rhino(Statistics),
+    /// WIP
+    LevelUp,
     None,
     NotImplemented,
 }

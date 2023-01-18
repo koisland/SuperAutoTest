@@ -16,7 +16,6 @@ pub const MAX_PET_LEVEL: usize = 3;
 pub const MIN_PET_STATS: isize = 0;
 pub const MAX_PET_STATS: isize = 50;
 
-#[allow(dead_code)]
 pub fn num_regex(pattern: &LRegex, string: &str) -> Option<usize> {
     if let Some(cap) = pattern.captures(string) {
         cap.get(1)
@@ -98,20 +97,15 @@ impl Pet {
         })
     }
 
-    #[allow(dead_code)]
-    pub fn levelup(&mut self) -> Result<&mut Self, Box<dyn Error>> {
-        // Increase level if within max level bounds.
-        self.lvl = (self.lvl + 1).clamp(MIN_PET_LEVEL, MAX_PET_LEVEL);
-
+    /// Get the effect of this `Pet` at a given level.
+    pub fn get_effect(&self, lvl: usize) -> Result<Option<Effect>, Box<dyn Error>> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
-        let pet_record = stmt.query_row(
-            [self.name.to_string(), self.lvl.to_string()],
-            map_row_to_pet,
-        )?;
+        let pet_record =
+            stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)?;
 
         // Get new effect and replace.
-        let effect = get_pet_effect(
+        Ok(get_pet_effect(
             &self.name,
             &self.stats,
             Statistics {
@@ -119,14 +113,24 @@ impl Pet {
                 health: isize::try_from(pet_record.effect_health)?
                     .clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
-            self.lvl,
+            lvl,
             pet_record.n_triggers,
-        );
-        self.effect = effect;
-
-        Ok(self)
+        ))
     }
 
+    #[allow(dead_code)]
+    /// Set the level of this `Pet`.
+    pub fn set_level(&mut self, lvl: usize) -> Result<&mut Self, Box<dyn Error>> {
+        if !(MIN_PET_LEVEL..=MAX_PET_LEVEL).contains(&lvl) {
+            Err("Not a valid level.".into())
+        } else {
+            self.lvl = lvl;
+            self.effect = self.get_effect(self.lvl)?;
+            Ok(self)
+        }
+    }
+
+    /// Set item of this `Pet`.
     pub fn set_item(&mut self, item: Option<Food>) -> &mut Self {
         self.item = item;
         self

@@ -40,9 +40,9 @@ pub trait Combat {
     ///
     /// Returns:
     /// * `Outcome`(s) of attack.
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome>;
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> (Vec<Outcome>, Vec<Outcome>);
     /// Get `Outcome` when health is altered.
-    fn get_outcome(&self, new_health: isize) -> Vec<Outcome>;
+    fn get_outcome(&self, new_health: isize) -> (Vec<Outcome>, Vec<Outcome>);
     /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
     ///
     /// If a pet has no held food, no `Statistics` are provided.
@@ -50,10 +50,10 @@ pub trait Combat {
 }
 
 impl Combat for Pet {
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> Vec<Outcome> {
+    fn indirect_attack(&mut self, hit_stats: &Statistics) -> (Vec<Outcome>, Vec<Outcome>) {
         // If pet already dead, return early.
         if self.stats.health == 0 {
-            return vec![];
+            return (vec![], vec![]);
         }
         // Get food status modifier. ex. Melon/Garlic
         let stat_modifier = self.get_food_stat_modifier();
@@ -72,7 +72,7 @@ impl Combat for Pet {
         outcome
     }
 
-    fn get_outcome(&self, new_health: isize) -> Vec<Outcome> {
+    fn get_outcome(&self, new_health: isize) -> (Vec<Outcome>, Vec<Outcome>) {
         let health_diff = self
             .stats
             .health
@@ -83,24 +83,18 @@ impl Combat for Pet {
             attack: 0,
         });
         let mut outcomes: Vec<Outcome> = vec![];
-        if health_diff == self.stats.health {
-            // If difference between health before and after battle is equal the before battle health,
-            // pet lost all health during fight and has fainted.
-            let (mut self_faint, mut any_faint, mut ahead_faint) =
-                (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT, TRIGGER_AHEAD_FAINT);
-            (self_faint.idx, any_faint.idx, ahead_faint.idx) =
-                (self.pos, self.pos, self.pos.map(|pos| pos + 1));
-            (
-                self_faint.stat_diff,
-                any_faint.stat_diff,
-                ahead_faint.stat_diff,
-            ) = (
-                health_diff_stats.clone(),
-                health_diff_stats.clone(),
-                health_diff_stats,
-            );
+        let mut enemy_outcomes: Vec<Outcome> = vec![];
 
-            outcomes.extend([self_faint, any_faint, ahead_faint])
+        // If difference between health before and after battle is equal the before battle health,
+        // pet lost all health during fight and has fainted.
+        if health_diff == self.stats.health {
+            let [self_faint, any_faint, ahead_faint] =
+                get_self_faint_triggers(self.pos, &health_diff_stats);
+            let [enemy_faint, enemy_any_faint] =
+                get_self_enemy_faint_triggers(self.pos, &health_diff_stats);
+
+            outcomes.extend([self_faint, any_faint, ahead_faint]);
+            enemy_outcomes.extend([enemy_faint, enemy_any_faint]);
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
@@ -110,11 +104,17 @@ impl Combat for Pet {
         } else {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
-            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
+            let mut any_hurt = TRIGGER_ANY_HURT;
+            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats.clone());
+            (any_hurt.idx, any_hurt.stat_diff) = (self.pos, health_diff_stats);
 
-            outcomes.push(self_hurt)
+            let mut enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
+            enemy_any_hurt.idx = self.pos;
+
+            outcomes.extend([self_hurt, any_hurt]);
+            enemy_outcomes.push(enemy_any_hurt)
         };
-        outcomes
+        (outcomes, enemy_outcomes)
     }
 
     fn get_food_stat_modifier(&self) -> Statistics {
@@ -246,16 +246,28 @@ impl Combat for Pet {
 
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
-        let outcome = self.get_outcome(new_health);
-        let enemy_outcome = enemy.get_outcome(new_enemy_health);
+        let mut outcome = self.get_outcome(new_health);
+        let mut enemy_outcome = enemy.get_outcome(new_enemy_health);
+
+        // Add specific trigger if directly knockout.
+        if new_health == 0 {
+            enemy_outcome.0.push(TRIGGER_KNOCKOUT)
+        }
+        if new_enemy_health == 0 {
+            outcome.0.push(TRIGGER_KNOCKOUT)
+        }
 
         // Set the new health of a pet.
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;
 
+        // Extend outcomes from both sides.
+        outcome.0.extend(enemy_outcome.1);
+        enemy_outcome.0.extend(outcome.1);
+
         BattleOutcome {
-            friends: VecDeque::from_iter(outcome),
-            opponents: VecDeque::from_iter(enemy_outcome),
+            friends: VecDeque::from_iter(outcome.0),
+            opponents: VecDeque::from_iter(enemy_outcome.0),
         }
     }
 }

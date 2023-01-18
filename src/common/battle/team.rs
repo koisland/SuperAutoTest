@@ -64,7 +64,7 @@ impl Team {
                 friends: idx_pets,
                 fainted: vec![],
                 max_size,
-                triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
+                triggers: VecDeque::from_iter([TRIGGER_START_TURN, TRIGGER_START_BATTLE]),
                 history: History {
                     curr_turn: 0,
                     curr_node: None,
@@ -214,7 +214,7 @@ impl Team {
             let pos = if pos > self.friends.len() { 0 } else { pos };
 
             self.friends.insert(pos, Some(*stored_pet));
-            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.get_idx_pet(pos).unwrap());
+            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.friends.get(pos).unwrap().as_ref().unwrap());
 
             // Set summon triggers.
             let mut self_trigger = TRIGGER_SELF_SUMMON;
@@ -263,6 +263,7 @@ impl Team {
         // Apply start of battle effects.
         self.clear_team();
         opponent.clear_team();
+
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
             self.trigger_effects(opponent);
             opponent.trigger_effects(self);
@@ -278,6 +279,9 @@ impl Team {
         opponent
             .triggers
             .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
+
+        self.clear_team();
+        opponent.clear_team();
 
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
             self.trigger_effects(opponent);

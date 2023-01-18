@@ -4,14 +4,12 @@ use crate::common::{
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_badger_team, test_blowfish_rally_team, test_blowfish_team,
-        test_camel_team, test_dog_team, test_dolphin_team, test_kangaroo_team, test_ox_team,
-        test_sheep_team,
+        test_camel_team, test_dog_team, test_dolphin_team, test_filled_sheep_team,
+        test_kangaroo_team, test_ox_team, test_sheep_team,
     },
 };
 
 use crate::LOG_CONFIG;
-
-use super::common::test_filled_sheep_team;
 
 #[test]
 fn test_battle_badger_team() {

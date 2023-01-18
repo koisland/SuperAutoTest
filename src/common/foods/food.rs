@@ -1,4 +1,4 @@
-use std::{convert::TryFrom, error::Error};
+use std::{convert::TryFrom, error::Error, fmt::Display};
 
 use serde::{Deserialize, Serialize};
 
@@ -30,13 +30,18 @@ impl From<FoodName> for Food {
     }
 }
 
-#[allow(dead_code)]
+impl Display for Food {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}: {}]", self.name, self.ability)
+    }
+}
+
 fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<usize>) -> Effect {
     match name {
         FoodName::Chili => Effect {
             target: Target::Enemy,
-            // Next enemy relative to position.
-            position: Position::Specific(1),
+            // Next enemy relative to current pet position.
+            position: Position::Specific(-1),
             action: Action::Remove(effect_stats),
             uses: None,
             effect_type: EffectType::Food,
@@ -130,7 +135,6 @@ fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<usize
     }
 }
 
-#[allow(dead_code)]
 impl Food {
     /// Create a `Food` from `FoodName`.
     pub fn new(name: &FoodName) -> Result<Food, Box<dyn Error>> {

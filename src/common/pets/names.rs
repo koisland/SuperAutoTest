@@ -69,6 +69,9 @@ pub enum PetName {
     Ram,
     Bee,
     DirtyRat,
+    Bus,
+    Chick,
+    ZombieFly,
 }
 
 impl FromStr for PetName {
@@ -210,6 +213,9 @@ impl Display for PetName {
             PetName::Ram => write!(f, "Ram"),
             PetName::Bee => write!(f, "Bee"),
             PetName::DirtyRat => write!(f, "Dirty Rat"),
+            PetName::Bus => write!(f, "Bus"),
+            PetName::Chick => write!(f, "Chick"),
+            PetName::ZombieFly => write!(f, "Zombie Fly"),
         }
     }
 }

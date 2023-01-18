@@ -110,11 +110,9 @@ pub fn test_flamingo_team(name: &str) -> Team {
 
 pub fn test_rat_team(name: &str, lvl: usize) -> Team {
     let mut rat = Pet::from(PetName::Rat);
-    for _ in 1..lvl {
-        if let Err(error) = rat.levelup() {
-            println!("{:?}", error)
-        };
-    }
+    if let Err(error) = rat.set_level(lvl) {
+        println!("{:?}", error)
+    };
 
     let pets = [Some(rat), None, None, None, None];
     Team::new(name, &pets, 5).unwrap()
@@ -281,4 +279,87 @@ pub fn test_blowfish_rally_team(name: &str) -> Team {
     )
     .unwrap();
     Team::new(name, &[Some(blowfish.clone()), None, None, None, None], 5).unwrap()
+}
+
+pub fn test_deer_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Deer)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_hippo_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Hippo)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_parrot_team(name: &str) -> Team {
+    let mut cricket = Pet::from(PetName::Cricket);
+    cricket.set_level(2).unwrap();
+    Team::new(
+        name,
+        &[
+            Some(cricket),
+            Some(Pet::from(PetName::Parrot)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_rooster_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Rooster)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_skunk_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Skunk)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_turtle_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Turtle)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_whale_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Whale)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
 }
