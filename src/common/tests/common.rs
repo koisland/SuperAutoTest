@@ -363,3 +363,159 @@ pub fn test_whale_team(name: &str) -> Team {
     )
     .unwrap()
 }
+
+pub fn test_crocodile_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Crocodile)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Cricket)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_rhino_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Rhino)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_scorpion_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Scorpion)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_shark_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Shark)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_turkey_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Turkey)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_boar_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Boar)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_fly_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Fly)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_gorilla_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Gorilla)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_leopard_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[Some(Pet::from(PetName::Leopard)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_mammoth_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Mammoth)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_snake_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Snake)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_tiger_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Leopard)),
+            Some(Pet::from(PetName::Tiger)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}

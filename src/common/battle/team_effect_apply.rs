@@ -1,19 +1,23 @@
 use crate::common::{
     battle::{
         effect::Effect,
-        state::{Action, CopyAttr, Outcome, Position, Target},
+        state::{Action, CopyAttr, Outcome, Position, Statistics, Status, Target},
         team::Team,
-        trigger::{get_self_enemy_faint_triggers, get_self_faint_triggers, TRIGGER_SELF_FAINT},
+        trigger::{
+            get_self_enemy_faint_triggers, get_self_faint_triggers, TRIGGER_KNOCKOUT,
+            TRIGGER_SELF_FAINT,
+        },
     },
     error::TeamError,
     pets::{
         combat::Combat,
+        names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
 };
 
 use itertools::Itertools;
-use log::info;
+use log::{error, info};
 use rand::seq::IteratorRandom;
 use std::error::Error;
 
@@ -143,6 +147,34 @@ impl EffectApply for Team {
                     // Set pet health to 0 and allow clear_team() to do the rest.
                     target_pet.stats.health = 0;
                 }
+            }
+            Action::Rhino(stats) => {
+                let mut outcomes: Vec<Outcome> = vec![];
+                let target_id = if let Some(target) =
+                    self.get_all_pets().into_iter().nth(target_idx)
+                {
+                    // Double damage against tier 1 pets.
+                    let tier_spec_stats = if target.tier == 1 {
+                        Statistics {
+                            attack: stats.attack * 2,
+                            health: stats.health,
+                        }
+                    } else {
+                        stats.clone()
+                    };
+                    let (triggers, enemy_triggers) = target.indirect_attack(&tier_spec_stats);
+
+                    // Collect triggers for both teams.
+                    outcomes.extend(triggers);
+                    opponent.triggers.extend(enemy_triggers);
+
+                    info!(target: "dev", "(\"{}\")\nRemoved {} from {}.", name, tier_spec_stats.clone().invert(), target);
+                    target.id.clone()
+                } else {
+                    None
+                };
+                self.triggers.extend(outcomes);
+                target_ids.push(target_id)
             }
             Action::Debuff(perc_stats) => {
                 if let Some(pet) = self.get_idx_pet(target_idx) {
@@ -382,12 +414,17 @@ impl EffectApply for Team {
                     }
                 }
             }
+            Position::Last => {
+                if let Some(last_index) = self.get_all_pets().len().checked_sub(1) {
+                    self._target_effect_idx(last_index, effect, opponent)?
+                }
+            }
             Position::Multiple(positions) => {
                 for pos in positions {
                     // For each position:
                     // * Make a copy of the effect
                     // * Set the position to the desired position
-                    // * Reduce the uses to 1 to not double the number of times an effect is activated.
+                    // * Reduce the uses to 1 to not increase the number of times an effect is activated.
                     let mut effect_copy = effect.clone();
                     effect_copy.position = pos.clone();
                     effect_copy.uses = Some(1);
@@ -428,10 +465,10 @@ impl EffectApply for Team {
                 }
             }
             Position::All => {
-                for pet_idx in 0..self.get_all_pets().len() {
+                for pet_idx in 0..=self.get_all_pets().len() {
                     self._target_effect_idx(pet_idx, effect, opponent)?
                 }
-                for pet_idx in 0..opponent.get_all_pets().len() {
+                for pet_idx in 0..=opponent.get_all_pets().len() {
                     opponent._target_effect_idx(pet_idx, effect, self)?
                 }
             }
@@ -503,16 +540,15 @@ impl EffectApply for Team {
         while let Some(trigger) = curr_triggers.pop_front() {
             let mut applied_effects: Vec<(usize, Outcome, Effect)> = vec![];
 
-            // Iterate through pets in descending order by attack strength collecting valid effects.
+            // Iterate through pets in descending order by attack strength to collect valid effects.
             for (effect_pet_idx, pet) in self
                 .friends
                 .iter()
                 .enumerate()
                 .sorted_by(|(_, pet_1), (_, pet_2)| {
-                    pet_1
-                        .as_ref()
-                        .map_or(0, |pet| pet.stats.attack)
-                        .cmp(&pet_2.as_ref().map_or(0, |pet| pet.stats.attack))
+                    let pet_1_atk = pet_1.as_ref().map_or(0, |pet| pet.stats.attack);
+                    let pet_2_atk = pet_2.as_ref().map_or(0, |pet| pet.stats.attack);
+                    pet_1_atk.cmp(&pet_2_atk)
                 })
                 .rev()
             {
@@ -550,15 +586,14 @@ impl EffectApply for Team {
                     applied_effects.push((effect_pet_idx, trigger.clone(), pet_effect))
                 };
             }
-            // Apply effects.
-            // Extend in reverse so proper order followed.
+            // Apply effects in reverse so proper order followed.
             for (effect_pet_idx, trigger, effect) in applied_effects.into_iter().rev() {
                 // Add node here for activated effect.
                 let node_idx = self.history.effect_graph.add_node(trigger.clone());
                 self.history.curr_node = Some(node_idx);
 
                 if let Err(err) = self._apply_effect(effect_pet_idx, trigger, effect, opponent) {
-                    println!("(\"{}\")\nSomething went wrong. {:?}", self.name, err)
+                    error!(target: "dev", "(\"{}\")\nSomething went wrong. {:?}", self.name, err)
                 };
             }
 
@@ -567,6 +602,20 @@ impl EffectApply for Team {
 
             curr_triggers.extend(self.triggers.iter().cloned());
             self.triggers.clear();
+        }
+
+        // For Rhino: Check if target faints, considered a knockout but by indirect attack.
+        // This cannot be added to indirect_attack().
+        // * Would cause false positive when something snipes an enemy infront of hippo or rhino.
+        if let Some(pet) = self.get_next_pet() {
+            if opponent
+                .triggers
+                .iter()
+                .any(|trigger| trigger.status == Status::Faint)
+                && pet.name == PetName::Rhino
+            {
+                self.triggers.push_front(TRIGGER_KNOCKOUT)
+            }
         }
 
         self

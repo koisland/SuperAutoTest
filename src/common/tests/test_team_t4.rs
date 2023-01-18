@@ -121,21 +121,81 @@ fn test_battle_parrot_team() {
     );
 }
 
-// #[test]
-// fn test_battle_rooster_team() {
-//     log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+#[test]
+fn test_battle_rooster_lvl_1_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-//     let mut team = test_rooster_team("self");
-//     let mut enemy_team = test_rooster_team("enemy");
+    let mut team = test_rooster_team("self");
+    let mut enemy_team = test_rooster_team("enemy");
+    {
+        let rooster = team.get_next_pet().unwrap();
+        assert!(
+            rooster.name == PetName::Rooster
+                && rooster.stats
+                    == Statistics {
+                        attack: 5,
+                        health: 3
+                    }
+        )
+    }
 
-//     // Only one deer.
-//     assert!(team.get_next_pet().unwrap().name == PetName::Rooster && team.get_all_pets().len() == 1,);
+    team.fight(&mut enemy_team);
 
-//     let mut fight = team.fight(&mut enemy_team);
-//     while let TeamFightOutcome::None = fight {
-//         fight = team.fight(&mut enemy_team)
-//     }
-// }
+    let chick = team.get_next_pet().unwrap();
+    // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
+    assert!(
+        chick.name == PetName::Chick
+            && chick.stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    )
+}
+
+#[test]
+fn test_battle_rooster_lvl_2_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
+    let mut team = test_rooster_team("self");
+    let mut enemy_team = test_rooster_team("enemy");
+    {
+        let rooster = team.get_next_pet().unwrap();
+        rooster.set_level(2).unwrap();
+        // Level 2 now. Will spawn 2 chicks.
+        assert!(
+            rooster.name == PetName::Rooster
+                && rooster.stats
+                    == Statistics {
+                        attack: 5,
+                        health: 3
+                    }
+                && rooster.lvl == 2
+        )
+    }
+
+    team.fight(&mut enemy_team);
+
+    let chick = team.friends.first().unwrap().as_ref().unwrap();
+    let chick_2 = team.friends.get(1).unwrap().as_ref().unwrap();
+    // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
+    assert!(
+        chick.name == PetName::Chick
+            && chick.stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    );
+    assert!(
+        chick_2.name == PetName::Chick
+            && chick_2.stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    )
+}
 
 #[test]
 fn test_battle_skunk_team() {

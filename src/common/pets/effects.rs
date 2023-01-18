@@ -8,7 +8,10 @@ use crate::{
             trigger::*,
         },
         foods::{food::Food, names::FoodName},
-        pets::{names::PetName, pet::Pet},
+        pets::{
+            names::PetName,
+            pet::{Pet, MAX_PET_STATS},
+        },
     },
     db::{setup::get_connection, utils::map_row_to_pet},
 };
@@ -292,10 +295,9 @@ pub fn get_pet_effect(
             uses: None,
         }),
         PetName::Rooster => {
-            // TODO: Parser fails here. Fix.
             let mut chick_stats = pet_stats.clone();
             chick_stats *= effect_stats;
-            chick_stats.comp_set_value(pet_stats, 0);
+            chick_stats.clamp(1, MAX_PET_STATS);
 
             let chick = Box::new(Pet {
                 name: PetName::Chick,
@@ -358,6 +360,15 @@ pub fn get_pet_effect(
             target: Target::Enemy,
             position: Position::Specific(0),
             action: Action::Rhino(effect_stats),
+            uses: None,
+        }),
+        // No shops so start of turn.
+        PetName::Scorpion => Some(Effect {
+            effect_type: EffectType::Pet,
+            trigger: TRIGGER_START_TURN,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Gain(Box::new(Food::from(FoodName::Peanuts))),
             uses: None,
         }),
         PetName::Shark => Some(Effect {

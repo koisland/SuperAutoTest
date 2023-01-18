@@ -134,8 +134,8 @@ impl Team {
         }
     }
 
-    /// Get an available `Pet` at the specified index.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
+    /// Get a `Pet` at the specified index.
+    /// * Fainted `Pet`s are ignored.
     pub fn get_idx_pet(&mut self, idx: usize) -> Option<&mut Pet> {
         if let Some(Some(pet)) = self.friends.get_mut(idx) {
             (pet.stats.health != 0).then_some(pet)
@@ -143,8 +143,8 @@ impl Team {
             None
         }
     }
-    /// Get the next available `Pet`.
-    /// * Fainted `Pet`s and/or empty slots are ignored.
+    /// Get the first `Pet` among friends.
+    /// * Fainted `Pet`s are ignored.
     pub fn get_next_pet(&mut self) -> Option<&mut Pet> {
         if let Some(Some(pet)) = self.friends.first_mut() {
             (pet.stats.health != 0).then_some(pet)
@@ -326,11 +326,9 @@ impl Team {
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(opponent);
-                opponent.trigger_effects(self);
+                self.trigger_effects(opponent).clear_team();
+                opponent.trigger_effects(self).clear_team();
             }
-            self.clear_team();
-            opponent.clear_team();
         }
         if !self.friends.is_empty() && !opponent.friends.is_empty() {
             TeamFightOutcome::None

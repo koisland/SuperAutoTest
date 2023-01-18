@@ -63,7 +63,11 @@ impl Combat for Pet {
             .sub(stat_modifier.health)
             // Must do a minimum of 1 damage.
             .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self.stats.health.saturating_sub(enemy_atk);
+        let new_health = self
+            .stats
+            .health
+            .sub(enemy_atk)
+            .clamp(MIN_PET_STATS, MAX_PET_STATS);
 
         // Use health difference to determine outcome.
         let outcome = self.get_outcome(new_health);
