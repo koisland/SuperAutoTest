@@ -3,6 +3,19 @@ use crate::common::{
     pets::{names::PetName, pet::Pet},
 };
 
+pub fn count_pets(friends: &[Option<Pet>], pet_name: PetName) -> usize {
+    friends
+        .iter()
+        .filter_map(|pet| {
+            if let Some(pet) = pet {
+                (pet.name == pet_name).then_some(1)
+            } else {
+                None
+            }
+        })
+        .sum::<usize>()
+}
+
 pub fn test_ant_team(name: &str) -> Team {
     Team::new(
         name,

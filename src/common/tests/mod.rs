@@ -20,4 +20,7 @@ mod test_team_t4;
 mod test_team_t5;
 
 #[cfg(test)]
+mod test_team_t6;
+
+#[cfg(test)]
 mod common;

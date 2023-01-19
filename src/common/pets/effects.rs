@@ -16,7 +16,9 @@ use crate::{
     db::{setup::get_connection, utils::map_row_to_pet},
 };
 
-/// Maps a pet to its effects.
+/// Maps a `PetName` to its effects.
+///
+/// Given `Statistic`s, level and number of effect triggers are factored in.
 pub fn get_pet_effect(
     pet: &PetName,
     pet_stats: &Statistics,
@@ -66,7 +68,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::Trigger,
             action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
+            uses: None,
             effect_type: EffectType::Pet,
         }),
         PetName::Crab => Some(Effect {
@@ -93,14 +95,17 @@ pub fn get_pet_effect(
                 effect_type: EffectType::Pet,
             })
         }
-        PetName::Elephant => Some(Effect {
-            trigger: TRIGGER_SELF_ATTACK,
-            target: Target::Friend,
-            position: Position::Specific(-1),
-            action: Action::Remove(effect_stats),
-            uses: Some(n_triggers),
-            effect_type: EffectType::Pet,
-        }),
+        PetName::Elephant => {
+            let n_removes = vec![Action::Remove(effect_stats); n_triggers];
+            Some(Effect {
+                trigger: TRIGGER_SELF_ATTACK,
+                target: Target::Friend,
+                position: Position::Specific(-1),
+                action: Action::Multiple(n_removes),
+                uses: None,
+                effect_type: EffectType::Pet,
+            })
+        }
         PetName::Flamingo => Some(Effect {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
@@ -122,7 +127,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
+            uses: None,
             effect_type: EffectType::Pet,
         }),
         PetName::Rat => {
@@ -186,23 +191,26 @@ pub fn get_pet_effect(
             target: Target::Enemy,
             position: Position::Any,
             action: Action::Remove(effect_stats),
-            uses: Some(n_triggers),
+            uses: None,
         }),
-        PetName::Camel => Some(Effect {
-            effect_type: EffectType::Pet,
-            trigger: TRIGGER_SELF_HURT,
-            target: Target::Friend,
-            position: Position::Specific(-1),
-            action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
-        }),
+        PetName::Camel => {
+            let n_adds = vec![Action::Add(effect_stats); n_triggers];
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_SELF_HURT,
+                target: Target::Friend,
+                position: Position::Specific(-1),
+                action: Action::Multiple(n_adds),
+                uses: None,
+            })
+        }
         PetName::Dog => Some(Effect {
             effect_type: EffectType::Pet,
             trigger: TRIGGER_ANY_SUMMON,
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
+            uses: None,
         }),
         PetName::Dolphin => Some(Effect {
             effect_type: EffectType::Pet,
@@ -218,7 +226,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
-            uses: Some(n_triggers),
+            uses: None,
         }),
         PetName::Ox => Some(Effect {
             effect_type: EffectType::Pet,
@@ -229,7 +237,7 @@ pub fn get_pet_effect(
                 Action::Add(effect_stats),
                 Action::Gain(Box::new(Food::from(FoodName::Melon))),
             ]),
-            uses: Some(n_triggers),
+            uses: None,
         }),
         PetName::Sheep => {
             let ram = Box::new(Pet {
@@ -254,7 +262,6 @@ pub fn get_pet_effect(
                 uses: Some(n_triggers),
             })
         }
-        // TODO: Tier 4/5/6
         PetName::Deer => {
             let bus = Box::new(Pet {
                 name: PetName::Bus,
@@ -325,7 +332,7 @@ pub fn get_pet_effect(
             target: Target::Enemy,
             position: Position::Condition(Condition::Healthiest),
             action: Action::Debuff(effect_stats),
-            uses: Some(1),
+            uses: Some(n_triggers),
         }),
         PetName::Turtle => {
             let max_pets_behind: isize = lvl.try_into().unwrap();
@@ -335,7 +342,7 @@ pub fn get_pet_effect(
                 target: Target::Friend,
                 position: Position::Range(-max_pets_behind..=-1),
                 action: Action::Gain(Box::new(Food::from(FoodName::Melon))),
-                uses: Some(1),
+                uses: Some(n_triggers),
             })
         }
         PetName::Whale => Some(Effect {
@@ -344,16 +351,19 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Evolve(lvl, Position::Specific(1)),
-            uses: Some(1),
+            uses: Some(n_triggers),
         }),
-        PetName::Crocodile => Some(Effect {
-            effect_type: EffectType::Pet,
-            trigger: TRIGGER_START_BATTLE,
-            target: Target::Enemy,
-            position: Position::Last,
-            action: Action::Remove(effect_stats),
-            uses: Some(lvl),
-        }),
+        PetName::Crocodile => {
+            let n_removes = vec![Action::Remove(effect_stats); n_triggers];
+            Some(Effect {
+                effect_type: EffectType::Pet,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::Last,
+                action: Action::Multiple(n_removes),
+                uses: Some(1),
+            })
+        }
         PetName::Rhino => Some(Effect {
             effect_type: EffectType::Pet,
             trigger: TRIGGER_KNOCKOUT,
@@ -413,7 +423,7 @@ pub fn get_pet_effect(
                 target: Target::Friend,
                 position: Position::Trigger,
                 action: Action::Summon(Some(zombie_fly)),
-                uses: Some(3),
+                uses: Some(n_triggers),
             })
         }
         PetName::Gorilla => Some(Effect {
@@ -427,13 +437,14 @@ pub fn get_pet_effect(
         PetName::Leopard => {
             let mut effect_dmg = pet_stats.clone();
             effect_dmg *= effect_stats;
+            let n_removes = vec![Action::Remove(effect_dmg); n_triggers];
             Some(Effect {
                 effect_type: EffectType::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
                 position: Position::Any,
-                action: Action::Remove(effect_dmg),
-                uses: Some(lvl),
+                action: Action::Multiple(n_removes),
+                uses: Some(1),
             })
         }
         PetName::Mammoth => Some(Effect {
@@ -442,7 +453,7 @@ pub fn get_pet_effect(
             target: Target::Friend,
             position: Position::All,
             action: Action::Add(effect_stats),
-            uses: None,
+            uses: Some(n_triggers),
         }),
         PetName::Snake => Some(Effect {
             effect_type: EffectType::Pet,

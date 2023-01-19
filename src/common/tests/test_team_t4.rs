@@ -8,7 +8,7 @@ use crate::common::{
     foods::names::FoodName,
     pets::{effects::get_pet_effect, names::PetName, pet::Pet},
     tests::common::{
-        test_ant_team, test_deer_team, test_hippo_team, test_ox_team, test_parrot_team,
+        count_pets, test_ant_team, test_deer_team, test_hippo_team, test_ox_team, test_parrot_team,
         test_rooster_team, test_skunk_team, test_turtle_team, test_whale_team,
     },
 };
@@ -280,21 +280,8 @@ fn test_battle_whale_team() {
     let mut team = test_whale_team("self");
     let mut enemy_team = test_hippo_team("enemy");
 
-    let count_crickets = |friends: &[Option<Pet>]| {
-        friends
-            .iter()
-            .filter_map(|pet| {
-                if let Some(pet) = pet {
-                    (pet.name == PetName::Cricket).then_some(1)
-                } else {
-                    None
-                }
-            })
-            .sum::<usize>()
-    };
-
     // Only one cricket at start.
-    assert_eq!(count_crickets(&team.friends), 1);
+    assert_eq!(count_pets(&team.friends, PetName::Cricket), 1);
 
     let mut outcome = team.fight(&mut enemy_team);
 
@@ -321,7 +308,7 @@ fn test_battle_whale_team() {
     }
 
     // Two dead crickets on team.
-    let n_crickets: usize = count_crickets(&team.fainted);
+    let n_crickets: usize = count_pets(&team.fainted, PetName::Cricket);
 
     assert_eq!(2, n_crickets)
 }

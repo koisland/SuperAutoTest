@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    ops::{AddAssign, MulAssign, RangeInclusive, Sub, SubAssign},
+    ops::{Add, AddAssign, MulAssign, RangeInclusive, Sub, SubAssign},
 };
 
 use crate::common::{
@@ -22,6 +22,17 @@ pub enum TeamFightOutcome {
 pub struct Statistics {
     pub attack: isize,
     pub health: isize,
+}
+
+impl Add for Statistics {
+    type Output = Statistics;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Statistics {
+            attack: self.attack + rhs.attack,
+            health: self.health + rhs.health,
+        }
+    }
 }
 
 impl Sub for Statistics {

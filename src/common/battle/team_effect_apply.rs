@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        effect::Effect,
+        effect::{Effect, Modify},
         state::{Action, CopyAttr, Outcome, Position, Statistics, Status, Target},
         team::Team,
         trigger::{
@@ -223,6 +223,8 @@ impl EffectApply for Team {
                         old_effect.position = Position::OnSelf;
                         old_effect.action = Action::Summon(Some(Box::new(leveled_pet.clone())));
                         old_effect.trigger = TRIGGER_SELF_FAINT;
+                        old_effect.add_uses(1);
+
                         info!(target: "dev", "(\"{}\")\nEvolving {}.", name, leveled_pet);
                         info!(target: "dev", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", name, target_pet);
                     }
@@ -382,7 +384,7 @@ impl EffectApply for Team {
                 }
             }
             Position::All => {
-                for pet_idx in 0..self.get_all_pets().len() {
+                for pet_idx in 0..=self.get_all_pets().len() {
                     self._target_effect_idx(pet_idx, effect, opponent)?
                 }
             }
@@ -540,10 +542,29 @@ impl EffectApply for Team {
         while let Some(trigger) = curr_triggers.pop_front() {
             let mut applied_effects: Vec<(usize, Outcome, Effect)> = vec![];
 
+            // Get petname of trigger.
+            let trigger_pet_name = match trigger.target {
+                Target::Friend => trigger.idx.map(|idx| {
+                    if let Some(Some(pet)) = self.friends.get(idx) {
+                        Some(pet.name.clone())
+                    } else {
+                        None
+                    }
+                }),
+                Target::Enemy => trigger.idx.map(|idx| {
+                    if let Some(Some(pet)) = opponent.friends.get(idx) {
+                        Some(pet.name.clone())
+                    } else {
+                        None
+                    }
+                }),
+                _ => None,
+            };
+
             // Iterate through pets in descending order by attack strength to collect valid effects.
             for (effect_pet_idx, pet) in self
                 .friends
-                .iter()
+                .iter_mut()
                 .enumerate()
                 .sorted_by(|(_, pet_1), (_, pet_2)| {
                     let pet_1_atk = pet_1.as_ref().map_or(0, |pet| pet.stats.attack);
@@ -564,26 +585,43 @@ impl EffectApply for Team {
                 }
 
                 // Get food and pet effect based on if its trigger is equal to current trigger, if any.
-                if let Some(Some(food_effect)) = pet.as_ref().map(|pet| {
-                    pet.item
-                        .as_ref()
-                        .filter(|food| food.ability.trigger == trigger)
-                        .map(|food| food.ability.clone())
+                if let Some(Some(food)) = pet.as_mut().map(|pet| {
+                    pet.item.as_mut().filter(|food| {
+                        food.ability.trigger == trigger && food.ability.uses != Some(0)
+                    })
                 }) {
-                    applied_effects.push((effect_pet_idx, trigger.clone(), food_effect))
+                    // Drop uses by one if possible.
+                    food.ability.remove_uses(1);
+                    applied_effects.push((effect_pet_idx, trigger.clone(), food.ability.clone()))
                 };
                 if let Some(Some(pet_effect)) = pet
-                    .as_ref()
+                    .as_mut()
                     .filter(|pet| {
                         if let Some(effect) = &pet.effect {
-                            effect.trigger == trigger
+                            effect.trigger == trigger && effect.uses != Some(0)
                         } else {
                             false
                         }
                     })
-                    .map(|pet| pet.effect.clone())
+                    .map(|pet| pet.effect.as_mut())
                 {
-                    applied_effects.push((effect_pet_idx, trigger.clone(), pet_effect))
+                    // Check the trigger name as final check before adding effect.
+                    // Specific check for:
+                    //  * If trigger for a summon action is a Zombie Fly, ignore it.
+                    //  * If trigger for a summon action is a Fly and is also the current pet is that fly, ignore it.
+                    if let Some(Some(trigger_name)) = trigger_pet_name.clone() {
+                        if let Action::Summon(_) = pet_effect.action {
+                            if trigger_name == PetName::ZombieFly
+                                || (trigger_name == PetName::Fly
+                                    && trigger.idx == Some(effect_pet_idx))
+                            {
+                                continue;
+                            }
+                        }
+                    }
+                    // Drop uses by one if possible.
+                    pet_effect.remove_uses(1);
+                    applied_effects.push((effect_pet_idx, trigger.clone(), pet_effect.clone()))
                 };
             }
             // Apply effects in reverse so proper order followed.
