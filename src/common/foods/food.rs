@@ -17,6 +17,12 @@ pub struct Food {
     pub ability: Effect,
 }
 
+impl From<&FoodName> for Food {
+    fn from(value: &FoodName) -> Self {
+        Food::new(value).unwrap()
+    }
+}
+
 impl From<FoodName> for Food {
     fn from(value: FoodName) -> Self {
         Food::new(&value).unwrap()

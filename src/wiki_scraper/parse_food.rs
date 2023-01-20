@@ -27,6 +27,22 @@ pub enum FoodTableCols {
     GamePack(Pack),
 }
 
+impl FoodTableCols {
+    pub fn get_cols(cols_str: &str) -> Result<Vec<FoodTableCols>, WikiParserError> {
+        let cols: Option<Vec<FoodTableCols>> = RGX_COLS
+            .captures_iter(cols_str)
+            .filter_map(|capt|
+                // Get capture and remove newlines and !.
+                // !Name\n -> Name
+                capt.get(1).map(|mtch| mtch.as_str().trim_matches(|c| c == '\n' || c == '!')))
+            .map(|colname| FoodTableCols::from_str(colname).ok())
+            .collect();
+
+        cols.ok_or(WikiParserError {
+            reason: format!("One or more cols is unknown in col_str: {}.", cols_str),
+        })
+    }
+}
 impl FromStr for FoodTableCols {
     type Err = WikiParserError;
 
@@ -89,24 +105,6 @@ pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, Box<WikiParserErr
             reason: "Can't find main table following format: {|...|}.".to_string(),
         }))
     }
-}
-
-/// Get table column names from the header row of a `fandom-table`.
-///
-/// These are mapped to `FoodTableCols`.
-pub fn get_cols(cols_str: &str) -> Result<Vec<FoodTableCols>, WikiParserError> {
-    let cols: Option<Vec<FoodTableCols>> = RGX_COLS
-        .captures_iter(cols_str)
-        .filter_map(|capt|
-            // Get capture and remove newlines and !.
-            // !Name\n -> Name
-            capt.get(1).map(|mtch| mtch.as_str().trim_matches(|c| c == '\n' || c == '!')))
-        .map(|colname| FoodTableCols::from_str(colname).ok())
-        .collect();
-
-    cols.ok_or(WikiParserError {
-        reason: format!("One or more cols is unknown in col_str: {}.", cols_str),
-    })
 }
 
 /// Check whether food effect is random and the number of targets it affects.
@@ -270,7 +268,7 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
     let table = get_largest_table(&response)?;
 
     // Can safely unwrap here as will catch above.
-    let cols = get_cols(table.first().unwrap())?;
+    let cols = FoodTableCols::get_cols(table.first().unwrap())?;
 
     // Skip first table which contains columns.
     for food_info in table.get(1..).expect("No table elements.").iter() {

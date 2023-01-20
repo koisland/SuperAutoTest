@@ -3,7 +3,10 @@ use crate::{
         record::{FoodRecord, PetRecord},
         utils::{map_row_to_food, map_row_to_pet},
     },
-    wiki_scraper::{common::read_wiki_url, parse_food::parse_food_info, parse_pet::parse_pet_info},
+    wiki_scraper::{
+        common::read_wiki_url, parse_food::parse_food_info, parse_pet::parse_pet_info,
+        parse_tokens::parse_token_info,
+    },
 };
 use log::info;
 use rusqlite::Connection;
@@ -50,7 +53,10 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let sql_insert_pet = read_to_string(crate::DB_INSERT_PET_SQL)?;
     let mut n_rows_updated: usize = 0;
 
-    let pets = parse_pet_info(&wiki_urls.pets)?;
+    let mut pets = parse_pet_info(&wiki_urls.pets)?;
+    let tokens = parse_token_info(&wiki_urls.tokens)?;
+    pets.extend(tokens);
+
     // Add each pet.
     for pet in pets.iter() {
         // Creating a new row for each pack and level a pet belongs to.
@@ -86,7 +92,7 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
     let sql_insert_food = read_to_string(crate::DB_INSERT_FOOD_SQL)?;
     let mut n_rows_updated: usize = 0;
 
-    let foods = parse_food_info(&wiki_urls.food)?;
+    let foods = parse_food_info(&wiki_urls.foods)?;
     for food in foods.iter() {
         let n_rows = conn.execute(
             &sql_insert_food,

@@ -209,7 +209,7 @@ pub enum Action {
     Invincible,
     /// Gain a `Food` item.
     Gain(Box<Food>),
-    /// Summon a `Pet`.
+    /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(Option<Box<Pet>>, Option<Statistics>),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),

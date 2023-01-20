@@ -1,0 +1,320 @@
+{
+  "winner": null,
+  "friends": [],
+  "friends_fainted": [
+    {
+      "id": "Ant_0",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 2,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_1",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 2,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_2",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 2,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_3",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 6,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_4",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 6,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    }
+  ],
+  "enemies": [],
+  "enemies_fainted": [
+    {
+      "id": "Ant_0",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 2,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_1",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 2,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_2",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 4,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_3",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 4,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Ant_4",
+      "name": "Ant",
+      "tier": 1,
+      "stats": {
+        "attack": 6,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "Any",
+        "action": {
+          "Add": {
+            "attack": 2,
+            "health": 1
+          }
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    }
+  ],
+  "n_turns": 5
+}

@@ -5,7 +5,7 @@ use crate::{
     wiki_scraper::{
         common::read_wiki_url,
         parse_food::{
-            clean_link_text, get_cols, get_effect_attack, get_effect_health, get_largest_table,
+            clean_link_text, get_effect_attack, get_effect_health, get_largest_table,
             get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
             parse_food_info, parse_one_food_entry, FoodTableCols,
         },
@@ -204,7 +204,7 @@ fn test_get_table() {
 fn test_get_table_cols() {
     let table = get_largest_table(PAGE_INFO).unwrap();
 
-    let cols = get_cols(table.first().unwrap()).unwrap();
+    let cols = FoodTableCols::get_cols(table.first().unwrap()).unwrap();
     let exp_cols = vec![
         FoodTableCols::Tier,
         FoodTableCols::Name,
@@ -286,7 +286,7 @@ fn test_parse_food_entry() {
 fn test_parse_food_info() {
     let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES).unwrap();
 
-    assert!(parse_food_info(&wiki_urls.food).is_ok())
+    assert!(parse_food_info(&wiki_urls.foods).is_ok())
 }
 
 #[test]

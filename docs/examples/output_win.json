@@ -1,0 +1,324 @@
+{
+  "winner": "self",
+  "friends": [
+    {
+      "id": "Hippo_0",
+      "name": "Hippo",
+      "tier": 4,
+      "stats": {
+        "attack": 50,
+        "health": 48
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "KnockOut",
+          "target": "Enemy",
+          "position": {
+            "Specific": 0
+          },
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Add": {
+            "attack": 3,
+            "health": 3
+          }
+        },
+        "uses": null
+      },
+      "item": {
+        "name": "Garlic",
+        "ability": {
+          "effect_type": "Food",
+          "trigger": {
+            "status": "None",
+            "target": "None",
+            "position": "None",
+            "idx": null,
+            "stat_diff": null
+          },
+          "target": "Friend",
+          "position": "OnSelf",
+          "action": {
+            "Negate": {
+              "attack": 2,
+              "health": 0
+            }
+          },
+          "uses": null
+        }
+      },
+      "pos": 0
+    }
+  ],
+  "friends_fainted": [
+    null,
+    null,
+    null,
+    null
+  ],
+  "enemies": [],
+  "enemies_fainted": [
+    {
+      "id": "Cricket_0",
+      "name": "Cricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Summon": [
+            {
+              "id": null,
+              "name": "ZombieCricket",
+              "tier": 1,
+              "stats": {
+                "attack": 1,
+                "health": 1
+              },
+              "lvl": 1,
+              "effect": null,
+              "item": null,
+              "pos": null
+            },
+            null
+          ]
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Zombie Cricket_6",
+      "name": "ZombieCricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": null,
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Cricket_1",
+      "name": "Cricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Summon": [
+            {
+              "id": null,
+              "name": "ZombieCricket",
+              "tier": 1,
+              "stats": {
+                "attack": 1,
+                "health": 1
+              },
+              "lvl": 1,
+              "effect": null,
+              "item": null,
+              "pos": null
+            },
+            null
+          ]
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Zombie Cricket_6",
+      "name": "ZombieCricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": null,
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Cricket_2",
+      "name": "Cricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Summon": [
+            {
+              "id": null,
+              "name": "ZombieCricket",
+              "tier": 1,
+              "stats": {
+                "attack": 1,
+                "health": 1
+              },
+              "lvl": 1,
+              "effect": null,
+              "item": null,
+              "pos": null
+            },
+            null
+          ]
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Zombie Cricket_6",
+      "name": "ZombieCricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": null,
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Cricket_3",
+      "name": "Cricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Faint",
+          "target": "Friend",
+          "position": "OnSelf",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Summon": [
+            {
+              "id": null,
+              "name": "ZombieCricket",
+              "tier": 1,
+              "stats": {
+                "attack": 1,
+                "health": 1
+              },
+              "lvl": 1,
+              "effect": null,
+              "item": null,
+              "pos": null
+            },
+            null
+          ]
+        },
+        "uses": 0
+      },
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Zombie Cricket_6",
+      "name": "ZombieCricket",
+      "tier": 1,
+      "stats": {
+        "attack": 1,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": null,
+      "item": null,
+      "pos": 0
+    },
+    {
+      "id": "Dog_4",
+      "name": "Dog",
+      "tier": 3,
+      "stats": {
+        "attack": 7,
+        "health": 0
+      },
+      "lvl": 1,
+      "effect": {
+        "effect_type": "Pet",
+        "trigger": {
+          "status": "Summoned",
+          "target": "Friend",
+          "position": "Any",
+          "idx": 0,
+          "stat_diff": null
+        },
+        "target": "Friend",
+        "position": "OnSelf",
+        "action": {
+          "Add": {
+            "attack": 1,
+            "health": 1
+          }
+        },
+        "uses": null
+      },
+      "item": null,
+      "pos": 0
+    }
+  ],
+  "n_turns": 9
+}

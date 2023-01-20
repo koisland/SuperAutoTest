@@ -7,7 +7,8 @@ use std::{error::Error, fs::File, io::BufReader, path::Path};
 #[derive(Deserialize, Debug)]
 pub struct SAPWikiSources {
     pub pets: String,
-    pub food: String,
+    pub foods: String,
+    pub tokens: String,
 }
 
 pub fn read_wiki_url<P: AsRef<Path>>(path: P) -> Result<SAPWikiSources, Box<dyn Error>> {

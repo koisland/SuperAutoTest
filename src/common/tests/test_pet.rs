@@ -159,6 +159,37 @@ fn test_create_pet() {
 }
 
 #[test]
+fn create_pet_token() {
+    let test_bee = Pet::new(
+        PetName::Bee,
+        None,
+        Some(Statistics {
+            attack: 50,
+            health: 50,
+        }),
+        1,
+    )
+    .unwrap();
+
+    assert_eq!(
+        test_bee,
+        Pet {
+            id: None,
+            name: PetName::Bee,
+            tier: 0,
+            stats: Statistics {
+                attack: 50,
+                health: 50,
+            },
+            lvl: 1,
+            effect: None,
+            item: None,
+            pos: None,
+        }
+    );
+}
+
+#[test]
 fn test_set_pos() {
     let mut test_ant = Pet::from(PetName::Ant);
     test_ant.set_pos(0);

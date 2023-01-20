@@ -20,7 +20,7 @@ Run the `sapdb.exe` in `./bin`.
 This will setup a server locally at [127.0.0.1:8000](http://127.0.0.1:8000)
 
 ### Database
-From here, you can query pets (`pet/`) by the following parameters:
+From here, you can query pets/tokens (`pet/`) by the following parameters:
 1. `name`
     * Name of pet.
 2. `level`
@@ -89,6 +89,18 @@ Then submit them to the `battle/` endpoint.
 curl -X POST http://127.0.0.1:8000/battle  -H "Content-Type: application/json" -d @docs/examples/battle_invalid.json
 ```
 
+Where the output `JSON` shows the outcome of the battle.
+```json
+{
+  "winner": null,
+  "friends": [...],
+  "friends_fainted": [...],
+  "enemies": [...],
+  "enemies_fainted": [...],
+  "n_turns": 5
+}
+```
+
 ---
 
 ## API
@@ -115,6 +127,10 @@ Output:
     "pack": "Turtle",
     "effect_trigger": "None",
     "effect": "Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!",
+    "effect_atk": 0,
+    "effect_health": 0,
+    "n_triggers": 1,
+    "temp_effect": false,
     "lvl": 2
   }
 ]
@@ -130,14 +146,30 @@ curl http://127.0.0.1:8000/food?tier=3&pack=Star
   {
     "name": "Pineapple",
     "tier": 3,
-    "effect": "Give one pet Pineapple. ability deals +2 damage",
-    "pack": "Star"
+    "effect": "Give one pet Pineapple. Ability deals +2 damage",
+    "pack": "Star",
+    "holdable": true,
+    "single_use": false,
+    "end_of_battle": false,
+    "random": false,
+    "n_targets": 1,
+    "effect_atk": 2,
+    "effect_health": 0,
+    "turn_effect": false
   },
   {
     "name": "Cucumber",
     "tier": 3,
     "effect": "Give one pet Cucumber. Gain +1 health at end of turn",
-    "pack": "Star"
+    "pack": "Star",
+    "holdable": true,
+    "single_use": false,
+    "end_of_battle": false,
+    "random": false,
+    "n_targets": 1,
+    "effect_atk": 0,
+    "effect_health": 1,
+    "turn_effect": true
   }
 ]
 ```
