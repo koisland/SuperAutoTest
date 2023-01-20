@@ -2,6 +2,9 @@
 mod test_pet;
 
 #[cfg(test)]
+mod test_food;
+
+#[cfg(test)]
 mod test_team_build;
 
 #[cfg(test)]

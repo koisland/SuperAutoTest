@@ -49,7 +49,7 @@ pub fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<u
             Effect {
                 target: Target::Friend,
                 position: Position::Trigger,
-                action: Action::Summon(Some(bee)),
+                action: Action::Summon(Some(bee), None),
                 uses: None,
                 effect_type: EffectType::Food,
                 trigger: TRIGGER_SELF_FAINT,
@@ -75,7 +75,13 @@ pub fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<u
             target: Target::Friend,
             position: Position::Trigger,
             // Replace during runtime.
-            action: Action::Summon(None),
+            action: Action::Summon(
+                None,
+                Some(Statistics {
+                    attack: 1,
+                    health: 1,
+                }),
+            ),
             uses,
             effect_type: EffectType::Food,
             trigger: TRIGGER_SELF_FAINT,

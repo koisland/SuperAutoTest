@@ -101,20 +101,30 @@ impl Pet {
     pub fn get_effect(&self, lvl: usize) -> Result<Option<Effect>, Box<dyn Error>> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
-        let pet_record =
-            stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)?;
+        // Get pet stats and n_triggers from sqlite db. Otherwise, set to default.
+        let (pet_effect_stats, n_triggers) = if let Ok(pet_record) =
+            stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)
+        {
+            (
+                Statistics {
+                    attack: isize::try_from(pet_record.effect_atk)?
+                        .clamp(MIN_PET_STATS, MAX_PET_STATS),
+                    health: isize::try_from(pet_record.effect_health)?
+                        .clamp(MIN_PET_STATS, MAX_PET_STATS),
+                },
+                pet_record.n_triggers,
+            )
+        } else {
+            (Statistics::default(), 1)
+        };
 
         // Get new effect and replace.
         Ok(get_pet_effect(
             &self.name,
             &self.stats,
-            Statistics {
-                attack: isize::try_from(pet_record.effect_atk)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
-                health: isize::try_from(pet_record.effect_health)?
-                    .clamp(MIN_PET_STATS, MAX_PET_STATS),
-            },
+            pet_effect_stats,
             lvl,
-            pet_record.n_triggers,
+            n_triggers,
         ))
     }
 
@@ -127,12 +137,6 @@ impl Pet {
             self.effect = self.get_effect(self.lvl)?;
             Ok(self)
         }
-    }
-
-    /// Set item of this `Pet`.
-    pub fn set_item(&mut self, item: Option<Food>) -> &mut Self {
-        self.item = item;
-        self
     }
 
     /// Helper function to set pet position for matching on effect triggers.

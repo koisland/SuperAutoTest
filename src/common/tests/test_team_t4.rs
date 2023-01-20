@@ -296,7 +296,7 @@ fn test_battle_whale_team() {
         trigger: trigger_faint,
         target: Target::Friend,
         position: Position::OnSelf,
-        action: Action::Summon(Some(Box::new(cricket))),
+        action: Action::Summon(Some(Box::new(cricket)), None),
         uses: Some(1),
     };
 

@@ -125,18 +125,27 @@ impl Combat for Pet {
         // If a pet has an item that alters stats...
         // Otherwise, no stat modifier added.
         self.item.as_ref().map_or(Statistics::default(), |food| {
-            let food_effect = food.ability.uses.as_ref().map_or(&Action::None, |uses| {
-                if *uses > 0 && food.ability.position == Position::OnSelf {
+            let food_effect = if let Some(n_uses) = food.ability.uses {
+                if n_uses > 0 && food.ability.position == Position::OnSelf {
                     // Return the food effect.
                     &food.ability.action
                 } else {
                     &Action::None
                 }
-            });
+            } else {
+                // None means unlimited uses.
+                &food.ability.action
+            };
 
             match food_effect {
                 // Get stat modifiers from effects.
-                Action::Add(stats) | Action::Remove(stats) | Action::Negate(stats) => stats.clone(),
+                Action::Add(stats) | Action::Remove(stats) => stats.clone(),
+                Action::Negate(stats) => {
+                    let mut mod_stats = stats.clone();
+                    // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).
+                    mod_stats.invert();
+                    mod_stats
+                }
                 Action::Critical(prob) => {
                     let mut rng = rand::thread_rng();
                     let prob = *prob.clamp(&0, &100) as f64;

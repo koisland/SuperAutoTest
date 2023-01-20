@@ -3,7 +3,6 @@ use crate::common::{
         state::{Action, Statistics},
         trigger::*,
     },
-    foods::{food::Food, names::FoodName},
     pets::{
         combat::{BattleOutcome, Combat},
         effects::get_pet_effect,
@@ -160,32 +159,8 @@ fn test_create_pet() {
 }
 
 #[test]
-fn test_set_remove_item() {
-    let mut test_ant = Pet::from(PetName::Ant);
-
-    // Set item to honey.
-    test_ant.set_item(Some(Food::from(FoodName::Honey)));
-    assert_eq!(
-        test_ant.item.as_ref().map(|item| item.name.clone()),
-        Some(FoodName::Honey)
-    );
-
-    // Remove item.
-    test_ant.set_item(None);
-    assert_eq!(test_ant.item, None);
-}
-
-#[test]
 fn test_set_pos() {
     let mut test_ant = Pet::from(PetName::Ant);
     test_ant.set_pos(0);
     assert!(test_ant.pos == Some(0))
 }
-
-// #[test]
-// fn test_attack_meat() {}
-
-// #[test]
-// fn test_attack_melon() {
-
-// }

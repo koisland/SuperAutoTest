@@ -197,25 +197,23 @@ pub enum Action {
     Debuff(Statistics),
     /// Copy some attribute from a `Pet` to a given `Position`.
     Copy(CopyAttr, Position),
-    /// WIP: Repeat this `Pet`'s `Effect`.
-    Repeat,
-    /// WIP: Negate some amount of `Statistics` damage.
+    /// Negate some amount of `Statistics` damage.
     Negate(Statistics),
-    /// WIP: Do a critical attack with a percent probability dealing double damage.
+    /// Do a critical attack with a percent probability dealing double damage.
     Critical(usize),
     /// Evolve a `Pet` at a specified index by leveling it and spawning it on faint.
     Evolve(usize, Position),
     /// Instantly kill a `Pet`.
     Kill,
-    /// WIP: Take no damage.
+    /// Take no damage. Action of `Coconut`.
     Invincible,
     /// Gain a `Food` item.
     Gain(Box<Food>),
     /// Summon a `Pet`.
-    Summon(Option<Box<Pet>>),
+    Summon(Option<Box<Pet>>, Option<Statistics>),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
-    /// WIP: Hardcoded Rhino ability.
+    /// Hardcoded Rhino ability.
     Rhino(Statistics),
     /// WIP
     LevelUp,

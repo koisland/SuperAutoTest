@@ -35,6 +35,7 @@ pub fn get_self_faint_triggers(
     [self_faint, any_faint, ahead_faint]
 }
 
+pub const ALL_TRIGGERS_START_BATTLE: [Outcome; 2] = [TRIGGER_START_TURN, TRIGGER_START_BATTLE];
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     status: Status::StartBattle,
     target: Target::None,
@@ -129,15 +130,6 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
 
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    target: Target::Friend,
-    position: Position::Specific(-1),
-    idx: None,
-    stat_diff: None,
-};
-
-/// Is there a friend ahead?
-pub const TRIGGER_AHEAD_FRIEND: Outcome = Outcome {
-    status: Status::None,
     target: Target::Friend,
     position: Position::Specific(-1),
     idx: None,

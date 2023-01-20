@@ -58,7 +58,7 @@ pub fn get_pet_effect(
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(zombie_cricket)),
+                action: Action::Summon(Some(zombie_cricket), None),
                 uses: Some(n_triggers),
                 effect_type: EffectType::Pet,
             })
@@ -141,7 +141,7 @@ pub fn get_pet_effect(
                 item: None,
                 pos: None,
             });
-            let rats_summoned = vec![Action::Summon(Some(dirty_rat)); lvl];
+            let rats_summoned = vec![Action::Summon(Some(dirty_rat), None); lvl];
             Some(Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Enemy,
@@ -168,7 +168,7 @@ pub fn get_pet_effect(
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(summoned_pet)),
+                action: Action::Summon(Some(summoned_pet), None),
                 uses: Some(n_triggers),
             })
         }
@@ -256,8 +256,8 @@ pub fn get_pet_effect(
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Multiple(vec![
-                    Action::Summon(Some(ram.clone())),
-                    Action::Summon(Some(ram)),
+                    Action::Summon(Some(ram.clone()), None),
+                    Action::Summon(Some(ram), None),
                 ]),
                 uses: Some(n_triggers),
             })
@@ -278,7 +278,7 @@ pub fn get_pet_effect(
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(Some(bus)),
+                action: Action::Summon(Some(bus), None),
                 uses: Some(n_triggers),
             })
         }
@@ -316,7 +316,7 @@ pub fn get_pet_effect(
                 item: None,
                 pos: None,
             });
-            let n_chicks = vec![Action::Summon(Some(chick)); lvl];
+            let n_chicks = vec![Action::Summon(Some(chick), None); lvl];
             Some(Effect {
                 effect_type: EffectType::Pet,
                 trigger: TRIGGER_SELF_FAINT,
@@ -422,7 +422,7 @@ pub fn get_pet_effect(
                 trigger: TRIGGER_ANY_FAINT,
                 target: Target::Friend,
                 position: Position::Trigger,
-                action: Action::Summon(Some(zombie_fly)),
+                action: Action::Summon(Some(zombie_fly), None),
                 uses: Some(n_triggers),
             })
         }
@@ -461,14 +461,6 @@ pub fn get_pet_effect(
             target: Target::Enemy,
             position: Position::Any,
             action: Action::Remove(effect_stats),
-            uses: None,
-        }),
-        PetName::Tiger => Some(Effect {
-            effect_type: EffectType::Pet,
-            trigger: TRIGGER_AHEAD_FRIEND,
-            target: Target::Friend,
-            position: Position::Trigger,
-            action: Action::Repeat,
             uses: None,
         }),
         _ => None,

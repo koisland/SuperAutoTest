@@ -1,6 +1,5 @@
 use crate::common::{
     battle::state::{Statistics, TeamFightOutcome},
-    foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{test_ant_team, test_cricket_horse_team, test_mosq_team},
 };
@@ -8,22 +7,41 @@ use crate::common::{
 // use petgraph::{dot::Dot, visit::Dfs};
 
 #[test]
-fn test_battle_ant_honey_team() {
+fn test_battle_ant_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
     let mut team = test_ant_team("self");
     let mut enemy_team = test_ant_team("enemy");
 
-    // Give last pet honey on first team.
-    let last_pet = team.friends.get_mut(2).unwrap().as_mut().unwrap();
-    last_pet.set_item(Some(Food::new(&FoodName::Honey).unwrap()));
+    let all_2_1 = team.friends.iter().filter(|pet| pet.is_some()).all(|slot| {
+        if let Some(pet) = slot {
+            pet.stats
+                == Statistics {
+                    attack: 2,
+                    health: 1,
+                }
+        } else {
+            false
+        }
+    });
+    assert!(all_2_1);
 
-    let mut fight = team.fight(&mut enemy_team);
-    while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team);
-    }
+    // One battle phase and one ant faints.
+    team.fight(&mut enemy_team);
 
-    assert_eq!(fight, TeamFightOutcome::Win);
+    let any_gets_2_1 = team.friends.iter().any(|slot| {
+        if let Some(pet) = slot {
+            pet.stats
+                == Statistics {
+                    attack: 4,
+                    health: 2,
+                }
+        } else {
+            false
+        }
+    });
+    // Another pet gets (2,1).
+    assert!(any_gets_2_1)
 }
 
 #[test]

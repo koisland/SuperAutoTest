@@ -406,7 +406,7 @@ pub fn test_scorpion_team(name: &str) -> Team {
         name,
         &[
             Some(Pet::from(PetName::Scorpion)),
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Scorpion)),
             None,
             None,
             None,

@@ -11,20 +11,32 @@ use crate::common::{
 
 use itertools::Itertools;
 use log::info;
-use petgraph::Graph;
 use rand::seq::IteratorRandom;
 use std::{collections::VecDeque, fmt::Display};
 
 /// A Super Auto Pets team.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Team {
     pub name: String,
     pub friends: Vec<Option<Pet>>,
+    original_friends: Vec<Option<Pet>>,
     pub fainted: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
     pub history: History,
-    pub pet_count: usize,
+    pet_count: usize,
+}
+
+impl PartialEq for Team {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
+            && self.friends == other.friends
+            && self.original_friends == other.original_friends
+            && self.fainted == other.fainted
+            && self.max_size == other.max_size
+            && self.triggers == other.triggers
+            && self.pet_count == other.pet_count
+    }
 }
 
 impl Team {
@@ -53,32 +65,37 @@ impl Team {
                                 .clone()
                                 .unwrap_or(format!("{}_{}", pet.name, pet_count)),
                         );
-
                         pet_count += 1;
                     }
                     slot
                 })
                 .collect_vec();
-            let mut team = Team {
+            Ok(Team {
                 name: name.to_string(),
+                original_friends: idx_pets.clone(),
                 friends: idx_pets,
                 fainted: vec![],
                 max_size,
-                triggers: VecDeque::from_iter([TRIGGER_START_TURN, TRIGGER_START_BATTLE]),
-                history: History {
-                    curr_turn: 0,
-                    curr_node: None,
-                    prev_node: None,
-                    effect_graph: Graph::new(),
-                },
+                triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
+                history: History::new(),
                 pet_count,
-            };
-            // Set starting node.
-            let starting_node = team.history.effect_graph.add_node(TRIGGER_START_BATTLE);
-            team.history.prev_node = Some(starting_node);
-            team.history.curr_node = Some(starting_node);
-            Ok(team)
+            })
         }
+    }
+
+    #[allow(dead_code)]
+    /// Restore the original `Team`.
+    pub fn restore(&mut self) -> &mut Self {
+        self.friends = self.original_friends.clone();
+        self.fainted.clear();
+        self.history = History::new();
+        self.triggers = VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE);
+        self.pet_count = self
+            .original_friends
+            .iter()
+            .filter(|pet| pet.is_some())
+            .count();
+        self
     }
 
     /// Clear `Team` of empty slots and/or fainted `Pet`s.

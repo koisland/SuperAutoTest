@@ -3,10 +3,7 @@ use crate::common::{
         effect::{Effect, Modify},
         state::{Action, CopyAttr, Outcome, Position, Statistics, Status, Target},
         team::Team,
-        trigger::{
-            get_self_enemy_faint_triggers, get_self_faint_triggers, TRIGGER_KNOCKOUT,
-            TRIGGER_SELF_FAINT,
-        },
+        trigger::*,
     },
     error::TeamError,
     pets::{
@@ -35,8 +32,8 @@ pub trait EffectApply {
     fn _apply_effect(
         &mut self,
         effect_pet_idx: usize,
-        trigger: Outcome,
-        effect: Effect,
+        trigger: &Outcome,
+        effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
     /// Match statement applying effect to exclusively one `Team`.
@@ -108,16 +105,33 @@ impl EffectApply for Team {
             }
             Action::Gain(food) => {
                 if let Some(target) = self.get_idx_pet(target_idx) {
-                    target.set_item(Some(*food.clone()));
+                    target.item = Some(*food.clone());
                     info!(target: "dev", "(\"{}\")\nGave {} to {}.", name, food, target);
                     target_ids.push(target.id.clone())
                 }
             }
-            Action::Summon(pet) => {
-                if let Ok(Some(summoned_pet)) = self.add_pet(pet, target_idx) {
+            Action::Summon(stored_pet, stats) => {
+                // If stored pet is None, assume is summoning self.
+                let stored_box_pet = if stored_pet.is_none() {
+                    if let (Some(Some(pet)), Some(summon_stats)) = (self.friends.get(0), stats) {
+                        // Copy the pet, set its stats to opt_summon_stats
+                        let mut one_up_pet = pet.clone();
+                        one_up_pet.stats = summon_stats.clone();
+                        // Remove the item.
+                        one_up_pet.item = None;
+
+                        Some(Box::new(one_up_pet))
+                    } else {
+                        None
+                    }
+                } else {
+                    // Otherwise use stored pet.
+                    stored_pet.clone()
+                };
+                if let Ok(Some(summoned_pet)) = self.add_pet(&stored_box_pet, target_idx) {
                     target_ids.push(summoned_pet.id.clone())
                 } else {
-                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, pet, target_idx);
+                    info!(target: "dev", "(\"{}\")\nCouldn't summon {:?} to {}.", name, stored_pet, target_idx);
                 }
             }
             Action::Multiple(actions) => {
@@ -190,11 +204,13 @@ impl EffectApply for Team {
                     // Do in new scope so mut ref to pet is dropped.
                     let (_, adj_idx) = self._cvt_rel_idx_to_adj_idx(target_idx, *rel_pos)?;
                     let evolved_pet = self.get_idx_pet(adj_idx).map(|pet| {
-                        let mut pet_copy = pet.clone();
-                        if let Ok(leveled_pet) = pet_copy.set_level(*lvl) {
+                        if let Ok(leveled_pet) = pet.clone().set_level(*lvl) {
                             pet.stats.health = 0;
                             info!(target: "dev", "(\"{}\")\nKilled pet {}.", name, pet);
-                            Some(leveled_pet.clone())
+                            // Clone the pet and remove its item.
+                            let mut leveled_pet = leveled_pet.clone();
+                            leveled_pet.item = None;
+                            Some(leveled_pet)
                         } else {
                             None
                         }
@@ -221,7 +237,8 @@ impl EffectApply for Team {
                     // Set the target's pet ability to summon the pet.
                     if let Some(old_effect) = target_pet.effect.as_mut() {
                         old_effect.position = Position::OnSelf;
-                        old_effect.action = Action::Summon(Some(Box::new(leveled_pet.clone())));
+                        old_effect.action =
+                            Action::Summon(Some(Box::new(leveled_pet.clone())), None);
                         old_effect.trigger = TRIGGER_SELF_FAINT;
                         old_effect.add_uses(1);
 
@@ -485,7 +502,7 @@ impl EffectApply for Team {
                     effect_copy.uses = Some(1);
 
                     // Add outcome to outcomes.
-                    self._apply_effect(effect_pet_idx, trigger.clone(), effect_copy, opponent)?
+                    self._apply_effect(effect_pet_idx, trigger, &effect_copy, opponent)?
                 }
             }
             _ => {}
@@ -496,25 +513,26 @@ impl EffectApply for Team {
     fn _apply_effect(
         &mut self,
         effect_pet_idx: usize,
-        trigger: Outcome,
-        effect: Effect,
+        trigger: &Outcome,
+        effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>> {
+        // Make a copy of the effect to alter if necessary.
         let mut effect_copy = effect.clone();
 
         match effect.target {
             Target::Friend => {
-                self._match_position_one_team(effect_pet_idx, &trigger, &mut effect_copy, opponent)?
+                self._match_position_one_team(effect_pet_idx, trigger, &mut effect_copy, opponent)?
             }
             Target::Enemy => opponent._match_position_one_team(
                 effect_pet_idx,
-                &trigger,
+                trigger,
                 &mut effect_copy,
                 self,
             )?,
             Target::Either => self._match_position_either_team(
                 effect_pet_idx,
-                &trigger,
+                trigger,
                 &mut effect_copy,
                 opponent,
             )?,
@@ -610,7 +628,7 @@ impl EffectApply for Team {
                     //  * If trigger for a summon action is a Zombie Fly, ignore it.
                     //  * If trigger for a summon action is a Fly and is also the current pet is that fly, ignore it.
                     if let Some(Some(trigger_name)) = trigger_pet_name.clone() {
-                        if let Action::Summon(_) = pet_effect.action {
+                        if let Action::Summon(_, _) = pet_effect.action {
                             if trigger_name == PetName::ZombieFly
                                 || (trigger_name == PetName::Fly
                                     && trigger.idx == Some(effect_pet_idx))
@@ -626,13 +644,23 @@ impl EffectApply for Team {
             }
             // Apply effects in reverse so proper order followed.
             for (effect_pet_idx, trigger, effect) in applied_effects.into_iter().rev() {
-                // Add node here for activated effect.
-                let node_idx = self.history.effect_graph.add_node(trigger.clone());
-                self.history.curr_node = Some(node_idx);
+                // For Tiger. Check if behind. Determines number of times effect applied.
+                let num_times_applied = self
+                    .get_idx_pet(effect_pet_idx + 1)
+                    .map(|pet| if pet.name == PetName::Tiger { 2 } else { 1 })
+                    .unwrap_or(1);
 
-                if let Err(err) = self._apply_effect(effect_pet_idx, trigger, effect, opponent) {
-                    error!(target: "dev", "(\"{}\")\nSomething went wrong. {:?}", self.name, err)
-                };
+                for _ in 0..num_times_applied {
+                    // Add node here for activated effect.
+                    let node_idx = self.history.effect_graph.add_node(trigger.clone());
+                    self.history.curr_node = Some(node_idx);
+
+                    if let Err(err) =
+                        self._apply_effect(effect_pet_idx, &trigger, &effect, opponent)
+                    {
+                        error!(target: "dev", "(\"{}\")\nSomething went wrong. {:?}", self.name, err)
+                    };
+                }
             }
 
             // Set curr node to previous.
@@ -645,6 +673,7 @@ impl EffectApply for Team {
         // For Rhino: Check if target faints, considered a knockout but by indirect attack.
         // This cannot be added to indirect_attack().
         // * Would cause false positive when something snipes an enemy infront of hippo or rhino.
+        // * Also needed here to allow opponent effect triggers.
         if let Some(pet) = self.get_next_pet() {
             if opponent
                 .triggers

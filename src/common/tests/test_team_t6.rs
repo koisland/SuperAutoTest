@@ -219,12 +219,32 @@ fn test_battle_snake_team() {
     }
 }
 
-// #[test]
-// fn test_battle_tiger_team() {
-//     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+#[test]
+fn test_battle_tiger_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-//     let mut team = test_tiger_team("self");
-//     let mut enemy_team = test_scorpion_team("enemy");
+    let mut team = test_tiger_team("self");
+    let mut enemy_team = test_scorpion_team("enemy");
 
-//     let outcome = team.fight(&mut enemy_team);
-// }
+    {
+        // Team of leopard and tiger.
+        let pets = team.get_all_pets();
+        assert_eq!(pets.get(0).unwrap().name, PetName::Leopard);
+        assert_eq!(pets.get(1).unwrap().name, PetName::Tiger);
+        assert_eq!(pets.len(), 2)
+    }
+    {
+        // Enemy team of two scorpions.
+        let enemy_pets = enemy_team.get_all_pets();
+        assert_eq!(enemy_pets.get(0).unwrap().name, PetName::Scorpion);
+        assert_eq!(enemy_pets.get(1).unwrap().name, PetName::Scorpion);
+        assert_eq!(enemy_pets.len(), 2)
+    }
+    // Start of battle triggers leopard effect twice (due to tiger behind it) against scorpion team.
+    team.fight(&mut enemy_team);
+
+    // Frontline leopard lives because its effect triggers twice.
+    let pets = team.get_all_pets();
+    assert_eq!(pets.get(0).unwrap().name, PetName::Leopard);
+    assert_eq!(pets.get(1).unwrap().name, PetName::Tiger);
+}
