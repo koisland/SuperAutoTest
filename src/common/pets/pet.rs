@@ -141,9 +141,12 @@ impl Pet {
             1 | 2 => {
                 // lvl 1
                 // exp 0 + 1
-                let levels = self.exp + exp / (self.lvl + 1);
-                let overflow = self.exp + exp % (self.lvl + 1);
+                let levels = (self.exp + exp) / (self.lvl + 1);
+                let overflow = (self.exp + exp) % (self.lvl + 1);
                 if levels != 0 && overflow > 0 {
+                    if self.lvl + levels == 3 {
+                        return Err("Experience overflows to level cap.".into());
+                    }
                     self.lvl += levels;
                     self.exp = 0;
                     self.add_experience(overflow)?;

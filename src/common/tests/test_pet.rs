@@ -203,3 +203,30 @@ fn test_set_pos() {
     test_ant.set_pos(0);
     assert!(test_ant.pos == Some(0))
 }
+
+#[test]
+fn test_add_experience() {
+    let mut test_ant = Pet::from(PetName::Ant);
+
+    assert_eq!(test_ant.lvl, 1);
+    assert_eq!(test_ant.exp, 0);
+
+    test_ant.add_experience(2).unwrap();
+
+    assert_eq!(test_ant.lvl, 2);
+    assert_eq!(test_ant.exp, 0);
+
+    test_ant.add_experience(2).unwrap();
+
+    assert_eq!(test_ant.lvl, 2);
+    assert_eq!(test_ant.exp, 2);
+
+    // Reached limit. So errors.
+    assert!(test_ant.add_experience(2).is_err());
+
+    // Add exact experience to reach cap.
+    test_ant.add_experience(1).unwrap();
+
+    assert_eq!(test_ant.lvl, 3);
+    assert_eq!(test_ant.exp, 0);
+}
