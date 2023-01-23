@@ -6,8 +6,9 @@ use crate::common::battle::{
 };
 
 /// Track history of a `Team`'s effects.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct History {
+    pub curr_phase: usize,
     pub curr_turn: usize,
     pub curr_node: Option<NodeIndex>,
     pub prev_node: Option<NodeIndex>,
@@ -16,12 +17,7 @@ pub struct History {
 
 impl History {
     pub fn new() -> Self {
-        let mut history = History {
-            curr_turn: 0,
-            curr_node: None,
-            prev_node: None,
-            effect_graph: Graph::new(),
-        };
+        let mut history = History::default();
         let starting_node = history.effect_graph.add_node(TRIGGER_START_BATTLE);
         (history.prev_node, history.curr_node) = (Some(starting_node), Some(starting_node));
         history

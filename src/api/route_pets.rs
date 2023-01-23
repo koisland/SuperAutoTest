@@ -110,6 +110,7 @@ mod test {
                 n_triggers: 1,
                 temp_effect: false,
                 lvl: 1,
+                cost: 3
             }
         )
     }
@@ -144,6 +145,7 @@ mod test {
                     n_triggers: 1,
                     temp_effect: false,
                     lvl: 1,
+                    cost: 3
                 },
                 PetRecord {
                     name: "Cricket".to_string(),
@@ -158,6 +160,7 @@ mod test {
                     n_triggers: 1,
                     temp_effect: false,
                     lvl: 1,
+                    cost: 3
                 },
             ]
         )

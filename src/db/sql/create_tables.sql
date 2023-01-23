@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS pets (
     n_triggers INTEGER NOT NULL,
     temp_effect BOOLEAN NOT NULL,
     lvl INTEGER NOT NULL,
+    cost INTEGER NOT NULL,
     CONSTRAINT unq UNIQUE (name, pack, lvl)
 );
 CREATE TABLE IF NOT EXISTS foods (
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS foods (
     effect_atk INTEGER NOT NULL,
     effect_health INTEGER NOT NULL,
     turn_effect BOOLEAN NOT NULL,
+    cost INTEGER NOT NULL,
     CONSTRAINT unq UNIQUE (name, pack)
 );
 COMMIT;

@@ -12,6 +12,7 @@ use crate::{
         regex_patterns::{RGX_SUMMON_STATS, RGX_TOKEN_SPAN_COLS},
     },
 };
+const DEFAULT_TOKEN_COST: usize = 0;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub enum TokenTableCols {
@@ -136,6 +137,9 @@ pub fn parse_single_token(
             .into_iter()
             .enumerate()
         {
+            // Chick has `X` in stats.
+            let stats = stats.replace('X', "0");
+
             if let Some((Some(attack), Some(health))) = stats
                 .split('/')
                 .map(|num| num.parse::<usize>().ok())
@@ -153,7 +157,8 @@ pub fn parse_single_token(
                     effect_health: 0,
                     n_triggers: 0,
                     temp_effect: false,
-                    lvl,
+                    lvl: lvl + 1,
+                    cost: DEFAULT_TOKEN_COST,
                 })
             } else {
                 warn!("Failed to parse stats for {name} from string {stats}.")

@@ -15,6 +15,9 @@ use crate::{
 pub struct Food {
     pub name: FoodName,
     pub ability: Effect,
+    pub holdable: bool,
+    pub temp: bool,
+    pub cost: usize,
 }
 
 impl From<&FoodName> for Food {
@@ -52,11 +55,16 @@ impl Food {
                 health: isize::try_from(effect_health)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
             },
             food_record.single_use.then_some(1),
+            food_record.n_targets,
+            food_record.end_of_battle,
         );
 
         Ok(Food {
             name: name.clone(),
             ability: effect,
+            temp: food_record.single_use,
+            holdable: food_record.holdable,
+            cost: food_record.cost,
         })
     }
 }

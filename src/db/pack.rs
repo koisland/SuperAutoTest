@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{fmt, str::FromStr};
 
-use crate::{api::utils::capitalize_names, wiki_scraper::error::WikiParserError};
+use crate::wiki_scraper::error::WikiParserError;
 
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
 pub enum Pack {
@@ -16,8 +16,8 @@ impl FromStr for Pack {
     type Err = WikiParserError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let capitalized_s = capitalize_names(s);
-        match &capitalized_s[..] {
+        // let capitalized_s = capitalize_names(s);
+        match s {
             "Turtle" => Ok(Pack::Turtle),
             "Puppy" => Ok(Pack::Puppy),
             "Star" => Ok(Pack::Star),
@@ -48,7 +48,6 @@ mod test {
     #[test]
     fn test_str_to_pack() {
         assert_eq!(Pack::Turtle, Pack::from_str("Turtle").unwrap());
-        assert_eq!(Pack::Turtle, Pack::from_str("turtle").unwrap());
         assert_ne!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
         assert_eq!(Pack::Unknown, Pack::from_str("Golden").unwrap());
     }

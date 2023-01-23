@@ -75,7 +75,8 @@ fn test_parse_single_token_explicit_lvl_stats() {
             effect_health: 0,
             n_triggers: 0,
             temp_effect: false,
-            lvl: 0,
+            lvl: 1,
+            cost: 0,
         },
         PetRecord {
             name: "Bus".to_string(),
@@ -89,7 +90,8 @@ fn test_parse_single_token_explicit_lvl_stats() {
             effect_health: 0,
             n_triggers: 0,
             temp_effect: false,
-            lvl: 1,
+            lvl: 2,
+            cost: 0,
         },
         PetRecord {
             name: "Bus".to_string(),
@@ -103,7 +105,8 @@ fn test_parse_single_token_explicit_lvl_stats() {
             effect_health: 0,
             n_triggers: 0,
             temp_effect: false,
-            lvl: 2,
+            lvl: 3,
+            cost: 0,
         },
     ];
     assert_eq!(pets, exp_pets)
@@ -138,23 +141,8 @@ fn test_parse_single_token_colspan() {
             effect_health: 0,
             n_triggers: 0,
             temp_effect: false,
-            lvl: 0,
-        },
-        PetRecord {
-            name: "Butterfly".to_string(),
-            tier: 0,
-            attack: 1,
-            health: 1,
-            pack: Pack::Unknown,
-            effect_trigger: Some("A level 3 Caterpillar at the start of battle.".to_string()),
-            effect: Some(
-                "Immediately copies the strength and health of the strongest unit.".to_string(),
-            ),
-            effect_atk: 0,
-            effect_health: 0,
-            n_triggers: 0,
-            temp_effect: false,
             lvl: 1,
+            cost: 0,
         },
         PetRecord {
             name: "Butterfly".to_string(),
@@ -171,6 +159,24 @@ fn test_parse_single_token_colspan() {
             n_triggers: 0,
             temp_effect: false,
             lvl: 2,
+            cost: 0,
+        },
+        PetRecord {
+            name: "Butterfly".to_string(),
+            tier: 0,
+            attack: 1,
+            health: 1,
+            pack: Pack::Unknown,
+            effect_trigger: Some("A level 3 Caterpillar at the start of battle.".to_string()),
+            effect: Some(
+                "Immediately copies the strength and health of the strongest unit.".to_string(),
+            ),
+            effect_atk: 0,
+            effect_health: 0,
+            n_triggers: 0,
+            temp_effect: false,
+            lvl: 3,
+            cost: 0,
         },
     ];
 

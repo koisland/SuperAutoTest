@@ -78,6 +78,7 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
                 &pet.n_triggers.to_string(),
                 &pet.temp_effect.to_string(),
                 &pet.lvl.to_string(),
+                &pet.cost.to_string(),
             ],
         )?;
         n_rows_updated += n_rows;
@@ -109,6 +110,7 @@ pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
                 &food.effect_atk.to_string(),
                 &food.effect_health.to_string(),
                 &food.turn_effect.to_string(),
+                &food.cost.to_string(),
             ],
         )?;
         n_rows_updated += n_rows;

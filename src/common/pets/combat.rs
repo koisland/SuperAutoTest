@@ -20,26 +20,39 @@ const FULL_DMG_NEG_ITEMS: [FoodName; 2] = [FoodName::Coconut, FoodName::Melon];
 pub trait Combat {
     /// Perform damage calculation and get new health for self and opponent.
     fn calculate_damage(&self, enemy: &Pet) -> (isize, isize);
-    /// Handle the logic of a single pet interaction during the battle phase.
+    /// Handle the logic of `Pet` interaction during the battle phase.
+    /// ```
+    /// use sapdb::common::pets::{pet::Pet, names::PetName, combat::Combat};
+    ///
+    /// let (mut ant_1, mut ant_2) = (Pet::from(PetName::Ant), Pet::from(PetName::Ant));
+    ///
+    /// assert_eq!(ant_1.stats.health, 1);
+    /// assert_eq!(ant_2.stats.health, 1);
+    ///
+    /// ant_1.attack(&mut ant_2);
+    ///
+    /// assert_eq!(ant_1.stats.health, 0);
+    /// assert_eq!(ant_2.stats.health, 0);
+    ///
+    /// ```
     /// * Alters a `Pet`'s `stats.attack` and `stats.health`
     /// * Decrements any held `Food`'s `uses` attribute.
     /// * Returns `BattleOutcome` showing status of pets.
-    ///
-    /// ```
-    ///let ant_1 = Pet::new(PetName::Ant,
-    ///    Statistics {attack: 2, health: 1}, 1, None).unwrap();
-    ///let ant_2 = Pet::new(PetName::Ant,
-    ///    Statistics {attack: 2, health: 3}, 1, None).unwrap();
-    ///
-    ///let outcome = ant_t1.attack(&mut ant_t2);
-    /// ```
     fn attack(&mut self, enemy: &mut Pet) -> BattleOutcome;
     /// Perform a projectile/indirect attack on a `Pet`.
-    /// * `:param hit_stats:`
-    ///     * Amount of `Statistics` to reduce a `Pet`'s stats by.
+    /// ```
+    /// use sapdb::common::{
+    ///     pets::{pet::Pet, names::PetName, combat::Combat},
+    ///     battle::state::Statistics
+    /// };
     ///
-    /// Returns:
-    /// * `Outcome`(s) of attack.
+    /// let mut ant = Pet::from(PetName::Ant);
+    ///
+    /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
+    ///
+    /// assert_eq!(ant.stats.health, 0);
+    ///
+    /// ```
     fn indirect_attack(&mut self, hit_stats: &Statistics) -> (Vec<Outcome>, Vec<Outcome>);
     /// Get `Outcome` when health is altered.
     fn get_outcome(&self, new_health: isize) -> (Vec<Outcome>, Vec<Outcome>);
@@ -109,7 +122,7 @@ impl Combat for Pet {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
             let mut any_hurt = TRIGGER_ANY_HURT;
-            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats.clone());
+            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
             (any_hurt.idx, any_hurt.stat_diff) = (self.pos, health_diff_stats);
 
             let mut enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
@@ -139,9 +152,9 @@ impl Combat for Pet {
 
             match food_effect {
                 // Get stat modifiers from effects.
-                Action::Add(stats) | Action::Remove(stats) => stats.clone(),
+                Action::Add(stats) | Action::Remove(stats) => *stats,
                 Action::Negate(stats) => {
-                    let mut mod_stats = stats.clone();
+                    let mut mod_stats = *stats;
                     // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).
                     mod_stats.invert();
                     mod_stats

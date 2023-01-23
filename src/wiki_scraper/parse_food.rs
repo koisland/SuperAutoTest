@@ -18,6 +18,8 @@ use crate::{
 const TABLE_STR_DELIM: &str = "|-";
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
 const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weakness", "Peanuts"];
+const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
+const DEFAULT_FOOD_COST: usize = 3;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum FoodTableCols {
@@ -168,7 +170,10 @@ pub fn is_temp_single_use(name: &str, effect: &str) -> (bool, bool) {
 }
 
 pub fn is_holdable_item(name: &str, effect: &str) -> bool {
-    effect.contains(&format!("Give one pet {}", name)) || HOLDABLE_ITEMS_EXCEPTIONS.contains(&name)
+    effect
+        .to_lowercase()
+        .contains(&format!("give one pet {}", name.to_lowercase()))
+        || HOLDABLE_ITEMS_EXCEPTIONS.contains(&name)
 }
 
 pub fn is_turn_effect(effect: &str) -> bool {
@@ -176,6 +181,16 @@ pub fn is_turn_effect(effect: &str) -> bool {
 }
 pub fn is_end_of_battle_effect(effect: &str) -> bool {
     RGX_END_OF_BATTLE.is_match(effect)
+}
+
+pub fn get_food_cost(name: &str) -> usize {
+    if ONE_GOLD_ITEMS_EXCEPTIONS.contains(&name) {
+        1
+    } else if HOLDABLE_ITEMS_EXCEPTIONS.contains(&name) {
+        0
+    } else {
+        DEFAULT_FOOD_COST
+    }
 }
 
 /// Parse a single wiki food entry and update a list of `FoodRecord`s.
@@ -236,6 +251,7 @@ pub fn parse_one_food_entry(
         let end_of_battle = is_end_of_battle_effect(effect.1);
         let effect_atk = get_effect_attack(effect.1)?;
         let effect_health = get_effect_health(effect.1)?;
+        let cost = get_food_cost(name.1);
 
         // Attempt convert tier to usize.
         for pack in packs {
@@ -253,6 +269,7 @@ pub fn parse_one_food_entry(
                 effect_atk,
                 effect_health,
                 turn_effect,
+                cost,
             });
         }
     } else {

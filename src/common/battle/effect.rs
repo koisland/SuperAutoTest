@@ -3,20 +3,20 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum EffectType {
+pub enum Entity {
     Pet,
     Food,
-    None,
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Effect {
-    pub effect_type: EffectType,
+    pub entity: Entity,
     pub trigger: Outcome,
     pub target: Target,
     pub position: Position,
     pub action: Action,
     pub uses: Option<usize>,
+    pub temp: bool,
 }
 
 impl Display for Effect {
@@ -24,7 +24,7 @@ impl Display for Effect {
         write!(
             f,
             "[Effect (Uses: {:?}): ({:?}) - Trigger: {} - Action: {:?} on {:?} ({:?}) ]",
-            self.uses, self.effect_type, self.trigger, self.action, self.target, self.position
+            self.uses, self.entity, self.trigger, self.action, self.target, self.position
         )
     }
 }

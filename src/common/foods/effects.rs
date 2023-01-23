@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        effect::{Effect, EffectType},
+        effect::{Effect, Entity},
         state::{Action, Position, Statistics, Target},
         trigger::*,
     },
@@ -8,68 +8,72 @@ use crate::common::{
     pets::{names::PetName, pet::Pet},
 };
 
-pub fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<usize>) -> Effect {
+// TODO: Milk, popcorns, lollipop, strawberry
+pub fn get_food_effect(
+    name: &FoodName,
+    effect_stats: Statistics,
+    uses: Option<usize>,
+    n_targets: usize,
+    temp: bool,
+) -> Effect {
     match name {
         FoodName::Chili => Effect {
             target: Target::Enemy,
             // Next enemy relative to current pet position.
             position: Position::Specific(-1),
             action: Action::Remove(effect_stats),
-            uses: None,
-            effect_type: EffectType::Food,
+            uses,
+            entity: Entity::Food,
             trigger: TRIGGER_SELF_ATTACK,
+            temp,
         },
         FoodName::Coconut => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Invincible,
             uses,
-            effect_type: EffectType::Food,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
-        FoodName::Garlic => Effect {
+        FoodName::Garlic | FoodName::Lemon => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Negate(effect_stats),
-            uses: None,
-            effect_type: EffectType::Food,
+            uses,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
         FoodName::Honey => {
-            let bee = Box::new(Pet {
-                name: PetName::Bee,
-                id: None,
-                tier: 1,
-                stats: effect_stats,
-                lvl: 1,
-                effect: None,
-                item: None,
-                pos: None,
-            });
+            let bee = Box::new(Pet::new(PetName::Bee, None, Some(effect_stats), 1).unwrap());
             Effect {
                 target: Target::Friend,
                 position: Position::Trigger,
                 action: Action::Summon(Some(bee), None),
-                uses: None,
-                effect_type: EffectType::Food,
+                uses,
+                entity: Entity::Food,
                 trigger: TRIGGER_SELF_FAINT,
+                temp,
             }
         }
         FoodName::MeatBone => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
-            uses: None,
-            effect_type: EffectType::Food,
+            uses,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
         FoodName::Melon => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Negate(effect_stats),
             uses,
-            effect_type: EffectType::Food,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
         FoodName::Mushroom => Effect {
             target: Target::Friend,
@@ -83,32 +87,156 @@ pub fn get_food_effect(name: &FoodName, effect_stats: Statistics, uses: Option<u
                 }),
             ),
             uses,
-            effect_type: EffectType::Food,
+            entity: Entity::Food,
             trigger: TRIGGER_SELF_FAINT,
+            temp,
         },
         FoodName::Peanuts => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Kill,
-            uses: None,
-            effect_type: EffectType::Food,
+            uses,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
         FoodName::Steak => Effect {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
             uses,
-            effect_type: EffectType::Food,
+            entity: Entity::Food,
             trigger: TRIGGER_NONE,
+            temp,
         },
         FoodName::Weakness => Effect {
-            effect_type: EffectType::Food,
+            entity: Entity::Food,
             trigger: TRIGGER_SELF_HURT,
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Remove(effect_stats),
-            uses: None,
+            uses,
+            temp,
         },
+        FoodName::SleepingPill => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Kill,
+            uses,
+            temp,
+        },
+        FoodName::Croissant | FoodName::Cucumber | FoodName::Carrot => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_END_TURN,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(effect_stats),
+            uses,
+            temp,
+        },
+        FoodName::Grapes => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_START_TURN,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Profit,
+            uses,
+            temp,
+        },
+        FoodName::Chocolate => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Experience,
+            uses,
+            temp,
+        },
+        FoodName::Pepper => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Endure,
+            uses,
+            temp,
+        },
+        FoodName::CannedFood => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Shop,
+            position: Position::All,
+            action: Action::Add(effect_stats),
+            uses,
+            temp,
+        },
+        FoodName::FortuneCookie => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Critical(50),
+            uses,
+            temp,
+        },
+        FoodName::Cheese => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Critical(100),
+            uses,
+            temp,
+        },
+        // FoodName::Pineapple => Effect {
+        //     entity: Entity::Food,
+        //     trigger: TRIGGER_NONE,
+        //     target: Target::Enemy,
+        //     position: Position::OnSelf,
+        //     action: Action::Add(effect_stats),
+        //     uses: None,
+        //     temp,
+        // },
+        FoodName::SaladBowl
+        | FoodName::Sushi
+        | FoodName::Stew
+        | FoodName::Taco
+        | FoodName::Pizza
+        | FoodName::SoftIce
+        | FoodName::HotDog
+        | FoodName::Orange => {
+            let actions = vec![Action::Add(effect_stats); n_targets];
+            Effect {
+                entity: Entity::Food,
+                trigger: TRIGGER_NONE,
+                target: Target::Friend,
+                position: Position::Any,
+                action: Action::Multiple(actions),
+                uses,
+                temp,
+            }
+        }
+        FoodName::Apple
+        | FoodName::Bacon
+        | FoodName::Cookie
+        | FoodName::Broccoli
+        | FoodName::FriedShrimp
+        | FoodName::Cupcake
+        | FoodName::Peach
+        | FoodName::ChickenLeg => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(effect_stats),
+            uses,
+            temp,
+        },
+        _ => {
+            dbg!(name);
+            todo!()
+        }
     }
 }

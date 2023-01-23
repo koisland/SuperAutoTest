@@ -130,6 +130,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 1,
+            cost: 3,
         },
         PetRecord {
             name: "Mammoth".to_string(),
@@ -144,6 +145,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 2,
+            cost: 3,
         },
         PetRecord {
             name: "Mammoth".to_string(),
@@ -158,6 +160,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 3,
+            cost: 3,
         },
         PetRecord {
             name: "Mammoth".to_string(),
@@ -172,6 +175,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 1,
+            cost: 3,
         },
         PetRecord {
             name: "Mammoth".to_string(),
@@ -186,6 +190,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 2,
+            cost: 3,
         },
         PetRecord {
             name: "Mammoth".to_string(),
@@ -200,6 +205,7 @@ fn test_create_pet_record() {
             n_triggers: 1,
             temp_effect: false,
             lvl: 3,
+            cost: 3,
         },
     ];
     assert_eq!(

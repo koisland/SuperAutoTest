@@ -1,5 +1,6 @@
 use crate::common::{
     battle::{
+        effect::Effect,
         state::{Condition, Outcome, Position, Status, Target, TeamFightOutcome},
         team_effect_apply::EffectApply,
         trigger::*,
@@ -19,7 +20,7 @@ use std::{collections::VecDeque, fmt::Display};
 pub struct Team {
     pub name: String,
     pub friends: Vec<Option<Pet>>,
-    original_friends: Vec<Option<Pet>>,
+    pub stored_friends: Vec<Option<Pet>>,
     pub fainted: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
@@ -27,11 +28,26 @@ pub struct Team {
     pet_count: usize,
 }
 
+impl Default for Team {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            friends: Default::default(),
+            stored_friends: Default::default(),
+            fainted: Default::default(),
+            max_size: 5,
+            triggers: Default::default(),
+            history: History::new(),
+            pet_count: Default::default(),
+        }
+    }
+}
+
 impl PartialEq for Team {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
             && self.friends == other.friends
-            && self.original_friends == other.original_friends
+            && self.stored_friends == other.stored_friends
             && self.fainted == other.fainted
             && self.max_size == other.max_size
             && self.triggers == other.triggers
@@ -72,7 +88,7 @@ impl Team {
                 .collect_vec();
             Ok(Team {
                 name: name.to_string(),
-                original_friends: idx_pets.clone(),
+                stored_friends: idx_pets.clone(),
                 friends: idx_pets,
                 fainted: vec![],
                 max_size,
@@ -86,12 +102,12 @@ impl Team {
     #[allow(dead_code)]
     /// Restore the original `Team`.
     pub fn restore(&mut self) -> &mut Self {
-        self.friends = self.original_friends.clone();
+        self.friends = self.stored_friends.clone();
         self.fainted.clear();
         self.history = History::new();
         self.triggers = VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE);
         self.pet_count = self
-            .original_friends
+            .stored_friends
             .iter()
             .filter(|pet| pet.is_some())
             .count();
@@ -129,6 +145,23 @@ impl Team {
             self.fainted.push(dead_pet);
         }
         self
+    }
+
+    #[allow(dead_code)]
+    pub fn get_effects(&self) -> Vec<(usize, Effect)> {
+        let mut effects: Vec<(usize, Effect)> = vec![];
+        for (i, friend) in self
+            .friends
+            .iter()
+            .filter_map(|pet| pet.as_ref())
+            .enumerate()
+        {
+            if let Some(effect) = &friend.effect {
+                effects.push((i, effect.clone()))
+            }
+        }
+
+        effects
     }
 
     /// Get a single pet by a given `Condition`.
@@ -199,78 +232,62 @@ impl Team {
     ///     * Index on `self.friends` to add `Pet` to.
     ///
     /// Raises `TeamError`:
-    /// * If `self.friends` at speciedd size limit of `self.max_size`
-    pub fn add_pet(
-        &mut self,
-        pet: &Option<Box<Pet>>,
-        pos: usize,
-    ) -> Result<&Option<Pet>, TeamError> {
+    /// * If `self.friends` at specified size limit of `self.max_size`
+    pub fn add_pet(&mut self, mut pet: Pet, pos: usize) -> Result<&mut Self, TeamError> {
         if self.get_all_pets().len() == self.max_size {
-            // Add overflow to dead pets.
-            if let Some(stored_pet) = pet.clone() {
-                self.fainted.push(Some(*stored_pet));
-            }
-            return Err(TeamError {
+            let err = Err(TeamError {
                 reason: format!(
-                    "(\"{}\")\nMaximum number of pets reached. Cannot add {:?}.",
-                    self.name, pet
+                    "(\"{}\")\nMaximum number of pets reached. Cannot add {}.",
+                    self.name, &pet
                 ),
             });
+            // Add overflow to dead pets.
+            self.fainted.push(Some(pet));
+            return err;
         }
-        if let Some(mut stored_pet) = pet.clone() {
-            // Assign id to pet if not any.
-            stored_pet.id = Some(stored_pet.id.clone().unwrap_or(format!(
-                "{}_{}",
-                stored_pet.name,
-                self.pet_count + 1
-            )));
+        // Assign id to pet if not any.
+        pet.id = Some(
+            pet.id
+                .clone()
+                .unwrap_or(format!("{}_{}", pet.name, self.pet_count + 1)),
+        );
 
-            // Handle case where pet in front faints and vector is empty.
-            // Would panic attempting to insert at any position not at 0.
-            // Also update position to be correct.
-            let pos = if pos > self.friends.len() { 0 } else { pos };
+        self.friends.insert(pos, Some(pet));
+        info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.friends.get(pos).unwrap().as_ref().unwrap());
 
-            self.friends.insert(pos, Some(*stored_pet));
-            info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.friends.get(pos).unwrap().as_ref().unwrap());
+        // Set summon triggers.
+        let mut self_trigger = TRIGGER_SELF_SUMMON;
+        let mut any_trigger = TRIGGER_ANY_SUMMON;
+        let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
 
-            // Set summon triggers.
-            let mut self_trigger = TRIGGER_SELF_SUMMON;
-            let mut any_trigger = TRIGGER_ANY_SUMMON;
-            let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
+        (self_trigger.idx, any_trigger.idx, any_enemy_trigger.idx) =
+            (Some(pos), Some(pos), Some(pos));
 
-            (self_trigger.idx, any_trigger.idx, any_enemy_trigger.idx) =
-                (Some(pos), Some(pos), Some(pos));
-
-            // Update old triggers and their positions that store a pet's idx after inserting new pet.
-            // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
-            for trigger in self.triggers.iter_mut() {
-                match (&mut trigger.position, &mut trigger.target) {
-                    (Position::Specific(orig_pos), Target::Friend)
-                    | (Position::Specific(orig_pos), Target::Enemy) => *orig_pos += 1,
-                    (Position::Trigger, Target::Friend)
-                    | (Position::Trigger, Target::Enemy)
-                    | (Position::OnSelf, Target::Friend)
-                    | (Position::OnSelf, Target::Enemy) => {
-                        if let Some(idx) = trigger.idx.as_mut() {
-                            *idx += 1
-                        }
+        // Update old triggers and their positions that store a pet's idx after inserting new pet.
+        // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
+        for trigger in self.triggers.iter_mut() {
+            match (&mut trigger.position, &mut trigger.target) {
+                (Position::Specific(orig_pos), Target::Friend)
+                | (Position::Specific(orig_pos), Target::Enemy) => *orig_pos += 1,
+                (Position::Trigger, Target::Friend)
+                | (Position::Trigger, Target::Enemy)
+                | (Position::OnSelf, Target::Friend)
+                | (Position::OnSelf, Target::Enemy) => {
+                    if let Some(idx) = trigger.idx.as_mut() {
+                        *idx += 1
                     }
-                    _ => {}
                 }
+                _ => {}
             }
-
-            self.triggers.extend([
-                // May run into issue with mushroomed scorpion.
-                self_trigger,
-                any_trigger,
-                any_enemy_trigger,
-            ]);
-            Ok(self.friends.get(pos).unwrap())
-        } else {
-            Err(TeamError {
-                reason: "No pet to add.".to_string(),
-            })
         }
+
+        self.triggers.extend([
+            // May run into issue with mushroomed scorpion.
+            self_trigger,
+            any_trigger,
+            any_enemy_trigger,
+        ]);
+        Ok(self)
     }
 
     pub fn fight(&mut self, opponent: &mut Team) -> TeamFightOutcome {
@@ -287,8 +304,8 @@ impl Team {
         }
 
         // Check that both teams have a pet that is alive.
-        // Increment turn counter.
-        self.history.curr_turn += 1;
+        // Increment battle phase counter.
+        self.history.curr_phase += 1;
 
         // Trigger Before Attack && Friend Ahead attack.
         self.triggers

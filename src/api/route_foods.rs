@@ -89,7 +89,8 @@ mod test {
                 n_targets: 1,
                 effect_atk: 2,
                 effect_health: 0,
-                turn_effect: false
+                turn_effect: false,
+                cost: 3
             }
         );
     }
@@ -121,7 +122,8 @@ mod test {
                     n_targets: 1,
                     effect_atk: 2,
                     effect_health: 0,
-                    turn_effect: false
+                    turn_effect: false,
+                    cost: 3
                 },
                 FoodRecord {
                     name: "Cucumber".to_string(),
@@ -135,7 +137,8 @@ mod test {
                     n_targets: 1,
                     effect_atk: 0,
                     effect_health: 1,
-                    turn_effect: true
+                    turn_effect: true,
+                    cost: 3
                 },
             ]
         );

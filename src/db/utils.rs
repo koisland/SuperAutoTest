@@ -21,6 +21,7 @@ pub fn map_row_to_pet(pet_row: &Row) -> Result<PetRecord, Error> {
         n_triggers: pet_row.get(10)?,
         temp_effect: is_temp_effect_str == *"true",
         lvl: pet_row.get(12)?,
+        cost: pet_row.get(13)?,
     })
 }
 
@@ -44,6 +45,7 @@ pub fn map_row_to_food(food_row: &Row) -> Result<FoodRecord, Error> {
         effect_atk: food_row.get(10)?,
         effect_health: food_row.get(11)?,
         turn_effect: turn_effect_str == *"true",
+        cost: food_row.get(13)?,
     })
 }
 

@@ -18,6 +18,7 @@ pub struct FoodRecord {
     pub effect_atk: isize,
     pub effect_health: isize,
     pub turn_effect: bool,
+    pub cost: usize,
 }
 
 /// A record with information about a pet from *Super Auto Pets*.
@@ -37,4 +38,5 @@ pub struct PetRecord {
     pub n_triggers: usize,
     pub temp_effect: bool,
     pub lvl: usize,
+    pub cost: usize,
 }

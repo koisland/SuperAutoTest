@@ -10,8 +10,9 @@
         "health": 48
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "KnockOut",
           "target": "Enemy",
@@ -29,12 +30,13 @@
             "health": 3
           }
         },
-        "uses": null
+        "uses": null,
+        "temp": false
       },
       "item": {
         "name": "Garlic",
         "ability": {
-          "effect_type": "Food",
+          "entity": "Food",
           "trigger": {
             "status": "None",
             "target": "None",
@@ -50,10 +52,15 @@
               "health": 0
             }
           },
-          "uses": null
-        }
+          "uses": null,
+          "temp": false
+        },
+        "holdable": true,
+        "temp": false,
+        "cost": 3
       },
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     }
   ],
   "friends_fainted": [
@@ -73,8 +80,9 @@
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "Faint",
           "target": "Friend",
@@ -89,36 +97,42 @@
             {
               "id": null,
               "name": "ZombieCricket",
-              "tier": 1,
+              "tier": 0,
               "stats": {
                 "attack": 1,
                 "health": 1
               },
               "lvl": 1,
+              "exp": 0,
               "effect": null,
               "item": null,
-              "pos": null
+              "pos": null,
+              "cost": 0
             },
             null
           ]
         },
-        "uses": 0
+        "uses": 0,
+        "temp": false
       },
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     },
     {
       "id": "Zombie Cricket_6",
       "name": "ZombieCricket",
-      "tier": 1,
+      "tier": 0,
       "stats": {
         "attack": 1,
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": null,
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 0
     },
     {
       "id": "Cricket_1",
@@ -129,8 +143,9 @@
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "Faint",
           "target": "Friend",
@@ -145,36 +160,42 @@
             {
               "id": null,
               "name": "ZombieCricket",
-              "tier": 1,
+              "tier": 0,
               "stats": {
                 "attack": 1,
                 "health": 1
               },
               "lvl": 1,
+              "exp": 0,
               "effect": null,
               "item": null,
-              "pos": null
+              "pos": null,
+              "cost": 0
             },
             null
           ]
         },
-        "uses": 0
+        "uses": 0,
+        "temp": false
       },
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     },
     {
       "id": "Zombie Cricket_6",
       "name": "ZombieCricket",
-      "tier": 1,
+      "tier": 0,
       "stats": {
         "attack": 1,
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": null,
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 0
     },
     {
       "id": "Cricket_2",
@@ -185,8 +206,9 @@
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "Faint",
           "target": "Friend",
@@ -201,36 +223,42 @@
             {
               "id": null,
               "name": "ZombieCricket",
-              "tier": 1,
+              "tier": 0,
               "stats": {
                 "attack": 1,
                 "health": 1
               },
               "lvl": 1,
+              "exp": 0,
               "effect": null,
               "item": null,
-              "pos": null
+              "pos": null,
+              "cost": 0
             },
             null
           ]
         },
-        "uses": 0
+        "uses": 0,
+        "temp": false
       },
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     },
     {
       "id": "Zombie Cricket_6",
       "name": "ZombieCricket",
-      "tier": 1,
+      "tier": 0,
       "stats": {
         "attack": 1,
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": null,
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 0
     },
     {
       "id": "Cricket_3",
@@ -241,8 +269,9 @@
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "Faint",
           "target": "Friend",
@@ -257,36 +286,42 @@
             {
               "id": null,
               "name": "ZombieCricket",
-              "tier": 1,
+              "tier": 0,
               "stats": {
                 "attack": 1,
                 "health": 1
               },
               "lvl": 1,
+              "exp": 0,
               "effect": null,
               "item": null,
-              "pos": null
+              "pos": null,
+              "cost": 0
             },
             null
           ]
         },
-        "uses": 0
+        "uses": 0,
+        "temp": false
       },
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     },
     {
       "id": "Zombie Cricket_6",
       "name": "ZombieCricket",
-      "tier": 1,
+      "tier": 0,
       "stats": {
         "attack": 1,
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": null,
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 0
     },
     {
       "id": "Dog_4",
@@ -297,8 +332,9 @@
         "health": 0
       },
       "lvl": 1,
+      "exp": 0,
       "effect": {
-        "effect_type": "Pet",
+        "entity": "Pet",
         "trigger": {
           "status": "Summoned",
           "target": "Friend",
@@ -314,10 +350,12 @@
             "health": 1
           }
         },
-        "uses": null
+        "uses": null,
+        "temp": true
       },
       "item": null,
-      "pos": 0
+      "pos": 0,
+      "cost": 3
     }
   ],
   "n_turns": 9

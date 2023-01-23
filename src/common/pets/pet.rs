@@ -33,9 +33,11 @@ pub struct Pet {
     pub tier: usize,
     pub stats: Statistics,
     pub lvl: usize,
+    pub exp: usize,
     pub effect: Option<Effect>,
     pub item: Option<Food>,
     pub pos: Option<usize>,
+    pub cost: usize,
 }
 
 impl Display for Pet {
@@ -83,6 +85,7 @@ impl Pet {
             },
             lvl,
             pet_record.n_triggers,
+            pet_record.temp_effect,
         );
 
         Ok(Pet {
@@ -91,9 +94,11 @@ impl Pet {
             tier: pet_record.tier,
             stats: pet_stats,
             lvl: pet_record.lvl,
+            exp: 0,
             effect,
             item: None,
             pos: None,
+            cost: pet_record.cost,
         })
     }
 
@@ -102,30 +107,59 @@ impl Pet {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         // Get pet stats and n_triggers from sqlite db. Otherwise, set to default.
-        let (pet_effect_stats, n_triggers) = if let Ok(pet_record) =
+        if let Ok(pet_record) =
             stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)
         {
-            (
+            Ok(get_pet_effect(
+                &self.name,
+                &self.stats,
                 Statistics {
                     attack: isize::try_from(pet_record.effect_atk)?
                         .clamp(MIN_PET_STATS, MAX_PET_STATS),
                     health: isize::try_from(pet_record.effect_health)?
                         .clamp(MIN_PET_STATS, MAX_PET_STATS),
                 },
+                lvl,
                 pet_record.n_triggers,
-            )
+                pet_record.temp_effect,
+            ))
         } else {
-            (Statistics::default(), 1)
-        };
+            Ok(get_pet_effect(
+                &self.name,
+                &self.stats,
+                Statistics::default(),
+                lvl,
+                1,
+                false,
+            ))
+        }
+    }
 
-        // Get new effect and replace.
-        Ok(get_pet_effect(
-            &self.name,
-            &self.stats,
-            pet_effect_stats,
-            lvl,
-            n_triggers,
-        ))
+    #[allow(dead_code)]
+    pub fn add_experience(&mut self, exp: usize) -> Result<&mut Self, Box<dyn Error>> {
+        match self.lvl {
+            1 | 2 => {
+                // lvl 1
+                // exp 0 + 1
+                let levels = self.exp + exp / (self.lvl + 1);
+                let overflow = self.exp + exp % (self.lvl + 1);
+                if levels != 0 && overflow > 0 {
+                    self.lvl += levels;
+                    self.exp = 0;
+                    self.add_experience(overflow)?;
+                } else if levels != 0 && overflow == 0 {
+                    self.lvl += levels;
+                    self.exp = 0;
+                } else {
+                    self.exp += exp;
+                }
+            }
+            3 => {
+                return Err("Already a level cap.".into());
+            }
+            _ => return Err("Invalid level.".into()),
+        };
+        Ok(self)
     }
 
     /// Set the level of this `Pet`.

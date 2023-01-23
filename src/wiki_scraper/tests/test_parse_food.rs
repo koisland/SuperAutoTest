@@ -5,9 +5,9 @@ use crate::{
     wiki_scraper::{
         common::read_wiki_url,
         parse_food::{
-            clean_link_text, get_effect_attack, get_effect_health, get_largest_table,
-            get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
-            parse_food_info, parse_one_food_entry, FoodTableCols,
+            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
+            get_largest_table, get_random_n_effect, is_holdable_item, is_temp_single_use,
+            is_turn_effect, parse_food_info, parse_one_food_entry, FoodTableCols,
         },
     },
 };
@@ -262,7 +262,8 @@ fn test_parse_food_entry() {
                 n_targets: 1,
                 effect_atk: 3,
                 effect_health: 3,
-                turn_effect: false
+                turn_effect: false,
+                cost: 3
             },
             FoodRecord {
                 name: "Cupcake".to_string(),
@@ -276,7 +277,8 @@ fn test_parse_food_entry() {
                 n_targets: 1,
                 effect_atk: 3,
                 effect_health: 3,
-                turn_effect: false
+                turn_effect: false,
+                cost: 3
             }
         ]
     )
@@ -319,6 +321,13 @@ fn test_parse_missing_data_food_entry() {
 
     // 6 columns expected but 5 items found.
     assert!(parse_one_food_entry(CUPCAKE_ENTRY_MISSING_FIELD, &cols, &mut foods).is_err());
+}
+
+#[test]
+fn food_cost() {
+    assert_eq!(3, get_food_cost("Cupcake"));
+    assert_eq!(1, get_food_cost("Sleeping Pill"));
+    assert_eq!(0, get_food_cost("Weakness"))
 }
 
 #[test]

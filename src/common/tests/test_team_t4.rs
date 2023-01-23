@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        effect::{Effect, EffectType},
+        effect::{Effect, Entity},
         state::{Action, Position, Statistics, Target, TeamFightOutcome},
         team_effect_apply::EffectApply,
         trigger::TRIGGER_SELF_FAINT,
@@ -93,7 +93,8 @@ fn test_battle_parrot_team() {
             // lvl
             1,
             // n_triggers
-            1
+            1,
+            true
         ),
         team.get_idx_pet(1).unwrap().effect
     );
@@ -115,7 +116,8 @@ fn test_battle_parrot_team() {
             // lvl
             1,
             // n_triggers
-            1
+            1,
+            false
         ),
         team.get_idx_pet(1).unwrap().effect
     );
@@ -292,12 +294,13 @@ fn test_battle_whale_team() {
     trigger_faint.idx = Some(0);
 
     let new_whale_effect = Effect {
-        effect_type: EffectType::Pet,
+        entity: Entity::Pet,
         trigger: trigger_faint,
         target: Target::Friend,
         position: Position::OnSelf,
         action: Action::Summon(Some(Box::new(cricket)), None),
         uses: Some(1),
+        temp: false,
     };
 
     assert_eq!(team.get_next_pet().unwrap().effect, Some(new_whale_effect));

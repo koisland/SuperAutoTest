@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
-    ops::{Add, AddAssign, MulAssign, RangeInclusive, Sub, SubAssign},
+    ops::{Add, AddAssign, Mul, MulAssign, RangeInclusive, Sub, SubAssign},
 };
 
 use crate::common::{
@@ -18,7 +18,7 @@ pub enum TeamFightOutcome {
     None,
 }
 
-#[derive(Debug, Default, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Statistics {
     pub attack: isize,
     pub health: isize,
@@ -42,6 +42,20 @@ impl Sub for Statistics {
         Statistics {
             attack: self.attack - rhs.attack,
             health: self.health - rhs.health,
+        }
+    }
+}
+
+impl Mul for Statistics {
+    type Output = Statistics;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
+        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
+
+        Statistics {
+            attack: (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
         }
     }
 }
@@ -100,7 +114,7 @@ impl Display for Statistics {
 }
 
 /// Conditions to select pets by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Condition {
     Healthiest,
     Illest,
@@ -124,10 +138,11 @@ pub enum Position {
 }
 
 /// Target team for an effect.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Target {
     Friend,
     Enemy,
+    Shop,
     Either,
     None,
 }
@@ -166,6 +181,10 @@ pub enum Status {
     StartBattle,
     EndOfBattle,
     Attack,
+    BuyFood,
+    BuyPet,
+    Sell,
+    Roll,
     Hurt,
     Faint,
     KnockOut,
@@ -209,14 +228,18 @@ pub enum Action {
     Invincible,
     /// Gain a `Food` item.
     Gain(Box<Food>),
+    // Get gold.
+    Profit,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(Option<Box<Pet>>, Option<Statistics>),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
     /// Hardcoded Rhino ability.
     Rhino(Statistics),
-    /// WIP
-    LevelUp,
+    /// Gain one experience point.
+    Experience,
+    /// Endure damage so health doesn't go below one.
+    Endure,
     None,
     NotImplemented,
 }

@@ -9,8 +9,7 @@ pub fn get_self_enemy_faint_triggers(
     let mut enemy_any_faint = TRIGGER_ANY_ENEMY_FAINT;
     enemy_faint.position = Position::Specific(pos.unwrap_or(0).try_into().unwrap());
     (enemy_faint.idx, enemy_any_faint.idx) = (pos, pos);
-    (enemy_faint.stat_diff, enemy_any_faint.stat_diff) =
-        (health_diff_stats.clone(), health_diff_stats.clone());
+    (enemy_faint.stat_diff, enemy_any_faint.stat_diff) = (*health_diff_stats, *health_diff_stats);
     [enemy_faint, enemy_any_faint]
 }
 
@@ -26,11 +25,7 @@ pub fn get_self_faint_triggers(
         self_faint.stat_diff,
         any_faint.stat_diff,
         ahead_faint.stat_diff,
-    ) = (
-        health_diff_stats.clone(),
-        health_diff_stats.clone(),
-        health_diff_stats.clone(),
-    );
+    ) = (*health_diff_stats, *health_diff_stats, *health_diff_stats);
 
     [self_faint, any_faint, ahead_faint]
 }
@@ -46,6 +41,14 @@ pub const TRIGGER_START_BATTLE: Outcome = Outcome {
 
 pub const TRIGGER_START_TURN: Outcome = Outcome {
     status: Status::StartTurn,
+    target: Target::None,
+    position: Position::None,
+    idx: None,
+    stat_diff: None,
+};
+
+pub const TRIGGER_END_TURN: Outcome = Outcome {
+    status: Status::EndTurn,
     target: Target::None,
     position: Position::None,
     idx: None,

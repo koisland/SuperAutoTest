@@ -37,7 +37,7 @@ fn convert_pet(simple_pet: &Option<SimplePet>) -> Option<Pet> {
             health: s_pet.health as isize,
         };
         if let Ok(mut pet) = Pet::new(
-            s_pet.name.clone(),
+            s_pet.name,
             s_pet.id.clone(),
             Some(stats),
             s_pet.level as usize,
@@ -106,7 +106,7 @@ pub fn battle(teams: Json<Teams>) -> Json<BattleResponse> {
     let mut fight = friends_team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {
         // Break if fight continues indefinitely. Dunno what would cause.
-        if friends_team.history.curr_turn == TURN_LIMIT {
+        if friends_team.history.curr_phase == TURN_LIMIT {
             fight = TeamFightOutcome::Draw;
             break;
         }
@@ -125,7 +125,7 @@ pub fn battle(teams: Json<Teams>) -> Json<BattleResponse> {
         friends_fainted: friends_team.fainted,
         enemies: enemy_team.friends,
         enemies_fainted: enemy_team.fainted,
-        n_turns: friends_team.history.curr_turn,
+        n_turns: friends_team.history.curr_phase,
     })
 }
 
@@ -134,7 +134,7 @@ mod test {
     use crate::api::route_battle::BattleResponse;
     use crate::server::rocket;
     use rocket::http::{ContentType, Status};
-    use rocket::local::blocking::{Client, LocalResponse};
+    use rocket::local::blocking::Client;
     use std::fs::{self, File};
     use std::io::BufReader;
 
@@ -182,8 +182,7 @@ mod test {
         // Get battle response.
         let response_json: BattleResponse = response.into_json().unwrap();
 
-        // Can't test exactly because ants and random triggers.
-        assert_eq!(exp_battle_response.winner, response_json.winner)
+        assert_eq!(exp_battle_response, response_json)
     }
 
     #[test]

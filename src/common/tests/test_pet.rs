@@ -59,6 +59,7 @@ fn test_create_def_pet() {
                 health: 1,
             },
             lvl: 1,
+            exp: 0,
             effect: get_pet_effect(
                 &PetName::Ant,
                 &Statistics {
@@ -70,10 +71,12 @@ fn test_create_def_pet() {
                     health: 1,
                 },
                 1,
-                1
+                1,
+                false
             ),
             item: None,
-            pos: None
+            pos: None,
+            cost: 3
         }
     )
 }
@@ -139,6 +142,7 @@ fn test_create_pet() {
                 health: 50,
             },
             lvl: 1,
+            exp: 0,
             effect: get_pet_effect(
                 &PetName::Ant,
                 &Statistics {
@@ -150,10 +154,12 @@ fn test_create_pet() {
                     health: 1,
                 },
                 1,
-                1
+                1,
+                false
             ),
             item: None,
-            pos: None
+            pos: None,
+            cost: 3
         }
     )
 }
@@ -182,9 +188,11 @@ fn create_pet_token() {
                 health: 50,
             },
             lvl: 1,
+            exp: 0,
             effect: None,
             item: None,
             pos: None,
+            cost: 0
         }
     );
 }

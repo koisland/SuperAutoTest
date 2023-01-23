@@ -12,6 +12,8 @@ use crate::{
     },
 };
 
+const DEFAULT_PET_COST: usize = 3;
+
 /// Parse a block of Fandom wiki source text for a pet's stats.
 /// * Original text: `attack = 2 | health = 1`
 /// * Regex: `attack\s=\s(?P<attack>\d+)\s\|\shealth\s=\s(?P<health>\d+)`
@@ -213,6 +215,7 @@ pub fn parse_single_pet(
                     n_triggers,
                     temp_effect,
                     lvl: lvl + 1,
+                    cost: DEFAULT_PET_COST,
                 };
 
                 pets.push(pet)

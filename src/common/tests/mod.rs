@@ -26,4 +26,4 @@ mod test_team_t5;
 mod test_team_t6;
 
 #[cfg(test)]
-mod common;
+pub mod common;
