@@ -1,19 +1,17 @@
 use crate::common::{
     battle::{
-        effect::{Effect, Entity},
-        state::{Action, Position, Statistics, Target, TeamFightOutcome},
+        state::{Action, Statistics, TeamFightOutcome},
         team_effect_apply::EffectApply,
-        trigger::TRIGGER_SELF_FAINT,
     },
     foods::names::FoodName,
-    pets::{effects::get_pet_effect, names::PetName, pet::Pet},
+    pets::{effects::get_pet_effect, names::PetName},
     tests::common::{
         count_pets, test_ant_team, test_deer_team, test_hippo_team, test_ox_team, test_parrot_team,
         test_rooster_team, test_skunk_team, test_turtle_team, test_whale_team,
     },
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_deer_team() {
@@ -284,26 +282,17 @@ fn test_battle_whale_team() {
 
     // Only one cricket at start.
     assert_eq!(count_pets(&team.friends, PetName::Cricket), 1);
+    // Copy cricket for comparison
+    let cricket_copy = team.friends.first().unwrap().clone().unwrap();
 
     let mut outcome = team.fight(&mut enemy_team);
 
-    // Recreate effect of whale after swallowing cricket.
-    let mut trigger_faint = TRIGGER_SELF_FAINT;
-    let mut cricket = Pet::from(PetName::Cricket);
-    cricket.pos = Some(0);
-    trigger_faint.idx = Some(0);
-
-    let new_whale_effect = Effect {
-        entity: Entity::Pet,
-        trigger: trigger_faint,
-        target: Target::Friend,
-        position: Position::OnSelf,
-        action: Action::Summon(Some(Box::new(cricket)), None),
-        uses: Some(1),
-        temp: false,
-    };
-
-    assert_eq!(team.get_next_pet().unwrap().effect, Some(new_whale_effect));
+    // After start of battle, what eats cricket and changes effect to summon cricket.
+    let whale_effect = team.get_next_pet().unwrap().effect.first().unwrap();
+    assert_eq!(
+        whale_effect.action,
+        Action::Summon(Some(Box::new(cricket_copy)), None)
+    );
 
     // Finish fight.
     while let TeamFightOutcome::None = outcome {

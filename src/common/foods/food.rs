@@ -60,7 +60,7 @@ impl Food {
         );
 
         Ok(Food {
-            name: name.clone(),
+            name: *name,
             ability: effect,
             temp: food_record.single_use,
             holdable: food_record.holdable,

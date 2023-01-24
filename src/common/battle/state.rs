@@ -6,7 +6,7 @@ use std::{
 
 use crate::common::{
     battle::effect::Effect,
-    foods::food::Food,
+    foods::{food::Food, names::FoodName},
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
 };
 
@@ -114,26 +114,31 @@ impl Display for Statistics {
 }
 
 /// Conditions to select pets by.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Condition {
     Healthiest,
     Illest,
     Strongest,
     Weakest,
+    HasFood(FoodName),
+    TriggeredBy(Status),
+    None,
 }
 
 /// Positions to select pets by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
-    Any,
-    All,
+    One(Condition),
+    Any(Condition),
+    All(Condition),
     OnSelf,
     Trigger,
+    First,
     Last,
     Range(RangeInclusive<isize>),
-    Specific(isize),
-    Condition(Condition),
+    Relative(isize),
     Multiple(Vec<Position>),
+    Adjacent,
     None,
 }
 
@@ -201,7 +206,7 @@ pub enum Status {
 pub enum CopyAttr {
     PercentStats(Statistics),
     Stats(Statistics),
-    Effect(Box<Option<Effect>>, Option<usize>),
+    Effect(Vec<Effect>, Option<usize>),
     None,
 }
 
@@ -214,6 +219,12 @@ pub enum Action {
     Remove(Statistics),
     /// Debuff a `Pet` by subtracting some **percent** of `Statistics` from it.
     Debuff(Statistics),
+    /// Swap positions of `Pet`s
+    SwapPositions,
+    /// Swap `Statistics` of `Pet`s.
+    SwapStats,
+    /// Push a `Pet` by some number of spaces relative to its original position.
+    Push(isize),
     /// Copy some attribute from a `Pet` to a given `Position`.
     Copy(CopyAttr, Position),
     /// Negate some amount of `Statistics` damage.
@@ -228,17 +239,19 @@ pub enum Action {
     Invincible,
     /// Gain a `Food` item.
     Gain(Box<Food>),
-    // Get gold.
+    /// WIP: Get gold.
     Profit,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(Option<Box<Pet>>, Option<Statistics>),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
+    /// WIP: Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
+    MultipleCondition(Vec<Action>, Condition),
     /// Hardcoded Rhino ability.
     Rhino(Statistics),
-    /// Gain one experience point.
+    /// WIP: Gain one experience point.
     Experience,
-    /// Endure damage so health doesn't go below one.
+    /// WIP: Endure damage so health doesn't go below one.
     Endure,
     None,
     NotImplemented,

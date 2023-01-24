@@ -7,8 +7,6 @@ use crate::common::{
     },
 };
 
-// use crate::LOG_CONFIG;
-
 #[test]
 fn test_battle_hedgehog_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();

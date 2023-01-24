@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::wiki_scraper::error::WikiParserError;
 
-#[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub enum FoodName {
     Apple,
     Bacon,

@@ -1,3 +1,4 @@
+use rand::random;
 use serde::{Deserialize, Serialize};
 use std::{convert::TryFrom, error::Error, fmt::Display};
 
@@ -26,7 +27,7 @@ pub fn num_regex(pattern: &LRegex, string: &str) -> Option<usize> {
 }
 
 /// A Super Auto Pet.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq)]
 pub struct Pet {
     pub id: Option<String>,
     pub name: PetName,
@@ -34,10 +35,26 @@ pub struct Pet {
     pub stats: Statistics,
     pub lvl: usize,
     pub exp: usize,
-    pub effect: Option<Effect>,
+    pub effect: Vec<Effect>,
     pub item: Option<Food>,
     pub pos: Option<usize>,
     pub cost: usize,
+    pub seed: u64,
+}
+
+impl PartialEq for Pet {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+            && self.name == other.name
+            && self.tier == other.tier
+            && self.stats == other.stats
+            && self.lvl == other.lvl
+            && self.exp == other.exp
+            && self.effect == other.effect
+            && self.item == other.item
+            && self.pos == other.pos
+            && self.cost == other.cost
+    }
 }
 
 impl Display for Pet {
@@ -99,11 +116,12 @@ impl Pet {
             item: None,
             pos: None,
             cost: pet_record.cost,
+            seed: random(),
         })
     }
 
     /// Get the effect of this `Pet` at a given level.
-    pub fn get_effect(&self, lvl: usize) -> Result<Option<Effect>, Box<dyn Error>> {
+    pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, Box<dyn Error>> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         // Get pet stats and n_triggers from sqlite db. Otherwise, set to default.
@@ -124,14 +142,7 @@ impl Pet {
                 pet_record.temp_effect,
             ))
         } else {
-            Ok(get_pet_effect(
-                &self.name,
-                &self.stats,
-                Statistics::default(),
-                lvl,
-                1,
-                false,
-            ))
+            Err("No effect for pet at level.".into())
         }
     }
 
@@ -181,7 +192,7 @@ impl Pet {
     /// * Note: This does not update other pets on the same team.
     pub fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
-        if let Some(effect) = self.effect.as_mut() {
+        for effect in self.effect.iter_mut() {
             effect.trigger.idx = Some(pos)
         }
         self

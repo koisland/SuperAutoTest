@@ -12,19 +12,21 @@ use crate::common::{
 
 use itertools::Itertools;
 use log::info;
-use rand::seq::IteratorRandom;
-use std::{collections::VecDeque, fmt::Display};
+use rand::{random, seq::IteratorRandom, SeedableRng};
+use rand_chacha::ChaCha12Rng;
+use std::{collections::VecDeque, error::Error, fmt::Display};
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone)]
 pub struct Team {
     pub name: String,
     pub friends: Vec<Option<Pet>>,
-    pub stored_friends: Vec<Option<Pet>>,
     pub fainted: Vec<Option<Pet>>,
     pub max_size: usize,
     pub triggers: VecDeque<Outcome>,
     pub history: History,
+    pub seed: u64,
+    stored_friends: Vec<Option<Pet>>,
     pet_count: usize,
 }
 
@@ -36,9 +38,10 @@ impl Default for Team {
             stored_friends: Default::default(),
             fainted: Default::default(),
             max_size: 5,
-            triggers: Default::default(),
+            triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
             history: History::new(),
             pet_count: Default::default(),
+            seed: Default::default(),
         }
     }
 }
@@ -86,21 +89,28 @@ impl Team {
                     slot
                 })
                 .collect_vec();
+
             Ok(Team {
                 name: name.to_string(),
                 stored_friends: idx_pets.clone(),
                 friends: idx_pets,
-                fainted: vec![],
                 max_size,
                 triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
-                history: History::new(),
                 pet_count,
+                seed: random(),
+                ..Default::default()
             })
         }
     }
 
     #[allow(dead_code)]
     /// Restore the original `Team`.
+    ///
+    /// ```
+    /// use sapdb::common::battle::team::Team;
+    ///
+    /// let team = Team::default();
+    /// ```
     pub fn restore(&mut self) -> &mut Self {
         self.friends = self.stored_friends.clone();
         self.fainted.clear();
@@ -117,71 +127,195 @@ impl Team {
     /// Clear `Team` of empty slots and/or fainted `Pet`s.
     pub fn clear_team(&mut self) -> &mut Self {
         let mut new_idx_cnt = 0;
-        let missing_pets = self
-            .friends
-            .iter_mut()
-            .enumerate()
-            .filter_map(|(i, pet)| {
-                // Check if empty slot
-                if pet.is_none() {
-                    Some(i)
-                } else if pet.as_ref().map_or(false, |pet| pet.stats.health != 0) {
-                    // Pet is Some so safe to unwrap.
-                    // Set new pet index and increment
-                    pet.as_mut().unwrap().set_pos(new_idx_cnt);
-                    new_idx_cnt += 1;
-                    None
-                } else {
-                    // Pet is dead.
-                    info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap());
-                    Some(i)
-                }
-            })
-            .collect_vec();
-        // Iterate in reverse to maintain correct removal order.
-        for rev_idx in missing_pets.iter().rev() {
-            // Remove the pet and store its id.
-            let dead_pet = self.friends.remove(*rev_idx);
-            self.fainted.push(dead_pet);
-        }
+        self.friends.retain_mut(|pet| {
+            // Check if empty slot
+            if pet.is_none() {
+                false
+            } else if pet.as_ref().map_or(false, |pet| pet.stats.health != 0) {
+                // Pet is Some so safe to unwrap.
+                // Set new pet index and increment
+                pet.as_mut().unwrap().set_pos(new_idx_cnt);
+                new_idx_cnt += 1;
+                true
+            } else {
+                // Pet is dead.
+                info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap());
+                self.fainted.push(pet.clone());
+                false
+            }
+        });
         self
     }
 
+    pub fn set_seed(&mut self, seed: u64) {
+        self.seed = seed;
+        for pet in self.friends.iter_mut().flatten() {
+            pet.seed = seed
+        }
+    }
+
     #[allow(dead_code)]
-    pub fn get_effects(&self) -> Vec<(usize, Effect)> {
-        let mut effects: Vec<(usize, Effect)> = vec![];
+    pub fn get_effects(&self) -> Vec<(usize, Vec<Effect>)> {
+        let mut effects: Vec<(usize, Vec<Effect>)> = vec![];
         for (i, friend) in self
             .friends
             .iter()
             .filter_map(|pet| pet.as_ref())
             .enumerate()
         {
-            if let Some(effect) = &friend.effect {
-                effects.push((i, effect.clone()))
-            }
+            effects.push((i, friend.effect.clone()))
         }
 
         effects
     }
 
-    /// Get a single pet by a given `Condition`.
-    pub fn get_pet_by_cond(&mut self, cond: &Condition) -> Option<(usize, &mut Pet)> {
-        let pets = self.get_all_pets().into_iter().enumerate();
+    /// Get `Pet`s by a given `Condition`.
+    pub fn get_pets_by_cond(&mut self, cond: &Condition) -> Vec<&mut Pet> {
+        let pets = self.get_all_pets().into_iter();
+        let mut found_pets: Vec<&mut Pet> = vec![];
 
         match cond {
             Condition::Healthiest => {
-                pets.max_by(|(_, pet_1), (_, pet_2)| pet_1.stats.health.cmp(&pet_2.stats.health))
+                if let Some(pet) =
+                    pets.max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                {
+                    found_pets.push(pet)
+                }
             }
             Condition::Illest => {
-                pets.min_by(|(_, pet_1), (_, pet_2)| pet_1.stats.health.cmp(&pet_2.stats.health))
+                if let Some(pet) =
+                    pets.min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                {
+                    found_pets.push(pet)
+                }
             }
             Condition::Strongest => {
-                pets.max_by(|(_, pet_1), (_, pet_2)| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                if let Some(pet) =
+                    pets.max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                {
+                    found_pets.push(pet)
+                }
             }
             Condition::Weakest => {
-                pets.min_by(|(_, pet_1), (_, pet_2)| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                if let Some(pet) =
+                    pets.min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                {
+                    found_pets.push(pet)
+                }
             }
+            Condition::HasFood(item_name) => {
+                for pet in
+                    pets.filter(|pet| pet.item.as_ref().map(|item| item.name) == Some(*item_name))
+                {
+                    found_pets.push(pet);
+                }
+            }
+            Condition::TriggeredBy(trigger) => {
+                for pet in pets.filter(|pet| {
+                    pet.effect
+                        .iter()
+                        .any(|effect| &effect.trigger.status == trigger)
+                }) {
+                    found_pets.push(pet)
+                }
+            }
+            // Allow all if condition is None.
+            Condition::None => found_pets.extend(pets),
+        };
+        found_pets
+    }
+
+    /// Swap a `Pet`'s position with another on the `Team`.
+    ///
+    /// ```
+    ///
+    /// ```
+    #[allow(dead_code)]
+    pub fn swap_pets(&mut self, pos_1: usize, pos_2: usize) -> Result<&mut Self, TeamError> {
+        if pos_1 > self.friends.len() || pos_2 > self.friends.len() {
+            Err(TeamError {
+                reason: format!("One or more positions (1: {pos_1}) (2: {pos_2}) is out of bounds"),
+            })
+        } else {
+            self.friends.swap(pos_1, pos_2);
+            // Clear team to reassign indices.
+            self.clear_team();
+            Ok(self)
         }
+    }
+
+    pub fn swap_pet_stats(
+        &mut self,
+        mut pos_1: usize,
+        mut pos_2: usize,
+    ) -> Result<&mut Self, TeamError> {
+        // Swap idx so sorted.
+        if pos_1 > pos_2 {
+            std::mem::swap(&mut pos_1, &mut pos_2)
+        }
+        if pos_1 > self.friends.len() || pos_2 > self.friends.len() {
+            return Err(TeamError {
+                reason: format!("{pos_1} or {pos_2} larger than len of friends."),
+            });
+        }
+        // Split and get two mut slices so can access elements at same time.
+        let (mut_slice_1, mut_slice_2) = self.friends.split_at_mut(pos_1 + 1);
+        let mut_slice_1_len = mut_slice_1.len();
+
+        if let (Some(Some(pet_1)), Some(Some(pet_2))) = (
+            mut_slice_1.get_mut(pos_1),
+            mut_slice_2.get_mut(pos_2.saturating_sub(mut_slice_1_len)),
+        ) {
+            std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
+            Ok(self)
+        } else {
+            Err(TeamError {
+                reason: format!("Cannot access pets at {pos_1} and {pos_2} to swap stats."),
+            })
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn push_pet(
+        &mut self,
+        pos: usize,
+        by: isize,
+        opponent: Option<&mut Team>,
+    ) -> Result<&mut Self, Box<dyn Error>> {
+        self.clear_team();
+
+        if pos < self.friends.len() {
+            let adj_pos: usize = if by.is_negative() {
+                let pos_by: usize = (-by).try_into()?;
+                (pos_by + pos).clamp(0, self.friends.len())
+            } else {
+                pos.saturating_sub(by.try_into()?)
+            };
+            let pet = self.friends.remove(pos);
+
+            self.friends.insert(adj_pos, pet);
+
+            // Add push trigger.
+            let mut push_any_trigger = TRIGGER_ANY_PUSHED;
+            push_any_trigger.idx = Some(adj_pos);
+            self.triggers.push_back(push_any_trigger);
+
+            // Reset indices.
+            self.clear_team();
+
+            // Add opponent triggers if provided.
+            if let Some(opponent) = opponent {
+                let mut push_trigger = TRIGGER_ANY_ENEMY_PUSHED;
+                push_trigger.idx = Some(adj_pos);
+                opponent.triggers.push_back(push_trigger)
+            }
+        } else {
+            return Err(Box::new(TeamError {
+                reason: format!("Invalid indices for given pos ({})", pos),
+            }));
+        }
+
+        Ok(self)
     }
 
     /// Get a `Pet` at the specified index.
@@ -205,8 +339,9 @@ impl Team {
 
     /// Get a random available `Pet`.
     /// * Fainted `Pet`s and/or empty slots are ignored.
+    #[allow(dead_code)]
     pub fn get_any_pet(&mut self) -> Option<&mut Pet> {
-        let mut rng = rand::thread_rng();
+        let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
         self.get_all_pets().into_iter().choose(&mut rng)
     }
 
@@ -233,7 +368,12 @@ impl Team {
     ///
     /// Raises `TeamError`:
     /// * If `self.friends` at specified size limit of `self.max_size`
-    pub fn add_pet(&mut self, mut pet: Pet, pos: usize) -> Result<&mut Self, TeamError> {
+    pub fn add_pet(
+        &mut self,
+        mut pet: Pet,
+        pos: usize,
+        opponent: Option<&mut Team>,
+    ) -> Result<&mut Self, TeamError> {
         if self.get_all_pets().len() == self.max_size {
             let err = Err(TeamError {
                 reason: format!(
@@ -267,8 +407,8 @@ impl Team {
         // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
         for trigger in self.triggers.iter_mut() {
             match (&mut trigger.position, &mut trigger.target) {
-                (Position::Specific(orig_pos), Target::Friend)
-                | (Position::Specific(orig_pos), Target::Enemy) => *orig_pos += 1,
+                (Position::Relative(orig_pos), Target::Friend)
+                | (Position::Relative(orig_pos), Target::Enemy) => *orig_pos += 1,
                 (Position::Trigger, Target::Friend)
                 | (Position::Trigger, Target::Enemy)
                 | (Position::OnSelf, Target::Friend)
@@ -281,11 +421,13 @@ impl Team {
             }
         }
 
+        if let Some(opponent) = opponent {
+            opponent.triggers.push_back(any_enemy_trigger)
+        }
         self.triggers.extend([
             // May run into issue with mushroomed scorpion.
             self_trigger,
             any_trigger,
-            any_enemy_trigger,
         ]);
         Ok(self)
     }

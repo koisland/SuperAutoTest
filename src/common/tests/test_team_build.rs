@@ -1,6 +1,6 @@
 use crate::common::{
     battle::{
-        state::{Statistics, TeamFightOutcome},
+        state::{Statistics, Status, TeamFightOutcome},
         team::Team,
     },
     pets::{names::PetName, pet::Pet},
@@ -86,4 +86,145 @@ fn test_team_restore() {
 
     // Team restored to original state.
     assert_eq!(team, original_team);
+}
+
+#[test]
+fn test_team_swap() {
+    let mut team = Team::new(
+        "swap_spots",
+        &[
+            Some(Pet::from(PetName::Snake)),
+            Some(Pet::from(PetName::Hippo)),
+        ],
+        5,
+    )
+    .unwrap();
+
+    team.swap_pets(0, 1).unwrap();
+
+    assert_eq!(team.get_idx_pet(0).unwrap().name, PetName::Hippo);
+    assert_eq!(team.get_idx_pet(1).unwrap().name, PetName::Snake)
+}
+
+#[test]
+fn test_team_invalid_swap() {
+    let mut team = Team::new(
+        "swap_spots",
+        &[
+            Some(Pet::from(PetName::Snake)),
+            Some(Pet::from(PetName::Hippo)),
+        ],
+        5,
+    )
+    .unwrap();
+
+    assert!(team.swap_pets(0, 3).is_err());
+}
+
+#[test]
+fn test_team_push() {
+    let mut team = Team::new(
+        "push_n_shove",
+        &[
+            Some(Pet::from(PetName::Snake)),
+            Some(Pet::from(PetName::Hippo)),
+            Some(Pet::from(PetName::Dog)),
+        ],
+        5,
+    )
+    .unwrap();
+
+    // Push pet at pos 0 (Snake) a space back to pos 1.
+    team.push_pet(0, -1, None).unwrap();
+
+    assert_eq!(team.get_idx_pet(1).unwrap().name, PetName::Snake);
+
+    // Push pet at pos 2 (Dog) two spaces forward to pos 0.
+    team.push_pet(2, 2, None).unwrap();
+
+    assert_eq!(team.get_idx_pet(0).unwrap().name, PetName::Dog);
+
+    // Two push triggers made + (Default: [StartBattle, StartTurn]).
+    assert_eq!(team.triggers.len(), 4);
+    // Snake
+    assert!(
+        team.triggers.get(2).unwrap().status == Status::Pushed
+            && team.triggers.get(2).unwrap().idx == Some(1)
+    );
+    // Dog
+    assert!(
+        team.triggers.back().unwrap().status == Status::Pushed
+            && team.triggers.back().unwrap().idx == Some(0)
+    );
+}
+
+#[test]
+fn test_team_swap_stats() {
+    let mut team = Team::new(
+        "swapapalooza",
+        &[
+            Some(Pet::from(PetName::Snake)),
+            Some(Pet::from(PetName::Hippo)),
+            None,
+            None,
+            Some(Pet::from(PetName::Dog)),
+        ],
+        5,
+    )
+    .unwrap();
+
+    assert_eq!(
+        team.get_idx_pet(0).unwrap().stats,
+        Statistics {
+            attack: 6,
+            health: 6
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().stats,
+        Statistics {
+            attack: 4,
+            health: 5
+        }
+    );
+    team.swap_pet_stats(0, 1).unwrap();
+
+    assert_eq!(
+        team.get_idx_pet(0).unwrap().stats,
+        Statistics {
+            attack: 4,
+            health: 5
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().stats,
+        Statistics {
+            attack: 6,
+            health: 6
+        }
+    );
+
+    assert_eq!(
+        team.get_idx_pet(4).unwrap().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    team.swap_pet_stats(1, 4).unwrap();
+
+    assert_eq!(
+        team.get_idx_pet(1).unwrap().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    assert_eq!(
+        team.get_idx_pet(4).unwrap().stats,
+        Statistics {
+            attack: 6,
+            health: 6
+        }
+    );
 }

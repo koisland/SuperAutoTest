@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use crate::{
     db::{pack::Pack, record::PetRecord},
     wiki_scraper::{
@@ -196,6 +198,12 @@ fn test_parse_single_token_invalid_col_num() {
     ];
 
     assert!(parse_single_token(TOKEN_BUTTERFLY, &cols, &mut pets).is_err());
+}
+
+#[test]
+fn test_parse_invalid_token_cols() {
+    // Case sensitive match.
+    assert!(TokenTableCols::from_str("name").is_err())
 }
 
 #[test]

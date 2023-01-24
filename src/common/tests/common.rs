@@ -1,5 +1,6 @@
 use crate::common::{
     battle::{state::Statistics, team::Team},
+    foods::{food::Food, names::FoodName},
     pets::{names::PetName, pet::Pet},
 };
 
@@ -53,6 +54,84 @@ pub fn test_mosq_team(name: &str) -> Team {
             Some(Pet::from(PetName::Mosquito)),
             Some(Pet::from(PetName::Mosquito)),
             Some(Pet::from(PetName::Mosquito)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_frilled_dragon_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::FrilledDragon)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_frog_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Frog)),
+            Some(Pet::from(PetName::FrilledDragon)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_moth_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Duck)),
+            Some(Pet::from(PetName::Moth)),
+            Some(Pet::from(PetName::Moth)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_hummingbird_team(name: &str) -> Team {
+    let mut duck_w_strawberry = Pet::from(PetName::Duck);
+    duck_w_strawberry.item = Some(Food::from(FoodName::Strawberry));
+
+    Team::new(
+        name,
+        &[
+            Some(duck_w_strawberry),
+            Some(Pet::from(PetName::Hummingbird)),
+            Some(Pet::from(PetName::Hummingbird)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_iguana_seahorse_team(name: &str) -> Team {
+    Team::new(
+        name,
+        &[
+            Some(Pet::from(PetName::Seahorse)),
+            Some(Pet::from(PetName::Iguana)),
+            None,
             None,
             None,
         ],

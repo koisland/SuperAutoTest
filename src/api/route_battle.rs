@@ -11,12 +11,11 @@ use crate::common::{
     foods::food::Food,
 };
 
-const TURN_LIMIT: usize = 300;
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Teams {
     friends: SimpleTeam,
     enemies: SimpleTeam,
+    seed: Option<u64>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -66,6 +65,23 @@ pub struct SimpleTeam {
     p5: Option<SimplePet>,
 }
 
+impl From<&SimpleTeam> for Team {
+    fn from(team: &SimpleTeam) -> Self {
+        Team::new(
+            &team.name,
+            &[
+                convert_pet(&team.p1),
+                convert_pet(&team.p2),
+                convert_pet(&team.p3),
+                convert_pet(&team.p4),
+                convert_pet(&team.p5),
+            ],
+            5,
+        )
+        .expect("Unable to create team.")
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct BattleResponse {
     pub winner: Option<String>,
@@ -78,45 +94,22 @@ pub struct BattleResponse {
 
 #[post("/battle", format = "json", data = "<teams>")]
 pub fn battle(teams: Json<Teams>) -> Json<BattleResponse> {
-    let mut friends_team = Team::new(
-        &teams.friends.name,
-        &[
-            convert_pet(&teams.friends.p1),
-            convert_pet(&teams.friends.p2),
-            convert_pet(&teams.friends.p3),
-            convert_pet(&teams.friends.p4),
-            convert_pet(&teams.friends.p5),
-        ],
-        5,
-    )
-    .unwrap();
-    let mut enemy_team = Team::new(
-        &teams.enemies.name,
-        &[
-            convert_pet(&teams.enemies.p1),
-            convert_pet(&teams.enemies.p2),
-            convert_pet(&teams.enemies.p3),
-            convert_pet(&teams.enemies.p4),
-            convert_pet(&teams.enemies.p5),
-        ],
-        5,
-    )
-    .unwrap();
+    let mut friends_team = Team::from(&teams.friends);
+    let mut enemy_team = Team::from(&teams.enemies);
+
+    if let Some(seed) = teams.seed {
+        friends_team.set_seed(seed);
+        enemy_team.set_seed(seed);
+    }
 
     let mut fight = friends_team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {
-        // Break if fight continues indefinitely. Dunno what would cause.
-        if friends_team.history.curr_phase == TURN_LIMIT {
-            fight = TeamFightOutcome::Draw;
-            break;
-        }
         fight = friends_team.fight(&mut enemy_team)
     }
     let winner_team_name = match fight {
         TeamFightOutcome::Win => Some(friends_team.name),
         TeamFightOutcome::Loss => Some(enemy_team.name),
-        TeamFightOutcome::Draw => None,
-        TeamFightOutcome::None => None,
+        _ => None,
     };
 
     Json(BattleResponse {
@@ -201,6 +194,46 @@ mod test {
         // Good team.
         assert_eq!(response.status(), Status::Ok);
         // Get battle response.
+        let response_json: BattleResponse = response.into_json().unwrap();
+
+        assert_eq!(exp_battle_response, response_json)
+    }
+
+    #[test]
+    fn test_battle_loss_outcome() {
+        let valid_team_json = fs::read_to_string("docs/examples/input_loss.json").unwrap();
+        let reader = BufReader::new(File::open("docs/examples/output_loss.json").unwrap());
+        // Expected battle response.
+        let exp_battle_response: BattleResponse = serde_json::from_reader(reader).unwrap();
+
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client
+            .post(uri!(super::battle))
+            .header(ContentType::JSON)
+            .body(valid_team_json)
+            .dispatch();
+        // Good team.
+        assert_eq!(response.status(), Status::Ok);
+        // Get battle response.
+        let response_json: BattleResponse = response.into_json().unwrap();
+
+        assert_eq!(exp_battle_response, response_json)
+    }
+
+    #[test]
+    fn test_battle_team_seeded() {
+        let team_json = fs::read_to_string("docs/examples/input_draw_seeded.json").unwrap();
+        let reader = BufReader::new(File::open("docs/examples/output_draw_seeded.json").unwrap());
+        // Expected battle response.
+        let exp_battle_response: BattleResponse = serde_json::from_reader(reader).unwrap();
+
+        let client = Client::tracked(rocket()).expect("Valid rocket instance");
+        let response = client
+            .post(uri!(super::battle))
+            .header(ContentType::JSON)
+            .body(team_json)
+            .dispatch();
+
         let response_json: BattleResponse = response.into_json().unwrap();
 
         assert_eq!(exp_battle_response, response_json)

@@ -9,7 +9,7 @@ use crate::common::{
     },
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_badger_team() {

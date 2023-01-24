@@ -46,7 +46,8 @@ fn test_attack_pet() {
 
 #[test]
 fn test_create_def_pet() {
-    let pet = Pet::from(PetName::Ant);
+    let mut pet = Pet::from(PetName::Ant);
+    pet.seed = 0;
 
     assert_eq!(
         pet,
@@ -76,9 +77,34 @@ fn test_create_def_pet() {
             ),
             item: None,
             pos: None,
-            cost: 3
+            cost: 3,
+            seed: 0
         }
     )
+}
+
+#[test]
+fn test_get_effect() {
+    let test_ant = Pet::from(PetName::Ant);
+
+    assert_eq!(
+        test_ant.get_effect(1).unwrap(),
+        get_pet_effect(
+            &PetName::Ant,
+            &Statistics {
+                attack: 2,
+                health: 1,
+            },
+            Statistics {
+                attack: 2,
+                health: 1,
+            },
+            1,
+            1,
+            false
+        ),
+    );
+    assert!(test_ant.get_effect(4).is_err());
 }
 
 #[test]
@@ -87,7 +113,7 @@ fn test_levelup() {
 
     // Lvl 1 effect adds (2,1)
     assert_eq!(test_ant.lvl, 1);
-    if let Action::Add(stats) = &test_ant.effect.as_ref().unwrap().action {
+    if let Action::Add(stats) = &test_ant.effect.first().as_ref().unwrap().action {
         assert_eq!(
             *stats,
             Statistics {
@@ -101,7 +127,7 @@ fn test_levelup() {
 
     // Lvl 2 effect adds (4,2)
     assert_eq!(test_ant.lvl, 2);
-    if let Action::Add(stats) = &test_ant.effect.as_ref().unwrap().action {
+    if let Action::Add(stats) = &test_ant.effect.first().as_ref().unwrap().action {
         assert_eq!(
             *stats,
             Statistics {
@@ -110,6 +136,9 @@ fn test_levelup() {
             }
         )
     }
+
+    // Fails to set.
+    assert!(test_ant.set_level(4).is_err())
 }
 
 #[test]
@@ -120,7 +149,7 @@ fn test_invalid_levelup() {
 
 #[test]
 fn test_create_pet() {
-    let test_ant = Pet::new(
+    let mut test_ant = Pet::new(
         PetName::Ant,
         None,
         Some(Statistics {
@@ -130,6 +159,8 @@ fn test_create_pet() {
         1,
     )
     .unwrap();
+
+    test_ant.seed = 0;
 
     assert_eq!(
         test_ant,
@@ -159,14 +190,15 @@ fn test_create_pet() {
             ),
             item: None,
             pos: None,
-            cost: 3
+            cost: 3,
+            seed: 0
         }
     )
 }
 
 #[test]
 fn create_pet_token() {
-    let test_bee = Pet::new(
+    let mut test_bee = Pet::new(
         PetName::Bee,
         None,
         Some(Statistics {
@@ -176,6 +208,7 @@ fn create_pet_token() {
         1,
     )
     .unwrap();
+    test_bee.seed = 0;
 
     assert_eq!(
         test_bee,
@@ -189,10 +222,11 @@ fn create_pet_token() {
             },
             lvl: 1,
             exp: 0,
-            effect: None,
+            effect: vec![],
             item: None,
             pos: None,
-            cost: 0
+            cost: 0,
+            seed: 0
         }
     );
 }
@@ -211,12 +245,12 @@ fn test_add_experience() {
     assert_eq!(test_ant.lvl, 1);
     assert_eq!(test_ant.exp, 0);
 
-    test_ant.add_experience(2).unwrap();
+    test_ant.add_experience(3).unwrap();
 
     assert_eq!(test_ant.lvl, 2);
-    assert_eq!(test_ant.exp, 0);
+    assert_eq!(test_ant.exp, 1);
 
-    test_ant.add_experience(2).unwrap();
+    test_ant.add_experience(1).unwrap();
 
     assert_eq!(test_ant.lvl, 2);
     assert_eq!(test_ant.exp, 2);

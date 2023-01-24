@@ -3,10 +3,7 @@ use crate::{
     db::{query::query_food, record::FoodRecord, utils::setup_param_query},
 };
 use itertools::Itertools;
-use log::info;
-use rocket::response::content::RawJson;
-use rusqlite::Error;
-use serde_json::to_string_pretty;
+use rocket::serde::json::Json;
 
 const QUERY_FOOD_PARAMS: [&str; 3] = ["name", "pack", "tier"];
 
@@ -16,7 +13,7 @@ pub async fn foods(
     name: Option<Vec<&str>>,
     tier: Option<Vec<u8>>,
     pack: Option<Vec<&str>>,
-) -> Option<RawJson<String>> {
+) -> Json<Vec<FoodRecord>> {
     let food_name = name.map_or(vec![], |food_names| {
         food_names
             .iter()
@@ -43,15 +40,11 @@ pub async fn foods(
     let sql_stmt = setup_param_query("foods", &named_params);
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
-    let query: Result<Vec<FoodRecord>, Error> = conn
+    let query: Result<Vec<FoodRecord>, rusqlite::Error> = conn
         .run(move |c| query_food(c, &sql_stmt, &flat_sql_params))
         .await;
-    if let Ok(res) = query {
-        Some(RawJson(to_string_pretty(&res).unwrap()))
-    } else {
-        info!(target: "api", "{:?}", query.unwrap_err());
-        None
-    }
+
+    Json(query.unwrap_or_default())
 }
 
 #[cfg(test)]

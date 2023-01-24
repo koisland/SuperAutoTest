@@ -4,10 +4,7 @@ use crate::{
 };
 
 use itertools::Itertools;
-use log::info;
-use rocket::response::content::RawJson;
-use rusqlite::Error;
-use serde_json::to_string_pretty;
+use rocket::serde::json::Json;
 
 const QUERY_PET_PARAMS: [&str; 5] = ["name", "tier", "lvl", "pack", "effect_trigger"];
 
@@ -19,7 +16,7 @@ pub async fn pets(
     tier: Option<Vec<u8>>,
     pack: Option<Vec<&str>>,
     effect_trigger: Option<Vec<&str>>,
-) -> Option<RawJson<String>> {
+) -> Json<Vec<PetRecord>> {
     // Set defaults if no param given.
     let pet_name = name.map_or(vec![], |names| {
         names
@@ -64,15 +61,11 @@ pub async fn pets(
     let sql_stmt = setup_param_query("pets", &named_params);
     let flat_sql_params: Vec<String> = sql_params.into_iter().flatten().collect_vec();
 
-    let query: Result<Vec<PetRecord>, Error> = conn
+    let query: Result<Vec<PetRecord>, rusqlite::Error> = conn
         .run(move |c| query_pet(c, &sql_stmt, &flat_sql_params))
         .await;
-    if let Ok(res) = query {
-        Some(RawJson(to_string_pretty(&res).unwrap()))
-    } else {
-        info!(target: "api", "{:?}", query.unwrap_err());
-        None
-    }
+
+    Json(query.unwrap_or_default())
 }
 
 #[cfg(test)]
@@ -86,7 +79,7 @@ mod test {
     fn test_get_single_pet_entry() {
         let client = Client::tracked(rocket()).expect("Valid rocket instance");
         let response = client
-            .get("/pet?name=ant&level=1&tier=1&pack=Turtle")
+            .get("/pet?name=ant&level=1&tier=1&pack=Turtle&effect_trigger=faint")
             .dispatch();
 
         assert_eq!(response.status(), Status::Ok);

@@ -86,7 +86,7 @@ Build your team of pets. A maximum of five are allowed.
 
 Then submit them to the `battle/` endpoint.
 ```bash
-curl -X POST http://127.0.0.1:8000/battle  -H "Content-Type: application/json" -d @docs/examples/battle_invalid.json
+curl -X POST http://127.0.0.1:8000/battle  -H "Content-Type: application/json" -d @docs/examples/input_win.json
 ```
 
 Where the output `JSON` shows the outcome of the battle.

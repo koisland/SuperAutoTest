@@ -1,14 +1,14 @@
 use crate::common::{
     battle::state::{Action, Statistics, TeamFightOutcome},
     foods::{food::Food, names::FoodName},
-    pets::{effects::get_pet_effect, names::PetName, pet::Pet},
+    pets::{names::PetName, pet::Pet},
     tests::common::{
         test_cricket_horse_team, test_crocodile_team, test_rhino_team, test_scorpion_team,
         test_shark_team, test_skunk_team, test_turkey_team,
     },
 };
 
-use crate::LOG_CONFIG;
+// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_croc_team() {
@@ -44,8 +44,7 @@ fn test_battle_rhino_team() {
 
     let outcome = team.fight(&mut enemy_team);
 
-    // Win after single turn due to rhino snipe.
-    assert_eq!(outcome, TeamFightOutcome::Win);
+    assert_eq!(outcome, TeamFightOutcome::None);
     // Only one damage from first cricket to trigger chain of faint triggers.
     assert_eq!(
         team.get_next_pet().unwrap().stats,
@@ -53,7 +52,12 @@ fn test_battle_rhino_team() {
             attack: 5,
             health: 7
         }
-    )
+    );
+    // All pets mowed down by rhino. After horse faints, zombie crickets spawn.
+    assert!(enemy_team
+        .get_all_pets()
+        .iter()
+        .all(|pet| pet.name == PetName::ZombieCricket))
 }
 
 #[test]

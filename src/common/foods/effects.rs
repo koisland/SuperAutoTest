@@ -1,7 +1,7 @@
 use crate::common::{
     battle::{
         effect::{Effect, Entity},
-        state::{Action, Position, Statistics, Target},
+        state::{Action, Condition, Position, Statistics, Target},
         trigger::*,
     },
     foods::names::FoodName,
@@ -20,7 +20,7 @@ pub fn get_food_effect(
         FoodName::Chili => Effect {
             target: Target::Enemy,
             // Next enemy relative to current pet position.
-            position: Position::Specific(-1),
+            position: Position::Relative(-1),
             action: Action::Remove(effect_stats),
             uses,
             entity: Entity::Food,
@@ -167,7 +167,7 @@ pub fn get_food_effect(
             entity: Entity::Food,
             trigger: TRIGGER_NONE,
             target: Target::Shop,
-            position: Position::All,
+            position: Position::All(Condition::None),
             action: Action::Add(effect_stats),
             uses,
             temp,
@@ -212,7 +212,7 @@ pub fn get_food_effect(
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
-                position: Position::Any,
+                position: Position::Any(Condition::None),
                 action: Action::Multiple(actions),
                 uses,
                 temp,
@@ -231,6 +231,15 @@ pub fn get_food_effect(
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Add(effect_stats),
+            uses,
+            temp,
+        },
+        FoodName::Strawberry => Effect {
+            entity: Entity::Food,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::None,
+            action: Action::None,
             uses,
             temp,
         },
