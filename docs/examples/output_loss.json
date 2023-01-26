@@ -1,5 +1,5 @@
 {
-  "winner": "enemy",
+  "winner": "",
   "friends": [],
   "friends_fainted": [
     {
@@ -39,7 +39,7 @@
       "item": null,
       "pos": 0,
       "cost": 3,
-      "seed": 17170554681311783000
+      "seed": 13942955806701881000
     }
   ],
   "enemies": [
@@ -57,7 +57,7 @@
       "item": null,
       "pos": 0,
       "cost": 0,
-      "seed": 4219820351068223000
+      "seed": 8159987494288698000
     }
   ],
   "enemies_fainted": [
@@ -124,7 +124,7 @@
                 "item": null,
                 "pos": null,
                 "cost": 0,
-                "seed": 4219820351068223000
+                "seed": 8159987494288698000
               },
               null
             ]
@@ -136,9 +136,9 @@
         "temp": false,
         "cost": 3
       },
-      "pos": 0,
+      "pos": 1,
       "cost": 3,
-      "seed": 7978780966010469000
+      "seed": 15924534410849554000
     }
   ],
   "n_turns": 2

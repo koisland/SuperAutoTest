@@ -1,3 +1,7 @@
+[lib]
+name = "sapt"
+path = "src/lib/lib.rs"
+
 [package]
 name = "sapdb"
 version = "0.1.0"
@@ -20,6 +24,7 @@ log4rs = {version = "1.2.0", features = ["rolling_file_appender", "compound_poli
 clap = { version = "4.0.32", features = ["derive"] }
 petgraph = "0.6.2"
 rand_chacha = "0.3.1"
+thiserror = "1.0.38"
 
 [dependencies.rocket_sync_db_pools]
 version = "0.1.0-rc.2"

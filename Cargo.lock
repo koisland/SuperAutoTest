@@ -1732,6 +1732,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "thiserror",
 ]
 
 [[package]]
