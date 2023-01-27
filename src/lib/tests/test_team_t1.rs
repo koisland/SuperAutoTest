@@ -106,10 +106,11 @@ fn test_battle_cricket_horse_team() {
 
 #[test]
 fn test_battle_mosquito_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = test_mosq_team();
     let mut enemy_team = test_ant_team();
+    enemy_team.set_seed(0);
 
     let mut fight = team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {

@@ -91,7 +91,7 @@ impl Pet {
     /// let pet = Pet::new(
     ///     PetName::Ant,
     ///     Some("Ant".to_string()),
-    ///     Some(Statistics::new(2, 1)),
+    ///     Some(Statistics::new(2, 1).unwrap()),
     ///     1
     /// );
     /// let pet_with_no_stats = Pet::new(
@@ -126,9 +126,9 @@ impl Pet {
             let health = pet_stats.health.clamp(MIN_PET_STATS, MAX_PET_STATS);
             pet_record.attack = atk.try_into()?;
             pet_record.health = health.try_into()?;
-            Statistics::new(atk, health)
+            Statistics::new(atk, health)?
         } else {
-            Statistics::new(pet_record.attack.try_into()?, pet_record.health.try_into()?)
+            Statistics::new(pet_record.attack, pet_record.health)?
         };
         let (tier, lvl, cost) = (pet_record.tier, pet_record.lvl, pet_record.cost);
         let effect: Vec<Effect> = pet_record.try_into()?;
@@ -159,7 +159,7 @@ impl Pet {
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
     /// assert_eq!(
     ///     *lvl_2_ant_action,
-    ///     Action::Add(Statistics::new(4,2))
+    ///     Action::Add(Statistics::new(4,2).unwrap())
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, Box<dyn Error>> {

@@ -17,7 +17,8 @@ impl From<&FoodRecord> for Effect {
         let effect_stats = Statistics::new(
             record.effect_atk.clamp(MIN_PET_STATS, MAX_PET_STATS),
             record.effect_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
-        );
+        )
+        .expect("Cannot convert effect stats.");
         let uses = record.single_use.then_some(1);
 
         match record.name {
@@ -95,7 +96,7 @@ impl From<&FoodRecord> for Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 temp: record.end_of_battle,
             },
-            FoodName::Peanuts => Effect {
+            FoodName::Peanut => Effect {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Kill,
@@ -113,15 +114,22 @@ impl From<&FoodRecord> for Effect {
                 trigger: TRIGGER_NONE,
                 temp: record.end_of_battle,
             },
-            FoodName::Weakness => Effect {
-                entity: Entity::Food,
-                trigger: TRIGGER_SELF_HURT,
-                target: Target::Friend,
-                position: Position::OnSelf,
-                action: Action::Remove(effect_stats),
-                uses,
-                temp: record.end_of_battle,
-            },
+            FoodName::Weak => {
+                // Invert attack to health and reverse sign so additional damage taken.
+                let mut vulnerable_stats = effect_stats;
+                vulnerable_stats.invert();
+                vulnerable_stats.health = -vulnerable_stats.health;
+
+                Effect {
+                    entity: Entity::Food,
+                    trigger: TRIGGER_NONE,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Remove(vulnerable_stats),
+                    uses,
+                    temp: record.end_of_battle,
+                }
+            }
             FoodName::SleepingPill => Effect {
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,

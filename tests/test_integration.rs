@@ -13,7 +13,7 @@ fn test_create_known_pet() {
     let pet_from_constructor = Pet::new(
         PetName::Ant,
         Some("Ant".to_string()),
-        Some(Statistics::new(2, 1)),
+        Some(Statistics::new(2, 1).unwrap()),
         1,
     )
     .unwrap();
@@ -21,14 +21,14 @@ fn test_create_known_pet() {
         id: Some("Ant".to_string()),
         name: PetName::Ant,
         tier: 1,
-        stats: Statistics::new(2, 1),
+        stats: Statistics::new(2, 1).unwrap(),
         lvl: 1,
         exp: 0,
         effect: vec![Effect {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(Condition::None),
-            action: Action::Add(Statistics::new(2, 1)),
+            action: Action::Add(Statistics::new(2, 1).unwrap()),
             uses: Some(1),
             entity: Entity::Pet,
             temp: false,
@@ -55,7 +55,7 @@ fn test_create_custom_pet() {
         id: None,
         name: PetName::Custom("MelonBear".to_string()),
         tier: 1,
-        stats: Statistics::new(50, 50),
+        stats: Statistics::new(50, 50).unwrap(),
         lvl: 1,
         exp: 0,
         effect: vec![Effect {
@@ -69,7 +69,7 @@ fn test_create_custom_pet() {
             },
             target: Target::Friend,
             position: Position::Adjacent,
-            action: Action::Gain(Box::new(Food::from(FoodName::Melon))),
+            action: Action::Gain(Some(Box::new(Food::from(FoodName::Melon)))),
             uses: Some(1),
             temp: false,
         }],
@@ -165,7 +165,7 @@ fn test_apply_effect() {
     // Enemy mosquito takes one damage.
     assert_eq!(
         enemy_team.friends[4].as_ref().unwrap().stats,
-        Statistics::new(2, 1)
+        Statistics::new(2, 1).unwrap()
     );
     assert!(enemy_team
         .triggers

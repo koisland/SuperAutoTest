@@ -11,6 +11,7 @@ use crate::{
         names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
+    Pet,
 };
 
 use itertools::Itertools;
@@ -67,7 +68,10 @@ pub trait EffectApply {
     /// team.apply_effect(0, &start_of_battle_trigger, &mosquito_effect, &mut enemy_team);
     ///
     /// // Last enemy mosquito takes one damage and opponent triggers gets updated.
-    /// assert_eq!(enemy_team.friends[4].as_ref().unwrap().stats, Statistics::new(2, 1));
+    /// assert_eq!(
+    ///     enemy_team.friends[4].as_ref().unwrap().stats,
+    ///     Statistics::new(2, 1).unwrap()
+    /// );
     /// assert!(
     ///     enemy_team.triggers
     ///     .iter()
@@ -245,6 +249,7 @@ trait EffectApplyHelpers {
         effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), Box<dyn Error>>;
+    fn _choose_pet(&mut self, pos: &Position, curr_idx: usize) -> Option<&mut Pet>;
     /// Calculates an adjusted index based on the current index and a relative index.
     /// * `:param curr_idx:` The current index.
     /// * `:param rel_idx:` Number of positions relative to the current index.
@@ -261,6 +266,32 @@ trait EffectApplyHelpers {
 }
 
 impl EffectApplyHelpers for Team {
+    fn _choose_pet(&mut self, pos: &Position, curr_idx: usize) -> Option<&mut Pet> {
+        match pos {
+            Position::Any(condition) => {
+                let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
+                self.get_pets_by_cond(condition)
+                    .into_iter()
+                    .choose(&mut rng)
+            }
+            Position::Relative(rel_pos) => {
+                if let Ok((team, adj_idx)) = self._cvt_rel_idx_to_adj_idx(curr_idx, *rel_pos) {
+                    if team == Target::Friend {
+                        self.nth(adj_idx)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+            Position::First => self.first(),
+            Position::Last => self.last(),
+            Position::N(condition, _) => self.get_pets_by_cond(condition).into_iter().next(),
+            _ => None,
+        }
+    }
+
     fn _target_effect_idx(
         &mut self,
         target_idx: usize,
@@ -295,10 +326,16 @@ impl EffectApplyHelpers for Team {
                 target_ids.push(target_id)
             }
             Action::Gain(food) => {
-                if let Some(target) = self.nth(target_idx) {
+                if let (Some(target), Some(food)) = (self.nth(target_idx), food) {
                     target.item = Some(*food.clone());
                     info!(target: "dev", "(\"{}\")\nGave {} to {}.", name, food, target);
                     target_ids.push(target.id.clone())
+                }
+            }
+            Action::Experience => {
+                if let Some(target) = self.nth(target_idx) {
+                    target.add_experience(1)?;
+                    info!(target: "dev", "(\"{}\")\nGave experience point to {}.", name, target);
                 }
             }
             Action::Push(rel_idx) => {
@@ -359,12 +396,17 @@ impl EffectApplyHelpers for Team {
                     self._target_effect_idx(target_idx, &effect_copy, opponent)?
                 }
             }
-            Action::MultipleCondition(actions, condition) => {
+            Action::ForEachCondition(action, target, condition) => {
+                let num_matches = if *target == Target::Friend {
+                    self.get_pets_by_cond(condition).len()
+                } else {
+                    opponent.get_pets_by_cond(condition).len()
+                };
+                // Create new effect with action.
+                let mut effect_copy = effect.clone();
+                effect_copy.action = *action.clone();
                 // For each pet that matches the condition, execute the action.
-                for _ in 0..self.get_pets_by_cond(condition).len() {
-                    // Create new effect with actions.
-                    let mut effect_copy = effect.clone();
-                    effect_copy.action = Action::Multiple(actions.clone());
+                for _ in 0..num_matches {
                     self._target_effect_idx(target_idx, &effect_copy, opponent)?
                 }
             }
@@ -382,10 +424,6 @@ impl EffectApplyHelpers for Team {
                     opponent
                         .triggers
                         .extend(get_self_enemy_faint_triggers(trigger_pos, &None));
-                }
-                if let Some(target_pet) = self.nth(target_idx) {
-                    // Set pet health to 0 and allow clear_team() to do the rest.
-                    target_pet.stats.health = 0;
                 }
             }
             Action::Rhino(stats) => {
@@ -483,25 +521,12 @@ impl EffectApplyHelpers for Team {
                 }
             }
             // TODO: May need to also choose to copy from an enemy pet at some point.
-            Action::Copy(attr, pos) => {
+            Action::Copy(attr, target, pos) => {
                 // Based on position, select the pet to copy.
-                let chosen_pet = match pos {
-                    Position::Any(condition) => {
-                        let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
-                        self.get_pets_by_cond(condition)
-                            .into_iter()
-                            .choose(&mut rng)
-                    }
-                    Position::Relative(rel_pos) => {
-                        let (team, adj_idx) = self._cvt_rel_idx_to_adj_idx(target_idx, *rel_pos)?;
-                        if team == Target::Friend {
-                            self.nth(adj_idx)
-                        } else {
-                            None
-                        }
-                    }
-                    Position::One(condition) => self.get_pets_by_cond(condition).into_iter().next(),
-                    _ => None,
+                let chosen_pet = if *target == Target::Friend {
+                    self._choose_pet(pos, target_idx)
+                } else {
+                    opponent._choose_pet(pos, target_idx)
                 };
                 let copied_attr = if let Some(pet) = chosen_pet {
                     match attr.clone() {
@@ -521,6 +546,10 @@ impl EffectApplyHelpers for Team {
                         CopyAttr::Effect(_, lvl) => {
                             Some(CopyAttr::Effect(pet.get_effect(lvl.unwrap_or(1))?, lvl))
                         }
+                        CopyAttr::Item(_) => pet
+                            .item
+                            .as_ref()
+                            .map(|food| CopyAttr::Item(Some(Box::new(food.clone())))),
                         _ => None,
                     }
                 } else {
@@ -551,6 +580,17 @@ impl EffectApplyHelpers for Team {
                                 target,
                                 target.effect
                             );
+                        }
+                        CopyAttr::Item(item) => {
+                            if let Some(food) = item {
+                                target.item = Some(*food);
+                                info!(
+                                    target: "dev", "(\"{}\")\nCopyied item for {} to {:?}.",
+                                    name,
+                                    target,
+                                    target.item
+                                );
+                            }
                         }
                         CopyAttr::None => {}
                         CopyAttr::PercentStats(_) => {}
@@ -616,13 +656,13 @@ impl EffectApplyHelpers for Team {
         match &effect.position {
             Position::Any(condition) => {
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
-                if let Some(random_pet_idx) = self
+                let random_pet_pos = self
                     .get_pets_by_cond(condition)
                     .into_iter()
                     .filter_map(|pet| pet.pos)
-                    .choose(&mut rng)
-                {
-                    self._target_effect_idx(random_pet_idx, effect, opponent)?
+                    .choose(&mut rng);
+                if let Some(target_idx) = random_pet_pos {
+                    self._target_effect_idx(target_idx, effect, opponent)?
                 }
             }
             Position::All(condition) => {
@@ -686,14 +726,15 @@ impl EffectApplyHelpers for Team {
                     self._match_position_one_team(effect_pet_idx, trigger, &effect_copy, opponent)?
                 }
             }
-            Position::One(condition) => {
+            Position::N(condition, n) => {
                 let indices = self
                     .get_pets_by_cond(condition)
                     .into_iter()
                     .filter_map(|pet| pet.pos)
                     .collect_vec();
-                for idx in indices {
-                    self._target_effect_idx(idx, effect, opponent)?
+                // Get n values of indices.
+                for idx in (0..*n).filter_map(|i| indices.get(i)) {
+                    self._target_effect_idx(*idx, effect, opponent)?
                 }
             }
             Position::Adjacent => {

@@ -4,36 +4,21 @@ use crate::{
         state::{Action, Condition, CopyAttr, Position, Statistics, Status, Target},
         trigger::*,
     },
-    db::{record::PetRecord, setup::get_connection, utils::map_row_to_pet},
+    db::{query::query_pet, record::PetRecord, setup::get_connection},
     foods::{food::Food, names::FoodName},
     pets::{
         names::PetName,
         pet::{Pet, MAX_PET_STATS},
     },
 };
+use std::convert::TryInto;
 
 impl From<PetRecord> for Vec<Effect> {
     fn from(record: PetRecord) -> Self {
-        let pet_stats = Statistics {
-            attack: record
-                .attack
-                .try_into()
-                .expect("Unable to convert record attack to usize."),
-            health: record
-                .health
-                .try_into()
-                .expect("Unable to convert record health into usize."),
-        };
-        let effect_stats = Statistics {
-            attack: record
-                .effect_atk
-                .try_into()
-                .expect("Unable to convert record attack to usize."),
-            health: record
-                .effect_health
-                .try_into()
-                .expect("Unable to convert record health into usize."),
-        };
+        let pet_stats = Statistics::new(record.attack, record.health)
+            .expect("Unable to convert record pet stats.");
+        let effect_stats = Statistics::new(record.effect_atk, record.effect_health)
+            .expect("Unable to convert record pet effect stats.");
 
         match &record.name {
             PetName::Ant => vec![Effect {
@@ -83,7 +68,8 @@ impl From<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Copy(
                     CopyAttr::PercentStats(effect_stats),
-                    Position::One(Condition::Healthiest),
+                    Target::Friend,
+                    Position::N(Condition::Healthiest, 1),
                 ),
                 uses: Some(record.n_triggers),
                 entity: Entity::Pet,
@@ -159,25 +145,28 @@ impl From<PetRecord> for Vec<Effect> {
             }
             PetName::Spider => {
                 let conn = get_connection().expect("Can't get connection.");
-                let mut stmt = conn
-                    .prepare("SELECT * FROM pets where lvl = ? and tier = 3 and pack = 'Turtle' ORDER BY RANDOM() LIMIT 1")
-                    .unwrap();
-                let pet_record = stmt
-                    .query_row([record.lvl.to_string()], map_row_to_pet)
-                    .expect("No row found.");
-
-                let summoned_pet = Box::new(
-                    Pet::new(pet_record.name, None, Some(effect_stats), record.lvl).unwrap(),
+                let pet_record = query_pet(
+                    &conn,
+                    "SELECT * FROM pets where lvl = ? and tier = 3 and pack = 'Turtle' ORDER BY RANDOM() LIMIT 1",
+                    &[record.lvl.to_string()]
                 );
-                vec![Effect {
-                    entity: Entity::Pet,
-                    temp: record.temp_effect,
-                    trigger: TRIGGER_SELF_FAINT,
-                    target: Target::Friend,
-                    position: Position::OnSelf,
-                    action: Action::Summon(Some(summoned_pet), None),
-                    uses: Some(record.n_triggers),
-                }]
+                if let Ok(Some(record)) = pet_record.as_ref().map(|query| query.first()) {
+                    let summoned_pet = Box::new(
+                        Pet::new(record.name.clone(), None, Some(effect_stats), record.lvl)
+                            .unwrap(),
+                    );
+                    vec![Effect {
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Summon(Some(summoned_pet), None),
+                        uses: Some(record.n_triggers),
+                    }]
+                } else {
+                    vec![]
+                }
             }
             PetName::Badger => {
                 let effect_dmg_stats = pet_stats * effect_stats;
@@ -230,7 +219,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::One(Condition::Illest),
+                position: Position::N(Condition::Illest, 1),
                 action: Action::Remove(effect_stats),
                 uses: Some(record.n_triggers),
             }],
@@ -251,7 +240,7 @@ impl From<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Multiple(vec![
                     Action::Add(effect_stats),
-                    Action::Gain(Box::new(Food::from(FoodName::Melon))),
+                    Action::Gain(Some(Box::new(Food::from(FoodName::Melon)))),
                 ]),
                 uses: None,
             }],
@@ -301,6 +290,7 @@ impl From<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Copy(
                     CopyAttr::Effect(vec![], Some(record.lvl)),
+                    Target::Friend,
                     Position::Relative(1),
                 ),
                 uses: None,
@@ -328,7 +318,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::One(Condition::Healthiest),
+                position: Position::N(Condition::Healthiest, 1),
                 action: Action::Debuff(effect_stats),
                 uses: Some(record.n_triggers),
             }],
@@ -340,7 +330,7 @@ impl From<PetRecord> for Vec<Effect> {
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
                     position: Position::Range(-max_pets_behind..=-1),
-                    action: Action::Gain(Box::new(Food::from(FoodName::Melon))),
+                    action: Action::Gain(Some(Box::new(Food::from(FoodName::Melon)))),
                     uses: Some(record.n_triggers),
                 }]
             }
@@ -381,7 +371,7 @@ impl From<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_TURN,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Gain(Box::new(Food::from(FoodName::Peanuts))),
+                action: Action::Gain(Some(Box::new(Food::from(FoodName::Peanut)))),
                 uses: None,
             }],
             PetName::Shark => vec![Effect {
@@ -432,7 +422,7 @@ impl From<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_HURT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Gain(Box::new(Food::from(FoodName::Coconut))),
+                action: Action::Gain(Some(Box::new(Food::from(FoodName::Coconut)))),
                 uses: Some(record.n_triggers),
             }],
             PetName::Leopard => {
@@ -472,8 +462,9 @@ impl From<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::MultipleCondition(
-                    vec![Action::Add(effect_stats)],
+                action: Action::ForEachCondition(
+                    Box::new(Action::Add(effect_stats)),
+                    Target::Friend,
                     Condition::TriggeredBy(Status::Faint),
                 ),
                 uses: Some(record.n_triggers),
@@ -542,6 +533,159 @@ impl From<PetRecord> for Vec<Effect> {
                 action: Action::Push(record.lvl.try_into().expect("Invalid level for seahorse.")),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
+            }],
+            PetName::Bat => vec![Effect {
+                entity: Entity::Pet,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::Any(Condition::None),
+                action: Action::Gain(Some(Box::new(Food::from(FoodName::Weak)))),
+                uses: Some(record.n_triggers),
+                temp: record.temp_effect,
+            }],
+            PetName::AtlanticPuffin => {
+                // For each level, do an action that removes some amount of stats based on the number of enemies with strawberries.
+                let num_hits = vec![
+                    Action::ForEachCondition(
+                        Box::new(Action::Remove(effect_stats)),
+                        Target::Enemy,
+                        Condition::HasFood(FoodName::Strawberry)
+                    );
+                    record.lvl
+                ];
+                vec![Effect {
+                    entity: Entity::Pet,
+                    trigger: TRIGGER_START_BATTLE,
+                    target: Target::Enemy,
+                    position: Position::Any(Condition::None),
+                    action: Action::Multiple(num_hits),
+                    uses: Some(record.n_triggers),
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Dove => vec![
+                // TODO: May select same pet.
+                Effect {
+                    entity: Entity::Pet,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::N(Condition::HasFood(FoodName::Strawberry), 2),
+                    action: Action::Add(effect_stats),
+                    uses: Some(record.n_triggers),
+                    temp: record.temp_effect,
+                },
+            ],
+            PetName::Koala => vec![Effect {
+                entity: Entity::Pet,
+                trigger: TRIGGER_ANY_HURT,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Add(effect_stats),
+                uses: Some(record.n_triggers),
+                temp: record.temp_effect,
+            }],
+            PetName::Panda => {
+                let add_stats = Statistics::new(record.attack, record.health)
+                    .map(|pet_stats| pet_stats * effect_stats)
+                    .expect("Can't convert stats from record.");
+                vec![
+                    Effect {
+                        entity: Entity::Pet,
+                        trigger: TRIGGER_START_BATTLE,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Kill,
+                        uses: Some(record.n_triggers),
+                        temp: record.temp_effect,
+                    },
+                    Effect {
+                        entity: Entity::Pet,
+                        trigger: TRIGGER_START_BATTLE,
+                        target: Target::Friend,
+                        position: Position::Relative(1),
+                        action: Action::Add(add_stats),
+                        uses: Some(record.n_triggers),
+                        temp: record.temp_effect,
+                    },
+                ]
+            }
+            PetName::Pug => vec![Effect {
+                entity: Entity::Pet,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Friend,
+                position: Position::Relative(1),
+                action: Action::Multiple(vec![Action::Experience; record.lvl]),
+                uses: Some(record.n_triggers),
+                temp: record.temp_effect,
+            }],
+            PetName::Stork => {
+                // TODO: Not fully functional as needs tier num.
+                let conn = get_connection().expect("Can't get connection.");
+                let pet_record = query_pet(
+                    &conn,
+                    "SELECT * FROM pets where tier = ? and pack = 'Star' and lvl = ? ORDER BY RANDOM() LIMIT 1",
+                    &[(record.tier - 1).to_string(), record.lvl.to_string()]
+                );
+                if let Ok(Some(record)) = pet_record.as_ref().map(|query| query.first()) {
+                    // Use default stats.
+                    let summoned_pet =
+                        Box::new(Pet::new(record.name.clone(), None, None, record.lvl).unwrap());
+                    vec![Effect {
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Summon(Some(summoned_pet), None),
+                        uses: Some(record.n_triggers),
+                    }]
+                } else {
+                    vec![]
+                }
+            }
+            PetName::Racoon => vec![Effect {
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SELF_ATTACK,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Copy(CopyAttr::Item(None), Target::Enemy, Position::First),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Toucan => {
+                let n_pets_behind: isize = record
+                    .lvl
+                    .try_into()
+                    .expect("Can't convert level to isize.");
+                vec![Effect {
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::Range(-n_pets_behind..=-1),
+                    // If None, update during team init with current item.
+                    action: Action::Gain(None),
+                    uses: Some(record.n_triggers),
+                }]
+            }
+            PetName::Wombat => vec![Effect {
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Copy(
+                    CopyAttr::Effect(vec![], Some(record.lvl)),
+                    Target::Enemy,
+                    Position::N(
+                        Condition::MultipleAll(vec![
+                            Condition::HighestTier,
+                            Condition::TriggeredBy(Status::Faint),
+                        ]),
+                        1,
+                    ),
+                ),
+                uses: Some(record.n_triggers),
             }],
             _ => vec![],
         }

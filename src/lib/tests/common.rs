@@ -206,6 +206,129 @@ pub fn test_spider_team() -> Team {
     .unwrap()
 }
 
+pub fn test_bat_team() -> Team {
+    Team::new(&[Some(Pet::from(PetName::Bat)), None, None, None, None], 5).unwrap()
+}
+
+pub fn test_atlantic_puffin_team() -> Team {
+    let mut strawberry_ant = Pet::from(PetName::Ant);
+    strawberry_ant.item = Some(Food::from(FoodName::Strawberry));
+
+    Team::new(
+        &[
+            Some(Pet::from(PetName::AtlanticPuffin)),
+            Some(strawberry_ant.clone()),
+            Some(strawberry_ant),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_dove_team() -> Team {
+    let mut strawberry_ant = Pet::from(PetName::Ant);
+    strawberry_ant.item = Some(Food::from(FoodName::Strawberry));
+
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Dove)),
+            Some(strawberry_ant.clone()),
+            Some(strawberry_ant.clone()),
+            Some(strawberry_ant),
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_koala_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Mammoth)),
+            Some(Pet::from(PetName::Koala)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_panda_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Panda)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_pug_team() -> Team {
+    let mut exp_1_ant = Pet::from(PetName::Ant);
+    exp_1_ant.add_experience(1).unwrap();
+
+    Team::new(
+        &[
+            Some(exp_1_ant),
+            Some(Pet::from(PetName::Pug)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_stork_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Stork)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_racoon_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Racoon)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_toucan_team() -> Team {
+    let mut toucan = Pet::from(PetName::Toucan);
+    toucan.item = Some(Food::from(FoodName::Honey));
+    Team::new(
+        &[
+            Some(toucan),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_wombat_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Wombat)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
 pub fn test_crab_team() -> Team {
     let mut big_ant = Pet::from(PetName::Ant);
     big_ant.stats.health = 50;

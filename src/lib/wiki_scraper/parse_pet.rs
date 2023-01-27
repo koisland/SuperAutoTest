@@ -133,7 +133,12 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
         );
         // If any is seen return atk/health values.
         if raw_summon_stats.0.is_some() || raw_summon_stats.1.is_some() {
-            raw_summon_stats
+            // If only one value given.
+            if RGX_ATK_HEALTH.is_match(&effect) {
+                (raw_summon_stats.0, raw_summon_stats.0)
+            } else {
+                raw_summon_stats
+            }
         } else {
             // Check for percents or single values.
             (
@@ -148,7 +153,11 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
         );
 
         if raw_stats.0.is_some() || raw_stats.1.is_some() {
-            raw_stats
+            if RGX_ATK_HEALTH.is_match(&effect) {
+                (raw_stats.0, raw_stats.0)
+            } else {
+                raw_stats
+            }
         } else {
             // Check for damage dealing effects.
             (num_regex(RGX_DMG, &pet_effect), None)
@@ -206,6 +215,7 @@ pub fn parse_single_pet(
         for pack in pet_packs.iter() {
             for lvl in 0..3 {
                 let pet_lvl_effect = pet_effects.get(lvl).cloned();
+
                 let (effect_stats, n_triggers, temp_effect) =
                     extract_pet_effect_info(&pet_lvl_effect);
                 let pet = PetRecord {

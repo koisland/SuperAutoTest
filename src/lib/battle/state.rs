@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
     fmt::Display,
+    num::TryFromIntError,
     ops::{Add, AddAssign, Mul, MulAssign, RangeInclusive, Sub, SubAssign},
 };
 
@@ -58,14 +59,22 @@ impl Statistics {
     /// ```
     /// use sapt::Statistics;
     ///
-    /// let ant_effect_stats = Statistics::new(2, 1);
+    /// let ant_effect_stats = Statistics::new(2, 1).unwrap();
     /// assert_eq!(
     ///     ant_effect_stats,
     ///     Statistics {attack: 2, health: 1}
     /// )
     /// ```
-    pub fn new(attack: isize, health: isize) -> Self {
-        Statistics { attack, health }
+    pub fn new<A, H>(attack: A, health: H) -> Result<Self, TryFromIntError>
+    where
+        A: TryInto<isize>,
+        H: TryInto<isize>,
+        A::Error: Into<TryFromIntError>,
+        H::Error: Into<TryFromIntError>,
+    {
+        let attack: isize = attack.try_into().map_err(Into::into)?;
+        let health: isize = health.try_into().map_err(Into::into)?;
+        Ok(Statistics { attack, health })
     }
 }
 
@@ -134,14 +143,14 @@ impl Statistics {
     /// # Examples
     /// ```
     /// use sapt::Statistics;
-    /// let mut effect_dmg = Statistics::new(-2, -2);
-    /// let mut stats = Statistics::new(6, 150);
+    /// let mut effect_dmg = Statistics::new(-2, -2).unwrap();
+    /// let mut stats = Statistics::new(6, 150).unwrap();
     ///
     /// effect_dmg.clamp(0, 50);
     /// stats.clamp(0, 50);
     ///
-    /// assert_eq!(effect_dmg, Statistics::new(0, 0));
-    /// assert_eq!(stats, Statistics::new(6, 50));
+    /// assert_eq!(effect_dmg, Statistics::new(0, 0).unwrap());
+    /// assert_eq!(stats, Statistics::new(6, 50).unwrap());
     /// ```
     pub fn clamp(&mut self, min: isize, max: isize) -> &mut Self {
         self.attack = self.attack.clamp(min, max);
@@ -154,17 +163,17 @@ impl Statistics {
     /// ```rust
     /// use sapt::Statistics;
     ///
-    /// let mut crab_stats = Statistics::new(3, 1);
-    /// let gorilla_stats = Statistics::new(6, 9);
+    /// let mut crab_stats = Statistics::new(3, 1).unwrap();
+    /// let gorilla_stats = Statistics::new(6, 9).unwrap();
     ///
     /// // For crab, copy 50% of health. `Mul` impl always treats values as percentages.
-    /// let mut copy_crab_stats = gorilla_stats * Statistics::new(0, 50);
-    /// assert_eq!(copy_crab_stats, Statistics::new(0, 5));
+    /// let mut copy_crab_stats = gorilla_stats * Statistics::new(0, 50).unwrap();
+    /// assert_eq!(copy_crab_stats, Statistics::new(0, 5).unwrap());
     ///
     /// // If any field is less less than 1 (attack), use the provided stats instead.
     /// copy_crab_stats.comp_set_value(&mut crab_stats, 1);
     ///
-    /// assert_eq!(copy_crab_stats, Statistics::new(3, 5));
+    /// assert_eq!(copy_crab_stats, Statistics::new(3, 5).unwrap());
     /// ```
     pub fn comp_set_value(&mut self, other: &Statistics, min: isize) -> &Self {
         if self.attack <= min {
@@ -180,7 +189,7 @@ impl Statistics {
     /// ```rust
     /// use sapt::Statistics;
     ///
-    /// let mut stats = Statistics::new(2, 1);
+    /// let mut stats = Statistics::new(2, 1).unwrap();
     /// stats.invert();
     ///
     /// assert_eq!(
@@ -203,18 +212,26 @@ impl Display for Statistics {
 /// Conditions to select [`Pet`]s by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Condition {
-    /// Choose the healthiest (highest health) [`Pet`].
+    /// Choose the healthiest (highest health) pet.
     Healthiest,
-    /// Choose the illest (lowest health) [`Pet`].
+    /// Choose the illest (lowest health) pet.
     Illest,
-    /// Choose the stronges (highest attack) [`Pet`].
+    /// Choose the stronges (highest attack) pet.
     Strongest,
-    /// Choose the weakest (lowest attack) [`Pet`].
+    /// Choose the weakest (lowest attack) pet.
     Weakest,
-    /// Choose all [`Pet`]s that have an item with a given [`FoodName`].
+    /// Highest tier pet.
+    HighestTier,
+    /// Lowest tier pet.
+    LowestTier,
+    /// Choose all pets that have an item with a given [`FoodName`].
     HasFood(FoodName),
-    /// Choose all [`Pet`]s that have an [`Effect`] triggered by some [`Status`].
+    /// Choose all pet that have an [`Effect`] triggered by some [`Status`].
     TriggeredBy(Status),
+    /// Multiple conditions.
+    Multiple(Vec<Condition>),
+    /// Multiple conditions. All must be met to be included.
+    MultipleAll(Vec<Condition>),
     /// No condition.
     None,
 }
@@ -222,9 +239,9 @@ pub enum Condition {
 /// Positions to select pets by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
-    /// A single [`Pet`] based on a given [`Condition`].
+    ///Some number of [`Pet`]s based on a given [`Condition`].
     /// * If multiple [`Pet`]s match a [`Condition`], the first [`Pet`] is returned.
-    One(Condition),
+    N(Condition, usize),
     /// Any [`Pet`] that matches a given [`Condition`].
     Any(Condition),
     /// All [`Pet`]s that match a given [`Condition`].
@@ -339,12 +356,14 @@ pub enum Status {
 /// [`Statistics`] for `health` or `attack` are a set percentage.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum CopyAttr {
-    /// Percent [`Statistics`] to copy.
+    /// Percent pet stats to copy.
     PercentStats(Statistics),
-    /// [`Statistics`] to copy.
+    /// Pet stats to copy.
     Stats(Statistics),
-    /// [`Effect`] to copy.
+    /// Effects at a specific level to copy.
     Effect(Vec<Effect>, Option<usize>),
+    /// Food item to copy.
+    Item(Option<Box<Food>>),
     /// Nothing to copy.
     None,
 }
@@ -365,7 +384,7 @@ pub enum Action {
     /// Push a `Pet` by some number of spaces relative to its original position.
     Push(isize),
     /// Copy some attribute from a `Pet` to a given `Position`.
-    Copy(CopyAttr, Position),
+    Copy(CopyAttr, Target, Position),
     /// Negate some amount of `Statistics` damage.
     Negate(Statistics),
     /// Do a critical attack with a percent probability dealing double damage.
@@ -377,7 +396,7 @@ pub enum Action {
     /// Take no damage. Action of `Coconut`.
     Invincible,
     /// Gain a `Food` item.
-    Gain(Box<Food>),
+    Gain(Option<Box<Food>>),
     /// WIP: Get gold.
     Profit,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
@@ -385,7 +404,7 @@ pub enum Action {
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
     /// WIP: Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
-    MultipleCondition(Vec<Action>, Condition),
+    ForEachCondition(Box<Action>, Target, Condition),
     /// Hardcoded Rhino ability.
     Rhino(Statistics),
     /// WIP: Gain one experience point.

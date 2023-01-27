@@ -87,7 +87,11 @@ fn test_battle_parrot_team() {
             trigger: TRIGGER_START_TURN,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Copy(CopyAttr::Effect(vec![], Some(1)), Position::Relative(1),),
+            action: Action::Copy(
+                CopyAttr::Effect(vec![], Some(1)),
+                Target::Friend,
+                Position::Relative(1),
+            ),
             uses: None,
             temp: true,
         }],

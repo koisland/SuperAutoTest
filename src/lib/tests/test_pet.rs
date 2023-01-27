@@ -62,7 +62,7 @@ fn test_create_def_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(Condition::None),
-                action: Action::Add(Statistics::new(2, 1)),
+                action: Action::Add(Statistics::new(2, 1).unwrap()),
                 uses: Some(1),
                 temp: false
             },],
@@ -85,7 +85,7 @@ fn test_get_effect() {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(Condition::None),
-            action: Action::Add(Statistics::new(2, 1)),
+            action: Action::Add(Statistics::new(2, 1).unwrap()),
             uses: Some(1),
             temp: false
         },],
@@ -165,7 +165,7 @@ fn test_create_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(Condition::None),
-                action: Action::Add(Statistics::new(2, 1)),
+                action: Action::Add(Statistics::new(2, 1).unwrap()),
                 uses: Some(1),
                 temp: false
             },],

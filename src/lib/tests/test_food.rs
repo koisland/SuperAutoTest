@@ -216,7 +216,7 @@ fn test_attack_coconut() {
 #[test]
 fn test_attack_peanuts() {
     let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanuts));
+    scorpion.item = Some(Food::from(FoodName::Peanut));
 
     let mut big_ant = Pet::new(
         PetName::Ant,
@@ -247,7 +247,7 @@ fn test_attack_peanuts_coconut() {
     let original_dog_w_coconut_stats = dog_w_coconut.stats.clone();
 
     let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanuts));
+    scorpion.item = Some(Food::from(FoodName::Peanut));
 
     // Dog survives attack with coconut and takes no damage.
     dog_w_coconut.attack(&mut scorpion);
@@ -262,7 +262,7 @@ fn test_attack_peanuts_melon() {
     let original_dog_w_melon_stats = dog_w_melon.stats.clone();
 
     let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanuts));
+    scorpion.item = Some(Food::from(FoodName::Peanut));
 
     // Dog survives attack with melon and takes no damage.
     dog_w_melon.attack(&mut scorpion);
@@ -297,7 +297,7 @@ fn test_attack_peanuts_melon_overflow() {
     .unwrap();
     // Note: Individually fighting pets doesn't trigger gaining peanuts.
     // Adding manually here.
-    scorpion.item = Some(Food::from(FoodName::Peanuts));
+    scorpion.item = Some(Food::from(FoodName::Peanut));
 
     dog_w_melon.attack(&mut scorpion);
 

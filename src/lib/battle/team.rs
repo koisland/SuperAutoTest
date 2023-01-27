@@ -14,7 +14,13 @@ use itertools::Itertools;
 use log::info;
 use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
-use std::{collections::VecDeque, error::Error, fmt::Display};
+use std::{
+    collections::{HashSet, VecDeque},
+    error::Error,
+    fmt::Display,
+};
+
+use super::state::Action;
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone)]
@@ -109,6 +115,7 @@ impl Team {
                                 .clone()
                                 .unwrap_or(format!("{}_{}", pet.name, pet_count)),
                         );
+                        Team::update_missing_food_effects(pet);
                         pet_count += 1;
                     }
                     slot
@@ -126,6 +133,43 @@ impl Team {
         }
     }
 
+    /// Updates missing food items from an [`Action::Gain`](crate::battle::state::Action::Gain) effect.
+    /// * Specifically for [`Toucan`](crate::pets::names::PetName::Toucan).
+    ///
+    /// ```rust
+    /// use sapt::{Pet, PetName, Food, FoodName, Team, EffectApply, battle::state::Action};
+    ///
+    /// let honey = Food::from(FoodName::Honey);
+    /// let mut toucan = Pet::from(PetName::Toucan);
+    /// toucan.item = Some(honey.clone());
+    ///
+    /// assert_eq!(
+    ///     toucan.effect.first().unwrap().action,
+    ///     Action::Gain(None)
+    /// );
+    ///
+    /// let team = Team::new(&[Some(toucan)], 5).unwrap();
+    ///
+    /// assert_eq!(
+    ///     team.friends
+    ///         .first().unwrap().as_ref().unwrap()
+    ///         .effect.first().unwrap()
+    ///         .action,
+    ///     Action::Gain(Some(Box::new(honey)))
+    /// )
+    /// ```
+    fn update_missing_food_effects(pet: &mut Pet) {
+        for effect in pet.effect.iter_mut() {
+            let effect_missing_food = if let Action::Gain(food) = &effect.action {
+                food.is_none()
+            } else {
+                false
+            };
+            if pet.item.as_ref().is_some() && effect_missing_food {
+                effect.action = Action::Gain(Some(Box::new(pet.item.as_ref().unwrap().clone())))
+            }
+        }
+    }
     #[allow(dead_code)]
     /// Restore a team to its initial state.
     ///
@@ -253,61 +297,127 @@ impl Team {
     /// );
     /// ```
     pub fn get_pets_by_cond(&mut self, cond: &Condition) -> Vec<&mut Pet> {
-        let pets = self.all().into_iter();
-        let mut found_pets: Vec<&mut Pet> = vec![];
+        let found_pets: HashSet<usize> = if let Condition::Multiple(conditions) = cond {
+            conditions
+                .iter()
+                .flat_map(|condition| self.match_condition(condition))
+                .collect()
+        } else if let Condition::MultipleAll(conditions) = cond {
+            conditions
+                .iter()
+                .map(|condition| self.match_condition(condition))
+                .reduce(|idxs_1, idxs_2| {
+                    idxs_1
+                        .intersection(&idxs_2)
+                        .cloned()
+                        .collect::<HashSet<usize>>()
+                })
+                .unwrap_or_default()
+        } else {
+            self.match_condition(cond)
+        };
 
+        self.all()
+            .into_iter()
+            .filter(|pet| {
+                if let Some(pos) = pet.pos {
+                    found_pets.contains(&pos)
+                } else {
+                    false
+                }
+            })
+            .collect_vec()
+    }
+
+    /// Match on a `Condition` and return indices.
+    fn match_condition(&mut self, cond: &Condition) -> HashSet<usize> {
+        let mut indices: HashSet<usize> = HashSet::new();
+        let pets = self.all().into_iter();
         match cond {
             Condition::Healthiest => {
-                if let Some(pet) =
-                    pets.max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                if let Some(Some(pos)) = pets
+                    .max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                    .map(|pet| pet.pos)
                 {
-                    found_pets.push(pet)
+                    indices.insert(pos);
                 }
             }
             Condition::Illest => {
-                if let Some(pet) =
-                    pets.min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                if let Some(Some(pos)) = pets
+                    .min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
+                    .map(|pet| pet.pos)
                 {
-                    found_pets.push(pet)
+                    indices.insert(pos);
                 }
             }
             Condition::Strongest => {
-                if let Some(pet) =
-                    pets.max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                if let Some(Some(pos)) = pets
+                    .max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                    .map(|pet| pet.pos)
                 {
-                    found_pets.push(pet)
+                    indices.insert(pos);
                 }
             }
             Condition::Weakest => {
-                if let Some(pet) =
-                    pets.min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                if let Some(Some(pos)) = pets
+                    .min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
+                    .map(|pet| pet.pos)
                 {
-                    found_pets.push(pet)
+                    indices.insert(pos);
                 }
             }
             Condition::HasFood(item_name) => {
-                for pet in pets.filter(|pet| {
-                    pet.item
+                for pos in pets.filter_map(|pet| {
+                    if pet
+                        .item
                         .as_ref()
                         .map(|food| food.name == *item_name)
                         .unwrap_or(false)
+                    {
+                        pet.pos
+                    } else {
+                        None
+                    }
                 }) {
-                    found_pets.push(pet);
+                    indices.insert(pos);
                 }
             }
             Condition::TriggeredBy(trigger) => {
-                for pet in pets.filter(|pet| {
-                    pet.effect
+                for pos in pets.filter_map(|pet| {
+                    if pet
+                        .effect
                         .iter()
-                        .any(|effect| &effect.trigger.status == trigger)
+                        .any(|effect| effect.trigger.status == *trigger)
+                    {
+                        pet.pos
+                    } else {
+                        None
+                    }
                 }) {
-                    found_pets.push(pet)
+                    indices.insert(pos);
                 }
             }
             // Allow all if condition is None.
-            Condition::None => found_pets.extend(pets),
-        };
-        found_pets
+            Condition::None => indices.extend(self.all().iter().filter_map(|pet| pet.pos)),
+            Condition::HighestTier => {
+                if let Some(Some(pos)) = pets
+                    .max_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
+                    .map(|pet| pet.pos)
+                {
+                    indices.insert(pos);
+                }
+            }
+            Condition::LowestTier => {
+                if let Some(Some(pos)) = pets
+                    .min_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
+                    .map(|pet| pet.pos)
+                {
+                    indices.insert(pos);
+                }
+            }
+            _ => {}
+        }
+        indices
     }
 
     /// Swap a pets position with another on the team.
@@ -353,14 +463,14 @@ impl Team {
     ///     Some(Pet::from(PetName::Leopard)),
     /// ], 5).unwrap();
     /// assert!(
-    ///     team.nth(0).unwrap().stats == Statistics::new(6, 9) &&
-    ///     team.nth(1).unwrap().stats == Statistics::new(10, 4)
+    ///     team.nth(0).unwrap().stats == Statistics::new(6, 9).unwrap() &&
+    ///     team.nth(1).unwrap().stats == Statistics::new(10, 4).unwrap()
     /// );
     ///
     /// team.swap_pet_stats(0, 1).unwrap();
     /// assert!(
-    ///     team.nth(0).unwrap().stats == Statistics::new(10, 4) &&
-    ///     team.nth(1).unwrap().stats == Statistics::new(6, 9)
+    ///     team.nth(0).unwrap().stats == Statistics::new(10, 4).unwrap() &&
+    ///     team.nth(1).unwrap().stats == Statistics::new(6, 9).unwrap()
     /// )
     /// ```
     pub fn swap_pet_stats(
@@ -506,6 +616,31 @@ impl Team {
     /// ```
     pub fn first(&mut self) -> Option<&mut Pet> {
         if let Some(Some(pet)) = self.friends.first_mut() {
+            (pet.stats.health != 0).then_some(pet)
+        } else {
+            None
+        }
+    }
+
+    /// Get the first pet on team.
+    /// * Fainted pets are ignored.
+    /// # Examples
+    /// ```
+    /// use sapt::{Pet, PetName, Team};
+    ///
+    /// let mut team = Team::new(&[
+    ///     Some(Pet::from(PetName::Gorilla)),
+    ///     Some(Pet::from(PetName::Leopard)),
+    ///     Some(Pet::from(PetName::Cat)),
+    /// ], 5).unwrap();
+    ///
+    /// assert_eq!(
+    ///     team.last().unwrap().name,
+    ///     PetName::Cat
+    /// )
+    /// ```
+    pub fn last(&mut self) -> Option<&mut Pet> {
+        if let Some(Some(pet)) = self.friends.last_mut() {
             (pet.stats.health != 0).then_some(pet)
         } else {
             None
