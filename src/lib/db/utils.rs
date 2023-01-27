@@ -75,13 +75,9 @@ pub fn setup_param_query(table: &str, params: &[(&str, &Vec<String>)]) -> String
 
         // If at end of params, don't include AND.
         if i + 1 == params.len() {
-            let _ = write!(sql_stmt, "{} {} ({})", param_name, sql_in, params_string);
+            let _ = write!(sql_stmt, "{param_name} {sql_in} ({params_string})");
         } else {
-            let _ = write!(
-                sql_stmt,
-                "{} {} ({}) AND ",
-                param_name, sql_in, params_string
-            );
+            let _ = write!(sql_stmt, "{param_name} {sql_in} ({params_string}) AND ",);
         }
     }
     sql_stmt

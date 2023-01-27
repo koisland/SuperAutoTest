@@ -516,7 +516,7 @@ impl EffectApplyHelpers for Team {
                     return Err(Box::new(SAPTestError::InvalidTeamAction {
                         subject: "Evolve Pet".to_string(),
                         indices: vec![target_idx],
-                        reason: format!("Cannot access position {:?} or targeted pet.", rel_pos),
+                        reason: format!("Cannot access position {rel_pos:?} or targeted pet."),
                     }));
                 }
             }

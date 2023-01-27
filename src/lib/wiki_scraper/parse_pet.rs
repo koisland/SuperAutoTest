@@ -36,16 +36,13 @@ pub fn parse_pet_stats(line: &str) -> Result<(usize, usize), SAPTestError> {
         } else {
             Err(SAPTestError::ParserFailure {
                 subject: "Pet Stats".to_string(),
-                reason: format!(
-                    "Unable to parse attack ({}) and/or health ({})",
-                    atk_str, health_str
-                ),
+                reason: format!("Unable to parse attack ({atk_str}) and/or health ({health_str})",),
             })
         }
     } else {
         Err(SAPTestError::ParserFailure {
             subject: "Pet Stats".to_string(),
-            reason: format!("Unable to find pet stats on line: {}", line),
+            reason: format!("Unable to find pet stats on line: {line}"),
         })
     }
 }

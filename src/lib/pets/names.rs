@@ -306,7 +306,7 @@ impl Display for PetName {
             PetName::Racoon => write!(f, "Racoon"),
             PetName::Toucan => write!(f, "Toucan"),
             PetName::Wombat => write!(f, "Wombat"),
-            PetName::Custom(name) => write!(f, "{}", name),
+            PetName::Custom(name) => write!(f, "{name}"),
         }
     }
 }

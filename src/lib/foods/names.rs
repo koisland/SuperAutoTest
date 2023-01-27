@@ -154,7 +154,7 @@ impl std::fmt::Display for FoodName {
             FoodName::Popcorns => write!(f, "Popcorns"),
             FoodName::Milk => write!(f, "Milk"),
             FoodName::SleepingPill => write!(f, "Sleeping Pill"),
-            FoodName::Custom(name) => write!(f, "{}", name),
+            FoodName::Custom(name) => write!(f, "{name}"),
         }
     }
 }

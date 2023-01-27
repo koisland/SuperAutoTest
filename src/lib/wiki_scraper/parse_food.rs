@@ -41,7 +41,7 @@ impl FoodTableCols {
 
         cols.ok_or(SAPTestError::ParserFailure {
             subject: "Food Table Columns".to_string(),
-            reason: format!("One or more cols is unknown in col_str: {}.", cols_str),
+            reason: format!("One or more cols is unknown in col_str: {cols_str}."),
         })
     }
 }
