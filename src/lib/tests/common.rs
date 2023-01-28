@@ -473,6 +473,110 @@ pub fn test_blowfish_rally_team() -> Team {
     Team::new(&[Some(blowfish.clone()), None, None, None, None], 5).unwrap()
 }
 
+pub fn test_aardvark_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Aardvark)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_bear_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Bear)),
+            Some(Pet::from(PetName::Dog)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_seagull_team() -> Team {
+    let mut seagull = Pet::from(PetName::Seagull);
+    seagull.item = Some(Food::from(FoodName::Honey));
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(seagull),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_blobfish_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Blobfish)),
+            Some(Pet::from(PetName::Dog)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_clownfish_team() -> Team {
+    let mut dog_w_exp = Pet::from(PetName::Dog);
+    dog_w_exp.add_experience(1).unwrap();
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Blobfish)),
+            Some(dog_w_exp),
+            Some(Pet::from(PetName::Clownfish)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_toad_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Toad)),
+            Some(Pet::from(PetName::Mosquito)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_woodpecker_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Woodpecker)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_woodpecker_self_hurt_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Cricket)),
+            Some(Pet::from(PetName::Woodpecker)),
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
 pub fn test_deer_team() -> Team {
     Team::new(&[Some(Pet::from(PetName::Deer)), None, None, None, None], 5).unwrap()
 }

@@ -119,8 +119,14 @@ impl EffectApply for Team {
             for (effect_pet_idx, pet) in self
                 .friends
                 .iter_mut()
-                .filter_map(|slot| slot.as_mut())
-                .enumerate()
+                .filter_map(|slot| {
+                    // Extract pets and its pos.
+                    if let Some(pet) = slot.as_mut() {
+                        pet.pos.map(|pet_pos| (pet_pos, pet))
+                    } else {
+                        None
+                    }
+                })
                 .sorted_by(|(_, pet_1), (_, pet_2)| pet_1.stats.attack.cmp(&pet_2.stats.attack))
                 .rev()
             {
@@ -165,6 +171,7 @@ impl EffectApply for Team {
                         } else if let Action::Add(_) = pet_effect.action {
                             // On self trigger and position any, ignore effect.
                             if trigger.position == Position::Any(Condition::None)
+                                && trigger.target == Target::Friend
                                 && trigger.idx == Some(effect_pet_idx)
                             {
                                 continue;
@@ -333,9 +340,24 @@ impl EffectApplyHelpers for Team {
                 }
             }
             Action::Experience => {
-                if let Some(target) = self.nth(target_idx) {
+                let pet_leveled_up = if let Some(target) = self.nth(target_idx) {
+                    let prev_target_lvl = target.lvl;
                     target.add_experience(1)?;
                     info!(target: "dev", "(\"{}\")\nGave experience point to {}.", name, target);
+                    // Target leveled up. Create trigger.
+                    if target.lvl != prev_target_lvl {
+                        info!(target: "dev", "(\"{}\")\nPet {} leveled up.", name, target);
+                        let mut lvl_trigger = TRIGGER_ANY_LEVELUP;
+                        lvl_trigger.idx = target.pos;
+                        Some(lvl_trigger)
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+                if let Some(level_trigger) = pet_leveled_up {
+                    self.triggers.push_back(level_trigger)
                 }
             }
             Action::Push(rel_idx) => {
@@ -810,6 +832,22 @@ impl EffectApplyHelpers for Team {
 
                     // Add outcome to outcomes.
                     self.apply_effect(effect_pet_idx, trigger, &effect_copy, opponent)?
+                }
+            }
+            Position::Range(effect_range) => {
+                let adj_idxs = effect_range
+                    .clone()
+                    .into_iter()
+                    .filter_map(|rel_idx| {
+                        self._cvt_rel_idx_to_adj_idx(effect_pet_idx, rel_idx).ok()
+                    })
+                    .collect_vec();
+                for (team, adj_idx) in adj_idxs {
+                    if team == Target::Friend {
+                        self._target_effect_idx(adj_idx, effect, opponent)?
+                    } else {
+                        opponent._target_effect_idx(adj_idx, effect, self)?
+                    }
                 }
             }
             _ => {}

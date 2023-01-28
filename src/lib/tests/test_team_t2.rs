@@ -4,13 +4,12 @@ use crate::{
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
         test_dove_team, test_elephant_peacock_team, test_flamingo_team, test_hedgehog_team,
-        test_koala_team, test_mammoth_team, test_panda_team, test_racoon_team, test_rat_team,
-        test_skunk_team, test_spider_team, test_toucan_team,
+        test_koala_team, test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team,
+        test_rat_team, test_skunk_team, test_spider_team, test_stork_team, test_toucan_team,
+        test_wombat_team,
     },
     EffectApply, Food, FoodName,
 };
-
-use super::common::{test_pug_team, test_stork_team, test_wombat_team};
 
 #[test]
 fn test_battle_hedgehog_team() {

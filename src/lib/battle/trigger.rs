@@ -238,3 +238,12 @@ pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     idx: None,
     stat_diff: None,
 };
+
+/// Trigger for when any friend [`Pet`](crate::pets::pet::Pet) levels up.
+pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
+    status: Status::Levelup,
+    target: Target::Friend,
+    position: Position::Any(Condition::None),
+    idx: None,
+    stat_diff: None,
+};

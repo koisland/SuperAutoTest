@@ -742,16 +742,16 @@ impl Team {
         mut pet: Pet,
         pos: usize,
         opponent: Option<&mut Team>,
-    ) -> Result<&mut Self, SAPTestError> {
+    ) -> Result<&mut Self, Box<dyn Error>> {
         if self.all().len() == self.max_size {
-            let err = Err(SAPTestError::InvalidTeamAction {
-                subject: "Add Pet".to_string(),
-                indices: vec![pos],
-                reason: format!("Maximum number of pets reached. Cannot add {}.", &pet),
-            });
             // Add overflow to dead pets.
             self.fainted.push(Some(pet));
-            return err;
+
+            return Err(Box::new(SAPTestError::InvalidTeamAction {
+                subject: "Add Pet".to_string(),
+                indices: vec![pos],
+                reason: format!("Maximum number of pets ({}) reached.", self.max_size),
+            }));
         }
         // Assign id to pet if not any.
         pet.id = Some(
@@ -782,10 +782,16 @@ impl Team {
         // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
         for trigger in self.triggers.iter_mut() {
             match &mut trigger.position {
-                Position::Relative(orig_pos) => *orig_pos += 1,
+                Position::Relative(orig_pos) => {
+                    if *orig_pos >= pos.try_into()? {
+                        *orig_pos += 1
+                    }
+                }
                 Position::Trigger | Position::OnSelf => {
                     if let Some(idx) = trigger.idx.as_mut() {
-                        *idx += 1
+                        if *idx >= pos {
+                            *idx += 1
+                        }
                     }
                 }
                 _ => {}

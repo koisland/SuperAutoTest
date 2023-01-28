@@ -101,6 +101,13 @@ pub enum PetName {
     Racoon,
     Toucan,
     Wombat,
+    Aardvark,
+    Bear,
+    Seagull,
+    Blobfish,
+    Clownfish,
+    Toad,
+    Woodpecker,
     /// A custom [`PetName`].
     Custom(String),
 }
@@ -204,6 +211,13 @@ impl FromStr for PetName {
             "Racoon" => Ok(PetName::Racoon),
             "Toucan" => Ok(PetName::Toucan),
             "Wombat" => Ok(PetName::Wombat),
+            "Aardvark" => Ok(PetName::Aardvark),
+            "Bear" => Ok(PetName::Bear),
+            "Seagull" => Ok(PetName::Seagull),
+            "Blobfish" => Ok(PetName::Blobfish),
+            "Clownfish" => Ok(PetName::Clownfish),
+            "Toad" => Ok(PetName::Toad),
+            "Woodpecker" => Ok(PetName::Woodpecker),
             _ => Ok(PetName::Custom(s.to_string())),
         }
     }
@@ -306,6 +320,13 @@ impl Display for PetName {
             PetName::Racoon => write!(f, "Racoon"),
             PetName::Toucan => write!(f, "Toucan"),
             PetName::Wombat => write!(f, "Wombat"),
+            PetName::Aardvark => write!(f, "Aardvark"),
+            PetName::Bear => write!(f, "Bear"),
+            PetName::Seagull => write!(f, "Seagull"),
+            PetName::Blobfish => write!(f, "Blobfish"),
+            PetName::Clownfish => write!(f, "Clownfish"),
+            PetName::Toad => write!(f, "Toad"),
+            PetName::Woodpecker => write!(f, "Woodpecker"),
             PetName::Custom(name) => write!(f, "{name}"),
         }
     }

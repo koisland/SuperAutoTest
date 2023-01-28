@@ -74,7 +74,8 @@ impl Display for Pet {
 impl From<PetName> for Pet {
     fn from(value: PetName) -> Pet {
         let def_name = value.to_string();
-        Pet::new(value, Some(def_name), None, 1).expect("Cannot create default pet.")
+        Pet::new(value, Some(def_name), None, 1)
+            .expect("Cannot create default pet from petname. Check sqlite entry for typos/changes.")
     }
 }
 
@@ -178,7 +179,7 @@ impl Pet {
 
     #[allow(dead_code)]
     /// Add an experience point to a pet.
-    /// * This will also update health and attack.
+    /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
     /// ```
     /// use sapt::{Pet, PetName};
@@ -247,7 +248,7 @@ impl Pet {
     }
 
     /// Set the level of this pet.
-    ///
+    /// * Note: This only adjusts level and effect. Stats are unaltered.
     /// # Examples
     /// ```rust
     /// use sapt::{Pet, PetName};

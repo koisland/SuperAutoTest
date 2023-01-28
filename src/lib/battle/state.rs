@@ -240,7 +240,6 @@ pub enum Condition {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Position {
     ///Some number of [`Pet`]s based on a given [`Condition`].
-    /// * If multiple [`Pet`]s match a [`Condition`], the first [`Pet`] is returned.
     N(Condition, usize),
     /// Any [`Pet`] that matches a given [`Condition`].
     Any(Condition),
@@ -328,6 +327,8 @@ pub enum Status {
     EndOfBattle,
     /// [`Pet`] is attacking.
     Attack,
+    /// [`Pet`] levels up.
+    Levelup,
     /// [`Food`] bought.
     BuyFood,
     /// [`Pet`] bought.

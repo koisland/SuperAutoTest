@@ -25,13 +25,15 @@ pub struct Food {
 
 impl From<&FoodName> for Food {
     fn from(value: &FoodName) -> Self {
-        Food::new(value).unwrap()
+        Food::new(value)
+            .expect("Unable to create food from foodname. Check sqlite entry for typos/changes.")
     }
 }
 
 impl From<FoodName> for Food {
     fn from(value: FoodName) -> Self {
-        Food::new(&value).unwrap()
+        Food::new(&value)
+            .expect("Unable to create food from foodname. Check sqlite entry for typos/changes.")
     }
 }
 
