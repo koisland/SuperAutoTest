@@ -274,7 +274,8 @@ impl Pet {
     pub fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         for effect in self.effect.iter_mut() {
-            effect.trigger.idx = Some(pos)
+            effect.owner_idx = Some(pos);
+            effect.trigger.to_idx = Some(pos)
         }
         self
     }

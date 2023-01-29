@@ -37,7 +37,7 @@ fn test_battle_croc_team() {
 
 #[test]
 fn test_battle_rhino_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = test_rhino_team();
     let mut enemy_team = test_cricket_horse_team();

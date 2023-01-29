@@ -8,11 +8,14 @@ use crate::{
     foods::names::FoodName,
     pets::names::PetName,
     tests::common::{
-        count_pets, test_ant_team, test_deer_team, test_hippo_team, test_ox_team, test_parrot_team,
-        test_rooster_team, test_skunk_team, test_turtle_team, test_whale_team,
+        count_pets, test_ant_team, test_deer_team, test_doberman_highest_tier_team,
+        test_hippo_team, test_ox_team, test_parrot_team, test_rooster_team, test_skunk_team,
+        test_turtle_team, test_whale_team,
     },
     Effect, Pet,
 };
+
+use super::common::{test_armadillo_team, test_doberman_team, test_lynx_team};
 
 // use crate::LOG_CONFIG;
 
@@ -83,6 +86,7 @@ fn test_battle_parrot_team() {
     // Before start of turn, is def parrot effect.
     assert_eq!(
         vec![Effect {
+            owner_idx: None,
             entity: Entity::Pet,
             trigger: TRIGGER_START_TURN,
             target: Target::Friend,
@@ -105,11 +109,12 @@ fn test_battle_parrot_team() {
     // Update id and idx to match.
     let mut updated_trigger = TRIGGER_SELF_FAINT;
     let mut zombie_cricket = Pet::from(PetName::ZombieCricket);
-    updated_trigger.idx = Some(1);
+    updated_trigger.to_idx = Some(1);
     zombie_cricket.id = None;
 
     assert_eq!(
         vec![Effect {
+            owner_idx: None,
             trigger: updated_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
@@ -298,4 +303,114 @@ fn test_battle_whale_team() {
     let n_crickets: usize = count_pets(&team.fainted, PetName::Cricket);
 
     assert_eq!(2, n_crickets)
+}
+
+#[test]
+fn test_battle_armadillo_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_armadillo_team();
+    let mut enemy_team = test_hippo_team();
+
+    team.fight(&mut enemy_team);
+
+    for (i, pet) in team.all().into_iter().enumerate() {
+        // First pet is armadillo, it takes (2,6)-(0,4).
+        // It doesn't gain (0,1) but all dogs do.
+        if i == 0 {
+            assert_eq!(pet.stats, Statistics::new(2, 2).unwrap())
+        } else {
+            assert_eq!(pet.stats, Statistics::new(3, 5).unwrap())
+        }
+    }
+}
+
+#[test]
+fn test_battle_doberman_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_doberman_team();
+    let mut enemy_team = test_hippo_team();
+
+    // Doberman has no item.
+    assert_eq!(team.first().unwrap().item, None);
+    assert_eq!(team.first().unwrap().stats, Statistics::new(4, 5).unwrap());
+    // Doberman is lowest tier.
+    assert_eq!(
+        team.all()
+            .iter()
+            .min_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
+            .unwrap()
+            .name,
+        PetName::Doberman
+    );
+    team.fight(&mut enemy_team);
+
+    // Doberman gets coconut and gets (5,5)
+    assert_eq!(
+        team.first().unwrap().item.as_ref().unwrap().name,
+        FoodName::Coconut
+    );
+    assert_eq!(team.first().unwrap().stats, Statistics::new(9, 10).unwrap());
+}
+
+#[test]
+fn test_battle_doberman_highest_tier_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_doberman_highest_tier_team();
+    let mut enemy_team = test_hippo_team();
+
+    // Doberman has no item.
+    assert_eq!(team.first().unwrap().item, None);
+    assert_eq!(team.first().unwrap().stats, Statistics::new(4, 5).unwrap());
+    // Doberman is not lowest tier.
+    assert_ne!(
+        team.all()
+            .iter()
+            .min_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
+            .unwrap()
+            .name,
+        PetName::Doberman
+    );
+    team.fight(&mut enemy_team);
+
+    // Doberman doesn't get coconut or stats.
+    assert_eq!(team.first().unwrap().item, None);
+    assert_eq!(team.first().unwrap().stats, Statistics::new(4, 1).unwrap());
+}
+
+#[test]
+fn test_battle_lynx_team() {
+    log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_lynx_team();
+    let mut enemy_team = test_hippo_team();
+
+    // 5 levels on team. So 5 dmg.
+    assert_eq!(team.all().iter().map(|pet| pet.lvl).sum::<usize>(), 5);
+
+    team.fight(&mut enemy_team);
+
+    // Hippo faints at start of battle.
+    assert_eq!(
+        enemy_team.fainted.first().unwrap().as_ref().unwrap().stats,
+        Statistics::new(4, 0).unwrap()
+    );
+
+    team.restore();
+    enemy_team.restore();
+
+    // Remove one level one pet.
+    team.friends.pop();
+    assert_eq!(team.all().iter().map(|pet| pet.lvl).sum::<usize>(), 4);
+
+    // Retrigger start of battle effects
+    team.trigger_effects(&mut enemy_team);
+
+    // Hippo takes 4 dmg.
+    assert_eq!(
+        enemy_team.first().unwrap().stats,
+        Statistics::new(4, 1).unwrap()
+    );
 }

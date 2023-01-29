@@ -43,9 +43,11 @@ pub struct Team {
     /// Seed used to reproduce the outcome of events.
     pub seed: u64,
     /// Clone of pets used for restoring team..
-    stored_friends: Vec<Option<Pet>>,
+    pub(super) stored_friends: Vec<Option<Pet>>,
     /// Count of all pets summoned on team.
-    pet_count: usize,
+    pub(super) pet_count: usize,
+    /// Current pet effect being activated.
+    pub(super) effect_idx: Option<usize>,
 }
 
 impl Default for Team {
@@ -60,6 +62,7 @@ impl Default for Team {
             history: History::new(),
             pet_count: Default::default(),
             seed: random(),
+            effect_idx: None,
         }
     }
 }
@@ -332,7 +335,9 @@ impl Team {
     /// Match on a `Condition` and return indices.
     fn match_condition(&mut self, cond: &Condition) -> HashSet<usize> {
         let mut indices: HashSet<usize> = HashSet::new();
+        let curr_pet_idx = self.effect_idx;
         let pets = self.all().into_iter();
+
         match cond {
             Condition::Healthiest => {
                 if let Some(Some(pos)) = pets
@@ -399,6 +404,15 @@ impl Team {
             }
             // Allow all if condition is None.
             Condition::None => indices.extend(self.all().iter().filter_map(|pet| pet.pos)),
+            Condition::IgnoreSelf => {
+                indices.extend(self.all().iter().enumerate().filter_map(|(i, pet)| {
+                    if curr_pet_idx == Some(i) {
+                        None
+                    } else {
+                        pet.pos
+                    }
+                }))
+            }
             Condition::HighestTier => {
                 if let Some(Some(pos)) = pets
                     .max_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
@@ -437,7 +451,6 @@ impl Team {
     ///     team.nth(1).unwrap().name == PetName::Gorilla
     /// )
     /// ```
-    #[allow(dead_code)]
     pub fn swap_pets(&mut self, pos_1: usize, pos_2: usize) -> Result<&mut Self, SAPTestError> {
         if pos_1 > self.friends.len() || pos_2 > self.friends.len() {
             Err(SAPTestError::InvalidTeamAction {
@@ -528,7 +541,6 @@ impl Team {
     ///     team.nth(2).unwrap().name == PetName::Gorilla
     /// )
     /// ```
-    #[allow(dead_code)]
     pub fn push_pet(
         &mut self,
         pos: usize,
@@ -550,7 +562,7 @@ impl Team {
 
             // Add push trigger.
             let mut push_any_trigger = TRIGGER_ANY_PUSHED;
-            push_any_trigger.idx = Some(adj_pos);
+            push_any_trigger.to_idx = Some(adj_pos);
             self.triggers.push_back(push_any_trigger);
 
             // Reset indices.
@@ -559,7 +571,7 @@ impl Team {
             // Add opponent triggers if provided.
             if let Some(opponent) = opponent {
                 let mut push_trigger = TRIGGER_ANY_ENEMY_PUSHED;
-                push_trigger.idx = Some(adj_pos);
+                push_trigger.to_idx = Some(adj_pos);
                 opponent.triggers.push_back(push_trigger)
             }
         } else {
@@ -775,8 +787,11 @@ impl Team {
         let mut any_trigger = TRIGGER_ANY_SUMMON;
         let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
 
-        (self_trigger.idx, any_trigger.idx, any_enemy_trigger.idx) =
-            (Some(pos), Some(pos), Some(pos));
+        (
+            self_trigger.to_idx,
+            any_trigger.to_idx,
+            any_enemy_trigger.to_idx,
+        ) = (Some(pos), Some(pos), Some(pos));
 
         // Update old triggers and their positions that store a pet's idx after inserting new pet.
         // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
@@ -788,7 +803,7 @@ impl Team {
                     }
                 }
                 Position::Trigger | Position::OnSelf => {
-                    if let Some(idx) = trigger.idx.as_mut() {
+                    if let Some(idx) = trigger.to_idx.as_mut() {
                         if *idx >= pos {
                             *idx += 1
                         }

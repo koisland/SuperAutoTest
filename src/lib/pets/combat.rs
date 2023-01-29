@@ -8,12 +8,10 @@ use crate::{
         trigger::*,
     },
     foods::names::FoodName,
-    pets::pet::Pet,
+    pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
 };
 
 use std::{fmt::Display, ops::Sub};
-
-use super::pet::{MAX_PET_STATS, MIN_PET_STATS};
 
 /// The minimum damage any attack can do.
 pub const MIN_DMG: isize = 1;
@@ -121,18 +119,18 @@ impl PetCombat for Pet {
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
-            (self_unhurt.idx, self_unhurt.stat_diff) = (self.pos, health_diff_stats);
+            (self_unhurt.to_idx, self_unhurt.stat_diff) = (self.pos, health_diff_stats);
 
             outcomes.push(self_unhurt)
         } else {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
             let mut any_hurt = TRIGGER_ANY_HURT;
-            (self_hurt.idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
-            (any_hurt.idx, any_hurt.stat_diff) = (self.pos, health_diff_stats);
+            (self_hurt.to_idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
+            (any_hurt.to_idx, any_hurt.stat_diff) = (self.pos, health_diff_stats);
 
             let mut enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
-            enemy_any_hurt.idx = self.pos;
+            enemy_any_hurt.to_idx = self.pos;
 
             outcomes.extend([self_hurt, any_hurt]);
             enemy_outcomes.push(enemy_any_hurt)
@@ -282,7 +280,9 @@ impl PetCombat for Pet {
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
         let mut outcome = self.get_outcome(new_health);
+        outcome.update_from_pos(enemy.pos);
         let mut enemy_outcome = enemy.get_outcome(new_enemy_health);
+        enemy_outcome.update_from_pos(self.pos);
 
         // Add specific trigger if directly knockout.
         if new_health == 0 {
@@ -314,6 +314,18 @@ pub struct AttackOutcome {
     pub friends: Vec<Outcome>,
     /// [`Outcome`] for opponents.
     pub opponents: Vec<Outcome>,
+}
+
+impl AttackOutcome {
+    /// Update where triggers came from.
+    pub fn update_from_pos(&mut self, pos: Option<usize>) {
+        for trigger in self.friends.iter_mut() {
+            trigger.from_idx = pos
+        }
+        for trigger in self.opponents.iter_mut() {
+            trigger.from_idx = pos
+        }
+    }
 }
 
 impl Display for AttackOutcome {

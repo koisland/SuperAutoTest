@@ -25,6 +25,7 @@ fn test_create_known_pet() {
         lvl: 1,
         exp: 0,
         effect: vec![Effect {
+            owner_idx: None,
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(Condition::None),
@@ -60,11 +61,13 @@ fn test_create_custom_pet() {
         exp: 0,
         effect: vec![Effect {
             entity: Entity::Pet,
+            owner_idx: None,
             trigger: Outcome {
-                status: Status::StartBattle,
+                status: Status::StartOfBattle,
                 target: Target::None,
                 position: Position::None,
-                idx: None,
+                to_idx: None,
+                from_idx: None,
                 stat_diff: None,
             },
             target: Target::Friend,

@@ -16,6 +16,8 @@ pub enum Entity {
 pub struct Effect {
     /// Owner of effect.
     pub entity: Entity,
+    /// Idx of owner.
+    pub owner_idx: Option<usize>,
     /// Effect trigger.
     pub trigger: Outcome,
     /// Target of the effect.

@@ -649,6 +649,147 @@ pub fn test_whale_team() -> Team {
     .unwrap()
 }
 
+pub fn test_armadillo_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Armadillo)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Dog)),
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_doberman_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Doberman)),
+            Some(Pet::from(PetName::Mammoth)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_doberman_highest_tier_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Doberman)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_lynx_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Lynx)),
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+            Some(Pet::from(PetName::Ant)),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_porcupine_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Doberman)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_caterpillar_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Caterpillar)),
+            None,
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_anteater_team() -> Team {
+    Team::new(
+        &[Some(Pet::from(PetName::Anteater)), None, None, None, None],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_donkey_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Dog)),
+            Some(Pet::from(PetName::Donkey)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_eel_team() -> Team {
+    Team::new(&[Some(Pet::from(PetName::Eel)), None, None, None, None], 5).unwrap()
+}
+
+pub fn test_hawk_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Hawk)),
+            Some(Pet::from(PetName::Ant)),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_pelican_team() -> Team {
+    let mut strawberry_ant = Pet::from(PetName::Ant);
+    strawberry_ant.item = Some(Food::from(FoodName::Strawberry));
+
+    Team::new(
+        &[
+            Some(Pet::from(PetName::Pelican)),
+            Some(strawberry_ant),
+            None,
+            None,
+            None,
+        ],
+        5,
+    )
+    .unwrap()
+}
+
 pub fn test_crocodile_team() -> Team {
     Team::new(
         &[

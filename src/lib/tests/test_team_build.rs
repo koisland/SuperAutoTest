@@ -143,12 +143,12 @@ fn test_team_push() {
     // Snake
     assert!(
         team.triggers.get(2).unwrap().status == Status::Pushed
-            && team.triggers.get(2).unwrap().idx == Some(1)
+            && team.triggers.get(2).unwrap().to_idx == Some(1)
     );
     // Dog
     assert!(
         team.triggers.back().unwrap().status == Status::Pushed
-            && team.triggers.back().unwrap().idx == Some(0)
+            && team.triggers.back().unwrap().to_idx == Some(0)
     );
 }
 

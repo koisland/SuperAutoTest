@@ -9,6 +9,7 @@ use crate::{
     battle::effect::Effect,
     foods::{food::Food, names::FoodName},
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
+    PetName,
 };
 
 /// The outcome of a [`Team`](crate::battle::team::Team) fight.
@@ -232,6 +233,8 @@ pub enum Condition {
     Multiple(Vec<Condition>),
     /// Multiple conditions. All must be met to be included.
     MultipleAll(Vec<Condition>),
+    /// Ignore self.
+    IgnoreSelf,
     /// No condition.
     None,
 }
@@ -291,7 +294,9 @@ pub struct Outcome {
     /// General position on `target`.
     pub position: Position,
     /// Specific index of affected [`Entity`](super::effect::Entity).
-    pub idx: Option<usize>,
+    pub to_idx: Option<usize>,
+    /// Specific index of what affected `to_idx`,
+    pub from_idx: Option<usize>,
     /// Difference in [`Statistics`] after status update from initial state.
     pub stat_diff: Option<Statistics>,
 }
@@ -308,8 +313,8 @@ impl Display for Outcome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[Status: {:?}, Target: {:?}, Position: {:?}, Index: {:?}]",
-            self.status, self.target, self.position, self.idx
+            "[Status: {:?}, Target: {:?}, Position: {:?}, ToIndex: {:?}, FromIndex: {:?}]",
+            self.status, self.target, self.position, self.to_idx, self.from_idx
         )
     }
 }
@@ -322,7 +327,9 @@ pub enum Status {
     /// End of Turn.
     EndTurn,
     /// Start of Battle.
-    StartBattle,
+    StartOfBattle,
+    /// After start of battle, prior to first battle.
+    BeforeFirstBattle,
     /// End of Battle.
     EndOfBattle,
     /// [`Pet`] is attacking.
@@ -360,7 +367,7 @@ pub enum CopyAttr {
     /// Percent pet stats to copy.
     PercentStats(Statistics),
     /// Pet stats to copy.
-    Stats(Statistics),
+    Stats(Option<Statistics>),
     /// Effects at a specific level to copy.
     Effect(Vec<Effect>, Option<usize>),
     /// Food item to copy.
@@ -382,16 +389,22 @@ pub enum Action {
     SwapPositions,
     /// Swap `Statistics` of `Pet`s.
     SwapStats,
-    /// Push a `Pet` by some number of spaces relative to its original position.
-    Push(isize),
+    /// Push a `Pet` to some new position from its original position. The following positions are implemented.
+    /// * [`Position::Relative`]
+    /// * [`Position::First`]
+    /// * [`Position::Last`]
+    Push(Position),
     /// Copy some attribute from a `Pet` to a given `Position`.
     Copy(CopyAttr, Target, Position),
     /// Negate some amount of `Statistics` damage.
     Negate(Statistics),
     /// Do a critical attack with a percent probability dealing double damage.
     Critical(usize),
-    /// Evolve a `Pet` at a specified index by leveling it and spawning it on faint.
-    Evolve(usize, Position),
+    /// Swallow a `Pet` at a specified index, level it, and spawn it on faint.
+    Whale(usize, Position),
+    /// Transform into another `Pet`.
+    /// * Note: This does not emit a summon trigger.
+    Transform(PetName, Option<Statistics>),
     /// Instantly kill a `Pet`.
     Kill,
     /// Take no damage. Action of `Coconut`.
@@ -404,11 +417,17 @@ pub enum Action {
     Summon(Option<Box<Pet>>, Option<Statistics>),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
-    /// WIP: Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
+    /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
     ForEachCondition(Box<Action>, Target, Condition),
+    /// If target meets condition, do `Action`.
+    IfTargetCondition(Box<Action>, Condition),
     /// Hardcoded Rhino ability.
     Rhino(Statistics),
-    /// WIP: Gain one experience point.
+    /// Hardcoded lynx ability.
+    Lynx,
+    /// Return damage back to pet that triggered effect.
+    Thorns(Statistics),
+    /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.
     Endure,

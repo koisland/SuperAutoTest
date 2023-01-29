@@ -22,6 +22,7 @@ impl From<PetRecord> for Vec<Effect> {
 
         match &record.name {
             PetName::Ant => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(Condition::None),
@@ -31,6 +32,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Mosquito => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
                 position: Position::Any(Condition::None),
@@ -44,6 +46,7 @@ impl From<PetRecord> for Vec<Effect> {
                     Pet::new(PetName::ZombieCricket, None, Some(effect_stats), record.lvl).unwrap(),
                 );
                 vec![Effect {
+                    owner_idx: None,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
                     position: Position::OnSelf,
@@ -54,6 +57,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Horse => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
                 position: Position::Trigger,
@@ -63,6 +67,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Crab => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -79,6 +84,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let add_stats = pet_stats * effect_stats;
 
                 vec![Effect {
+                    owner_idx: None,
                     trigger: TRIGGER_START_BATTLE,
                     target: Target::Friend,
                     position: Position::Relative(1),
@@ -91,6 +97,7 @@ impl From<PetRecord> for Vec<Effect> {
             PetName::Elephant => {
                 let n_removes = vec![Action::Remove(effect_stats); record.n_triggers];
                 vec![Effect {
+                    owner_idx: None,
                     trigger: TRIGGER_SELF_ATTACK,
                     target: Target::Friend,
                     position: Position::Relative(-1),
@@ -101,6 +108,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Flamingo => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Range(-2..=-1),
@@ -110,6 +118,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Hedgehog => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Either,
                 position: Position::All(Condition::None),
@@ -119,6 +128,7 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Peacock => vec![Effect {
+                owner_idx: None,
                 trigger: TRIGGER_SELF_HURT,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -133,6 +143,7 @@ impl From<PetRecord> for Vec<Effect> {
                 );
                 let rats_summoned = vec![Action::Summon(Some(dirty_rat), None); record.lvl];
                 vec![Effect {
+                    owner_idx: None,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Enemy,
                     position: Position::OnSelf,
@@ -156,6 +167,7 @@ impl From<PetRecord> for Vec<Effect> {
                             .unwrap(),
                     );
                     vec![Effect {
+                        owner_idx: None,
                         entity: Entity::Pet,
                         temp: record.temp_effect,
                         trigger: TRIGGER_SELF_FAINT,
@@ -172,6 +184,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let effect_dmg_stats = pet_stats * effect_stats;
 
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -185,6 +198,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Blowfish => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_HURT,
@@ -196,6 +210,7 @@ impl From<PetRecord> for Vec<Effect> {
             PetName::Camel => {
                 let n_adds = vec![Action::Add(effect_stats); record.n_triggers];
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_HURT,
@@ -206,6 +221,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Dog => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
@@ -215,6 +231,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Dolphin => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
@@ -224,6 +241,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Kangaroo => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_AHEAD_ATTACK,
@@ -233,6 +251,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Ox => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_AHEAD_FAINT,
@@ -248,6 +267,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let ram =
                     Box::new(Pet::new(PetName::Ram, None, Some(effect_stats), record.lvl).unwrap());
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -264,6 +284,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let mut bus = Pet::new(PetName::Bus, None, Some(effect_stats), record.lvl).unwrap();
                 bus.item = Some(Food::from(FoodName::Chili));
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -274,6 +295,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Hippo => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_KNOCKOUT,
@@ -283,6 +305,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Parrot => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_TURN,
@@ -304,6 +327,7 @@ impl From<PetRecord> for Vec<Effect> {
                 );
                 let n_chicks = vec![Action::Summon(Some(chick), None); record.lvl];
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -314,6 +338,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Skunk => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
@@ -325,6 +350,7 @@ impl From<PetRecord> for Vec<Effect> {
             PetName::Turtle => {
                 let max_pets_behind: isize = record.lvl.try_into().unwrap();
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -335,17 +361,19 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Whale => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Evolve(record.lvl, Position::Relative(1)),
+                action: Action::Whale(record.lvl, Position::Relative(1)),
                 uses: Some(record.n_triggers),
             }],
             PetName::Crocodile => {
                 let n_removes = vec![Action::Remove(effect_stats); record.n_triggers];
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_START_BATTLE,
@@ -356,6 +384,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Rhino => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_KNOCKOUT,
@@ -366,6 +395,7 @@ impl From<PetRecord> for Vec<Effect> {
             }],
             // No shops so start of turn.
             PetName::Scorpion => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_TURN,
@@ -375,6 +405,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Shark => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_FAINT,
@@ -384,6 +415,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Turkey => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
@@ -393,6 +425,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Boar => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_ATTACK,
@@ -407,6 +440,7 @@ impl From<PetRecord> for Vec<Effect> {
                 );
                 // Add exception for other zombie flies.
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_ANY_FAINT,
@@ -417,6 +451,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Gorilla => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_HURT,
@@ -429,6 +464,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let effect_dmg = pet_stats * effect_stats;
                 let n_removes = vec![Action::Remove(effect_dmg); record.n_triggers];
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_START_BATTLE,
@@ -439,6 +475,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Mammoth => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_FAINT,
@@ -448,6 +485,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Snake => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_AHEAD_ATTACK,
@@ -458,6 +496,7 @@ impl From<PetRecord> for Vec<Effect> {
             }],
 
             PetName::FrilledDragon => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
@@ -475,6 +514,7 @@ impl From<PetRecord> for Vec<Effect> {
                 let mut effects = vec![];
                 if record.lvl == 1 {
                     effects.push(Effect {
+                        owner_idx: None,
                         entity: Entity::Pet,
                         trigger: TRIGGER_START_BATTLE,
                         target: Target::Friend,
@@ -487,6 +527,7 @@ impl From<PetRecord> for Vec<Effect> {
                 effects
             }
             PetName::Hummingbird => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
@@ -498,6 +539,7 @@ impl From<PetRecord> for Vec<Effect> {
             // Iguana has two effects that are the same except for their triggers.
             PetName::Iguana => vec![
                 Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     trigger: TRIGGER_ANY_ENEMY_SUMMON,
                     target: Target::Enemy,
@@ -507,6 +549,7 @@ impl From<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 },
                 Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     trigger: TRIGGER_ANY_ENEMY_PUSHED,
                     target: Target::Enemy,
@@ -517,6 +560,7 @@ impl From<PetRecord> for Vec<Effect> {
                 },
             ],
             PetName::Moth => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
@@ -526,15 +570,19 @@ impl From<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Seahorse => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
                 position: Position::Last,
-                action: Action::Push(record.lvl.try_into().expect("Invalid level for seahorse.")),
+                action: Action::Push(Position::Relative(
+                    record.lvl.try_into().expect("Invalid level for seahorse."),
+                )),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
             }],
             PetName::Bat => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
@@ -554,6 +602,7 @@ impl From<PetRecord> for Vec<Effect> {
                     record.lvl
                 ];
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     trigger: TRIGGER_START_BATTLE,
                     target: Target::Enemy,
@@ -566,6 +615,7 @@ impl From<PetRecord> for Vec<Effect> {
             PetName::Dove => vec![
                 // TODO: May select same pet.
                 Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
@@ -576,6 +626,7 @@ impl From<PetRecord> for Vec<Effect> {
                 },
             ],
             PetName::Koala => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_ANY_HURT,
                 target: Target::Friend,
@@ -590,6 +641,7 @@ impl From<PetRecord> for Vec<Effect> {
                     .expect("Can't convert stats from record.");
                 vec![
                     Effect {
+                        owner_idx: None,
                         entity: Entity::Pet,
                         trigger: TRIGGER_START_BATTLE,
                         target: Target::Friend,
@@ -599,6 +651,7 @@ impl From<PetRecord> for Vec<Effect> {
                         temp: record.temp_effect,
                     },
                     Effect {
+                        owner_idx: None,
                         entity: Entity::Pet,
                         trigger: TRIGGER_START_BATTLE,
                         target: Target::Friend,
@@ -610,6 +663,7 @@ impl From<PetRecord> for Vec<Effect> {
                 ]
             }
             PetName::Pug => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
@@ -631,6 +685,7 @@ impl From<PetRecord> for Vec<Effect> {
                     let summoned_pet =
                         Box::new(Pet::new(record.name.clone(), None, None, record.lvl).unwrap());
                     vec![Effect {
+                        owner_idx: None,
                         entity: Entity::Pet,
                         temp: record.temp_effect,
                         trigger: TRIGGER_SELF_FAINT,
@@ -644,6 +699,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }
             }
             PetName::Racoon => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_ATTACK,
@@ -658,6 +714,7 @@ impl From<PetRecord> for Vec<Effect> {
                     .try_into()
                     .expect("Can't convert level to isize.");
                 vec![Effect {
+                    owner_idx: None,
                     entity: Entity::Pet,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
@@ -669,6 +726,7 @@ impl From<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Wombat => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
@@ -688,6 +746,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Aardvark => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_ENEMY_SUMMON,
@@ -697,6 +756,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Bear => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_FAINT,
@@ -706,6 +766,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Seagull => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
@@ -716,6 +777,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Blobfish => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_FAINT,
@@ -725,6 +787,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Clownfish => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_LEVELUP,
@@ -734,6 +797,7 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Toad => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_ENEMY_HURT,
@@ -743,12 +807,164 @@ impl From<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Woodpecker => vec![Effect {
+                owner_idx: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Either,
                 position: Position::Range(1..=2),
                 action: Action::Multiple(vec![Action::Remove(effect_stats); record.lvl]),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Armadillo => vec![
+                Effect {
+                    owner_idx: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::All(Condition::IgnoreSelf),
+                    action: Action::Add(effect_stats),
+                    uses: Some(record.n_triggers),
+                },
+                Effect {
+                    owner_idx: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_HURT,
+                    target: Target::Friend,
+                    position: Position::All(Condition::IgnoreSelf),
+                    action: Action::Add(effect_stats),
+                    uses: Some(record.n_triggers),
+                },
+            ],
+            PetName::Doberman => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::IfTargetCondition(
+                    Box::new(Action::Multiple(vec![
+                        Action::Gain(Some(Box::new(Food::from(FoodName::Coconut)))),
+                        Action::Add(effect_stats),
+                    ])),
+                    Condition::LowestTier,
+                ),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Lynx => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::Any(Condition::None),
+                action: Action::Multiple(vec![Action::Lynx; record.lvl]),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Porcupine => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SELF_HURT,
+                target: Target::Either,
+                position: Position::Trigger,
+                action: Action::Thorns(effect_stats),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Caterpillar => match record.lvl {
+                3 => {
+                    vec![Effect {
+                        owner_idx: None,
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_START_BATTLE,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Transform(
+                            PetName::Butterfly,
+                            Some(Statistics {
+                                attack: 1,
+                                health: 1,
+                            }),
+                        ),
+                        uses: Some(record.n_triggers),
+                    }]
+                }
+                _ => vec![],
+            },
+            PetName::Butterfly => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_BEFORE_FIRST_BATTLE,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Copy(
+                    CopyAttr::Stats(None),
+                    Target::Friend,
+                    Position::N(Condition::Strongest, 1),
+                ),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Anteater => {
+                let lvl_ant = Pet::new(PetName::Ant, None, None, record.lvl)
+                    .expect("Can't create ants for anteater.");
+
+                vec![Effect {
+                    owner_idx: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Multiple(vec![
+                        Action::Summon(Some(Box::new(lvl_ant)), None);
+                        2
+                    ]),
+                    uses: Some(record.n_triggers),
+                }]
+            }
+            PetName::Donkey => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_ANY_ENEMY_FAINT,
+                target: Target::Enemy,
+                position: Position::Last,
+                action: Action::Push(Position::First),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Eel => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::Last,
+                action: Action::Push(Position::First),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Hawk => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Enemy,
+                position: Position::OnSelf,
+                action: Action::Remove(effect_stats),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Pelican => vec![Effect {
+                owner_idx: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_BATTLE,
+                target: Target::Friend,
+                position: Position::Any(Condition::HasFood(FoodName::Strawberry)),
+                action: Action::Add(effect_stats),
                 uses: Some(record.n_triggers),
             }],
             _ => vec![],

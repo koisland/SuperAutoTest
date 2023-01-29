@@ -98,14 +98,14 @@ impl EffectApply for Team {
 
             // Get petname of trigger.
             let trigger_pet_name = match trigger.target {
-                Target::Friend => trigger.idx.map(|idx| {
+                Target::Friend => trigger.to_idx.map(|idx| {
                     if let Some(Some(pet)) = self.friends.get(idx) {
                         Some(pet.name.clone())
                     } else {
                         None
                     }
                 }),
-                Target::Enemy => trigger.idx.map(|idx| {
+                Target::Enemy => trigger.to_idx.map(|idx| {
                     if let Some(Some(pet)) = opponent.friends.get(idx) {
                         Some(pet.name.clone())
                     } else {
@@ -135,8 +135,8 @@ impl EffectApply for Team {
                 // * Tests trigger idx so that multiple triggers aren't all activated.
                 //     * For pets with Position::OnSelf and idx 0 like Crickets.
                 if trigger.position != Position::Any(Condition::None)
-                    && trigger.idx.is_some()
-                    && trigger.idx != Some(effect_pet_idx)
+                    && trigger.to_idx.is_some()
+                    && trigger.to_idx != Some(effect_pet_idx)
                 {
                     continue;
                 }
@@ -164,7 +164,7 @@ impl EffectApply for Team {
                         if let Action::Summon(_, _) = pet_effect.action {
                             if trigger_name == PetName::ZombieFly
                                 || (trigger_name == PetName::Fly
-                                    && trigger.idx == Some(effect_pet_idx))
+                                    && trigger.to_idx == Some(effect_pet_idx))
                             {
                                 continue;
                             }
@@ -172,7 +172,7 @@ impl EffectApply for Team {
                             // On self trigger and position any, ignore effect.
                             if trigger.position == Position::Any(Condition::None)
                                 && trigger.target == Target::Friend
-                                && trigger.idx == Some(effect_pet_idx)
+                                && trigger.to_idx == Some(effect_pet_idx)
                             {
                                 continue;
                             }
@@ -191,6 +191,7 @@ impl EffectApply for Team {
                     .map(|pet| if pet.name == PetName::Tiger { 2 } else { 1 })
                     .unwrap_or(1);
 
+                self.effect_idx = Some(effect_pet_idx);
                 for _ in 0..num_times_applied {
                     // Add node here for activated effect.
                     let node_idx = self.history.effect_graph.add_node(trigger.clone());
@@ -319,8 +320,10 @@ impl EffectApplyHelpers for Team {
             Action::Remove(stats) => {
                 let mut outcomes: Vec<Outcome> = vec![];
                 let target_id = if let Some(target) = self.nth(target_idx) {
-                    let atk_outcome = target.indirect_attack(stats);
-                    // Collectr triggers for both teams.
+                    let mut atk_outcome = target.indirect_attack(stats);
+                    atk_outcome.update_from_pos(effect.owner_idx);
+
+                    // Collect triggers for both teams.
                     outcomes.extend(atk_outcome.friends);
                     opponent.triggers.extend(atk_outcome.opponents);
 
@@ -348,7 +351,7 @@ impl EffectApplyHelpers for Team {
                     if target.lvl != prev_target_lvl {
                         info!(target: "dev", "(\"{}\")\nPet {} leveled up.", name, target);
                         let mut lvl_trigger = TRIGGER_ANY_LEVELUP;
-                        lvl_trigger.idx = target.pos;
+                        lvl_trigger.to_idx = target.pos;
                         Some(lvl_trigger)
                     } else {
                         None
@@ -360,9 +363,21 @@ impl EffectApplyHelpers for Team {
                     self.triggers.push_back(level_trigger)
                 }
             }
-            Action::Push(rel_idx) => {
-                self.push_pet(target_idx, *rel_idx, Some(opponent))?;
-                info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", name, target_idx, rel_idx);
+            Action::Push(position) => {
+                let pos_change = match position {
+                    Position::First => {
+                        let friends_len: isize = self.max_size.try_into()?;
+                        friends_len
+                    }
+                    Position::Last => {
+                        let friends_len: isize = self.max_size.try_into()?;
+                        -friends_len
+                    }
+                    Position::Relative(rel_idx) => *rel_idx,
+                    _ => unimplemented!("Position not implemented for push."),
+                };
+                info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", name, target_idx, pos_change);
+                self.push_pet(target_idx, pos_change, Some(opponent))?;
             }
             Action::Summon(stored_pet, stats) => {
                 // If stored pet is None, assume is summoning self.
@@ -416,6 +431,18 @@ impl EffectApplyHelpers for Team {
                     let mut effect_copy = effect.clone();
                     effect_copy.action = action.clone();
                     self._target_effect_idx(target_idx, &effect_copy, opponent)?
+                }
+            }
+            Action::IfTargetCondition(action, condition) => {
+                let target_pet = self
+                    .get_pets_by_cond(condition)
+                    .into_iter()
+                    .find(|pet| pet.pos == Some(target_idx));
+                // If a pet matches condition, run action.
+                if target_pet.is_some() {
+                    let mut effect_copy = effect.clone();
+                    effect_copy.action = *action.clone();
+                    self._target_effect_idx(target_idx, &effect_copy, opponent)?;
                 }
             }
             Action::ForEachCondition(action, target, condition) => {
@@ -486,7 +513,15 @@ impl EffectApplyHelpers for Team {
                     info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", name, pet, perc_stats)
                 }
             }
-            Action::Evolve(lvl, rel_pos) => {
+            Action::Lynx => {
+                let opponent_lvls: usize = opponent.all().iter().map(|pet| pet.lvl).sum();
+                let lvl_dmg_action = Action::Remove(Statistics::new(opponent_lvls, 0).unwrap());
+                let mut effect_copy = effect.clone();
+                effect_copy.action = lvl_dmg_action;
+
+                self._target_effect_idx(target_idx, &effect_copy, opponent)?
+            }
+            Action::Whale(lvl, rel_pos) => {
                 // Based on a specific relative position, select the pet to 'swallow' and remove.
                 let chosen_pet = if let Position::Relative(rel_pos) = rel_pos {
                     // Do in new scope so mut ref to pet is dropped.
@@ -525,6 +560,7 @@ impl EffectApplyHelpers for Team {
                     // Set the target's pet ability to summon the pet.
                     target_pet.effect = vec![Effect {
                         entity: Entity::Pet,
+                        owner_idx: target_pet.pos,
                         trigger: TRIGGER_SELF_FAINT,
                         target: Target::Friend,
                         position: Position::OnSelf,
@@ -552,6 +588,9 @@ impl EffectApplyHelpers for Team {
                 };
                 let copied_attr = if let Some(pet) = chosen_pet {
                     match attr.clone() {
+                        CopyAttr::Stats(replacement_stats) => Some(CopyAttr::Stats(
+                            replacement_stats.map_or(Some(pet.stats), Some),
+                        )),
                         CopyAttr::PercentStats(perc_stats_mult) => {
                             // Multiply the stats of a chosen pet by some multiplier
                             let mut new_stats = pet.stats * perc_stats_mult;
@@ -563,7 +602,7 @@ impl EffectApplyHelpers for Team {
                                 perc_stats_mult.health,
                                 pet
                             );
-                            Some(CopyAttr::Stats(new_stats))
+                            Some(CopyAttr::Stats(Some(new_stats)))
                         }
                         CopyAttr::Effect(_, lvl) => {
                             Some(CopyAttr::Effect(pet.get_effect(lvl.unwrap_or(1))?, lvl))
@@ -582,10 +621,17 @@ impl EffectApplyHelpers for Team {
                 if let Some(target) = self.nth(target_idx) {
                     // Calculate stats or set ability.
                     match copied_attr.unwrap_or(CopyAttr::None) {
-                        CopyAttr::Stats(mut new_stats) => {
-                            // If the stats are 0, use the target's original stats, otherwise, use the news stats.
-                            let old_stats = target.stats;
-                            target.stats = *new_stats.comp_set_value(&old_stats, 0);
+                        CopyAttr::Stats(new_stats) => {
+                            // If some stats given use those as base.
+                            let new_stats = if let Some(mut new_stats) = new_stats {
+                                // If any stat value is 0, use the target's original stats, otherwise, use the new stats.
+                                *new_stats.comp_set_value(&target.stats, 0)
+                            } else {
+                                // Otherwise, copy stats from target.
+                                target.stats
+                            };
+
+                            target.stats = new_stats;
 
                             info!(
                                 target: "dev", "(\"{}\")\nSet stats for {} to {}.",
@@ -620,7 +666,8 @@ impl EffectApplyHelpers for Team {
                     target_ids.push(target.id.clone())
                 }
             }
-            _ => {}
+            Action::None => {}
+            _ => unimplemented!("Action not implemented"),
         }
         // Create edge by iterating over all targets affected.
         if let (Some(prev_node), Some(curr_node)) = (self.history.prev_node, self.history.curr_node)
@@ -693,6 +740,7 @@ impl EffectApplyHelpers for Team {
                     .into_iter()
                     .filter_map(|pet| pet.pos)
                     .collect_vec();
+
                 for pet_idx in pos {
                     self._target_effect_idx(pet_idx, effect, opponent)?
                 }
@@ -700,7 +748,7 @@ impl EffectApplyHelpers for Team {
             Position::OnSelf => self._target_effect_idx(effect_pet_idx, effect, opponent)?,
             Position::Trigger => {
                 let trigger_pos = trigger
-                    .idx
+                    .to_idx
                     .ok_or("No idx position given to apply effect.")?;
                 self._target_effect_idx(trigger_pos, effect, opponent)?
             }
@@ -850,7 +898,8 @@ impl EffectApplyHelpers for Team {
                     }
                 }
             }
-            _ => {}
+            Position::None => {}
+            _ => unimplemented!("Position not implemented."),
         };
         Ok(())
     }
