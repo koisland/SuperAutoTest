@@ -4,14 +4,12 @@ use crate::{
         utils::{map_row_to_food, map_row_to_pet},
     },
     wiki_scraper::{
-        common::read_wiki_url, parse_food::parse_food_info, parse_pet::parse_pet_info,
-        parse_tokens::parse_token_info,
+        parse_food::parse_food_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
     },
 };
 use log::info;
 use rusqlite::Connection;
 use std::error::Error;
-use std::fs::read_to_string;
 
 /// Query pets generating a list of [`PetRecord`]s.
 pub fn query_pet(
@@ -54,13 +52,36 @@ pub fn query_food(
 /// * Inserts a new record for each pet by `level` and `pack`.
 /// * Changes in any field aside from `name`, `pack`, and `level` will update an entry.
 pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
-    let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES)?;
     // Read in insert or replace SQL.
-    let sql_insert_pet = read_to_string(crate::DB_INSERT_PET_SQL)?;
+    let sql_insert_pet = "
+INSERT INTO pets (
+    name, tier, attack, health, pack,
+    effect_trigger, effect, effect_atk, effect_health, n_triggers, temp_effect,
+    lvl, cost
+)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+ON CONFLICT(name, pack, lvl) DO UPDATE SET
+    tier = ?2,
+    attack = ?3,
+    health = ?4,
+    effect_trigger = ?6,
+    effect = ?7,
+    effect_atk = ?8,
+    effect_health = ?9,
+    n_triggers = ?10,
+    temp_effect = ?11
+WHERE
+    tier != ?2 OR
+    attack != ?3 OR
+    health != ?4 OR
+    effect_trigger != ?6 OR
+    effect != ?7
+;
+    ";
     let mut n_rows_updated: usize = 0;
 
-    let mut pets = parse_pet_info(&wiki_urls.pets)?;
-    let tokens = parse_token_info(&wiki_urls.tokens)?;
+    let mut pets = parse_pet_info(crate::PET_URL)?;
+    let tokens = parse_token_info(crate::TOKEN_URL)?;
     pets.extend(tokens);
 
     // Add each pet.
@@ -68,7 +89,7 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
         // Creating a new row for each pack and level a pet belongs to.
         // Each pet constrained by name and pack so will replace if already exists.
         let n_rows = conn.execute(
-            &sql_insert_pet,
+            sql_insert_pet,
             [
                 &pet.name.to_string(),
                 &pet.tier.to_string(),
@@ -97,15 +118,40 @@ pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
 /// * Inserts a new record for each food by `pack`.
 /// * Changes in any field aside from `name` and `pack` will update an entry.
 pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
-    let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES)?;
     // Read in insert or replace SQL.
-    let sql_insert_food = read_to_string(crate::DB_INSERT_FOOD_SQL)?;
+    let sql_insert_food = "
+INSERT INTO foods (
+    name, tier, effect, pack,
+    holdable, single_use, end_of_battle,
+    random, n_targets,
+    effect_atk, effect_health,
+    turn_effect, cost
+)
+VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+ON CONFLICT(name, pack) DO UPDATE SET
+    tier = ?2,
+    effect = ?3,
+    pack = ?4,
+    holdable = ?5,
+    single_use = ?6,
+    end_of_battle = ?7,
+    random = ?8,
+    n_targets = ?9,
+    effect_atk = ?10,
+    effect_health = ?11,
+    turn_effect = ?12,
+    cost = ?13
+WHERE
+    tier != ?2 OR
+    effect != ?3
+;
+    ";
     let mut n_rows_updated: usize = 0;
 
-    let foods = parse_food_info(&wiki_urls.foods)?;
+    let foods = parse_food_info(crate::FOOD_URL)?;
     for food in foods.iter() {
         let n_rows = conn.execute(
-            &sql_insert_food,
+            sql_insert_food,
             [
                 &food.name.to_string(),
                 &food.tier.to_string(),

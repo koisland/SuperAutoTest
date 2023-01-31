@@ -7,6 +7,7 @@ use std::{
 
 use crate::{
     battle::effect::Effect,
+    error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
     PetName,
@@ -19,8 +20,8 @@ use crate::{
 /// ```rust
 /// use sapt::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
 ///
-/// let pet = Pet::from(PetName::Blowfish);
-/// let mut team = Team::new(&vec![Some(pet); 5][..], 5).unwrap();
+/// let pet = Pet::try_from(PetName::Blowfish).unwrap();
+/// let mut team = Team::new(&vec![Some(pet); 5], 5).unwrap();
 /// let mut enemy_team = team.clone();
 ///
 /// // Continue fighting while the winner of a fight is None.
@@ -66,7 +67,7 @@ impl Statistics {
     ///     Statistics {attack: 2, health: 1}
     /// )
     /// ```
-    pub fn new<A, H>(attack: A, health: H) -> Result<Self, TryFromIntError>
+    pub fn new<A, H>(attack: A, health: H) -> Result<Self, SAPTestError>
     where
         A: TryInto<isize>,
         H: TryInto<isize>,
@@ -290,7 +291,9 @@ pub struct Outcome {
     /// Status of a [`Pet`].
     pub status: Status,
     /// The target of the status update.
-    pub target: Target,
+    pub to_target: Target,
+    /// The target of what caused the status_update.
+    pub from_target: Target,
     /// General position on `target`.
     pub position: Position,
     /// Specific index of affected [`Entity`](super::effect::Entity).
@@ -304,7 +307,7 @@ pub struct Outcome {
 impl PartialEq for Outcome {
     fn eq(&self, other: &Self) -> bool {
         self.status == other.status
-            && self.target == other.target
+            && self.to_target == other.to_target
             && self.position == other.position
     }
 }
@@ -313,8 +316,13 @@ impl Display for Outcome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[Status: {:?}, Target: {:?}, Position: {:?}, ToIndex: {:?}, FromIndex: {:?}]",
-            self.status, self.target, self.position, self.to_idx, self.from_idx
+            "[Status: {:?}, Target: {:?}, Position: {:?}, ToIndex: {:?}, From: {:?} {:?}]",
+            self.status,
+            self.to_target,
+            self.position,
+            self.to_idx,
+            self.from_target,
+            self.from_idx
         )
     }
 }
@@ -332,28 +340,28 @@ pub enum Status {
     BeforeFirstBattle,
     /// End of Battle.
     EndOfBattle,
-    /// [`Pet`] is attacking.
+    /// Pet is attacking.
     Attack,
-    /// [`Pet`] levels up.
+    /// Pet levels up.
     Levelup,
-    /// [`Food`] bought.
+    /// Food bought.
     BuyFood,
-    /// [`Pet`] bought.
+    /// Pet bought.
     BuyPet,
-    /// [`Pet`] sold.
+    /// Pet sold.
     Sell,
-    /// `Shop` rolled.
+    /// Shop rolled.
     Roll,
-    /// [`Pet`] hurt.
+    /// Pet hurt.
     Hurt,
-    /// [`Pet`] fainted.
+    /// Pet fainted.
     Faint,
-    /// [`Pet`] knocked out during an attack.
+    /// Pet knocked out during an attack.
     /// * After [`attack`](crate::pets::combat::PetCombat::attack) or [`indirect_attack`](crate::pets::combat::PetCombat::indirect_attack)
     KnockOut,
-    /// [`Pet`] summoned.
+    /// Pet summoned.
     Summoned,
-    /// [`Pet`] pushed.
+    /// Pet pushed.
     Pushed,
     /// No status change.
     None,
@@ -404,7 +412,7 @@ pub enum Action {
     Whale(usize, Position),
     /// Transform into another `Pet`.
     /// * Note: This does not emit a summon trigger.
-    Transform(PetName, Option<Statistics>),
+    Transform(PetName, Option<Statistics>, usize),
     /// Instantly kill a `Pet`.
     Kill,
     /// Take no damage. Action of `Coconut`.

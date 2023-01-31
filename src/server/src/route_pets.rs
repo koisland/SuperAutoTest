@@ -1,4 +1,4 @@
-use crate::server::{main::SapDB, utils::capitalize_names};
+use crate::{SapDB, utils::capitalize_names};
 use sapt::db::{query::query_pet, record::PetRecord, utils::setup_param_query};
 
 use itertools::Itertools;
@@ -68,7 +68,7 @@ pub async fn pets(
 
 #[cfg(test)]
 mod test {
-    use crate::server::main::rocket;
+    use crate::rocket;
     use rocket::http::Status;
     use rocket::local::blocking::Client;
     use sapt::{

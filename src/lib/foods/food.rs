@@ -1,10 +1,11 @@
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     battle::effect::Effect,
     db::{setup::get_connection, utils::map_row_to_food},
+    error::SAPTestError,
     foods::names::FoodName,
 };
 
@@ -22,18 +23,19 @@ pub struct Food {
     /// The cost of a food.
     pub cost: usize,
 }
+impl TryFrom<FoodName> for Food {
+    type Error = SAPTestError;
 
-impl From<&FoodName> for Food {
-    fn from(value: &FoodName) -> Self {
-        Food::new(value)
-            .expect("Unable to create food from foodname. Check sqlite entry for typos/changes.")
+    fn try_from(value: FoodName) -> Result<Self, Self::Error> {
+        Food::new(&value)
     }
 }
 
-impl From<FoodName> for Food {
-    fn from(value: FoodName) -> Self {
-        Food::new(&value)
-            .expect("Unable to create food from foodname. Check sqlite entry for typos/changes.")
+impl TryFrom<&FoodName> for Food {
+    type Error = SAPTestError;
+
+    fn try_from(value: &FoodName) -> Result<Self, Self::Error> {
+        Food::new(value)
     }
 }
 
@@ -45,11 +47,11 @@ impl Display for Food {
 
 impl Food {
     /// Create a `Food` from `FoodName`.
-    pub fn new(name: &FoodName) -> Result<Food, Box<dyn Error>> {
+    pub fn new(name: &FoodName) -> Result<Food, SAPTestError> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM foods WHERE name = ?")?;
         let food_record = stmt.query_row([name.to_string()], map_row_to_food)?;
-        let effect = Effect::from(&food_record);
+        let effect = Effect::try_from(&food_record)?;
 
         Ok(Food {
             name: name.clone(),

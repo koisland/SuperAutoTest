@@ -5,6 +5,7 @@ use std::{error::Error, fmt::Display};
 use crate::{
     battle::{effect::Effect, state::Statistics},
     db::{setup::get_connection, utils::map_row_to_pet},
+    error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
 };
@@ -30,15 +31,15 @@ pub struct Pet {
     /// [`Statistics`] of pet.
     pub stats: Statistics,
     /// Level of pet.
-    pub lvl: usize,
+    pub(crate) lvl: usize,
     /// Experience of pet.
-    pub exp: usize,
+    pub(crate) exp: usize,
     /// Pet [`Effect`]s.
     pub effect: Vec<Effect>,
     /// Held pet [`Food`] item.
     pub item: Option<Food>,
     /// Pet position on a [`Team`](crate::battle::team::Team).
-    pub pos: Option<usize>,
+    pub(crate) pos: Option<usize>,
     /// Cost of pet.
     pub cost: usize,
     /// Seed for pet RNG.
@@ -71,11 +72,12 @@ impl Display for Pet {
     }
 }
 
-impl From<PetName> for Pet {
-    fn from(value: PetName) -> Pet {
+impl TryFrom<PetName> for Pet {
+    type Error = SAPTestError;
+
+    fn try_from(value: PetName) -> Result<Pet, SAPTestError> {
         let def_name = value.to_string();
         Pet::new(value, Some(def_name), None, 1)
-            .expect("Cannot create default pet from petname. Check sqlite entry for typos/changes.")
     }
 }
 
@@ -112,16 +114,12 @@ impl Pet {
         id: Option<String>,
         stats: Option<Statistics>,
         lvl: usize,
-    ) -> Result<Pet, Box<dyn Error>> {
+    ) -> Result<Pet, SAPTestError> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         let mut pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
 
-        // // Use default stats at level if stats not provided.
-        // let pet_stats = stats.unwrap_or(Statistics {
-        //     attack: isize::try_from(pet_record.attack)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
-        //     health: isize::try_from(pet_record.health)?.clamp(MIN_PET_STATS, MAX_PET_STATS),
-        // });
+        // Use record stats if none provided.
         let pet_stats = if let Some(pet_stats) = stats {
             let atk = pet_stats.attack.clamp(MIN_PET_STATS, MAX_PET_STATS);
             let health = pet_stats.health.clamp(MIN_PET_STATS, MAX_PET_STATS);
@@ -149,12 +147,65 @@ impl Pet {
         })
     }
 
+    /// Build a custom pet.
+    /// * Custom pets have `level` and `tier` of `0` by default.
+    /// # Example
+    /// ```rust
+    /// use sapt::{
+    ///     battle::{
+    ///         effect::Entity,
+    ///         state::{Action, Position, Status, Target},
+    ///     },
+    ///     Effect, Food, FoodName, Outcome, Pet, Statistics,
+    /// };
+    /// let custom_pet = Pet::custom(
+    ///     "MelonBear", Some("id_custom_pet_1".to_string()),
+    ///     Statistics::new(50, 50).unwrap(),
+    ///     &[
+    ///         Effect::new(
+    ///             Entity::Pet,
+    ///             Outcome {
+    ///                 status: Status::StartOfBattle,
+    ///                 to_target: Target::None,
+    ///                 from_target: Target::None,
+    ///                 position: Position::None,
+    ///                 to_idx: None,
+    ///                 from_idx: None,
+    ///                 stat_diff: None,
+    ///             },
+    ///             Target::Friend,
+    ///             Position::Adjacent,
+    ///             Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+    ///             Some(1),
+    ///             false,
+    ///     )],
+    /// );
+    /// ```
+    pub fn custom(name: &str, id: Option<String>, stats: Statistics, effect: &[Effect]) -> Pet {
+        let mut adj_stats = stats;
+        adj_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
+
+        Pet {
+            id,
+            tier: 0,
+            name: PetName::Custom(name.to_string()),
+            stats: adj_stats,
+            lvl: 1,
+            exp: 0,
+            effect: effect.to_vec(),
+            item: None,
+            pos: None,
+            cost: 3,
+            seed: random(),
+        }
+    }
+
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
     /// use sapt::{Pet, PetName, Statistics, battle::state::Action};
     ///
-    /// let ant = Pet::from(PetName::Ant);
+    /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// // Get level 2 ant effect.
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
@@ -177,27 +228,52 @@ impl Pet {
         }
     }
 
-    #[allow(dead_code)]
+    /// Get pet experience.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName};
+    ///
+    /// let pet = Pet::try_from(PetName::Ant).unwrap();
+    ///
+    /// assert_eq!(pet.get_experience(), 0)
+    /// ```
+    pub fn get_experience(&self) -> usize {
+        self.exp
+    }
+
+    /// Get pet level.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName};
+    ///
+    /// let pet = Pet::try_from(PetName::Ant).unwrap();
+    ///
+    /// assert_eq!(pet.get_level(), 1)
+    /// ```
+    pub fn get_level(&self) -> usize {
+        self.lvl
+    }
+
     /// Add an experience point to a pet.
     /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
     /// ```
     /// use sapt::{Pet, PetName};
-    /// let mut pet = Pet::from(PetName::Ant);
+    /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// // Add single point.
     /// pet.add_experience(1).unwrap();
-    /// assert!(pet.exp == 1 && pet.lvl == 1);
+    /// assert!(pet.get_experience() == 1 && pet.get_level() == 1);
     /// assert!(pet.stats.attack == 3 && pet.stats.health == 2);
     ///
     /// // Add three points to reach level 2 and 4 total exp points.
     /// pet.add_experience(3).unwrap();
-    /// assert!(pet.exp == 4 && pet.lvl == 2);
+    /// assert!(pet.get_experience() == 4 && pet.get_level() == 2);
     /// assert!(pet.stats.attack == 6 && pet.stats.health == 5);
     ///
     /// // Add one point to reach level cap.
     /// pet.add_experience(1).unwrap();
-    /// assert!(pet.exp == 5 && pet.lvl == 3);
+    /// assert!(pet.get_experience() == 5 && pet.get_level() == 3);
     /// assert!(pet.stats.attack == 7 && pet.stats.health == 6);
     ///
     /// // Additional experience is not allowed.
@@ -248,14 +324,14 @@ impl Pet {
     }
 
     /// Set the level of this pet.
-    /// * Note: This only adjusts level and effect. Stats are unaltered.
+    /// * Note: This only adjusts level and effect. Stats and previous experience are unaltered.
     /// # Examples
     /// ```rust
     /// use sapt::{Pet, PetName};
-    /// let mut pet = Pet::from(PetName::Ant);
+    /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// assert!(pet.set_level(2).is_ok());
-    /// assert_eq!(pet.lvl, 2);
+    /// assert_eq!(pet.get_level(), 2);
     /// // Invalid level.
     /// assert!(pet.set_level(5).is_err());
     /// ```
@@ -271,7 +347,7 @@ impl Pet {
 
     /// Helper function to set pet idx for matching on effect triggers.
     /// * Note: This does not update other pets on the same [`Team`](crate::battle::team::Team).
-    pub fn set_pos(&mut self, pos: usize) -> &mut Self {
+    pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         for effect in self.effect.iter_mut() {
             effect.owner_idx = Some(pos);

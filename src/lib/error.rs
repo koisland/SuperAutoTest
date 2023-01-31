@@ -2,6 +2,10 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SAPTestError {
+    #[error("Failed interaction with database.")]
+    DatabaseFailure(#[from] rusqlite::Error),
+    #[error("Cannot convert statistics to isize.")]
+    ValueConversionFailure(#[from] std::num::TryFromIntError),
     #[error("Invalid team action: {subject:?} ({indices:?}) due to {reason:?}")]
     InvalidTeamAction {
         subject: String,

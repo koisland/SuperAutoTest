@@ -1,7 +1,7 @@
 use crate::{
     battle::{
         effect::Effect,
-        state::{Condition, Outcome, Position, Status, TeamFightOutcome},
+        state::{Action, Condition, Outcome, Position, Status, Target, TeamFightOutcome},
         team_effect_apply::EffectApply,
         trigger::*,
     },
@@ -19,8 +19,6 @@ use std::{
     error::Error,
     fmt::Display,
 };
-
-use super::state::Action;
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone)]
@@ -86,7 +84,7 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
     /// let team = Team::new(
-    ///     &[Some(Pet::from(PetName::Dog))],
+    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// );
     ///
@@ -129,10 +127,18 @@ impl Team {
                 stored_friends: idx_pets.clone(),
                 friends: idx_pets,
                 max_size,
-                triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
                 pet_count,
                 ..Default::default()
             })
+        }
+    }
+
+    /// Update which team owns effect.
+    fn update_effect_team(&mut self, target: Target) {
+        for friend in self.all() {
+            for effect in friend.effect.iter_mut() {
+                effect.owner_target = Some(target);
+            }
         }
     }
 
@@ -142,8 +148,8 @@ impl Team {
     /// ```rust
     /// use sapt::{Pet, PetName, Food, FoodName, Team, EffectApply, battle::state::Action};
     ///
-    /// let honey = Food::from(FoodName::Honey);
-    /// let mut toucan = Pet::from(PetName::Toucan);
+    /// let honey = Food::try_from(FoodName::Honey).unwrap();
+    /// let mut toucan = Pet::try_from(PetName::Toucan).unwrap();
     /// toucan.item = Some(honey.clone());
     ///
     /// assert_eq!(
@@ -181,7 +187,7 @@ impl Team {
     ///
     /// let mut default_team = Team::default();
     /// default_team
-    ///     .add_pet(Pet::from(PetName::Dog), 0, None).unwrap()
+    ///     .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None).unwrap()
     ///     .restore();
     ///
     /// assert_eq!(default_team, Team::default());
@@ -205,7 +211,7 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
     /// let mut default_team = Team::new(
-    ///     &[Some(Pet::from(PetName::Dog))],
+    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -244,7 +250,7 @@ impl Team {
     ///  ```
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
-    /// let mosquito = Some(Pet::from(PetName::Mosquito));
+    /// let mosquito = Some(Pet::try_from(PetName::Mosquito).unwrap());
     /// let pets = [mosquito.clone(), mosquito.clone()];
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// let mut enemy_team = team.clone();
@@ -269,7 +275,10 @@ impl Team {
     /// ```
     /// use sapt::{Pet, PetName, Team};
     ///
-    /// let team = Team::new(&[Some(Pet::from(PetName::Dog))], 5).unwrap();
+    /// let team = Team::new(
+    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
+    ///     5
+    /// ).unwrap();
     ///
     /// assert_eq!(team.get_effects().len(), 1);
     /// ```
@@ -286,15 +295,15 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, battle::state::{Condition, Status}};
     ///
     /// let pets = [
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
-    ///     Some(Pet::from(PetName::Mosquito))
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Mosquito).unwrap())
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
     ///
     /// assert_eq!(
     ///     team.get_pets_by_cond(
-    ///         &Condition::TriggeredBy(Status::StartBattle)
+    ///         &Condition::TriggeredBy(Status::StartOfBattle)
     ///     ).len(),
     ///     2
     /// );
@@ -440,8 +449,8 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let pets = [
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
     ///
@@ -461,7 +470,7 @@ impl Team {
         } else {
             self.friends.swap(pos_1, pos_2);
             // Clear team to reassign indices.
-            self.clear_team();
+            self.set_indices();
             Ok(self)
         }
     }
@@ -472,8 +481,8 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
     /// ], 5).unwrap();
     /// assert!(
     ///     team.nth(0).unwrap().stats == Statistics::new(6, 9).unwrap() &&
@@ -528,9 +537,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// // Push Gorilla two slots back.
@@ -547,31 +556,56 @@ impl Team {
         by: isize,
         opponent: Option<&mut Team>,
     ) -> Result<&mut Self, Box<dyn Error>> {
-        self.clear_team();
-
         if pos < self.friends.len() {
-            let adj_pos: usize = if by.is_negative() {
+            let new_pos: usize = if by.is_negative() {
                 let pos_by: usize = (-by).try_into()?;
                 (pos_by + pos).clamp(0, self.friends.len())
             } else {
                 pos.saturating_sub(by.try_into()?)
             };
+
             let pet = self.friends.remove(pos);
 
-            self.friends.insert(adj_pos, pet);
+            self.friends.insert(new_pos, pet);
+            // Update indices.
+            self.set_indices();
+
+            // Update triggers.
+            for trigger in self
+                .triggers
+                .iter_mut()
+                .filter(|trigger| trigger.to_target == Target::Friend)
+            {
+                if let Some(idx) = trigger.to_idx.as_mut() {
+                    if *idx < pos {
+                        *idx += 1
+                    }
+                }
+            }
 
             // Add push trigger.
             let mut push_any_trigger = TRIGGER_ANY_PUSHED;
-            push_any_trigger.to_idx = Some(adj_pos);
+            push_any_trigger.to_idx = Some(new_pos);
             self.triggers.push_back(push_any_trigger);
 
-            // Reset indices.
-            self.clear_team();
+            // // Reset indices.
+            // self.clear_team();
 
             // Add opponent triggers if provided.
             if let Some(opponent) = opponent {
+                for trigger in opponent
+                    .triggers
+                    .iter_mut()
+                    .filter(|trigger| trigger.to_target == Target::Enemy)
+                {
+                    if let Some(idx) = trigger.to_idx.as_mut() {
+                        if *idx < pos {
+                            *idx += 1
+                        }
+                    }
+                }
                 let mut push_trigger = TRIGGER_ANY_ENEMY_PUSHED;
-                push_trigger.to_idx = Some(adj_pos);
+                push_trigger.to_idx = Some(new_pos);
                 opponent.triggers.push_back(push_trigger)
             }
         } else {
@@ -592,9 +626,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -616,9 +650,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -641,9 +675,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Gorilla)),
-    ///     Some(Pet::from(PetName::Leopard)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -666,9 +700,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::from(PetName::Dog)),
+    ///     Some(Pet::try_from(PetName::Dog).unwrap()),
     ///     None,
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     ///     None,
     ///     None
     /// ], 5).unwrap();
@@ -693,10 +727,10 @@ impl Team {
     ///
     /// let mut team = Team::new(&[
     ///     None,
-    ///     Some(Pet::from(PetName::Cat)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     ///     None,
-    ///     Some(Pet::from(PetName::Cat))
+    ///     Some(Pet::try_from(PetName::Cat).unwrap())
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -724,7 +758,7 @@ impl Team {
             .filter_map(|pet| pet.as_mut())
             .enumerate()
         {
-            friend.pos = Some(i)
+            friend.set_pos(i);
         }
         self
     }
@@ -738,13 +772,13 @@ impl Team {
     ///
     /// let mut team = Team::new(&[
     ///     None,
-    ///     Some(Pet::from(PetName::Cat)),
-    ///     Some(Pet::from(PetName::Cat)),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     ///     None,
-    ///     Some(Pet::from(PetName::Cat))
+    ///     Some(Pet::try_from(PetName::Cat).unwrap())
     /// ], 5).unwrap();
     ///
-    /// team.add_pet(Pet::from(PetName::Turtle), 0, None);
+    /// team.add_pet(Pet::try_from(PetName::Turtle).unwrap(), 0, None);
     /// assert_eq!(
     ///     team.first().unwrap().name,
     ///     PetName::Turtle
@@ -832,11 +866,11 @@ impl Team {
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
-    ///     &vec![Some(Pet::from(PetName::Cricket)); 5],
+    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Some(Pet::from(PetName::Hippo))],
+    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -852,11 +886,11 @@ impl Team {
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
-    ///     &vec![Some(Pet::from(PetName::Cricket)); 5],
+    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Some(Pet::from(PetName::Hippo))],
+    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -869,6 +903,10 @@ impl Team {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
+        // Update effects to reflect which pet and team it belongs to.
+        self.update_effect_team(Target::Friend);
+        opponent.update_effect_team(Target::Enemy);
+
         // Apply start of battle effects.
         self.clear_team();
         opponent.clear_team();
@@ -878,7 +916,15 @@ impl Team {
             opponent.trigger_effects(self);
         }
 
-        // Check that both teams have a pet that is alive.
+        // If current phase is 0, add before first battle triggers.
+        // Used for butterfly.
+        if self.history.curr_phase == 0 {
+            self.triggers.push_back(TRIGGER_BEFORE_FIRST_BATTLE)
+        }
+        if opponent.history.curr_phase == 0 {
+            opponent.triggers.push_back(TRIGGER_BEFORE_FIRST_BATTLE)
+        }
+
         // Increment battle phase counter.
         self.history.curr_phase += 1;
 

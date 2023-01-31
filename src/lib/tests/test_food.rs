@@ -11,10 +11,10 @@ use crate::{
 
 #[test]
 fn test_attack_meat() {
-    let mut dog_w_meat = Pet::from(PetName::Dog);
-    dog_w_meat.item = Some(Food::from(FoodName::MeatBone));
+    let mut dog_w_meat = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_meat.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
 
-    let mut mammoth = Pet::from(PetName::Mammoth);
+    let mut mammoth = Pet::try_from(PetName::Mammoth).unwrap();
 
     assert_eq!(
         dog_w_meat.stats,
@@ -52,9 +52,9 @@ fn test_attack_meat() {
 
 #[test]
 fn test_attack_garlic() {
-    let mut dog_w_garlic = Pet::from(PetName::Dog);
-    dog_w_garlic.item = Some(Food::from(FoodName::Garlic));
-    let mut dog = Pet::from(PetName::Dog);
+    let mut dog_w_garlic = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_garlic.item = Some(Food::try_from(FoodName::Garlic).unwrap());
+    let mut dog = Pet::try_from(PetName::Dog).unwrap();
 
     assert_eq!(
         dog_w_garlic.stats,
@@ -85,9 +85,9 @@ fn test_attack_garlic() {
 
 #[test]
 fn test_attack_garlic_min_1() {
-    let mut dog_w_garlic = Pet::from(PetName::Dog);
-    dog_w_garlic.item = Some(Food::from(FoodName::Garlic));
-    let mut ant = Pet::from(PetName::Ant);
+    let mut dog_w_garlic = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_garlic.item = Some(Food::try_from(FoodName::Garlic).unwrap());
+    let mut ant = Pet::try_from(PetName::Ant).unwrap();
 
     assert_eq!(
         dog_w_garlic.stats,
@@ -118,8 +118,8 @@ fn test_attack_garlic_min_1() {
 
 #[test]
 fn test_attack_melon() {
-    let mut dog_w_melon = Pet::from(PetName::Dog);
-    dog_w_melon.item = Some(Food::from(FoodName::Melon));
+    let mut dog_w_melon = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_melon.item = Some(Food::try_from(FoodName::Melon).unwrap());
 
     assert_eq!(dog_w_melon.item.as_ref().unwrap().ability.uses, Some(1));
 
@@ -154,8 +154,8 @@ fn test_attack_melon() {
 
 #[test]
 fn test_attack_steak() {
-    let mut dog_w_steak = Pet::from(PetName::Dog);
-    dog_w_steak.item = Some(Food::from(FoodName::Steak));
+    let mut dog_w_steak = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_steak.item = Some(Food::try_from(FoodName::Steak).unwrap());
 
     assert_eq!(dog_w_steak.item.as_ref().unwrap().ability.uses, Some(1));
 
@@ -187,8 +187,8 @@ fn test_attack_steak() {
 
 #[test]
 fn test_attack_coconut() {
-    let mut dog_w_coconut = Pet::from(PetName::Dog);
-    dog_w_coconut.item = Some(Food::from(FoodName::Coconut));
+    let mut dog_w_coconut = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_coconut.item = Some(Food::try_from(FoodName::Coconut).unwrap());
     let original_dog_w_coconut_stats = dog_w_coconut.stats.clone();
 
     assert_eq!(dog_w_coconut.item.as_ref().unwrap().ability.uses, Some(1));
@@ -215,8 +215,8 @@ fn test_attack_coconut() {
 
 #[test]
 fn test_attack_peanuts() {
-    let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanut));
+    let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
+    scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
 
     let mut big_ant = Pet::new(
         PetName::Ant,
@@ -242,12 +242,12 @@ fn test_attack_peanuts() {
 
 #[test]
 fn test_attack_peanuts_coconut() {
-    let mut dog_w_coconut = Pet::from(PetName::Dog);
-    dog_w_coconut.item = Some(Food::from(FoodName::Coconut));
+    let mut dog_w_coconut = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_coconut.item = Some(Food::try_from(FoodName::Coconut).unwrap());
     let original_dog_w_coconut_stats = dog_w_coconut.stats.clone();
 
-    let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanut));
+    let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
+    scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
 
     // Dog survives attack with coconut and takes no damage.
     dog_w_coconut.attack(&mut scorpion);
@@ -257,12 +257,12 @@ fn test_attack_peanuts_coconut() {
 
 #[test]
 fn test_attack_peanuts_melon() {
-    let mut dog_w_melon = Pet::from(PetName::Dog);
-    dog_w_melon.item = Some(Food::from(FoodName::Melon));
+    let mut dog_w_melon = Pet::try_from(PetName::Dog).unwrap();
+    dog_w_melon.item = Some(Food::try_from(FoodName::Melon).unwrap());
     let original_dog_w_melon_stats = dog_w_melon.stats.clone();
 
-    let mut scorpion = Pet::from(PetName::Scorpion);
-    scorpion.item = Some(Food::from(FoodName::Peanut));
+    let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
+    scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
 
     // Dog survives attack with melon and takes no damage.
     dog_w_melon.attack(&mut scorpion);
@@ -282,7 +282,7 @@ fn test_attack_peanuts_melon_overflow() {
         1,
     )
     .unwrap();
-    dog_w_melon.item = Some(Food::from(FoodName::Melon));
+    dog_w_melon.item = Some(Food::try_from(FoodName::Melon).unwrap());
 
     // Scorpion has just enough attack (> 20) to deliver death's touch.
     let mut scorpion = Pet::new(
@@ -297,7 +297,7 @@ fn test_attack_peanuts_melon_overflow() {
     .unwrap();
     // Note: Individually fighting pets doesn't trigger gaining peanuts.
     // Adding manually here.
-    scorpion.item = Some(Food::from(FoodName::Peanut));
+    scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
 
     dog_w_melon.attack(&mut scorpion);
 
@@ -316,12 +316,18 @@ fn test_attack_chili() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
     let mut team = Team::new(
-        &[Some(Pet::from(PetName::Ant)), Some(Pet::from(PetName::Ant))],
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+        ],
         5,
     )
     .unwrap();
     let mut enemy_team = Team::new(
-        &[Some(Pet::from(PetName::Ant)), Some(Pet::from(PetName::Ant))],
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+        ],
         5,
     )
     .unwrap();

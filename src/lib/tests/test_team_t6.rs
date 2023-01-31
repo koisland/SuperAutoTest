@@ -96,7 +96,7 @@ fn test_battle_gorilla_team() {
     // Gorilla is hurt and gains coconut.
     assert_eq!(
         team.first().unwrap().item,
-        Some(Food::from(FoodName::Coconut))
+        Some(Food::try_from(FoodName::Coconut).unwrap())
     );
     assert_eq!(
         team.first().unwrap().stats,

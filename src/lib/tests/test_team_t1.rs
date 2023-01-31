@@ -240,7 +240,7 @@ fn test_battle_hummingbird_team() {
     // Duck has strawberry.
     assert_eq!(
         team.friends.first().unwrap().as_ref().unwrap().item,
-        Some(Food::from(FoodName::Strawberry))
+        Some(Food::try_from(FoodName::Strawberry).unwrap())
     );
     // Two hummingbirds on team.
     assert_eq!(

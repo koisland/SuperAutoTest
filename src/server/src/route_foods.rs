@@ -1,4 +1,4 @@
-use super::{main::SapDB, utils::capitalize_names};
+use super::{SapDB, utils::capitalize_names};
 use itertools::Itertools;
 use rocket::serde::json::Json;
 use sapt::db::{query::query_food, record::FoodRecord, utils::setup_param_query};
@@ -47,7 +47,7 @@ pub async fn foods(
 
 #[cfg(test)]
 mod test {
-    use crate::server::main::rocket;
+    use crate::rocket;
     use rocket::http::Status;
     use rocket::local::blocking::Client;
     use sapt::{

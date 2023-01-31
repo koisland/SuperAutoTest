@@ -2,13 +2,10 @@ use itertools::Itertools;
 
 use crate::{
     db::{pack::Pack, record::FoodRecord},
-    wiki_scraper::{
-        common::read_wiki_url,
-        parse_food::{
-            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
-            get_largest_table, get_random_n_effect, is_holdable_item, is_temp_single_use,
-            is_turn_effect, parse_food_info, parse_one_food_entry, FoodTableCols,
-        },
+    wiki_scraper::parse_food::{
+        clean_link_text, get_effect_attack, get_effect_health, get_food_cost, get_largest_table,
+        get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
+        parse_one_food_entry, FoodTableCols,
     },
     FoodName,
 };
@@ -283,13 +280,6 @@ fn test_parse_food_entry() {
             }
         ]
     )
-}
-
-#[test]
-fn test_parse_food_info() {
-    let wiki_urls = read_wiki_url(crate::SCRAPER_SOURCES).unwrap();
-
-    assert!(parse_food_info(&wiki_urls.foods).is_ok())
 }
 
 #[test]

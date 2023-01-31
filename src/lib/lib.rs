@@ -4,12 +4,12 @@
 //! ```rust
 //! use sapt::{Pet, PetName, PetCombat, Food, FoodName, Team};
 //!
-//! let mut pet = Pet::from(PetName::Ant);
-//! let mut enemy_pet = Pet::from(PetName::Ant);
+//! let mut pet = Pet::try_from(PetName::Ant).unwrap();
+//! let mut enemy_pet = Pet::try_from(PetName::Ant).unwrap();
 //!
 //! // Give food to pets.
-//! pet.item = Some(Food::from(FoodName::Melon));
-//! pet.item = Some(Food::from(FoodName::Melon));
+//! pet.item = Some(Food::try_from(FoodName::Melon).unwrap());
+//! pet.item = Some(Food::try_from(FoodName::Melon).unwrap());
 //!
 //! // And fight individually.
 //! pet.attack(&mut enemy_pet);
@@ -57,8 +57,7 @@ mod wiki_scraper;
 #[cfg(test)]
 mod tests;
 
-const SCRAPER_SOURCES: &str = "./config/sources.json";
-const DB_CREATE_SQL: &str = "./src/lib/db/sql/create_tables.sql";
-const DB_INSERT_PET_SQL: &str = "./src/lib/db/sql/insert_pet.sql";
-const DB_INSERT_FOOD_SQL: &str = "./src/lib/db/sql/insert_food.sql";
+const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
+const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
+const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
 const DB_FNAME: &str = "./sap.db";

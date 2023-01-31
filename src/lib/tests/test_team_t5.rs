@@ -83,7 +83,7 @@ fn test_battle_scorpion_team() {
         .weight;
     assert_eq!(
         action,
-        &Action::Gain(Some(Box::new(Food::from(FoodName::Peanut))))
+        &Action::Gain(Some(Box::new(Food::try_from(FoodName::Peanut).unwrap())))
     )
 }
 

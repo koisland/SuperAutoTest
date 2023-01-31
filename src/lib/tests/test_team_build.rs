@@ -12,11 +12,11 @@ use super::common::test_ant_team;
 fn test_create_team_standard_size() {
     let team = Team::new(
         &[
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     );
@@ -28,16 +28,16 @@ fn test_create_team_standard_size() {
 fn test_create_team_large_size() {
     let team = Team::new(
         &[
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         10,
     );
@@ -49,11 +49,11 @@ fn test_create_team_large_size() {
 fn test_create_team_invalid_size() {
     let team = Team::new(
         &[
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         3,
     );
@@ -89,8 +89,8 @@ fn test_team_restore() {
 fn test_team_swap() {
     let mut team = Team::new(
         &[
-            Some(Pet::from(PetName::Snake)),
-            Some(Pet::from(PetName::Hippo)),
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Hippo).unwrap()),
         ],
         5,
     )
@@ -106,8 +106,8 @@ fn test_team_swap() {
 fn test_team_invalid_swap() {
     let mut team = Team::new(
         &[
-            Some(Pet::from(PetName::Snake)),
-            Some(Pet::from(PetName::Hippo)),
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Hippo).unwrap()),
         ],
         5,
     )
@@ -120,9 +120,9 @@ fn test_team_invalid_swap() {
 fn test_team_push() {
     let mut team = Team::new(
         &[
-            Some(Pet::from(PetName::Snake)),
-            Some(Pet::from(PetName::Hippo)),
-            Some(Pet::from(PetName::Dog)),
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Hippo).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
         ],
         5,
     )
@@ -143,7 +143,7 @@ fn test_team_push() {
     // Snake
     assert!(
         team.triggers.get(2).unwrap().status == Status::Pushed
-            && team.triggers.get(2).unwrap().to_idx == Some(1)
+            && team.triggers.get(2).unwrap().to_idx == Some(2)
     );
     // Dog
     assert!(
@@ -156,11 +156,11 @@ fn test_team_push() {
 fn test_team_swap_stats() {
     let mut team = Team::new(
         &[
-            Some(Pet::from(PetName::Snake)),
-            Some(Pet::from(PetName::Hippo)),
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Hippo).unwrap()),
             None,
             None,
-            Some(Pet::from(PetName::Dog)),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
         ],
         5,
     )

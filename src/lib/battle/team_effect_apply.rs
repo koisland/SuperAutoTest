@@ -31,7 +31,7 @@ pub trait EffectApply {
     /// ```rust
     /// use sapt::{EffectApply, Team, Pet, PetName};
     ///
-    /// let mosquito = Pet::from(PetName::Mosquito);
+    /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
     /// let mut enemy_team = team.clone();
     ///
@@ -54,7 +54,7 @@ pub trait EffectApply {
     /// use sapt::{EffectApply, Team, Pet, PetName, Statistics, battle::state::Status};
     ///
     /// // Get mosquito effect.
-    /// let mosquito = Pet::from(PetName::Mosquito);
+    /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mosquito_effect = mosquito.effect.first().unwrap().clone();
     /// // Init teams.
     /// let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
@@ -97,7 +97,7 @@ impl EffectApply for Team {
             let mut applied_effects: Vec<(usize, Outcome, Effect)> = vec![];
 
             // Get petname of trigger.
-            let trigger_pet_name = match trigger.target {
+            let trigger_pet_name = match trigger.to_target {
                 Target::Friend => trigger.to_idx.map(|idx| {
                     if let Some(Some(pet)) = self.friends.get(idx) {
                         Some(pet.name.clone())
@@ -171,7 +171,7 @@ impl EffectApply for Team {
                         } else if let Action::Add(_) = pet_effect.action {
                             // On self trigger and position any, ignore effect.
                             if trigger.position == Position::Any(Condition::None)
-                                && trigger.target == Target::Friend
+                                && trigger.to_target == Target::Friend
                                 && trigger.to_idx == Some(effect_pet_idx)
                             {
                                 continue;
@@ -191,6 +191,7 @@ impl EffectApply for Team {
                     .map(|pet| if pet.name == PetName::Tiger { 2 } else { 1 })
                     .unwrap_or(1);
 
+                // Set current effect pet.
                 self.effect_idx = Some(effect_pet_idx);
                 for _ in 0..num_times_applied {
                     // Add node here for activated effect.
@@ -321,7 +322,8 @@ impl EffectApplyHelpers for Team {
                 let mut outcomes: Vec<Outcome> = vec![];
                 let target_id = if let Some(target) = self.nth(target_idx) {
                     let mut atk_outcome = target.indirect_attack(stats);
-                    atk_outcome.update_from_pos(effect.owner_idx);
+                    atk_outcome.update_opponents_pos(Some(effect.target), effect.owner_idx);
+                    atk_outcome.update_friends_pos(Some(effect.target), effect.owner_idx);
 
                     // Collect triggers for both teams.
                     outcomes.extend(atk_outcome.friends);
@@ -376,8 +378,37 @@ impl EffectApplyHelpers for Team {
                     Position::Relative(rel_idx) => *rel_idx,
                     _ => unimplemented!("Position not implemented for push."),
                 };
-                info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", name, target_idx, pos_change);
-                self.push_pet(target_idx, pos_change, Some(opponent))?;
+                // Helper methods used in applying effects only consider pets that are:
+                // * Alive
+                // * Not a slot.
+                // If friends still has empty slots or fainted pets, the idx provided will not match.
+                // * We have to map this provided position to the actual idx we want
+                let valid_idx = self
+                    .friends
+                    .iter()
+                    .enumerate()
+                    .filter_map(|(i, pet)| {
+                        if pet.as_ref().filter(|pet| pet.stats.health != 0).is_some() {
+                            Some(i)
+                        } else {
+                            None
+                        }
+                    })
+                    .nth(target_idx);
+                if let Some(adj_target_idx) = valid_idx {
+                    info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", name, adj_target_idx, pos_change);
+                    self.push_pet(adj_target_idx, pos_change, Some(opponent))?;
+                }
+            }
+            Action::Transform(pet_name, stats, lvl) => {
+                let mut transformed_pet = Pet::new(pet_name.clone(), None, *stats, *lvl)?;
+                transformed_pet.set_pos(target_idx);
+
+                if (0..self.friends.len()).contains(&target_idx) {
+                    self.friends.remove(target_idx);
+                    info!(target: "dev", "(\"{}\")\nTransformed pet at position {} to {}.", name, target_idx, &transformed_pet);
+                    self.friends.insert(target_idx, Some(transformed_pet));
+                }
             }
             Action::Summon(stored_pet, stats) => {
                 // If stored pet is None, assume is summoning self.
@@ -559,6 +590,7 @@ impl EffectApplyHelpers for Team {
                 {
                     // Set the target's pet ability to summon the pet.
                     target_pet.effect = vec![Effect {
+                        owner_target: None,
                         entity: Entity::Pet,
                         owner_idx: target_pet.pos,
                         trigger: TRIGGER_SELF_FAINT,
@@ -665,6 +697,11 @@ impl EffectApplyHelpers for Team {
                     }
                     target_ids.push(target.id.clone())
                 }
+            }
+            Action::Thorns(stats) => {
+                let mut thorn_effect = effect.clone();
+                thorn_effect.action = Action::Remove(*stats);
+                self._target_effect_idx(target_idx, &thorn_effect, opponent)?;
             }
             Action::None => {}
             _ => unimplemented!("Action not implemented"),
@@ -896,6 +933,21 @@ impl EffectApplyHelpers for Team {
                     } else {
                         opponent._target_effect_idx(adj_idx, effect, self)?
                     }
+                }
+            }
+            Position::Trigger => {
+                if let Target::Friend = trigger.from_target {
+                    let trigger_pos = trigger
+                        .to_idx
+                        .ok_or("No idx position given to apply effect.")?;
+                    self._target_effect_idx(trigger_pos, effect, opponent)?;
+                } else if let Target::Enemy = trigger.from_target {
+                    let trigger_pos = trigger
+                        .from_idx
+                        .ok_or("No idx position given to apply effect.")?;
+                    opponent._target_effect_idx(trigger_pos, effect, self)?;
+                } else {
+                    unimplemented!("Trigger cannot come from both teams.")
                 }
             }
             Position::None => {}

@@ -4,7 +4,7 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     battle::{
         effect::Modify,
-        state::{Action, Outcome, Position, Statistics},
+        state::{Action, Outcome, Position, Statistics, Target},
         trigger::*,
     },
     foods::names::FoodName,
@@ -31,7 +31,10 @@ pub trait PetCombat {
     /// ```
     /// use sapt::{Pet, PetName, PetCombat};
     ///
-    /// let (mut ant_1, mut ant_2) = (Pet::from(PetName::Ant), Pet::from(PetName::Ant));
+    /// let (mut ant_1, mut ant_2) = (
+    ///     Pet::try_from(PetName::Ant).unwrap(),
+    ///     Pet::try_from(PetName::Ant).unwrap()
+    /// );
     ///
     /// assert_eq!(ant_1.stats.health, 1);
     /// assert_eq!(ant_2.stats.health, 1);
@@ -49,7 +52,7 @@ pub trait PetCombat {
     /// ```
     /// use sapt::{Pet, PetName, PetCombat, Statistics};
     ///
-    /// let mut ant = Pet::from(PetName::Ant);
+    /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
     ///
@@ -280,9 +283,9 @@ impl PetCombat for Pet {
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
         let mut outcome = self.get_outcome(new_health);
-        outcome.update_from_pos(enemy.pos);
+        outcome.update_friends_pos(Some(Target::Enemy), enemy.pos);
         let mut enemy_outcome = enemy.get_outcome(new_enemy_health);
-        enemy_outcome.update_from_pos(self.pos);
+        enemy_outcome.update_opponents_pos(Some(Target::Friend), self.pos);
 
         // Add specific trigger if directly knockout.
         if new_health == 0 {
@@ -317,12 +320,17 @@ pub struct AttackOutcome {
 }
 
 impl AttackOutcome {
-    /// Update where triggers came from.
-    pub fn update_from_pos(&mut self, pos: Option<usize>) {
+    /// Update friend triggers with target and pos.
+    pub fn update_friends_pos(&mut self, target: Option<Target>, pos: Option<usize>) {
         for trigger in self.friends.iter_mut() {
+            trigger.from_target = target.unwrap_or(Target::None);
             trigger.from_idx = pos
         }
+    }
+    /// Update opponent triggers with target and pos.
+    pub fn update_opponents_pos(&mut self, target: Option<Target>, pos: Option<usize>) {
         for trigger in self.opponents.iter_mut() {
+            trigger.from_target = target.unwrap_or(Target::None);
             trigger.from_idx = pos
         }
     }

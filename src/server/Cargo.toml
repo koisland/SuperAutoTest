@@ -1,0 +1,22 @@
+[package]
+name = "sapdb"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+log = "*"
+sapt = { version = "*", path = "../.."}
+clap = { version = "4.0.32", features = ["derive"]}
+rocket = {version = "0.5.0-rc.2", features = ["json"]}
+rocket_sync_db_pools = {version = "0.1.0-rc.2", features = ["sqlite_pool"]}
+log4rs = {version = "1.2.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
+serde = {version = "1.0.147", features = ["derive"]}
+serde_json = "1.0"
+itertools = "*"
+rusqlite = "*"
+
+[[bin]]
+name = "sapdb"
+path = "src/setup.rs"

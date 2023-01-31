@@ -1,21 +1,23 @@
+use itertools::Itertools;
+
 use crate::{
     battle::{
         effect::Entity,
-        state::{Action, CopyAttr, Position, Statistics, Target, TeamFightOutcome},
+        state::{Action, CopyAttr, Position, Statistics, Status, Target, TeamFightOutcome},
         team_effect_apply::EffectApply,
-        trigger::{TRIGGER_SELF_FAINT, TRIGGER_START_TURN},
+        trigger::TRIGGER_SELF_FAINT,
     },
     foods::names::FoodName,
     pets::names::PetName,
     tests::common::{
-        count_pets, test_ant_team, test_deer_team, test_doberman_highest_tier_team,
-        test_hippo_team, test_ox_team, test_parrot_team, test_rooster_team, test_skunk_team,
-        test_turtle_team, test_whale_team,
+        count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_caterpillar_team,
+        test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,
+        test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team, test_lynx_team,
+        test_mosq_team, test_ox_team, test_parrot_team, test_pelican_team, test_porcupine_team,
+        test_rooster_team, test_skunk_team, test_snake_team, test_turtle_team, test_whale_team,
     },
-    Effect, Pet,
+    Effect, Outcome, Pet,
 };
-
-use super::common::{test_armadillo_team, test_doberman_team, test_lynx_team};
 
 // use crate::LOG_CONFIG;
 
@@ -86,9 +88,18 @@ fn test_battle_parrot_team() {
     // Before start of turn, is def parrot effect.
     assert_eq!(
         vec![Effect {
-            owner_idx: None,
+            owner_target: None,
+            owner_idx: Some(1),
             entity: Entity::Pet,
-            trigger: TRIGGER_START_TURN,
+            trigger: Outcome {
+                from_target: Target::None,
+                status: Status::StartTurn,
+                to_target: Target::None,
+                position: Position::None,
+                to_idx: Some(1),
+                from_idx: None,
+                stat_diff: None,
+            },
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Copy(
@@ -108,13 +119,14 @@ fn test_battle_parrot_team() {
     // After the parrot's effects is a level one cricket.
     // Update id and idx to match.
     let mut updated_trigger = TRIGGER_SELF_FAINT;
-    let mut zombie_cricket = Pet::from(PetName::ZombieCricket);
+    let mut zombie_cricket = Pet::try_from(PetName::ZombieCricket).unwrap();
     updated_trigger.to_idx = Some(1);
     zombie_cricket.id = None;
 
     assert_eq!(
         vec![Effect {
-            owner_idx: None,
+            owner_target: None,
+            owner_idx: Some(1),
             trigger: updated_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
@@ -282,13 +294,17 @@ fn test_battle_whale_team() {
 
     // Only one cricket at start.
     assert_eq!(count_pets(&team.friends, PetName::Cricket), 1);
-    // Copy cricket for comparison
-    let cricket_copy = team.friends.first().unwrap().clone().unwrap();
+    // Copy cricket for comparison and set idx of trigger + owner of effect to None. (Reset on swallow)
+    let mut cricket_copy = team.friends.first().unwrap().clone().unwrap();
+    if let Some(effect) = cricket_copy.effect.first_mut() {
+        effect.owner_idx = None;
+        effect.trigger.to_idx = None
+    }
 
     let mut outcome = team.fight(&mut enemy_team);
 
-    // After start of battle, what eats cricket and changes effect to summon cricket.
-    let whale_effect = team.first().unwrap().effect.first().unwrap();
+    // After start of battle, whale eats cricket and changes effect to summon cricket.
+    let whale_effect = team.first().unwrap().effect.first_mut().unwrap();
     assert_eq!(
         whale_effect.action,
         Action::Summon(Some(Box::new(cricket_copy)), None)
@@ -382,7 +398,7 @@ fn test_battle_doberman_highest_tier_team() {
 
 #[test]
 fn test_battle_lynx_team() {
-    log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = test_lynx_team();
     let mut enemy_team = test_hippo_team();
@@ -413,4 +429,219 @@ fn test_battle_lynx_team() {
         enemy_team.first().unwrap().stats,
         Statistics::new(4, 1).unwrap()
     );
+}
+
+#[test]
+fn test_battle_porcupine_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_porcupine_team();
+    let mut enemy_team = test_mosq_team();
+
+    // Buff 1st mosquito so survives first returned attack.
+    enemy_team.first().unwrap().stats.health += 8;
+
+    // Trigger start of battle effects. Then clear fainted pets.
+    enemy_team.trigger_effects(&mut team);
+    team.trigger_effects(&mut enemy_team);
+    enemy_team.clear_team();
+
+    // 2 Mosquitoes faint from returned fire from porcupine
+    assert_eq!(
+        enemy_team
+            .fainted
+            .iter()
+            .filter_map(|slot| slot.as_ref())
+            .collect_vec()
+            .len(),
+        2
+    );
+    // 1 mosquito that was buffed survives.
+    assert!(
+        enemy_team.all().len() == 1
+            && enemy_team.first().unwrap().stats == Statistics::new(2, 4).unwrap()
+    );
+
+    // Continue fight.
+    team.fight(&mut enemy_team);
+
+    // 1st mosquito faints from direct damage + returned porcupine damage.
+    assert_eq!(
+        enemy_team
+            .fainted
+            .iter()
+            .filter_map(|slot| slot.as_ref())
+            .collect_vec()
+            .len(),
+        3
+    );
+}
+
+#[test]
+fn test_battle_caterpillar_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_caterpillar_team();
+    let mut enemy_team = test_hippo_team();
+    {
+        let caterpillar = team.first().unwrap();
+        assert_eq!(caterpillar.stats, Statistics::new(2, 2).unwrap());
+        assert_eq!(caterpillar.name, PetName::Caterpillar)
+    }
+    // Trigger start of battle effects.
+    // Copy does not trigger yet.
+    team.trigger_effects(&mut enemy_team);
+    {
+        let butterfly = team.first().unwrap();
+        assert_eq!(butterfly.stats, Statistics::new(1, 1).unwrap());
+        assert_eq!(butterfly.name, PetName::Butterfly)
+    }
+    // Right before battle phase, butterfly will copy effect.
+    team.fight(&mut enemy_team);
+
+    // Butterfly takes 4 dmg from hippo but copied (50/50) dog.
+    {
+        let butterfly = team.first().unwrap();
+        assert_eq!(butterfly.stats, Statistics::new(50, 46).unwrap());
+        assert_eq!(butterfly.name, PetName::Butterfly)
+    }
+}
+
+#[test]
+fn test_battle_sniped_caterpillar_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_caterpillar_team();
+    let mut enemy_team = test_mosq_team();
+    enemy_team.friends.remove(2);
+    enemy_team.friends.remove(1);
+    team.set_seed(42);
+
+    let outcome = team.fight(&mut enemy_team);
+
+    // The team wins.
+    assert_eq!(outcome, TeamFightOutcome::Win);
+    // But the butterfly faints due to snipe from single mosquito on enemy team.
+    assert_eq!(
+        team.fainted.first().unwrap().as_ref().unwrap().name,
+        PetName::Butterfly
+    )
+}
+
+#[test]
+fn test_battle_anteater_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_anteater_team();
+    let mut enemy_team = test_hippo_team();
+
+    // Single anteater.
+    assert_eq!(team.all().len(), 1);
+    team.fight(&mut enemy_team);
+
+    // After faint, two anteaters spawn.
+    assert_eq!(
+        team.fainted.first().unwrap().as_ref().unwrap().name,
+        PetName::Anteater
+    );
+    let all_friends = team.all();
+    assert_eq!(all_friends.len(), 2);
+    assert!(all_friends.iter().all(|pet| pet.name == PetName::Ant))
+}
+
+#[test]
+fn test_battle_donkey_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_donkey_team();
+    let mut enemy_team = test_snake_team();
+    team.set_seed(2);
+
+    assert_eq!(enemy_team.nth(1).unwrap().name, PetName::Snake);
+
+    team.fight(&mut enemy_team);
+
+    // Cricket faints and donkey ability triggers.
+    assert_eq!(enemy_team.fainted.len(), 1);
+    // Snake pushed to front.
+    assert_eq!(enemy_team.first().unwrap().name, PetName::Snake);
+    // And zombie cricket now in back.
+    assert_eq!(enemy_team.nth(1).unwrap().name, PetName::ZombieCricket)
+}
+
+#[test]
+fn test_battle_eel_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_eel_team();
+    let mut enemy_team = test_hippo_team();
+
+    let eel_stats = team.first().unwrap().stats;
+
+    team.trigger_effects(&mut enemy_team);
+
+    // Eel at lvl.1 gains 50% of original health.
+    assert_eq!(
+        eel_stats + Statistics::new(0, eel_stats.health / 2).unwrap(),
+        team.first().unwrap().stats
+    )
+}
+
+#[test]
+fn test_battle_hawk_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_hawk_team();
+    let mut enemy_team = test_gorilla_team();
+
+    // Hawk on 1st position.
+    assert_eq!(team.first().unwrap().name, PetName::Hawk);
+    {
+        let gorilla_on_1st = enemy_team.first().unwrap();
+        assert_eq!(
+            gorilla_on_1st.stats,
+            Statistics {
+                attack: 6,
+                health: 9
+            }
+        );
+    }
+
+    team.trigger_effects(&mut enemy_team);
+
+    {
+        // Gorilla takes 7 dmg.
+        let gorilla_on_1st = enemy_team.first().unwrap();
+        assert_eq!(
+            gorilla_on_1st.stats,
+            Statistics {
+                attack: 6,
+                health: 2
+            }
+        );
+    }
+}
+
+#[test]
+fn test_battle_pelican_team() {
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_pelican_team();
+    let mut enemy_team = test_hippo_team();
+
+    {
+        // Ant has strawberry.
+        let strawberry_ant = team.nth(1).unwrap();
+
+        assert_eq!(strawberry_ant.stats, Statistics::new(2, 1).unwrap());
+        assert_eq!(
+            strawberry_ant.item.as_ref().unwrap().name,
+            FoodName::Strawberry
+        )
+    }
+
+    team.trigger_effects(&mut enemy_team);
+
+    // Pelican at lvl.1 give strawberry ant (2,1)
+    assert_eq!(team.nth(1).unwrap().stats, Statistics::new(4, 2).unwrap());
 }

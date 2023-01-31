@@ -3,9 +3,8 @@ use std::str::FromStr;
 use crate::{
     db::{pack::Pack, record::PetRecord},
     wiki_scraper::{
-        common::read_wiki_url,
         parse_food::get_largest_table,
-        parse_tokens::{clean_token_block, parse_single_token, parse_token_info, TokenTableCols},
+        parse_tokens::{clean_token_block, parse_single_token, TokenTableCols},
     },
     PetName,
 };
@@ -43,12 +42,6 @@ const TOKEN_BUTTERFLY: &str = "
 |A level 3 {{IconSAP|Caterpillar}} at the start of battle.
 |Immediately copies the strength and health of the strongest unit.
 ";
-
-#[test]
-fn test_parse_tokens() {
-    let wikis = read_wiki_url(crate::SCRAPER_SOURCES).unwrap();
-    assert!(parse_token_info(&wikis.tokens).is_ok())
-}
 
 #[test]
 fn test_parse_single_token_explicit_lvl_stats() {

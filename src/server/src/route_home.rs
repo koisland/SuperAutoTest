@@ -6,7 +6,7 @@ pub fn home() -> &'static str {
 
 #[cfg(test)]
 mod test {
-    use crate::server::main::rocket;
+    use crate::rocket;
     use rocket::http::Status;
     use rocket::local::blocking::Client;
 

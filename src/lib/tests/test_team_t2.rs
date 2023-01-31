@@ -168,10 +168,12 @@ fn test_battle_rat_lvl_1_team() {
 
 #[test]
 fn test_battle_rat_lvl_2_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();s
+    log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
 
     let mut team_lvl_2 = test_rat_team(2);
     let mut enemy_team_lvl_2 = test_rat_team(2);
+    team_lvl_2.name = "self".to_owned();
+    enemy_team_lvl_2.name = "enemy".to_owned();
 
     // Both rats are level 2.
     assert_eq!(team_lvl_2.first().unwrap().lvl, 2);
@@ -389,7 +391,7 @@ fn test_battle_racoon_team() {
     let mut team = test_racoon_team();
     let mut enemy_team = test_mammoth_team();
     // Give melon to first pet.
-    enemy_team.first().unwrap().item = Some(Food::from(FoodName::Melon));
+    enemy_team.first().unwrap().item = Some(Food::try_from(FoodName::Melon).unwrap());
 
     // Not item for racoon.
     assert_eq!(team.first().unwrap().item, None);
@@ -428,7 +430,7 @@ fn test_battle_toucan_team() {
 
 #[test]
 fn test_battle_wombat_team() {
-    log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
     let mut team = test_wombat_team();
     let mut enemy_team = test_mammoth_team();
     // Mammoth faint effect.

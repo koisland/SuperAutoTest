@@ -1,15 +1,14 @@
 use sapt::{
     battle::{
         effect::Entity,
-        state::{Action, Condition, Position, Status, Target},
-        trigger::TRIGGER_SELF_FAINT,
+        state::{Action, Position, Status, Target},
     },
     Effect, EffectApply, Food, FoodName, Outcome, Pet, PetName, Statistics, Team,
 };
 
 #[test]
 fn test_create_known_pet() {
-    let pet_from_name = Pet::from(PetName::Ant);
+    let pet_from_name = Pet::try_from(PetName::Ant).unwrap();
     let pet_from_constructor = Pet::new(
         PetName::Ant,
         Some("Ant".to_string()),
@@ -17,75 +16,42 @@ fn test_create_known_pet() {
         1,
     )
     .unwrap();
-    let pet_from_struct_fields = Pet {
-        id: Some("Ant".to_string()),
-        name: PetName::Ant,
-        tier: 1,
-        stats: Statistics::new(2, 1).unwrap(),
-        lvl: 1,
-        exp: 0,
-        effect: vec![Effect {
-            owner_idx: None,
-            trigger: TRIGGER_SELF_FAINT,
-            target: Target::Friend,
-            position: Position::Any(Condition::None),
-            action: Action::Add(Statistics::new(2, 1).unwrap()),
-            uses: Some(1),
-            entity: Entity::Pet,
-            temp: false,
-        }],
-        item: None,
-        pos: None,
-        cost: 3,
-        seed: 0,
-    };
-    assert!([
-        pet_from_name.clone(),
-        pet_from_constructor,
-        pet_from_struct_fields
-    ]
-    .iter()
-    .all(|pet| pet == &pet_from_name));
+    assert!([pet_from_name.clone(), pet_from_constructor]
+        .iter()
+        .all(|pet| pet == &pet_from_name));
 }
 
 #[test]
 fn test_create_custom_pet() {
     // Build your own pets.
     // This version of the Bear gives adjacent pets melon at the start of battle.
-    let custom_pet = Pet {
-        id: None,
-        name: PetName::Custom("MelonBear".to_string()),
-        tier: 1,
-        stats: Statistics::new(50, 50).unwrap(),
-        lvl: 1,
-        exp: 0,
-        effect: vec![Effect {
-            entity: Entity::Pet,
-            owner_idx: None,
-            trigger: Outcome {
+    let custom_pet = Pet::custom(
+        "MelonBear",
+        None,
+        Statistics::new(50, 50).unwrap(),
+        &[Effect::new(
+            Entity::Pet,
+            Outcome {
                 status: Status::StartOfBattle,
-                target: Target::None,
+                to_target: Target::None,
+                from_target: Target::None,
                 position: Position::None,
                 to_idx: None,
                 from_idx: None,
                 stat_diff: None,
             },
-            target: Target::Friend,
-            position: Position::Adjacent,
-            action: Action::Gain(Some(Box::new(Food::from(FoodName::Melon)))),
-            uses: Some(1),
-            temp: false,
-        }],
-        item: None,
-        pos: None,
-        cost: 3,
-        seed: 0,
-    };
+            Target::Friend,
+            Position::Adjacent,
+            Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+            Some(1),
+            false,
+        )],
+    );
     let mut team = Team::new(
         &[
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
             Some(custom_pet),
-            Some(Pet::from(PetName::Ant)),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     )
@@ -104,15 +70,15 @@ fn test_create_custom_pet() {
 #[test]
 fn test_create_team() {
     let mut team = Team::default();
-    team.add_pet(Pet::from(PetName::Dog), 0, None)
+    team.add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
         .unwrap()
-        .add_pet(Pet::from(PetName::Dog), 0, None)
+        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
         .unwrap()
-        .add_pet(Pet::from(PetName::Dog), 0, None)
+        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
         .unwrap()
-        .add_pet(Pet::from(PetName::Dog), 0, None)
+        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
         .unwrap()
-        .add_pet(Pet::from(PetName::Dog), 0, None)
+        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
         .unwrap();
 
     assert_eq!(team.friends.len(), 5)
@@ -120,21 +86,21 @@ fn test_create_team() {
 
 #[test]
 fn test_pet_exp() {
-    let mut pet = Pet::from(PetName::Ant);
+    let mut pet = Pet::try_from(PetName::Ant).unwrap();
 
     // Add single point.
     pet.add_experience(1).unwrap();
-    assert!(pet.exp == 1 && pet.lvl == 1);
+    assert!(pet.get_experience() == 1 && pet.get_level() == 1);
     assert!(pet.stats.attack == 3 && pet.stats.health == 2);
 
     // Add three points to reach level 2 and 4 total exp points.
     pet.add_experience(3).unwrap();
-    assert!(pet.exp == 4 && pet.lvl == 2);
+    assert!(pet.get_experience() == 4 && pet.get_level() == 2);
     assert!(pet.stats.attack == 6 && pet.stats.health == 5);
 
     // Add one point to reach level cap.
     pet.add_experience(1).unwrap();
-    assert!(pet.exp == 5 && pet.lvl == 3);
+    assert!(pet.get_experience() == 5 && pet.get_level() == 3);
     assert!(pet.stats.attack == 7 && pet.stats.health == 6);
 
     // Additional experience is not allowed.
@@ -146,7 +112,7 @@ fn test_apply_effect() {
     use sapt::{EffectApply, Pet, PetName, Statistics, Team};
 
     // Get mosquito effect.
-    let mosquito = Pet::from(PetName::Mosquito);
+    let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     let mosquito_effect = mosquito.effect.first().unwrap().clone();
 
     let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();

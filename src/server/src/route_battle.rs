@@ -124,7 +124,7 @@ pub fn battle(teams: Json<Teams>) -> Json<BattleResponse> {
 
 #[cfg(test)]
 mod test {
-    use crate::server::{main::rocket, route_battle::BattleResponse};
+    use crate::{rocket, route_battle::BattleResponse};
     use rocket::http::{ContentType, Status};
     use rocket::local::blocking::Client;
     use std::fs::{self, File};

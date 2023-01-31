@@ -1,22 +1,7 @@
 use crate::regex_patterns::*;
 use log::info;
 use reqwest::blocking;
-use serde::Deserialize;
-use std::{error::Error, fs::File, io::BufReader, path::Path};
-
-#[derive(Deserialize, Debug)]
-pub struct SAPWikiSources {
-    pub pets: String,
-    pub foods: String,
-    pub tokens: String,
-}
-
-pub fn read_wiki_url<P: AsRef<Path>>(path: P) -> Result<SAPWikiSources, Box<dyn Error>> {
-    let file = File::open(path)?;
-    let reader = BufReader::new(file);
-    let urls = serde_json::from_reader(reader)?;
-    Ok(urls)
-}
+use std::error::Error;
 
 pub fn get_page_info(url: &str) -> Result<String, Box<dyn Error>> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");
