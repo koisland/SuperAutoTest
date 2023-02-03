@@ -33,12 +33,10 @@ fn test_create_custom_pet() {
             Entity::Pet,
             Outcome {
                 status: Status::StartOfBattle,
-                to_target: Target::None,
-                from_target: Target::None,
                 position: Position::None,
-                to_idx: None,
-                from_idx: None,
                 stat_diff: None,
+                affected_pet: None,
+                afflicting_pet: None,
             },
             Target::Friend,
             Position::Adjacent,
@@ -49,9 +47,9 @@ fn test_create_custom_pet() {
     );
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(custom_pet),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            custom_pet,
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         5,
     )
@@ -62,8 +60,8 @@ fn test_create_custom_pet() {
     team.trigger_effects(&mut enemy_team);
 
     assert!(
-        team.nth(0).unwrap().item.as_ref().unwrap().name == FoodName::Melon
-            && team.nth(2).unwrap().item.as_ref().unwrap().name == FoodName::Melon
+        team.nth(0).unwrap().borrow().item.as_ref().unwrap().name == FoodName::Melon
+            && team.nth(2).unwrap().borrow().item.as_ref().unwrap().name == FoodName::Melon
     )
 }
 
@@ -115,7 +113,7 @@ fn test_apply_effect() {
     let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     let mosquito_effect = mosquito.effect.first().unwrap().clone();
 
-    let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
+    let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
     let mut enemy_team = team.clone();
     enemy_team.set_seed(0);
 
@@ -123,17 +121,12 @@ fn test_apply_effect() {
     let start_of_battle_trigger = team.triggers.pop_back().unwrap();
 
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    team.apply_effect(
-        0,
-        &start_of_battle_trigger,
-        &mosquito_effect,
-        &mut enemy_team,
-    )
-    .unwrap();
+    team.apply_effect(&start_of_battle_trigger, &mosquito_effect, &mut enemy_team)
+        .unwrap();
 
     // Enemy mosquito takes one damage.
     assert_eq!(
-        enemy_team.friends[4].as_ref().unwrap().stats,
+        enemy_team.friends[4].borrow().stats,
         Statistics::new(2, 1).unwrap()
     );
     assert!(enemy_team

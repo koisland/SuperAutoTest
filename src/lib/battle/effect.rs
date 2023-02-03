@@ -1,6 +1,9 @@
-use crate::battle::state::{Action, Outcome, Position, Target};
+use crate::{
+    battle::state::{Action, Outcome, Position, Target},
+    Pet,
+};
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display, rc::Weak};
 
 /// Owner of [`Effect`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -12,14 +15,13 @@ pub enum Entity {
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Effect {
     /// Owner of effect.
     pub entity: Entity,
-    /// Owner target of effect.
-    pub(crate) owner_target: Option<Target>,
+    #[serde(skip)]
     /// Idx of owner.
-    pub(crate) owner_idx: Option<usize>,
+    pub(crate) owner: Option<Weak<RefCell<Pet>>>,
     /// Effect trigger.
     pub trigger: Outcome,
     /// Target of the effect.
@@ -33,6 +35,18 @@ pub struct Effect {
     pub uses: Option<usize>,
     /// If the [`Effect`] is temporary or not.
     pub temp: bool,
+}
+
+impl PartialEq for Effect {
+    fn eq(&self, other: &Self) -> bool {
+        self.entity == other.entity
+            && self.trigger == other.trigger
+            && self.target == other.target
+            && self.position == other.position
+            && self.action == other.action
+            && self.uses == other.uses
+            && self.temp == other.temp
+    }
 }
 
 impl Effect {
@@ -68,8 +82,7 @@ impl Effect {
     ) -> Self {
         Effect {
             entity: effect_type,
-            owner_target: None,
-            owner_idx: None,
+            owner: None,
             trigger,
             target,
             position,
@@ -84,7 +97,7 @@ impl Display for Effect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[Effect (Uses: {:?}): ({:?}) - Trigger: {} - Action: {:?} on {:?} ({:?}) ]",
+            "[Effect (Uses: {:?}): ({:?}) - Trigger: {:?} - Action: {:?} on {:?} ({:?}) ]",
             self.uses, self.entity, self.trigger, self.action, self.target, self.position
         )
     }

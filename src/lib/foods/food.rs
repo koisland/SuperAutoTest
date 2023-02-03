@@ -10,7 +10,7 @@ use crate::{
 };
 
 /// A Super Auto Pets food.
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct Food {
     /// A food name.
     pub name: FoodName,

@@ -4,7 +4,7 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     battle::{
         effect::Modify,
-        state::{Action, Outcome, Position, Statistics, Target},
+        state::{Action, Outcome, Position, Statistics},
         trigger::*,
     },
     foods::names::FoodName,
@@ -112,28 +112,25 @@ impl PetCombat for Pet {
         // If difference between health before and after battle is equal the before battle health,
         // pet lost all health during fight and has fainted.
         if health_diff == self.stats.health {
-            let [self_faint, any_faint, ahead_faint] =
-                get_self_faint_triggers(self.pos, &health_diff_stats);
-            let [enemy_faint, enemy_any_faint] =
-                get_self_enemy_faint_triggers(self.pos, &health_diff_stats);
+            let [self_faint, any_faint, ahead_faint] = get_self_faint_triggers(&health_diff_stats);
+            let [enemy_faint, enemy_any_faint] = get_self_enemy_faint_triggers(&health_diff_stats);
 
             outcomes.extend([self_faint, any_faint, ahead_faint]);
             enemy_outcomes.extend([enemy_faint, enemy_any_faint]);
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
-            (self_unhurt.to_idx, self_unhurt.stat_diff) = (self.pos, health_diff_stats);
+            self_unhurt.stat_diff = health_diff_stats;
 
             outcomes.push(self_unhurt)
         } else {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
             let mut any_hurt = TRIGGER_ANY_HURT;
-            (self_hurt.to_idx, self_hurt.stat_diff) = (self.pos, health_diff_stats);
-            (any_hurt.to_idx, any_hurt.stat_diff) = (self.pos, health_diff_stats);
+            self_hurt.stat_diff = health_diff_stats;
+            any_hurt.stat_diff = health_diff_stats;
 
-            let mut enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
-            enemy_any_hurt.to_idx = self.pos;
+            let enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
 
             outcomes.extend([self_hurt, any_hurt]);
             enemy_outcomes.push(enemy_any_hurt)
@@ -283,9 +280,7 @@ impl PetCombat for Pet {
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
         let mut outcome = self.get_outcome(new_health);
-        outcome.update_friends_pos(Some(Target::Enemy), enemy.pos);
         let mut enemy_outcome = enemy.get_outcome(new_enemy_health);
-        enemy_outcome.update_opponents_pos(Some(Target::Friend), self.pos);
 
         // Add specific trigger if directly knockout.
         if new_health == 0 {
@@ -311,29 +306,12 @@ impl PetCombat for Pet {
 }
 
 /// All [`Outcome`]s of a single attack for friends and enemies.
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, PartialEq, Default)]
 pub struct AttackOutcome {
     /// [`Outcome`] for friends.
     pub friends: Vec<Outcome>,
     /// [`Outcome`] for opponents.
     pub opponents: Vec<Outcome>,
-}
-
-impl AttackOutcome {
-    /// Update friend triggers with target and pos.
-    pub fn update_friends_pos(&mut self, target: Option<Target>, pos: Option<usize>) {
-        for trigger in self.friends.iter_mut() {
-            trigger.from_target = target.unwrap_or(Target::None);
-            trigger.from_idx = pos
-        }
-    }
-    /// Update opponent triggers with target and pos.
-    pub fn update_opponents_pos(&mut self, target: Option<Target>, pos: Option<usize>) {
-        for trigger in self.opponents.iter_mut() {
-            trigger.from_target = target.unwrap_or(Target::None);
-            trigger.from_idx = pos
-        }
-    }
 }
 
 impl Display for AttackOutcome {

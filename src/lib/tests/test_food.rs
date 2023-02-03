@@ -1,6 +1,6 @@
 use crate::{
     battle::{
-        state::{Statistics, TeamFightOutcome},
+        state::{Position, Statistics, TeamFightOutcome},
         team::Team,
     },
     foods::{food::Food, names::FoodName},
@@ -317,16 +317,16 @@ fn test_attack_chili() {
 
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         5,
     )
     .unwrap();
     let mut enemy_team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         5,
     )
@@ -334,8 +334,8 @@ fn test_attack_chili() {
 
     // Give first pet chili on first team.
     // Will kill entire team in first attack
-    let first_pet = team.friends.first_mut().unwrap().as_mut().unwrap();
-    first_pet.item = Some(Food::new(&FoodName::Chili).unwrap());
+    team.set_item(Position::First, Some(Food::new(&FoodName::Chili).unwrap()))
+        .unwrap();
 
     let outcome = team.fight(&mut enemy_team);
 
@@ -351,8 +351,8 @@ fn test_battle_honey_team() {
     let mut enemy_team = test_ant_team();
 
     // Give last pet honey on first team.
-    let last_pet = team.friends.get_mut(2).unwrap().as_mut().unwrap();
-    last_pet.item = Some(Food::new(&FoodName::Honey).unwrap());
+    team.set_item(Position::Last, Some(Food::new(&FoodName::Honey).unwrap()))
+        .unwrap();
 
     let mut fight = team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {
@@ -361,7 +361,7 @@ fn test_battle_honey_team() {
 
     // Ant team completes by team has honey so bee spawns.
     assert_eq!(fight, TeamFightOutcome::Win);
-    assert_eq!(team.first().unwrap().name, PetName::Bee)
+    assert_eq!(team.first().unwrap().borrow().name, PetName::Bee)
 }
 
 #[test]
@@ -372,8 +372,11 @@ fn test_battle_mushroom_team() {
     let mut enemy_team = test_ant_team();
 
     // Give last pet mushroom on first team.
-    let last_pet = team.friends.get_mut(2).unwrap().as_mut().unwrap();
-    last_pet.item = Some(Food::new(&FoodName::Mushroom).unwrap());
+    team.set_item(
+        Position::Last,
+        Some(Food::new(&FoodName::Mushroom).unwrap()),
+    )
+    .unwrap();
 
     let mut fight = team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {
@@ -382,9 +385,9 @@ fn test_battle_mushroom_team() {
 
     // Team wins over enemy by summoning ant with (1,1).
     assert_eq!(fight, TeamFightOutcome::Win);
-    assert_eq!(team.first().unwrap().name, PetName::Ant);
+    assert_eq!(team.first().unwrap().borrow().name, PetName::Ant);
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 1,
             health: 1

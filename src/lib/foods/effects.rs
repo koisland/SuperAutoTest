@@ -25,8 +25,7 @@ impl TryFrom<&FoodRecord> for Effect {
 
         Ok(match record.name {
             FoodName::Chili => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Enemy,
                 // Next enemy relative to current pet position.
                 position: Position::Relative(-1),
@@ -37,8 +36,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Coconut => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Invincible,
@@ -48,8 +46,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Garlic | FoodName::Lemon => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Negate(effect_stats),
@@ -61,8 +58,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Honey => {
                 let bee = Box::new(Pet::new(PetName::Bee, None, Some(effect_stats), 1)?);
                 Effect {
-                    owner_target: None,
-                    owner_idx: None,
+                    owner: None,
                     target: Target::Friend,
                     position: Position::Trigger,
                     action: Action::Summon(Some(bee), None),
@@ -73,8 +69,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 }
             }
             FoodName::MeatBone => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Add(effect_stats),
@@ -84,8 +79,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Melon => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Negate(effect_stats),
@@ -95,8 +89,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Mushroom => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::Trigger,
                 // Replace during runtime.
@@ -113,8 +106,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Peanut => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Kill,
@@ -124,8 +116,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Steak => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Add(effect_stats),
@@ -141,8 +132,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 vulnerable_stats.health = -vulnerable_stats.health;
 
                 Effect {
-                    owner_target: None,
-                    owner_idx: None,
+                    owner: None,
                     entity: Entity::Food,
                     trigger: TRIGGER_NONE,
                     target: Target::Friend,
@@ -153,8 +143,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 }
             }
             FoodName::SleepingPill => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -164,8 +153,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Croissant | FoodName::Cucumber | FoodName::Carrot => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_END_TURN,
                 target: Target::Friend,
@@ -175,8 +163,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Grapes => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_START_TURN,
                 target: Target::Friend,
@@ -186,8 +173,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Chocolate => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -197,8 +183,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Pepper => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -208,8 +193,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::CannedFood => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Shop,
@@ -219,8 +203,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::FortuneCookie => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -230,8 +213,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Cheese => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -240,7 +222,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
-            // FoodName::Pineapple => Effect { owner_target: None, owner_idx: None,
+            // FoodName::Pineapple => Effect {  owner: None,
             //     entity: Entity::Food,
             //     trigger: TRIGGER_NONE,
             //     target: Target::Enemy,
@@ -259,8 +241,7 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::Orange => {
                 let actions = vec![Action::Add(effect_stats); record.n_targets];
                 Effect {
-                    owner_target: None,
-                    owner_idx: None,
+                    owner: None,
                     entity: Entity::Food,
                     trigger: TRIGGER_NONE,
                     target: Target::Friend,
@@ -278,8 +259,7 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::Cupcake
             | FoodName::Peach
             | FoodName::ChickenLeg => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -289,8 +269,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Strawberry => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
@@ -301,8 +280,7 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             // TODO: Milk, popcorns, lollipop, strawberry
             _ => Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::None,

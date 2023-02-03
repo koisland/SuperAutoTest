@@ -1,8 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::{
+    cell::RefCell,
     fmt::Display,
     num::TryFromIntError,
-    ops::{Add, AddAssign, Mul, MulAssign, RangeInclusive, Sub, SubAssign},
+    ops::{Add, AddAssign, BitXor, Mul, MulAssign, RangeInclusive, Sub, SubAssign},
+    rc::Weak,
 };
 
 use crate::{
@@ -286,43 +288,65 @@ pub enum Target {
 }
 
 /// The outcome of any [`Pet`] action. Serve as [`Effect`] triggers in battle.
-#[derive(Debug, Clone, Deserialize, Serialize, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Outcome {
     /// Status of a [`Pet`].
     pub status: Status,
-    /// The target of the status update.
-    pub to_target: Target,
-    /// The target of what caused the status_update.
-    pub from_target: Target,
+    // TODO: https://serde.rs/field-attrs.html. Replace with serde(serialize_with).
+    #[serde(skip)]
+    /// The affected pet.
+    pub affected_pet: Option<Weak<RefCell<Pet>>>,
+    /// The affected team.
+    pub affected_team: Target,
+    #[serde(skip)]
+    /// The pet causing the status_update.
+    pub afflicting_pet: Option<Weak<RefCell<Pet>>>,
+    /// The team causing the status update.
+    pub afflicting_team: Target,
     /// General position on `target`.
     pub position: Position,
-    /// Specific index of affected [`Entity`](super::effect::Entity).
-    pub to_idx: Option<usize>,
-    /// Specific index of what affected `to_idx`,
-    pub from_idx: Option<usize>,
     /// Difference in [`Statistics`] after status update from initial state.
     pub stat_diff: Option<Statistics>,
 }
 
 impl PartialEq for Outcome {
     fn eq(&self, other: &Self) -> bool {
-        self.status == other.status
-            && self.to_target == other.to_target
+        let same_affected_pet = if let (Some(pet), Some(other_pet)) =
+            (self.affected_pet.as_ref(), other.affected_pet.as_ref())
+        {
+            pet.ptr_eq(&other_pet)
+        } else if self.affected_pet.is_none() && other.affected_pet.is_none() {
+            true
+        } else {
+            false
+        };
+        same_affected_pet
+            && self.status == other.status
             && self.position == other.position
+            && self.affected_team == other.affected_team
+            && self.afflicting_team == other.afflicting_team
     }
 }
 
+impl Default for Outcome {
+    fn default() -> Self {
+        Self {
+            status: Status::None,
+            affected_pet: Default::default(),
+            affected_team: Target::None,
+            afflicting_pet: Default::default(),
+            afflicting_team: Target::None,
+            position: Position::None,
+            stat_diff: Default::default(),
+        }
+    }
+}
 impl Display for Outcome {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[Status: {:?}, Target: {:?}, Position: {:?}, ToIndex: {:?}, From: {:?} {:?}]",
-            self.status,
-            self.to_target,
-            self.position,
-            self.to_idx,
-            self.from_target,
-            self.from_idx
+            "[Status: {:?}, Position: {:?}, Affected: {:?}, From: {:?}]",
+            self.status, self.position, self.affected_pet, self.afflicting_pet
         )
     }
 }
@@ -370,7 +394,7 @@ pub enum Status {
 /// General Pet attribute use for [`Action::Copy`].
 ///
 /// [`Statistics`] for `health` or `attack` are a set percentage.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum CopyAttr {
     /// Percent pet stats to copy.
     PercentStats(Statistics),
@@ -385,7 +409,7 @@ pub enum CopyAttr {
 }
 
 /// Pet actions.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Action {
     /// Add some amount of `Statistics` to a `Pet`.
     Add(Statistics),

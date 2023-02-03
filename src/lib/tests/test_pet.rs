@@ -58,8 +58,7 @@ fn test_create_def_pet() {
             lvl: 1,
             exp: 0,
             effect: vec![Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
@@ -83,8 +82,7 @@ fn test_get_effect() {
     assert_eq!(
         test_ant.get_effect(1).unwrap(),
         vec![Effect {
-            owner_target: None,
-            owner_idx: None,
+            owner: None,
             entity: Entity::Pet,
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
@@ -165,8 +163,7 @@ fn test_create_pet() {
             lvl: 1,
             exp: 0,
             effect: vec![Effect {
-                owner_target: None,
-                owner_idx: None,
+                owner: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,

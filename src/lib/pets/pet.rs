@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::{error::Error, fmt::Display};
 
 use crate::{
-    battle::{effect::Effect, state::Statistics},
+    battle::{
+        effect::Effect,
+        state::{Action, Statistics},
+    },
     db::{setup::get_connection, utils::map_row_to_pet},
     error::SAPTestError,
     foods::food::Food,
@@ -20,7 +23,7 @@ pub const MIN_PET_STATS: isize = 0;
 pub const MAX_PET_STATS: isize = 50;
 
 /// A Super Auto Pet.
-#[derive(Debug, Clone, Serialize, Deserialize, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     /// An ID for a pet.
     pub id: Option<String>,
@@ -349,10 +352,44 @@ impl Pet {
     /// * Note: This does not update other pets on the same [`Team`](crate::battle::team::Team).
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
-        for effect in self.effect.iter_mut() {
-            effect.owner_idx = Some(pos);
-            effect.trigger.to_idx = Some(pos)
-        }
         self
+    }
+
+    /// Updates missing food items from an [`Action::Gain`](crate::battle::state::Action::Gain) effect.
+    /// * Specifically for [`Toucan`](crate::pets::names::PetName::Toucan).
+    ///
+    /// ```rust
+    /// use sapt::{Pet, PetName, Food, FoodName, Team, EffectApply, battle::state::Action};
+    ///
+    /// let honey = Food::try_from(FoodName::Honey).unwrap();
+    /// let mut toucan = Pet::try_from(PetName::Toucan).unwrap();
+    /// toucan.item = Some(honey.clone());
+    ///
+    /// assert_eq!(
+    ///     toucan.effect.first().unwrap().action,
+    ///     Action::Gain(None)
+    /// );
+    ///
+    /// let team = Team::new(&[Some(toucan)], 5).unwrap();
+    ///
+    /// assert_eq!(
+    ///     team.friends
+    ///         .first().unwrap().as_ref().unwrap()
+    ///         .effect.first().unwrap()
+    ///         .action,
+    ///     Action::Gain(Some(Box::new(honey)))
+    /// )
+    /// ```
+    pub(crate) fn update_missing_food_effects(&mut self) {
+        for effect in self.effect.iter_mut() {
+            let effect_missing_food = if let Action::Gain(food) = &effect.action {
+                food.is_none()
+            } else {
+                false
+            };
+            if self.item.as_ref().is_some() && effect_missing_food {
+                effect.action = Action::Gain(Some(Box::new(self.item.as_ref().unwrap().clone())))
+            }
+        }
     }
 }

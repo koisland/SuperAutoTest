@@ -8,6 +8,7 @@ use crate::{
     error::SAPTestError,
     graph::effect_graph::History,
     pets::{combat::PetCombat, pet::Pet},
+    Food,
 };
 
 use itertools::Itertools;
@@ -15,10 +16,14 @@ use log::info;
 use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 use std::{
+    cell::RefCell,
     collections::{HashSet, VecDeque},
     error::Error,
     fmt::Display,
+    rc::{Rc, Weak},
 };
+
+use super::team_effect_apply::EffectApplyHelpers;
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone)]
@@ -26,9 +31,9 @@ pub struct Team {
     /// Name of the team.
     pub name: String,
     /// Pets on the team.
-    pub friends: Vec<Option<Pet>>,
+    pub friends: Vec<Rc<RefCell<Pet>>>,
     /// Fainted pets.
-    pub fainted: Vec<Option<Pet>>,
+    pub fainted: Vec<Rc<RefCell<Pet>>>,
     /// Maximum number of pets that can be added.
     pub max_size: usize,
     /// Stored triggers used to invoke effects.
@@ -41,11 +46,10 @@ pub struct Team {
     /// Seed used to reproduce the outcome of events.
     pub seed: u64,
     /// Clone of pets used for restoring team..
-    pub(super) stored_friends: Vec<Option<Pet>>,
+    pub(super) stored_friends: Vec<Rc<RefCell<Pet>>>,
     /// Count of all pets summoned on team.
     pub(super) pet_count: usize,
-    /// Current pet effect being activated.
-    pub(super) effect_idx: Option<usize>,
+    pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
 }
 
 impl Default for Team {
@@ -60,7 +64,7 @@ impl Default for Team {
             history: History::new(),
             pet_count: Default::default(),
             seed: random(),
-            effect_idx: None,
+            curr_pet: None,
         }
     }
 }
@@ -90,7 +94,7 @@ impl Team {
     ///
     /// assert!(team.is_ok());
     /// ```
-    pub fn new(pets: &[Option<Pet>], max_size: usize) -> Result<Team, SAPTestError> {
+    pub fn new(pets: &[Pet], max_size: usize) -> Result<Team, SAPTestError> {
         if pets.len() > max_size {
             Err(SAPTestError::InvalidTeamAction {
                 subject: "Init Team".to_string(),
@@ -103,82 +107,38 @@ impl Team {
             })
         } else {
             // Index pets.
-            let mut pet_count = 0;
-            let idx_pets = pets
-                .iter()
-                .cloned()
-                .map(|mut slot| {
-                    if let Some(pet) = slot.as_mut() {
-                        pet.set_pos(pet_count);
-                        // Create id if one not assigned.
-                        pet.id = Some(
-                            pet.id
-                                .clone()
-                                .unwrap_or(format!("{}_{}", pet.name, pet_count)),
-                        );
-                        Team::update_missing_food_effects(pet);
-                        pet_count += 1;
-                    }
-                    slot
-                })
-                .collect_vec();
+            let mut rc_pets: Vec<Rc<RefCell<Pet>>> = vec![];
+            for (i, mut pet) in pets.iter().cloned().enumerate() {
+                // Create id if one not assigned.
+                pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
+                pet.pos = Some(i);
+                pet.update_missing_food_effects();
 
+                let rc_pet = Rc::new(RefCell::new(pet));
+
+                // Store weak reference to owner for all effects.
+                for effect in rc_pet.borrow_mut().effect.iter_mut() {
+                    effect.trigger.affected_pet = Some(Rc::downgrade(&rc_pet));
+                    effect.owner = Some(Rc::downgrade(&rc_pet));
+                }
+                if let Some(item) = rc_pet.borrow_mut().item.as_mut() {
+                    item.ability.owner = Some(Rc::downgrade(&rc_pet))
+                }
+                rc_pets.push(rc_pet)
+            }
+            let n_rc_pets = rc_pets.len();
+            let curr_pet = rc_pets.first().map(|pet| Rc::downgrade(pet));
             Ok(Team {
-                stored_friends: idx_pets.clone(),
-                friends: idx_pets,
+                stored_friends: rc_pets.clone(),
+                friends: rc_pets,
                 max_size,
-                pet_count,
+                pet_count: n_rc_pets,
+                curr_pet,
                 ..Default::default()
             })
         }
     }
 
-    /// Update which team owns effect.
-    fn update_effect_team(&mut self, target: Target) {
-        for friend in self.all() {
-            for effect in friend.effect.iter_mut() {
-                effect.owner_target = Some(target);
-            }
-        }
-    }
-
-    /// Updates missing food items from an [`Action::Gain`](crate::battle::state::Action::Gain) effect.
-    /// * Specifically for [`Toucan`](crate::pets::names::PetName::Toucan).
-    ///
-    /// ```rust
-    /// use sapt::{Pet, PetName, Food, FoodName, Team, EffectApply, battle::state::Action};
-    ///
-    /// let honey = Food::try_from(FoodName::Honey).unwrap();
-    /// let mut toucan = Pet::try_from(PetName::Toucan).unwrap();
-    /// toucan.item = Some(honey.clone());
-    ///
-    /// assert_eq!(
-    ///     toucan.effect.first().unwrap().action,
-    ///     Action::Gain(None)
-    /// );
-    ///
-    /// let team = Team::new(&[Some(toucan)], 5).unwrap();
-    ///
-    /// assert_eq!(
-    ///     team.friends
-    ///         .first().unwrap().as_ref().unwrap()
-    ///         .effect.first().unwrap()
-    ///         .action,
-    ///     Action::Gain(Some(Box::new(honey)))
-    /// )
-    /// ```
-    fn update_missing_food_effects(pet: &mut Pet) {
-        for effect in pet.effect.iter_mut() {
-            let effect_missing_food = if let Action::Gain(food) = &effect.action {
-                food.is_none()
-            } else {
-                false
-            };
-            if pet.item.as_ref().is_some() && effect_missing_food {
-                effect.action = Action::Gain(Some(Box::new(pet.item.as_ref().unwrap().clone())))
-            }
-        }
-    }
     #[allow(dead_code)]
     /// Restore a team to its initial state.
     ///
@@ -197,11 +157,7 @@ impl Team {
         self.fainted.clear();
         self.history = History::new();
         self.triggers = VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE);
-        self.pet_count = self
-            .stored_friends
-            .iter()
-            .filter(|pet| pet.is_some())
-            .count();
+        self.pet_count = self.stored_friends.len();
         self
     }
 
@@ -223,20 +179,16 @@ impl Team {
     /// assert_eq!(default_team.friends.len(), 0);
     /// ```
     pub fn clear_team(&mut self) -> &mut Self {
-        let mut new_idx_cnt = 0;
-        self.friends.retain_mut(|pet| {
+        let mut new_idx = 0;
+        self.friends.retain(|pet| {
             // Check if empty slot
-            if pet.is_none() {
-                false
-            } else if pet.as_ref().map_or(false, |pet| pet.stats.health != 0) {
-                // Pet is Some so safe to unwrap.
-                // Set new pet index and increment
-                pet.as_mut().unwrap().set_pos(new_idx_cnt);
-                new_idx_cnt += 1;
+            if pet.borrow().stats.health != 0 {
+                pet.borrow_mut().pos = Some(new_idx);
+                new_idx += 1;
                 true
             } else {
                 // Pet is dead.
-                info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.as_ref().unwrap());
+                info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
                 self.fainted.push(pet.clone());
                 false
             }
@@ -264,9 +216,27 @@ impl Team {
     /// ```
     pub fn set_seed(&mut self, seed: u64) {
         self.seed = seed;
-        for pet in self.friends.iter_mut().flatten() {
-            pet.seed = seed
+        for pet in self.friends.iter() {
+            pet.borrow_mut().seed = seed
         }
+    }
+
+    /// Assign an item to a team member.
+    pub fn set_item(
+        &mut self,
+        pos: Position,
+        item: Option<Food>,
+    ) -> Result<&mut Self, SAPTestError> {
+        let affected_pets = self._match_position_one_team(&TRIGGER_NONE, &pos);
+
+        for pet in affected_pets?.iter() {
+            let mut item_copy = item.clone();
+            if let Some(item) = item_copy.as_mut() {
+                item.ability.owner = Some(Rc::downgrade(pet));
+            }
+            pet.borrow_mut().item = item_copy;
+        }
+        Ok(self)
     }
 
     #[allow(dead_code)]
@@ -285,7 +255,7 @@ impl Team {
     pub fn get_effects(&self) -> Vec<Vec<Effect>> {
         self.friends
             .iter()
-            .filter_map(|pet| pet.as_ref().map(|pet| pet.effect.clone()))
+            .map(|pet| pet.borrow().effect.clone())
             .collect_vec()
     }
 
@@ -308,139 +278,132 @@ impl Team {
     ///     2
     /// );
     /// ```
-    pub fn get_pets_by_cond(&mut self, cond: &Condition) -> Vec<&mut Pet> {
-        let found_pets: HashSet<usize> = if let Condition::Multiple(conditions) = cond {
+    pub fn get_pets_by_cond(&mut self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
+        if let Condition::Multiple(conditions) = cond {
             conditions
                 .iter()
                 .flat_map(|condition| self.match_condition(condition))
                 .collect()
         } else if let Condition::MultipleAll(conditions) = cond {
-            conditions
+            let matching_pets = vec![];
+            let all_matches = conditions
                 .iter()
-                .map(|condition| self.match_condition(condition))
-                .reduce(|idxs_1, idxs_2| {
-                    idxs_1
-                        .intersection(&idxs_2)
-                        .cloned()
-                        .collect::<HashSet<usize>>()
+                .filter_map(|cond| {
+                    let matching_pets = self.match_condition(cond);
+                    (!matching_pets.is_empty()).then_some(matching_pets)
                 })
-                .unwrap_or_default()
+                .collect_vec();
+            // Take first set of matches.
+            if let Some(mut matching_pets) = all_matches.first().cloned() {
+                // Remove any pets not within.
+                for matches in all_matches.iter() {
+                    matching_pets.retain(|pet| matches.contains(pet))
+                }
+            }
+            matching_pets
         } else {
             self.match_condition(cond)
-        };
-
-        self.all()
-            .into_iter()
-            .filter(|pet| {
-                if let Some(pos) = pet.pos {
-                    found_pets.contains(&pos)
-                } else {
-                    false
-                }
-            })
-            .collect_vec()
+        }
     }
 
     /// Match on a `Condition` and return indices.
-    fn match_condition(&mut self, cond: &Condition) -> HashSet<usize> {
-        let mut indices: HashSet<usize> = HashSet::new();
-        let curr_pet_idx = self.effect_idx;
+    fn match_condition(&mut self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
+        let mut matching_pets: Vec<Rc<RefCell<Pet>>> = vec![];
         let pets = self.all().into_iter();
 
         match cond {
             Condition::Healthiest => {
-                if let Some(Some(pos)) = pets
-                    .max_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
-                    .map(|pet| pet.pos)
-                {
-                    indices.insert(pos);
+                if let Some(pet) = pets.max_by(|pet_1, pet_2| {
+                    pet_1
+                        .borrow()
+                        .stats
+                        .health
+                        .cmp(&pet_2.borrow().stats.health)
+                }) {
+                    matching_pets.push(pet);
                 }
             }
             Condition::Illest => {
-                if let Some(Some(pos)) = pets
-                    .min_by(|pet_1, pet_2| pet_1.stats.health.cmp(&pet_2.stats.health))
-                    .map(|pet| pet.pos)
-                {
-                    indices.insert(pos);
+                if let Some(pet) = pets.min_by(|pet_1, pet_2| {
+                    pet_1
+                        .borrow()
+                        .stats
+                        .health
+                        .cmp(&pet_2.borrow().stats.health)
+                }) {
+                    matching_pets.push(pet);
                 }
             }
             Condition::Strongest => {
-                if let Some(Some(pos)) = pets
-                    .max_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
-                    .map(|pet| pet.pos)
-                {
-                    indices.insert(pos);
+                if let Some(pet) = pets.max_by(|pet_1, pet_2| {
+                    pet_1
+                        .borrow()
+                        .stats
+                        .attack
+                        .cmp(&pet_2.borrow().stats.attack)
+                }) {
+                    matching_pets.push(pet);
                 }
             }
             Condition::Weakest => {
-                if let Some(Some(pos)) = pets
-                    .min_by(|pet_1, pet_2| pet_1.stats.attack.cmp(&pet_2.stats.attack))
-                    .map(|pet| pet.pos)
-                {
-                    indices.insert(pos);
+                if let Some(pet) = pets.min_by(|pet_1, pet_2| {
+                    pet_1
+                        .borrow()
+                        .stats
+                        .attack
+                        .cmp(&pet_2.borrow().stats.attack)
+                }) {
+                    matching_pets.push(pet);
                 }
             }
             Condition::HasFood(item_name) => {
-                for pos in pets.filter_map(|pet| {
-                    if pet
+                for pet in pets.filter(|pet| {
+                    pet.borrow()
                         .item
                         .as_ref()
-                        .map(|food| food.name == *item_name)
-                        .unwrap_or(false)
-                    {
-                        pet.pos
-                    } else {
-                        None
-                    }
+                        .map_or(false, |food| food.name == *item_name)
                 }) {
-                    indices.insert(pos);
+                    matching_pets.push(pet);
                 }
             }
             Condition::TriggeredBy(trigger) => {
-                for pos in pets.filter_map(|pet| {
-                    if pet
+                for pet in pets.filter(|pet| {
+                    pet.borrow()
                         .effect
                         .iter()
                         .any(|effect| effect.trigger.status == *trigger)
-                    {
-                        pet.pos
-                    } else {
-                        None
-                    }
                 }) {
-                    indices.insert(pos);
+                    matching_pets.push(pet);
                 }
             }
             // Allow all if condition is None.
-            Condition::None => indices.extend(self.all().iter().filter_map(|pet| pet.pos)),
-            Condition::IgnoreSelf => {
-                indices.extend(self.all().iter().enumerate().filter_map(|(i, pet)| {
-                    if curr_pet_idx == Some(i) {
-                        None
-                    } else {
-                        pet.pos
-                    }
-                }))
-            }
+            Condition::None => matching_pets.extend(self.all().into_iter()),
+            // Condition::IgnoreSelf => {
+            //     indices.extend(self.all().iter().enumerate().filter_map(|(i, pet)| {
+            //         if curr_pet_idx == Some(i) {
+            //             None
+            //         } else {
+            //             pet.pos
+            //         }
+            //     }))
+            // }
             Condition::HighestTier => {
-                if let Some(Some(pos)) = pets
-                    .max_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
-                    .map(|pet| pet.pos)
+                if let Some(pet) =
+                    pets.max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                 {
-                    indices.insert(pos);
+                    matching_pets.push(pet);
                 }
             }
             Condition::LowestTier => {
-                if let Some(Some(pos)) = pets
-                    .min_by(|pet_1, pet_2| pet_1.tier.cmp(&pet_2.tier))
-                    .map(|pet| pet.pos)
+                if let Some(pet) =
+                    pets.min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                 {
-                    indices.insert(pos);
+                    matching_pets.push(pet);
                 }
             }
             _ => {}
         }
-        indices
+        matching_pets
     }
 
     /// Swap a pets position with another on the team.
@@ -469,7 +432,6 @@ impl Team {
             })
         } else {
             self.friends.swap(pos_1, pos_2);
-            // Clear team to reassign indices.
             self.set_indices();
             Ok(self)
         }
@@ -515,10 +477,8 @@ impl Team {
         let (mut_slice_1, mut_slice_2) = self.friends.split_at_mut(pos_1 + 1);
         let mut_slice_1_len = mut_slice_1.len();
         let adj_pos_2 = pos_2.saturating_sub(mut_slice_1_len);
-        if let (Some(Some(pet_1)), Some(Some(pet_2))) =
-            (mut_slice_1.get_mut(pos_1), mut_slice_2.get_mut(adj_pos_2))
-        {
-            std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
+        if let (Some(pet_1), Some(pet_2)) = (mut_slice_1.get(pos_1), mut_slice_2.get(adj_pos_2)) {
+            std::mem::swap(&mut pet_1.borrow_mut().stats, &mut pet_2.borrow_mut().stats);
             Ok(self)
         } else {
             Err(SAPTestError::InvalidTeamAction {
@@ -565,49 +525,22 @@ impl Team {
             };
 
             let pet = self.friends.remove(pos);
-
-            self.friends.insert(new_pos, pet);
-            // Update indices.
-            self.set_indices();
-
-            // Update triggers.
-            for trigger in self
-                .triggers
-                .iter_mut()
-                .filter(|trigger| trigger.to_target == Target::Friend)
-            {
-                if let Some(idx) = trigger.to_idx.as_mut() {
-                    if *idx < pos {
-                        *idx += 1
-                    }
-                }
-            }
+            pet.borrow_mut().pos = Some(new_pos);
 
             // Add push trigger.
             let mut push_any_trigger = TRIGGER_ANY_PUSHED;
-            push_any_trigger.to_idx = Some(new_pos);
+            push_any_trigger.affected_pet = Some(Rc::downgrade(&pet));
             self.triggers.push_back(push_any_trigger);
-
-            // // Reset indices.
-            // self.clear_team();
 
             // Add opponent triggers if provided.
             if let Some(opponent) = opponent {
-                for trigger in opponent
-                    .triggers
-                    .iter_mut()
-                    .filter(|trigger| trigger.to_target == Target::Enemy)
-                {
-                    if let Some(idx) = trigger.to_idx.as_mut() {
-                        if *idx < pos {
-                            *idx += 1
-                        }
-                    }
-                }
                 let mut push_trigger = TRIGGER_ANY_ENEMY_PUSHED;
-                push_trigger.to_idx = Some(new_pos);
+                push_trigger.affected_pet = Some(Rc::downgrade(&pet));
                 opponent.triggers.push_back(push_trigger)
             }
+
+            self.friends.insert(new_pos, pet);
+            self.set_indices();
         } else {
             return Err(Box::new(SAPTestError::InvalidTeamAction {
                 subject: "Push Pet".to_string(),
@@ -636,13 +569,18 @@ impl Team {
     ///     PetName::Leopard
     /// )
     /// ```
-    pub fn nth(&mut self, idx: usize) -> Option<&mut Pet> {
-        if let Some(Some(pet)) = self.friends.get_mut(idx) {
-            (pet.stats.health != 0).then_some(pet)
+    pub fn nth(&mut self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
+        if let Some(pet) = self
+            .friends
+            .get(idx)
+            .filter(|pet| pet.borrow().stats.health != 0)
+        {
+            Some(pet.clone())
         } else {
             None
         }
     }
+
     /// Get the first pet on team.
     /// * Fainted pets are ignored.
     /// # Examples
@@ -660,9 +598,13 @@ impl Team {
     ///     PetName::Gorilla
     /// )
     /// ```
-    pub fn first(&mut self) -> Option<&mut Pet> {
-        if let Some(Some(pet)) = self.friends.first_mut() {
-            (pet.stats.health != 0).then_some(pet)
+    pub fn first(&self) -> Option<Rc<RefCell<Pet>>> {
+        if let Some(pet) = self
+            .friends
+            .first()
+            .filter(|pet| pet.borrow().stats.health != 0)
+        {
+            Some(pet.clone())
         } else {
             None
         }
@@ -685,9 +627,13 @@ impl Team {
     ///     PetName::Cat
     /// )
     /// ```
-    pub fn last(&mut self) -> Option<&mut Pet> {
-        if let Some(Some(pet)) = self.friends.last_mut() {
-            (pet.stats.health != 0).then_some(pet)
+    pub fn last(&mut self) -> Option<Rc<RefCell<Pet>>> {
+        if let Some(pet) = self
+            .friends
+            .last()
+            .filter(|pet| pet.borrow().stats.health != 0)
+        {
+            Some(pet.clone())
         } else {
             None
         }
@@ -714,7 +660,7 @@ impl Team {
     /// )
     /// ```
     #[allow(dead_code)]
-    pub fn any(&mut self) -> Option<&mut Pet> {
+    pub fn any(&mut self) -> Option<Rc<RefCell<Pet>>> {
         let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
         self.all().into_iter().choose(&mut rng)
     }
@@ -738,12 +684,12 @@ impl Team {
     ///     3
     /// )
     /// ```
-    pub fn all(&mut self) -> Vec<&mut Pet> {
+    pub fn all(&mut self) -> Vec<Rc<RefCell<Pet>>> {
         self.friends
-            .iter_mut()
+            .iter()
             .filter_map(|pet| {
-                if let Some(pet) = pet.as_mut() {
-                    (pet.stats.health != 0).then_some(pet)
+                if pet.borrow().stats.health != 0 {
+                    Some(pet.clone())
                 } else {
                     None
                 }
@@ -751,14 +697,11 @@ impl Team {
             .collect_vec()
     }
 
-    fn set_indices(&mut self) -> &mut Self {
-        for (i, friend) in self
-            .friends
-            .iter_mut()
-            .filter_map(|pet| pet.as_mut())
-            .enumerate()
-        {
-            friend.set_pos(i);
+    pub(super) fn set_indices(&mut self) -> &mut Self {
+        for (i, friend) in self.friends.iter().enumerate() {
+            if let Ok(mut unborrowed_pet) = friend.try_borrow_mut() {
+                unborrowed_pet.pos = Some(i);
+            }
         }
         self
     }
@@ -789,9 +732,16 @@ impl Team {
         pos: usize,
         opponent: Option<&mut Team>,
     ) -> Result<&mut Self, Box<dyn Error>> {
+        // Assign id to pet if not any.
+        let new_pet_id = format!("{}_{}", pet.name, self.pet_count + 1);
+        pet.id = Some(pet.id.clone().unwrap_or(new_pet_id));
+        pet.pos = Some(pos);
+
+        let rc_pet = Rc::new(RefCell::new(pet));
+
         if self.all().len() == self.max_size {
             // Add overflow to dead pets.
-            self.fainted.push(Some(pet));
+            self.fainted.push(rc_pet);
 
             return Err(Box::new(SAPTestError::InvalidTeamAction {
                 subject: "Add Pet".to_string(),
@@ -799,53 +749,22 @@ impl Team {
                 reason: format!("Maximum number of pets ({}) reached.", self.max_size),
             }));
         }
-        // Assign id to pet if not any.
-        pet.id = Some(
-            pet.id
-                .clone()
-                .unwrap_or(format!("{}_{}", pet.name, self.pet_count + 1)),
-        );
-
-        // Remove empty slot at position if there.
-        if self.friends.get(pos).map(|slot| slot.is_none()) == Some(true) {
-            self.friends.remove(pos);
-        };
-
-        self.friends.insert(pos, Some(pet));
-        self.set_indices();
-
-        info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), self.friends.get(pos).unwrap().as_ref().unwrap());
 
         // Set summon triggers.
         let mut self_trigger = TRIGGER_SELF_SUMMON;
         let mut any_trigger = TRIGGER_ANY_SUMMON;
         let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
 
+        let weak_ref_pet = Rc::downgrade(&rc_pet);
         (
-            self_trigger.to_idx,
-            any_trigger.to_idx,
-            any_enemy_trigger.to_idx,
-        ) = (Some(pos), Some(pos), Some(pos));
-
-        // Update old triggers and their positions that store a pet's idx after inserting new pet.
-        // TODO: Look into more edge cases that may cause issue when triggers activate simultaneously.
-        for trigger in self.triggers.iter_mut() {
-            match &mut trigger.position {
-                Position::Relative(orig_pos) => {
-                    if *orig_pos >= pos.try_into()? {
-                        *orig_pos += 1
-                    }
-                }
-                Position::Trigger | Position::OnSelf => {
-                    if let Some(idx) = trigger.to_idx.as_mut() {
-                        if *idx >= pos {
-                            *idx += 1
-                        }
-                    }
-                }
-                _ => {}
-            }
-        }
+            self_trigger.affected_pet,
+            any_trigger.affected_pet,
+            any_enemy_trigger.affected_pet,
+        ) = (
+            Some(weak_ref_pet.clone()),
+            Some(weak_ref_pet.clone()),
+            Some(weak_ref_pet.clone()),
+        );
 
         if let Some(opponent) = opponent {
             opponent.triggers.push_back(any_enemy_trigger)
@@ -855,6 +774,11 @@ impl Team {
             self_trigger,
             any_trigger,
         ]);
+
+        info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), rc_pet.borrow());
+        self.friends.insert(pos, rc_pet);
+        self.set_indices();
+
         Ok(self)
     }
 
@@ -903,10 +827,6 @@ impl Team {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
-        // Update effects to reflect which pet and team it belongs to.
-        self.update_effect_team(Target::Friend);
-        opponent.update_effect_team(Target::Enemy);
-
         // Apply start of battle effects.
         self.clear_team();
         opponent.clear_team();
@@ -928,33 +848,39 @@ impl Team {
         // Increment battle phase counter.
         self.history.curr_phase += 1;
 
-        // Trigger Before Attack && Friend Ahead attack.
-        self.triggers
-            .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-        opponent
-            .triggers
-            .extend([TRIGGER_SELF_ATTACK, TRIGGER_AHEAD_ATTACK]);
-
-        self.clear_team();
-        opponent.clear_team();
-
-        while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-            self.trigger_effects(opponent);
-            opponent.trigger_effects(self);
-        }
-
-        self.clear_team();
-        opponent.clear_team();
-
         // Check that two pets exist and attack.
         // Attack will result in triggers being added.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
+            // Trigger Before Attack && Friend Ahead attack.
+            self.triggers.extend(get_atk_triggers(&pet));
+            opponent.triggers.extend(get_atk_triggers(&opponent_pet));
+
+            self.clear_team();
+            opponent.clear_team();
+
+            while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
+                self.trigger_effects(opponent);
+                opponent.trigger_effects(self);
+            }
+
+            self.clear_team();
+            opponent.clear_team();
+
             // Attack and get outcome of fight.
-            info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet, opponent_pet);
-            let outcome = pet.attack(opponent_pet);
+            info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
+            let mut outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
             info!(target: "dev", "(\"{}\")\n{}", self.name, self);
             info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
+            // Update outcomes with weak references.
+            for trigger in outcome.friends.iter_mut() {
+                trigger.affected_pet = Some(Rc::downgrade(&pet));
+                trigger.afflicting_pet = Some(Rc::downgrade(&opponent_pet));
+            }
+            for trigger in outcome.opponents.iter_mut() {
+                trigger.affected_pet = Some(Rc::downgrade(&opponent_pet));
+                trigger.afflicting_pet = Some(Rc::downgrade(&pet));
+            }
             // Create attack node.
             self.create_node(&TRIGGER_SELF_ATTACK);
             opponent.create_node(&TRIGGER_SELF_ATTACK);
@@ -1016,8 +942,8 @@ impl Team {
 
 impl Display for Team {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for friend in self.friends.iter().filter_map(|pet| pet.as_ref()) {
-            writeln!(f, "{friend}")?;
+        for friend in self.friends.iter() {
+            writeln!(f, "{}", friend.borrow())?;
         }
         Ok(())
     }

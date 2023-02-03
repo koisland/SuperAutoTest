@@ -88,8 +88,7 @@ fn test_battle_parrot_team() {
     // Before start of turn, is def parrot effect.
     assert_eq!(
         vec![Effect {
-            owner_target: None,
-            owner_idx: Some(1),
+            owner: None,
             entity: Entity::Pet,
             trigger: Outcome {
                 from_target: Target::None,
@@ -125,8 +124,7 @@ fn test_battle_parrot_team() {
 
     assert_eq!(
         vec![Effect {
-            owner_target: None,
-            owner_idx: Some(1),
+            owner: None,
             trigger: updated_trigger,
             target: Target::Friend,
             position: Position::OnSelf,

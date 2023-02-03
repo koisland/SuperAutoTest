@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use crate::{
     battle::{
         state::{Statistics, Status, TeamFightOutcome},
@@ -12,11 +14,11 @@ use super::common::test_ant_team;
 fn test_create_team_standard_size() {
     let team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         5,
     );
@@ -28,16 +30,16 @@ fn test_create_team_standard_size() {
 fn test_create_team_large_size() {
     let team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         10,
     );
@@ -49,11 +51,11 @@ fn test_create_team_large_size() {
 fn test_create_team_invalid_size() {
     let team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
         ],
         3,
     );
@@ -89,8 +91,8 @@ fn test_team_restore() {
 fn test_team_swap() {
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Snake).unwrap()),
-            Some(Pet::try_from(PetName::Hippo).unwrap()),
+            Pet::try_from(PetName::Snake).unwrap(),
+            Pet::try_from(PetName::Hippo).unwrap(),
         ],
         5,
     )
@@ -98,16 +100,16 @@ fn test_team_swap() {
 
     team.swap_pets(0, 1).unwrap();
 
-    assert_eq!(team.nth(0).unwrap().name, PetName::Hippo);
-    assert_eq!(team.nth(1).unwrap().name, PetName::Snake)
+    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Hippo);
+    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake)
 }
 
 #[test]
 fn test_team_invalid_swap() {
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Snake).unwrap()),
-            Some(Pet::try_from(PetName::Hippo).unwrap()),
+            Pet::try_from(PetName::Snake).unwrap(),
+            Pet::try_from(PetName::Hippo).unwrap(),
         ],
         5,
     )
@@ -120,9 +122,9 @@ fn test_team_invalid_swap() {
 fn test_team_push() {
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Snake).unwrap()),
-            Some(Pet::try_from(PetName::Hippo).unwrap()),
-            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Pet::try_from(PetName::Snake).unwrap(),
+            Pet::try_from(PetName::Hippo).unwrap(),
+            Pet::try_from(PetName::Dog).unwrap(),
         ],
         5,
     )
@@ -131,24 +133,35 @@ fn test_team_push() {
     // Push pet at pos 0 (Snake) a space back to pos 1.
     team.push_pet(0, -1, None).unwrap();
 
-    assert_eq!(team.nth(1).unwrap().name, PetName::Snake);
+    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake);
 
     // Push pet at pos 2 (Dog) two spaces forward to pos 0.
     team.push_pet(2, 2, None).unwrap();
 
-    assert_eq!(team.nth(0).unwrap().name, PetName::Dog);
+    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Dog);
 
     // Two push triggers made + (Default: [StartBattle, StartTurn]).
     assert_eq!(team.triggers.len(), 4);
+    let push_trigger_snake = team.triggers.get(2).unwrap();
+    let push_trigger_dog = team.triggers.back().unwrap();
+
+    // Get weak references to pets.
+    let dog = Rc::downgrade(&team.friends.get(0).unwrap());
+    let snake = Rc::downgrade(&team.friends.get(2).unwrap());
+
     // Snake
     assert!(
-        team.triggers.get(2).unwrap().status == Status::Pushed
-            && team.triggers.get(2).unwrap().to_idx == Some(2)
+        push_trigger_snake.status == Status::Pushed
+            && push_trigger_snake
+                .affected_pet
+                .as_ref()
+                .unwrap()
+                .ptr_eq(&snake)
     );
     // Dog
     assert!(
-        team.triggers.back().unwrap().status == Status::Pushed
-            && team.triggers.back().unwrap().to_idx == Some(0)
+        push_trigger_dog.status == Status::Pushed
+            && push_trigger_dog.affected_pet.as_ref().unwrap().ptr_eq(&dog)
     );
 }
 
@@ -156,25 +169,23 @@ fn test_team_push() {
 fn test_team_swap_stats() {
     let mut team = Team::new(
         &[
-            Some(Pet::try_from(PetName::Snake).unwrap()),
-            Some(Pet::try_from(PetName::Hippo).unwrap()),
-            None,
-            None,
-            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Pet::try_from(PetName::Snake).unwrap(),
+            Pet::try_from(PetName::Hippo).unwrap(),
+            Pet::try_from(PetName::Dog).unwrap(),
         ],
         5,
     )
     .unwrap();
 
     assert_eq!(
-        team.nth(0).unwrap().stats,
+        team.nth(0).unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 6
         }
     );
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 4,
             health: 5
@@ -183,14 +194,14 @@ fn test_team_swap_stats() {
     team.swap_pet_stats(0, 1).unwrap();
 
     assert_eq!(
-        team.nth(0).unwrap().stats,
+        team.nth(0).unwrap().borrow().stats,
         Statistics {
             attack: 4,
             health: 5
         }
     );
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 6
@@ -198,23 +209,23 @@ fn test_team_swap_stats() {
     );
 
     assert_eq!(
-        team.nth(4).unwrap().stats,
+        team.nth(2).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 4
         }
     );
-    team.swap_pet_stats(1, 4).unwrap();
+    team.swap_pet_stats(1, 2).unwrap();
 
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 4
         }
     );
     assert_eq!(
-        team.nth(4).unwrap().stats,
+        team.nth(2).unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 6
