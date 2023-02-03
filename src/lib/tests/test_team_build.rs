@@ -98,24 +98,10 @@ fn test_team_swap() {
     )
     .unwrap();
 
-    team.swap_pets(0, 1).unwrap();
+    team.swap_pets(&mut team.nth(0).unwrap().borrow_mut(), &mut team.nth(1).unwrap().borrow_mut());
 
     assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Hippo);
     assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake)
-}
-
-#[test]
-fn test_team_invalid_swap() {
-    let mut team = Team::new(
-        &[
-            Pet::try_from(PetName::Snake).unwrap(),
-            Pet::try_from(PetName::Hippo).unwrap(),
-        ],
-        5,
-    )
-    .unwrap();
-
-    assert!(team.swap_pets(0, 3).is_err());
 }
 
 #[test]
@@ -191,7 +177,7 @@ fn test_team_swap_stats() {
             health: 5
         }
     );
-    team.swap_pet_stats(0, 1).unwrap();
+    team.swap_pet_stats(&mut team.nth(0).unwrap().borrow_mut(), &mut team.nth(1).unwrap().borrow_mut()).unwrap();
 
     assert_eq!(
         team.nth(0).unwrap().borrow().stats,
@@ -215,7 +201,7 @@ fn test_team_swap_stats() {
             health: 4
         }
     );
-    team.swap_pet_stats(1, 2).unwrap();
+    team.swap_pet_stats(&mut team.nth(1).unwrap().borrow_mut(), &mut team.nth(2).unwrap().borrow_mut()).unwrap();
 
     assert_eq!(
         team.nth(1).unwrap().borrow().stats,

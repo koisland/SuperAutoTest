@@ -37,6 +37,8 @@ fn test_create_custom_pet() {
                 stat_diff: None,
                 affected_pet: None,
                 afflicting_pet: None,
+                affected_team: Target::None,
+                afflicting_team: Target::None,
             },
             Target::Friend,
             Position::Adjacent,
@@ -134,4 +136,29 @@ fn test_apply_effect() {
         .iter()
         .find(|trigger| trigger.status == Status::Hurt)
         .is_some());
+}
+
+#[test]
+fn test() {
+    let pets = [
+        Pet::try_from(PetName::Gorilla).unwrap(),
+        Pet::try_from(PetName::Leopard).unwrap(),
+    ];
+    let enemy_pets = [
+        Pet::try_from(PetName::Leopard).unwrap(),
+        Pet::try_from(PetName::Gorilla).unwrap(),
+    ];
+    let team = Team::new(&pets, 5).unwrap();
+    let enemy_team = Team::new(&enemy_pets, 5).unwrap();
+
+    team.swap_pets(
+        &mut team.friends.get(0).unwrap().borrow_mut(),
+        &mut enemy_team.friends.get(0).unwrap().borrow_mut()
+    );
+    // assert!(
+    //     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
+    //     team.nth(1).unwrap().borrow().name == PetName::Gorilla
+    // );
+    println!("{}", team);
+    println!("{}", enemy_team);
 }

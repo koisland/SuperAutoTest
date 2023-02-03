@@ -45,16 +45,18 @@ pub struct Team {
     pub history: History,
     /// Seed used to reproduce the outcome of events.
     pub seed: u64,
-    /// Clone of pets used for restoring team..
+    /// Clone of pets used for restoring team.
     pub(super) stored_friends: Vec<Rc<RefCell<Pet>>>,
     /// Count of all pets summoned on team.
     pub(super) pet_count: usize,
+    /// Current pet.
     pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
 }
 
 impl Default for Team {
     fn default() -> Self {
         Self {
+            // TODO: Replace with auto generated names.
             name: Default::default(),
             friends: Default::default(),
             stored_friends: Default::default(),
@@ -88,7 +90,7 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
     /// let team = Team::new(
-    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
+    ///     &[Pet::try_from(PetName::Dog).unwrap()],
     ///     5
     /// );
     ///
@@ -108,6 +110,7 @@ impl Team {
         } else {
             // Index pets.
             let mut rc_pets: Vec<Rc<RefCell<Pet>>> = vec![];
+            
             for (i, mut pet) in pets.iter().cloned().enumerate() {
                 // Create id if one not assigned.
                 pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
@@ -167,13 +170,13 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
     /// let mut default_team = Team::new(
-    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
+    ///     &[Pet::try_from(PetName::Dog).unwrap()],
     ///     5
     /// ).unwrap();
     ///
     /// assert_eq!(default_team.friends.len(), 1);
     ///
-    /// default_team.first().unwrap().stats.health = 0;
+    /// default_team.first().unwrap().borrow_mut().stats.health = 0;
     /// default_team.clear_team();
     ///
     /// assert_eq!(default_team.friends.len(), 0);
@@ -202,17 +205,18 @@ impl Team {
     ///  ```
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
-    /// let mosquito = Some(Pet::try_from(PetName::Mosquito).unwrap());
-    /// let pets = [mosquito.clone(), mosquito.clone()];
-    /// let mut team = Team::new(&pets, 5).unwrap();
+    /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
+    /// let mut team = Team::new(&[mosquito.clone(), mosquito.clone()], 5).unwrap();
     /// let mut enemy_team = team.clone();
     ///
     /// // Set seed for enemy_team and trigger StartBattle effects.
     /// enemy_team.set_seed(0);
     /// team.trigger_effects(&mut enemy_team);
     ///
-    /// // Mosquitoes always hit first pet with seed set to 0.
-    /// assert_eq!(enemy_team.friends[0].as_ref().unwrap().stats.health, 0)
+    /// // Mosquitoes always hit second pet with seed set to 0.
+    /// assert!(
+    ///     enemy_team.friends.get(1).map_or(false, |pet| pet.borrow().stats.health == 0),
+    /// )
     /// ```
     pub fn set_seed(&mut self, seed: u64) {
         self.seed = seed;
@@ -222,31 +226,49 @@ impl Team {
     }
 
     /// Assign an item to a team member.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    ///
+    /// let mut team = Team::new(
+    ///     &[Pet::try_from(PetName::Dog).unwrap()],
+    ///     5
+    /// ).unwrap();
+    /// team.set_item(
+    ///     Position::Relative(0),
+    ///     Some(Food::new(&FoodName::Garlic).unwrap())
+    /// ).unwrap();
+    ///
+    /// assert!(
+    ///     team.first().map_or(
+    ///         false, |pet| pet.borrow().item.as_ref().unwrap().name == FoodName::Garlic)
+    /// );
+    /// ```
     pub fn set_item(
         &mut self,
         pos: Position,
         item: Option<Food>,
     ) -> Result<&mut Self, SAPTestError> {
-        let affected_pets = self._match_position_one_team(&TRIGGER_NONE, &pos);
+        // self.get_pets_by_effect()
+        // let affected_pets = self.get_pets_by_trigger_pos(&TRIGGER_NONE, &pos);
 
-        for pet in affected_pets?.iter() {
-            let mut item_copy = item.clone();
-            if let Some(item) = item_copy.as_mut() {
-                item.ability.owner = Some(Rc::downgrade(pet));
-            }
-            pet.borrow_mut().item = item_copy;
-        }
+        // for pet in affected_pets?.iter() {
+        //     let mut item_copy = item.clone();
+        //     if let Some(item) = item_copy.as_mut() {
+        //         item.ability.owner = Some(Rc::downgrade(pet));
+        //     }
+        //     pet.borrow_mut().item = item_copy;
+        // }
         Ok(self)
     }
 
-    #[allow(dead_code)]
     /// Get all pet effects on the team.
     /// # Examples
     /// ```
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let team = Team::new(
-    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
+    ///     &[Pet::try_from(PetName::Dog).unwrap()],
     ///     5
     /// ).unwrap();
     ///
@@ -265,9 +287,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, battle::state::{Condition, Status}};
     ///
     /// let pets = [
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
-    ///     Some(Pet::try_from(PetName::Mosquito).unwrap())
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Mosquito).unwrap()
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
     ///
@@ -278,18 +300,18 @@ impl Team {
     ///     2
     /// );
     /// ```
-    pub fn get_pets_by_cond(&mut self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
+    pub fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
         if let Condition::Multiple(conditions) = cond {
             conditions
                 .iter()
-                .flat_map(|condition| self.match_condition(condition))
+                .flat_map(|condition| self.get_pets_by_cond(condition))
                 .collect()
         } else if let Condition::MultipleAll(conditions) = cond {
             let matching_pets = vec![];
             let all_matches = conditions
                 .iter()
                 .filter_map(|cond| {
-                    let matching_pets = self.match_condition(cond);
+                    let matching_pets = self.get_pets_by_cond(cond);
                     (!matching_pets.is_empty()).then_some(matching_pets)
                 })
                 .collect_vec();
@@ -302,108 +324,91 @@ impl Team {
             }
             matching_pets
         } else {
-            self.match_condition(cond)
+            match cond {
+                Condition::Healthiest => self
+                    .all()
+                    .into_iter()
+                    .max_by(|pet_1, pet_2| {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .health
+                            .cmp(&pet_2.borrow().stats.health)
+                    })
+                    .map_or(vec![], |found| vec![found]),
+                Condition::Illest => self
+                    .all()
+                    .into_iter()
+                    .min_by(|pet_1, pet_2| {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .health
+                            .cmp(&pet_2.borrow().stats.health)
+                    })
+                    .map_or(vec![], |found| vec![found]),
+                Condition::Strongest => self
+                    .all()
+                    .into_iter()
+                    .max_by(|pet_1, pet_2| {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .attack
+                            .cmp(&pet_2.borrow().stats.attack)
+                    })
+                    .map_or(vec![], |found| vec![found]),
+                Condition::Weakest => self
+                    .all()
+                    .into_iter()
+                    .min_by(|pet_1, pet_2| {
+                        pet_1
+                            .borrow()
+                            .stats
+                            .attack
+                            .cmp(&pet_2.borrow().stats.attack)
+                    })
+                    .map_or(vec![], |found| vec![found]),
+                Condition::HasFood(item_name) => self
+                    .all()
+                    .into_iter()
+                    .filter(|pet| {
+                        pet.borrow()
+                            .item
+                            .as_ref()
+                            .map_or(false, |food| food.name == *item_name)
+                    })
+                    .collect_vec(),
+                Condition::TriggeredBy(trigger) => self
+                    .all()
+                    .into_iter()
+                    .filter(|pet| {
+                        pet.borrow()
+                            .effect
+                            .iter()
+                            .any(|effect| effect.trigger.status == *trigger)
+                    })
+                    .collect_vec(),
+                // Allow all if condition is None.
+                Condition::None => self.all(),
+                Condition::IgnoreSelf => self
+                    .all()
+                    .into_iter()
+                    .filter(|pet| Rc::downgrade(pet).ptr_eq(&self.curr_pet.as_ref().unwrap()))
+                    .collect_vec(),
+                Condition::HighestTier => self
+                    .all()
+                    .into_iter()
+                    .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
+                    .map_or(vec![], |found| vec![found]),
+                Condition::LowestTier => self
+                    .all()
+                    .into_iter()
+                    .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
+                    .map_or(vec![], |found| vec![found]),
+                _ => unimplemented!("Condition not implemented."),
+            }
         }
-    }
-
-    /// Match on a `Condition` and return indices.
-    fn match_condition(&mut self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
-        let mut matching_pets: Vec<Rc<RefCell<Pet>>> = vec![];
-        let pets = self.all().into_iter();
-
-        match cond {
-            Condition::Healthiest => {
-                if let Some(pet) = pets.max_by(|pet_1, pet_2| {
-                    pet_1
-                        .borrow()
-                        .stats
-                        .health
-                        .cmp(&pet_2.borrow().stats.health)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::Illest => {
-                if let Some(pet) = pets.min_by(|pet_1, pet_2| {
-                    pet_1
-                        .borrow()
-                        .stats
-                        .health
-                        .cmp(&pet_2.borrow().stats.health)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::Strongest => {
-                if let Some(pet) = pets.max_by(|pet_1, pet_2| {
-                    pet_1
-                        .borrow()
-                        .stats
-                        .attack
-                        .cmp(&pet_2.borrow().stats.attack)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::Weakest => {
-                if let Some(pet) = pets.min_by(|pet_1, pet_2| {
-                    pet_1
-                        .borrow()
-                        .stats
-                        .attack
-                        .cmp(&pet_2.borrow().stats.attack)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::HasFood(item_name) => {
-                for pet in pets.filter(|pet| {
-                    pet.borrow()
-                        .item
-                        .as_ref()
-                        .map_or(false, |food| food.name == *item_name)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::TriggeredBy(trigger) => {
-                for pet in pets.filter(|pet| {
-                    pet.borrow()
-                        .effect
-                        .iter()
-                        .any(|effect| effect.trigger.status == *trigger)
-                }) {
-                    matching_pets.push(pet);
-                }
-            }
-            // Allow all if condition is None.
-            Condition::None => matching_pets.extend(self.all().into_iter()),
-            // Condition::IgnoreSelf => {
-            //     indices.extend(self.all().iter().enumerate().filter_map(|(i, pet)| {
-            //         if curr_pet_idx == Some(i) {
-            //             None
-            //         } else {
-            //             pet.pos
-            //         }
-            //     }))
-            // }
-            Condition::HighestTier => {
-                if let Some(pet) =
-                    pets.max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
-                {
-                    matching_pets.push(pet);
-                }
-            }
-            Condition::LowestTier => {
-                if let Some(pet) =
-                    pets.min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
-                {
-                    matching_pets.push(pet);
-                }
-            }
-            _ => {}
-        }
-        matching_pets
     }
 
     /// Swap a pets position with another on the team.
@@ -412,29 +417,27 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let pets = [
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
-    ///
-    /// team.swap_pets(0, 1).unwrap();
+    ///     
+    /// team.swap_pets(
+    ///     &mut team.nth(0).unwrap().borrow_mut(),
+    ///     &mut team.nth(1).unwrap().borrow_mut(),
+    ///     None
+    /// ).unwrap();
     /// assert!(
-    ///     team.nth(0).unwrap().name == PetName::Leopard &&
-    ///     team.nth(1).unwrap().name == PetName::Gorilla
+    ///     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
+    ///     team.nth(1).unwrap().borrow().name == PetName::Gorilla
     /// )
     /// ```
-    pub fn swap_pets(&mut self, pos_1: usize, pos_2: usize) -> Result<&mut Self, SAPTestError> {
-        if pos_1 > self.friends.len() || pos_2 > self.friends.len() {
-            Err(SAPTestError::InvalidTeamAction {
-                subject: "Swap Pets".to_string(),
-                indices: vec![pos_1, pos_2],
-                reason: "One or more positions are out of bounds".to_string(),
-            })
-        } else {
-            self.friends.swap(pos_1, pos_2);
-            self.set_indices();
-            Ok(self)
-        }
+    pub fn swap_pets(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> &Self {
+        std::mem::swap(pet_1, pet_2);
+        // Additionally, swap the team related fields.
+        std::mem::swap(&mut pet_1.pos, &mut pet_2.pos);
+        std::mem::swap(&mut pet_1.seed, &mut pet_2.seed);
+        self
     }
 
     /// Swap a pets stats with another on the team.
@@ -458,35 +461,12 @@ impl Team {
     /// )
     /// ```
     pub fn swap_pet_stats(
-        &mut self,
-        mut pos_1: usize,
-        mut pos_2: usize,
-    ) -> Result<&mut Self, SAPTestError> {
-        // Swap idx so sorted.
-        if pos_1 > pos_2 {
-            std::mem::swap(&mut pos_1, &mut pos_2)
-        }
-        if pos_1 > self.friends.len() || pos_2 > self.friends.len() {
-            return Err(SAPTestError::InvalidTeamAction {
-                subject: "Swap Pet Stats".to_string(),
-                indices: vec![pos_1, pos_2],
-                reason: format!("{pos_1} or {pos_2} larger than len of friends."),
-            });
-        }
-        // Split and get two mut slices so can access elements at same time.
-        let (mut_slice_1, mut_slice_2) = self.friends.split_at_mut(pos_1 + 1);
-        let mut_slice_1_len = mut_slice_1.len();
-        let adj_pos_2 = pos_2.saturating_sub(mut_slice_1_len);
-        if let (Some(pet_1), Some(pet_2)) = (mut_slice_1.get(pos_1), mut_slice_2.get(adj_pos_2)) {
-            std::mem::swap(&mut pet_1.borrow_mut().stats, &mut pet_2.borrow_mut().stats);
-            Ok(self)
-        } else {
-            Err(SAPTestError::InvalidTeamAction {
-                subject: "Swap Pet Stats (Access)".to_string(),
-                indices: vec![pos_1, adj_pos_2],
-                reason: "Cannot access pets to swap stats.".to_string(),
-            })
-        }
+        &self,
+        pet_1: &mut Pet,
+        pet_2: &mut Pet,
+    ) -> Result<&Self, SAPTestError> {
+        std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
+        Ok(self)
     }
 
     /// Push a pet to another position on the team.
@@ -569,7 +549,7 @@ impl Team {
     ///     PetName::Leopard
     /// )
     /// ```
-    pub fn nth(&mut self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
+    pub fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
         if let Some(pet) = self
             .friends
             .get(idx)
@@ -627,7 +607,7 @@ impl Team {
     ///     PetName::Cat
     /// )
     /// ```
-    pub fn last(&mut self) -> Option<Rc<RefCell<Pet>>> {
+    pub fn last(&self) -> Option<Rc<RefCell<Pet>>> {
         if let Some(pet) = self
             .friends
             .last()
@@ -660,7 +640,7 @@ impl Team {
     /// )
     /// ```
     #[allow(dead_code)]
-    pub fn any(&mut self) -> Option<Rc<RefCell<Pet>>> {
+    pub fn any(&self) -> Option<Rc<RefCell<Pet>>> {
         let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
         self.all().into_iter().choose(&mut rng)
     }
@@ -684,7 +664,7 @@ impl Team {
     ///     3
     /// )
     /// ```
-    pub fn all(&mut self) -> Vec<Rc<RefCell<Pet>>> {
+    pub fn all(&self) -> Vec<Rc<RefCell<Pet>>> {
         self.friends
             .iter()
             .filter_map(|pet| {

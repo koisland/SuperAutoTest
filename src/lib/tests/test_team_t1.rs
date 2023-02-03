@@ -233,19 +233,19 @@ fn test_battle_hummingbird_team() {
     );
 }
 
-// #[test]
-// fn test_battle_iguana_seahorse_team() {
-//     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+#[test]
+fn test_battle_iguana_seahorse_team() {
+    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-//     let mut team = test_iguana_seahorse_team();
-//     let mut enemy_team = test_cricket_horse_team();
+    let mut team = test_iguana_seahorse_team();
+    let mut enemy_team = test_cricket_horse_team();
 
-//     // Start of battle pushes horse to 2nd position and it gets hit by iguana.
-//     // Seahorse knockouts cricket leaving zombie cricket.
-//     // Zombie cricket hit by iguana.
-//     team.fight(&mut enemy_team);
+    // Start of battle pushes horse to 2nd position and it gets hit by iguana.
+    // Seahorse knockouts cricket leaving zombie cricket.
+    // Zombie cricket hit by iguana.
+    team.fight(&mut enemy_team);
 
-//     // Only one pet remaining on enemy team.
-//     assert_eq!(enemy_team.first().unwrap().name, PetName::Cricket);
-//     assert_eq!(enemy_team.friends.len(), 1)
-// }
+    // Only one pet remaining on enemy team.
+    assert_eq!(enemy_team.first().unwrap().borrow().name, PetName::Cricket);
+    assert_eq!(enemy_team.friends.len(), 1)
+}
