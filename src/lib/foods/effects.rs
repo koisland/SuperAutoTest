@@ -1,7 +1,8 @@
 use crate::{
     battle::{
         effect::{Effect, Entity},
-        state::{Action, Condition, Position, Statistics, Target},
+        state::{Action, Condition, Position, Target},
+        stats::Statistics,
         trigger::*,
     },
     db::record::FoodRecord,

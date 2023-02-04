@@ -1,5 +1,5 @@
 use crate::{
-    battle::{state::Statistics, team::Team},
+    battle::{stats::Statistics, team::Team},
     foods::{food::Food, names::FoodName},
     pets::{names::PetName, pet::Pet},
 };

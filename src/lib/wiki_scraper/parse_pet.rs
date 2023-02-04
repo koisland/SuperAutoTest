@@ -3,7 +3,7 @@ use log::{error, info, warn};
 use std::{convert::TryInto, error::Error, str::FromStr};
 
 use crate::{
-    battle::state::Statistics,
+    battle::stats::Statistics,
     db::{pack::Pack, record::PetRecord},
     error::SAPTestError,
     regex_patterns::*,

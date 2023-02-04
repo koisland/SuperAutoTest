@@ -1,10 +1,5 @@
-use itertools::Itertools;
-
 use crate::{
-    battle::{
-        state::{Statistics, TeamFightOutcome},
-        team_effect_apply::EffectApply,
-    },
+    battle::{state::TeamFightOutcome, stats::Statistics, team_effect_apply::EffectApply},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{

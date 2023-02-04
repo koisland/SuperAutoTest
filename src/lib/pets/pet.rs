@@ -1,12 +1,9 @@
 use rand::random;
 use serde::{Deserialize, Serialize};
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
 
 use crate::{
-    battle::{
-        effect::Effect,
-        state::{Action, Statistics},
-    },
+    battle::{effect::Effect, state::Action, stats::Statistics},
     db::{setup::get_connection, utils::map_row_to_pet},
     error::SAPTestError,
     foods::food::Food,
@@ -217,7 +214,7 @@ impl Pet {
     ///     Action::Add(Statistics::new(4,2).unwrap())
     /// )
     /// ```
-    pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, Box<dyn Error>> {
+    pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         // Get pet stats and n_triggers from sqlite db. Otherwise, set to default.
@@ -227,7 +224,10 @@ impl Pet {
             let effect: Vec<Effect> = pet_record.try_into()?;
             Ok(effect)
         } else {
-            Err("No effect for pet at level.".into())
+            Err(SAPTestError::QueryFailure {
+                subject: "No Effect".to_string(),
+                reason: format!("No effect for {} at level {lvl}.", self.name),
+            })
         }
     }
 
@@ -282,10 +282,13 @@ impl Pet {
     /// // Additional experience is not allowed.
     /// assert!(pet.add_experience(3).is_err())
     /// ```
-    pub fn add_experience(&mut self, mut exp: usize) -> Result<&mut Self, Box<dyn Error>> {
+    pub fn add_experience(&mut self, mut exp: usize) -> Result<&mut Self, SAPTestError> {
         match self.lvl {
             MAX_PET_LEVEL => {
-                return Err("Already at level cap.".into());
+                return Err(SAPTestError::InvalidPetAction {
+                    subject: "Max Level".to_string(),
+                    reason: format!("{} at max level {}.", self.name, self.lvl),
+                });
             }
             _ => {
                 // lvl 1 -> lvl 2 (1 * (1-1) + (1+1)) = 2
@@ -338,9 +341,12 @@ impl Pet {
     /// // Invalid level.
     /// assert!(pet.set_level(5).is_err());
     /// ```
-    pub fn set_level(&mut self, lvl: usize) -> Result<&mut Self, Box<dyn Error>> {
+    pub fn set_level(&mut self, lvl: usize) -> Result<&mut Self, SAPTestError> {
         if !(MIN_PET_LEVEL..=MAX_PET_LEVEL).contains(&lvl) {
-            Err("Not a valid level.".into())
+            Err(SAPTestError::InvalidPetAction {
+                subject: "Invalid Level".to_string(),
+                reason: format!("{} cannot be set to {}.", self.name, lvl),
+            })
         } else {
             self.lvl = lvl;
             self.effect = self.get_effect(self.lvl)?;

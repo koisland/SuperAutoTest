@@ -1,7 +1,7 @@
 use crate::{
     battle::{
         effect::Effect,
-        state::{Action, Condition, Outcome, Position, Status, Target, TeamFightOutcome},
+        state::{Condition, Outcome, Position, Status, TeamFightOutcome},
         team_effect_apply::EffectApply,
         trigger::*,
     },
@@ -17,13 +17,10 @@ use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 use std::{
     cell::RefCell,
-    collections::{HashSet, VecDeque},
-    error::Error,
+    collections::VecDeque,
     fmt::Display,
     rc::{Rc, Weak},
 };
-
-use super::team_effect_apply::EffectApplyHelpers;
 
 /// A Super Auto Pets team.
 #[derive(Debug, Clone)]
@@ -110,7 +107,7 @@ impl Team {
         } else {
             // Index pets.
             let mut rc_pets: Vec<Rc<RefCell<Pet>>> = vec![];
-            
+
             for (i, mut pet) in pets.iter().cloned().enumerate() {
                 // Create id if one not assigned.
                 pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
@@ -130,7 +127,7 @@ impl Team {
                 rc_pets.push(rc_pet)
             }
             let n_rc_pets = rc_pets.len();
-            let curr_pet = rc_pets.first().map(|pet| Rc::downgrade(pet));
+            let curr_pet = rc_pets.first().map(Rc::downgrade);
             Ok(Team {
                 stored_friends: rc_pets.clone(),
                 friends: rc_pets,
@@ -394,7 +391,7 @@ impl Team {
                 Condition::IgnoreSelf => self
                     .all()
                     .into_iter()
-                    .filter(|pet| Rc::downgrade(pet).ptr_eq(&self.curr_pet.as_ref().unwrap()))
+                    .filter(|pet| Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
                     .collect_vec(),
                 Condition::HighestTier => self
                     .all()
@@ -460,11 +457,7 @@ impl Team {
     ///     team.nth(1).unwrap().stats == Statistics::new(6, 9).unwrap()
     /// )
     /// ```
-    pub fn swap_pet_stats(
-        &self,
-        pet_1: &mut Pet,
-        pet_2: &mut Pet,
-    ) -> Result<&Self, SAPTestError> {
+    pub fn swap_pet_stats(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> Result<&Self, SAPTestError> {
         std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
         Ok(self)
     }
@@ -495,7 +488,7 @@ impl Team {
         pos: usize,
         by: isize,
         opponent: Option<&mut Team>,
-    ) -> Result<&mut Self, Box<dyn Error>> {
+    ) -> Result<&mut Self, SAPTestError> {
         if pos < self.friends.len() {
             let new_pos: usize = if by.is_negative() {
                 let pos_by: usize = (-by).try_into()?;
@@ -505,7 +498,6 @@ impl Team {
             };
 
             let pet = self.friends.remove(pos);
-            pet.borrow_mut().pos = Some(new_pos);
 
             // Add push trigger.
             let mut push_any_trigger = TRIGGER_ANY_PUSHED;
@@ -522,11 +514,11 @@ impl Team {
             self.friends.insert(new_pos, pet);
             self.set_indices();
         } else {
-            return Err(Box::new(SAPTestError::InvalidTeamAction {
+            return Err(SAPTestError::InvalidTeamAction {
                 subject: "Push Pet".to_string(),
                 indices: vec![pos],
                 reason: "Invalid indices.".to_string(),
-            }));
+            });
         }
 
         Ok(self)
@@ -550,15 +542,11 @@ impl Team {
     /// )
     /// ```
     pub fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(pet) = self
+        self
             .friends
             .get(idx)
             .filter(|pet| pet.borrow().stats.health != 0)
-        {
-            Some(pet.clone())
-        } else {
-            None
-        }
+            .cloned()
     }
 
     /// Get the first pet on team.
@@ -579,15 +567,10 @@ impl Team {
     /// )
     /// ```
     pub fn first(&self) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(pet) = self
-            .friends
+        self.friends
             .first()
             .filter(|pet| pet.borrow().stats.health != 0)
-        {
-            Some(pet.clone())
-        } else {
-            None
-        }
+            .cloned()
     }
 
     /// Get the first pet on team.
@@ -608,15 +591,10 @@ impl Team {
     /// )
     /// ```
     pub fn last(&self) -> Option<Rc<RefCell<Pet>>> {
-        if let Some(pet) = self
+        self
             .friends
             .last()
-            .filter(|pet| pet.borrow().stats.health != 0)
-        {
-            Some(pet.clone())
-        } else {
-            None
-        }
+            .filter(|pet| pet.borrow().stats.health != 0).cloned()
     }
 
     /// Get a random available pet.
@@ -711,7 +689,7 @@ impl Team {
         mut pet: Pet,
         pos: usize,
         opponent: Option<&mut Team>,
-    ) -> Result<&mut Self, Box<dyn Error>> {
+    ) -> Result<&mut Self, SAPTestError> {
         // Assign id to pet if not any.
         let new_pet_id = format!("{}_{}", pet.name, self.pet_count + 1);
         pet.id = Some(pet.id.clone().unwrap_or(new_pet_id));
@@ -723,11 +701,11 @@ impl Team {
             // Add overflow to dead pets.
             self.fainted.push(rc_pet);
 
-            return Err(Box::new(SAPTestError::InvalidTeamAction {
+            return Err(SAPTestError::InvalidTeamAction {
                 subject: "Add Pet".to_string(),
                 indices: vec![pos],
                 reason: format!("Maximum number of pets ({}) reached.", self.max_size),
-            }));
+            });
         }
 
         // Set summon triggers.
@@ -743,7 +721,7 @@ impl Team {
         ) = (
             Some(weak_ref_pet.clone()),
             Some(weak_ref_pet.clone()),
-            Some(weak_ref_pet.clone()),
+            Some(weak_ref_pet),
         );
 
         if let Some(opponent) = opponent {

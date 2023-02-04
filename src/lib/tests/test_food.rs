@@ -1,6 +1,7 @@
 use crate::{
     battle::{
-        state::{Position, Statistics, TeamFightOutcome},
+        state::{Position, TeamFightOutcome},
+        stats::Statistics,
         team::Team,
     },
     foods::{food::Food, names::FoodName},

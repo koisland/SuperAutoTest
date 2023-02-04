@@ -4,7 +4,8 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     battle::{
         effect::Modify,
-        state::{Action, Outcome, Position, Statistics},
+        state::{Action, Outcome, Position},
+        stats::Statistics,
         trigger::*,
     },
     foods::names::FoodName,

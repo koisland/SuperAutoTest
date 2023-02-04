@@ -15,8 +15,8 @@
 //! pet.attack(&mut enemy_pet);
 //!
 //! // Or, create a team.
-//! let mut team = Team::new(&[Some(pet)], 5).unwrap();
-//! let mut enemy_team = Team::new(&[Some(enemy_pet)], 5).unwrap();
+//! let mut team = Team::new(&[pet], 5).unwrap();
+//! let mut enemy_team = Team::new(&[enemy_pet], 5).unwrap();
 //!
 //! // And fight as a team.
 //! team.fight(&mut enemy_team);
@@ -30,6 +30,7 @@
 //! # Shops
 //! * This is currently not implemented.
 //! * Consider using the Python package [sapai](https://github.com/manny405/sapai) if shop functionality is required.
+
 #![warn(missing_docs)]
 
 #[macro_use]
@@ -41,10 +42,7 @@ pub mod foods;
 pub mod pets;
 
 pub use crate::battle::{
-    effect::Effect,
-    state::{Outcome, Statistics},
-    team::Team,
-    team_effect_apply::EffectApply,
+    effect::Effect, state::Outcome, stats::Statistics, team::Team, team_effect_apply::EffectApply,
 };
 pub use crate::foods::{food::Food, names::FoodName};
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};

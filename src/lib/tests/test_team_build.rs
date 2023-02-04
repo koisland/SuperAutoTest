@@ -2,7 +2,8 @@ use std::rc::Rc;
 
 use crate::{
     battle::{
-        state::{Statistics, Status, TeamFightOutcome},
+        state::{Status, TeamFightOutcome},
+        stats::Statistics,
         team::Team,
     },
     pets::{names::PetName, pet::Pet},
@@ -98,7 +99,10 @@ fn test_team_swap() {
     )
     .unwrap();
 
-    team.swap_pets(&mut team.nth(0).unwrap().borrow_mut(), &mut team.nth(1).unwrap().borrow_mut());
+    team.swap_pets(
+        &mut team.nth(0).unwrap().borrow_mut(),
+        &mut team.nth(1).unwrap().borrow_mut(),
+    );
 
     assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Hippo);
     assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake)
@@ -177,7 +181,11 @@ fn test_team_swap_stats() {
             health: 5
         }
     );
-    team.swap_pet_stats(&mut team.nth(0).unwrap().borrow_mut(), &mut team.nth(1).unwrap().borrow_mut()).unwrap();
+    team.swap_pet_stats(
+        &mut team.nth(0).unwrap().borrow_mut(),
+        &mut team.nth(1).unwrap().borrow_mut(),
+    )
+    .unwrap();
 
     assert_eq!(
         team.nth(0).unwrap().borrow().stats,
@@ -201,7 +209,11 @@ fn test_team_swap_stats() {
             health: 4
         }
     );
-    team.swap_pet_stats(&mut team.nth(1).unwrap().borrow_mut(), &mut team.nth(2).unwrap().borrow_mut()).unwrap();
+    team.swap_pet_stats(
+        &mut team.nth(1).unwrap().borrow_mut(),
+        &mut team.nth(2).unwrap().borrow_mut(),
+    )
+    .unwrap();
 
     assert_eq!(
         team.nth(1).unwrap().borrow().stats,

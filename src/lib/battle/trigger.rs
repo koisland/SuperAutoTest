@@ -1,7 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    battle::state::{Condition, Outcome, Position, Statistics, Status, Target},
+    battle::{
+        state::{Condition, Outcome, Position, Status, Target},
+        stats::Statistics,
+    },
     Pet,
 };
 
@@ -30,8 +33,8 @@ pub fn get_atk_triggers(pet: &Rc<RefCell<Pet>>) -> [Outcome; 2] {
     let mut atk_trigger = TRIGGER_SELF_ATTACK;
     let mut next_atk_trigger = TRIGGER_AHEAD_ATTACK;
 
-    atk_trigger.affected_pet = Some(Rc::downgrade(&pet));
-    next_atk_trigger.affected_pet = Some(Rc::downgrade(&pet));
+    atk_trigger.affected_pet = Some(Rc::downgrade(pet));
+    next_atk_trigger.affected_pet = Some(Rc::downgrade(pet));
     [atk_trigger, next_atk_trigger]
 }
 /// All start of battle triggers.

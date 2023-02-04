@@ -140,25 +140,52 @@ fn test_apply_effect() {
 
 #[test]
 fn test() {
-    let pets = [
-        Pet::try_from(PetName::Gorilla).unwrap(),
-        Pet::try_from(PetName::Leopard).unwrap(),
-    ];
-    let enemy_pets = [
-        Pet::try_from(PetName::Leopard).unwrap(),
-        Pet::try_from(PetName::Gorilla).unwrap(),
-    ];
-    let team = Team::new(&pets, 5).unwrap();
-    let enemy_team = Team::new(&enemy_pets, 5).unwrap();
+    use sapt::{
+        battle::{state::Status, trigger::*},
+        EffectApply, Pet, PetName, Statistics, Team,
+    };
+    // Get mosquito effect.
+    let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
+    // Get effect with no reference.
+    let no_ref_mosquito_effect = mosquito.effect.first().cloned().unwrap();
 
-    team.swap_pets(
-        &mut team.friends.get(0).unwrap().borrow_mut(),
-        &mut enemy_team.friends.get(0).unwrap().borrow_mut()
+    // Init teams.
+    let mut team = Team::new(&vec![mosquito.clone(); 5], 5).unwrap();
+    let mut enemy_team = Team::new(&vec![mosquito; 5], 5).unwrap();
+    enemy_team.set_seed(0);
+
+    // Without a reference to the pet owning the effect, this will fail.
+    assert!(team
+        .apply_effect(
+            &TRIGGER_START_BATTLE,
+            &no_ref_mosquito_effect,
+            &mut enemy_team
+        )
+        .is_err());
+
+    // Get mosquito_effect with reference.
+    // Apply effect of mosquito at position 0 to a pet on team to enemy team.
+    let mosquito_effect = team
+        .first()
+        .unwrap()
+        .borrow()
+        .effect
+        .first()
+        .cloned()
+        .unwrap();
+    team.apply_effect(&TRIGGER_START_BATTLE, &mosquito_effect, &mut enemy_team)
+        .unwrap();
+
+    // Last enemy mosquito takes one damage and opponent triggers gets updated.
+    assert_eq!(
+        enemy_team.friends[4].borrow().stats,
+        Statistics::new(2, 1).unwrap()
     );
-    // assert!(
-    //     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
-    //     team.nth(1).unwrap().borrow().name == PetName::Gorilla
-    // );
+    assert!(enemy_team
+        .triggers
+        .iter()
+        .find(|trigger| trigger.status == Status::Hurt)
+        .is_some());
     println!("{}", team);
     println!("{}", enemy_team);
 }

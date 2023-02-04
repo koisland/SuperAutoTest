@@ -1,7 +1,8 @@
 use crate::{
     battle::{
         effect::Entity,
-        state::{Action, Condition, Position, Statistics, Target},
+        state::{Action, Condition, Position, Target},
+        stats::Statistics,
         trigger::*,
     },
     pets::combat::AttackOutcome,

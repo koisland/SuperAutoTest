@@ -1,7 +1,8 @@
 use crate::{
     battle::{
         effect::{Effect, Entity},
-        state::{Action, Condition, CopyAttr, Position, Statistics, Status, Target},
+        state::{Action, Condition, CopyAttr, Position, Status, Target},
+        stats::Statistics,
         trigger::*,
     },
     db::{query::query_pet, record::PetRecord, setup::get_connection},
