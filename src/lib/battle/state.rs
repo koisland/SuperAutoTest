@@ -82,12 +82,16 @@ pub enum Position {
     All(Condition),
     /// Position of self.
     OnSelf,
-    /// Position of [`Outcome`] trigger.
-    Trigger,
+    /// Pet affected in [`Outcome`] trigger.
+    TriggerAffected,
+    /// Pet causing in [`Outcome`] trigger.
+    TriggerAfflicting,
     /// First pet on [`Team`](crate::battle::team::Team).
     First,
     /// Last pet on [`Team`](crate::battle::team::Team).
     Last,
+    /// Opposite team's pet at the current pet index.
+    Opposite,
     /// A specified range on a [`Team`](crate::battle::team::Team).
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].
@@ -188,7 +192,7 @@ impl Outcome {
     }
 
     /// Attach the afflicting pet reference to an Outcome.
-    pub fn set_afflicted(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
+    pub fn set_afflicting(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
         self.afflicting_pet = Some(Rc::downgrade(pet));
         self
     }

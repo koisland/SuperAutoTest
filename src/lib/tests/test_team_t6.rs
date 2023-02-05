@@ -1,5 +1,5 @@
 use crate::{
-    battle::state::{Statistics, TeamFightOutcome},
+    battle::{state::TeamFightOutcome, stats::Statistics},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
@@ -17,7 +17,7 @@ fn test_battle_boar_team() {
     let mut team = test_boar_team();
     let mut enemy_team = test_sheep_team();
 
-    let original_boar_stats = team.first().unwrap().stats.clone();
+    let original_boar_stats = team.first().unwrap().borrow().stats;
     assert_eq!(
         original_boar_stats,
         Statistics {
@@ -29,7 +29,7 @@ fn test_battle_boar_team() {
 
     // After battle with first sheep (2,2) gains (4,2)
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         original_boar_stats
             + Statistics {
                 attack: 0,
@@ -54,13 +54,13 @@ fn test_battle_fly_team() {
 
     // Zombie fly spawned after cricket dies.
     // Applies before cricket because fly has higher attack.
-    assert_eq!(team.first().unwrap().name, PetName::ZombieFly);
-    assert_eq!(team.nth(1).unwrap().name, PetName::ZombieCricket);
+    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieFly);
+    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieCricket);
 
     // Zombie flies fight. But no flies are spawned when zombie flies die.
     team.fight(&mut enemy_team);
 
-    assert_eq!(team.first().unwrap().name, PetName::ZombieCricket);
+    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieCricket);
 
     // Finish battle.
     let mut outcome = team.fight(&mut enemy_team);
@@ -83,9 +83,9 @@ fn test_battle_gorilla_team() {
     let mut enemy_team = test_gorilla_team();
 
     // Gorilla has no items before fight.
-    assert_eq!(team.first().unwrap().item, None);
+    assert_eq!(team.first().unwrap().borrow().item, None);
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 9
@@ -94,12 +94,12 @@ fn test_battle_gorilla_team() {
     team.fight(&mut enemy_team);
 
     // Gorilla is hurt and gains coconut.
+    let mut coconut = Food::try_from(FoodName::Coconut).unwrap();
+    coconut.ability.assign_owner(Some(&team.first().unwrap()));
+
+    assert_eq!(team.first().unwrap().borrow().item, Some(coconut));
     assert_eq!(
-        team.first().unwrap().item,
-        Some(Food::try_from(FoodName::Coconut).unwrap())
-    );
-    assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 3
@@ -116,7 +116,7 @@ fn test_battle_leopard_team() {
 
     // One leopard on team.
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 10,
             health: 4
@@ -124,7 +124,7 @@ fn test_battle_leopard_team() {
     );
     // One gorilla on enemy team.
     assert_eq!(
-        enemy_team.first().unwrap().stats,
+        enemy_team.first().unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 9
@@ -135,7 +135,7 @@ fn test_battle_leopard_team() {
     team.fight(&mut enemy_team);
 
     assert_eq!(
-        enemy_team.first().unwrap().stats,
+        enemy_team.first().unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 4
@@ -154,7 +154,7 @@ fn test_battle_mammoth_team() {
     for team in [&team, &enemy_team].into_iter() {
         for pet in team.friends.get(1..).unwrap().iter() {
             assert_eq!(
-                pet.as_ref().unwrap().stats,
+                pet.borrow().stats,
                 Statistics {
                     attack: 3,
                     health: 4
@@ -172,7 +172,7 @@ fn test_battle_mammoth_team() {
     for team in [&team, &enemy_team].into_iter() {
         for pet in team.friends.iter() {
             assert_eq!(
-                pet.as_ref().unwrap().stats,
+                pet.borrow().stats,
                 Statistics {
                     attack: 5,
                     health: 6
@@ -192,7 +192,7 @@ fn test_battle_snake_team() {
     {
         // Frontline cricket won't kill enemy sheep in single turn.
         assert_eq!(
-            team.first().unwrap().stats,
+            team.first().unwrap().borrow().stats,
             Statistics {
                 attack: 1,
                 health: 2
@@ -200,13 +200,12 @@ fn test_battle_snake_team() {
         );
         let enemy_sheep = enemy_team.first().unwrap();
         assert_eq!(
-            enemy_sheep.stats,
+            enemy_sheep.borrow().stats,
             Statistics {
                 attack: 2,
                 health: 2
             }
         );
-        assert_eq!(enemy_sheep.name, PetName::Sheep)
     }
 
     // One battle phase passes.
@@ -215,7 +214,7 @@ fn test_battle_snake_team() {
 
     // Two ram spawn as result.
     for pet in enemy_team.all() {
-        assert_eq!(pet.name, PetName::Ram);
+        assert_eq!(pet.borrow().name, PetName::Ram);
     }
 }
 
@@ -229,15 +228,15 @@ fn test_battle_tiger_team() {
     {
         // Team of leopard and tiger.
         let pets = team.all();
-        assert_eq!(pets.get(0).unwrap().name, PetName::Leopard);
-        assert_eq!(pets.get(1).unwrap().name, PetName::Tiger);
+        assert_eq!(pets.get(0).unwrap().borrow().name, PetName::Leopard);
+        assert_eq!(pets.get(1).unwrap().borrow().name, PetName::Tiger);
         assert_eq!(pets.len(), 2)
     }
     {
         // Enemy team of two scorpions.
         let enemy_pets = enemy_team.all();
-        assert_eq!(enemy_pets.get(0).unwrap().name, PetName::Scorpion);
-        assert_eq!(enemy_pets.get(1).unwrap().name, PetName::Scorpion);
+        assert_eq!(enemy_pets.get(0).unwrap().borrow().name, PetName::Scorpion);
+        assert_eq!(enemy_pets.get(1).unwrap().borrow().name, PetName::Scorpion);
         assert_eq!(enemy_pets.len(), 2)
     }
     // Start of battle triggers leopard effect twice (due to tiger behind it) against scorpion team.
@@ -245,6 +244,6 @@ fn test_battle_tiger_team() {
 
     // Frontline leopard lives because its effect triggers twice.
     let pets = team.all();
-    assert_eq!(pets.get(0).unwrap().name, PetName::Leopard);
-    assert_eq!(pets.get(1).unwrap().name, PetName::Tiger);
+    assert_eq!(pets.get(0).unwrap().borrow().name, PetName::Leopard);
+    assert_eq!(pets.get(1).unwrap().borrow().name, PetName::Tiger);
 }

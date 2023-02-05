@@ -61,7 +61,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 Effect {
                     owner: None,
                     target: Target::Friend,
-                    position: Position::Trigger,
+                    position: Position::TriggerAffected,
                     action: Action::Summon(Some(bee), None),
                     uses,
                     entity: Entity::Food,
@@ -92,7 +92,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Mushroom => Effect {
                 owner: None,
                 target: Target::Friend,
-                position: Position::Trigger,
+                position: Position::TriggerAffected,
                 // Replace during runtime.
                 action: Action::Summon(
                     None,

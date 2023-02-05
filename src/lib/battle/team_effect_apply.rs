@@ -22,9 +22,10 @@ use std::{cell::RefCell, rc::Rc};
 
 /// Pet doesn't store a reference to team so this was a workaround.
 type TargetPet = Vec<(Target, Rc<RefCell<Pet>>)>;
-const NONSPECIFIC_POSITIONS: [Position; 3] = [
+const NONSPECIFIC_POSITIONS: [Position; 4] = [
     Position::None,
     Position::Any(Condition::None),
+    Position::Relative(-1),
     Position::All(Condition::None),
 ];
 
@@ -484,13 +485,12 @@ impl EffectApplyHelpers for Team {
         effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError> {
-        let name = self.name.clone();
         let mut target_ids: Vec<Option<String>> = vec![];
 
         match &effect.action {
             Action::Add(stats) => {
                 target_pet.borrow_mut().stats += *stats;
-                info!(target: "dev", "(\"{}\")\nAdded {} to {}.", name, stats, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Remove(stats) => {
@@ -506,27 +506,28 @@ impl EffectApplyHelpers for Team {
                     trigger.afflicting_pet = effect.owner.clone();
                 }
                 // Collect triggers for both teams.
-                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", name, stats.attack, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, stats.attack, target_pet.borrow());
                 self.triggers.extend(atk_outcome.friends);
                 opponent.triggers.extend(atk_outcome.opponents);
 
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Gain(food) => {
-                if let Some(food) = food {
-                    target_pet.borrow_mut().item = Some(*food.clone());
-                    info!(target: "dev", "(\"{}\")\nGave {} to {}.", name, food, target_pet.borrow());
+                if let Some(mut food) = food.clone() {
+                    info!(target: "dev", "(\"{}\")\nGave {} to {}.", self.name, food, target_pet.borrow());
+                    food.ability.assign_owner(Some(&target_pet));
+                    target_pet.borrow_mut().item = Some(*food);
                     target_ids.push(target_pet.borrow().id.clone())
                 }
             }
             Action::Experience => {
                 let prev_target_lvl = target_pet.borrow().lvl;
                 target_pet.borrow_mut().add_experience(1)?;
-                info!(target: "dev", "(\"{}\")\nGave experience point to {}.", name, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nGave experience point to {}.", self.name, target_pet.borrow());
 
                 // Target leveled up. Create trigger.
                 let pet_leveled_up = if target_pet.borrow().lvl != prev_target_lvl {
-                    info!(target: "dev", "(\"{}\")\nPet {} leveled up.", name, target_pet.borrow());
+                    info!(target: "dev", "(\"{}\")\nPet {} leveled up.", self.name, target_pet.borrow());
                     let mut lvl_trigger = TRIGGER_ANY_LEVELUP;
                     lvl_trigger.affected_pet = Some(Rc::downgrade(&target_pet));
                     Some(lvl_trigger)
@@ -552,7 +553,7 @@ impl EffectApplyHelpers for Team {
                     _ => unimplemented!("Position not implemented for push."),
                 };
                 if let Some(position) = target_pet.borrow().pos {
-                    info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", name, position, pos_change);
+                    info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", self.name, position, pos_change);
                     self.push_pet(position, pos_change, Some(opponent))?;
                 }
             }
@@ -563,9 +564,13 @@ impl EffectApplyHelpers for Team {
 
                     if (0..self.friends.len()).contains(&target_idx) {
                         self.friends.remove(target_idx);
-                        info!(target: "dev", "(\"{}\")\nTransformed pet at position {} to {}.", name, target_idx, &transformed_pet);
-                        self.friends
-                            .insert(target_idx, Rc::new(RefCell::new(transformed_pet)));
+                        info!(target: "dev", "(\"{}\")\nTransformed pet at position {} to {}.", self.name, target_idx, &transformed_pet);
+                        let rc_transformed_pet = Rc::new(RefCell::new(transformed_pet));
+
+                        for effect in rc_transformed_pet.borrow_mut().effect.iter_mut() {
+                            effect.assign_owner(Some(&rc_transformed_pet));
+                        }
+                        self.friends.insert(target_idx, rc_transformed_pet);
                     }
                 }
             }
@@ -643,7 +648,7 @@ impl EffectApplyHelpers for Team {
             }
             Action::Kill => {
                 target_pet.borrow_mut().stats.health = 0;
-                info!(target: "dev", "(\"{}\")\nKilled pet {}.", name, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, target_pet.borrow());
 
                 let mut self_faint_triggers = get_self_faint_triggers(&None);
                 let mut enemy_faint_triggers = get_self_enemy_faint_triggers(&None);
@@ -673,8 +678,8 @@ impl EffectApplyHelpers for Team {
                 // If kill by indirect, still counts as knockout.
                 if target_pet.borrow().stats.health == 0 {
                     let mut knockout_trigger = TRIGGER_KNOCKOUT;
-                    knockout_trigger.set_affected(&target_pet);
-                    knockout_trigger.afflicting_pet = effect.owner.clone();
+                    knockout_trigger.set_afflicting(&target_pet);
+                    knockout_trigger.affected_pet = effect.owner.clone();
                     opponent.triggers.push_front(knockout_trigger)
                 }
 
@@ -691,13 +696,13 @@ impl EffectApplyHelpers for Team {
                 self.triggers.extend(atk_outcome.friends);
                 opponent.triggers.extend(atk_outcome.opponents);
 
-                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", name, tier_spec_stats.attack, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, tier_spec_stats.attack, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Debuff(perc_stats) => {
                 let debuff_stats = target_pet.borrow().stats * *perc_stats;
                 target_pet.borrow_mut().stats -= debuff_stats;
-                info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", name, target_pet.borrow(), perc_stats)
+                info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, target_pet.borrow(), perc_stats)
             }
             Action::Lynx => {
                 let opponent_lvls: usize = opponent.all().iter().map(|pet| pet.borrow().lvl).sum();
@@ -728,11 +733,6 @@ impl EffectApplyHelpers for Team {
                 self.copy_effect(attr, targets, &target_pet)?;
 
                 target_ids.push(target_pet.borrow().id.clone())
-            }
-            Action::Thorns(stats) => {
-                let mut thorn_effect = effect.clone();
-                thorn_effect.action = Action::Remove(*stats);
-                self.apply_single_effect(target_pet, &thorn_effect, opponent)?;
             }
             Action::None => {}
             _ => unimplemented!("Action not implemented"),
@@ -850,18 +850,39 @@ impl EffectApplyHelpers for Team {
                     }
                 }
             }
+            (Target::Friend | Target::Enemy, Position::Opposite) => {
+                let team = if effect.target == Target::Friend {
+                    self
+                } else {
+                    opponent
+                };
+                if let Some(Some(pos)) = &curr_pet.map(|pet| pet.borrow().pos) {
+                    if let Some(opposite_pet) = team.nth(*pos) {
+                        pets.push((effect.target, opposite_pet))
+                    }
+                }
+            }
             (_, Position::OnSelf) => {
                 if let Some(self_pet) = &curr_pet {
                     pets.push((effect.target, self_pet.clone()))
                 }
             }
-            (_, Position::Trigger) => {
+            (_, Position::TriggerAffected) => {
                 if let Some(Some(affected_pet)) = trigger
                     .affected_pet
                     .as_ref()
                     .map(|pet_ref| pet_ref.upgrade())
                 {
                     pets.push((trigger.affected_team, affected_pet))
+                }
+            }
+            (_, Position::TriggerAfflicting) => {
+                if let Some(Some(afflicting_pet)) = trigger
+                    .afflicting_pet
+                    .as_ref()
+                    .map(|pet_ref| pet_ref.upgrade())
+                {
+                    pets.push((trigger.affected_team, afflicting_pet))
                 }
             }
             (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {

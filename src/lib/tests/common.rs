@@ -1,20 +1,16 @@
+use std::{cell::RefCell, rc::Rc};
+
 use crate::{
-    battle::{stats::Statistics, team::Team},
+    battle::{state::Position, stats::Statistics, team::Team},
     foods::{food::Food, names::FoodName},
     pets::{names::PetName, pet::Pet},
 };
 
-pub fn count_pets(friends: &[Option<Pet>], pet_name: PetName) -> usize {
+pub fn count_pets(friends: &[Rc<RefCell<Pet>>], pet_name: PetName) -> usize {
     friends
         .iter()
-        .filter_map(|pet| {
-            if let Some(pet) = pet {
-                (pet.name == pet_name).then_some(1)
-            } else {
-                None
-            }
-        })
-        .sum::<usize>()
+        .filter_map(|pet| (pet.borrow().name == pet_name).then_some(1))
+        .sum()
 }
 
 pub fn test_ant_team() -> Team {
@@ -395,9 +391,14 @@ pub fn test_bear_team() -> Team {
 }
 
 pub fn test_seagull_team() -> Team {
-    let mut seagull = Pet::try_from(PetName::Seagull).unwrap();
-    seagull.item = Some(Food::try_from(FoodName::Honey).unwrap());
-    Team::new(&[Pet::try_from(PetName::Cricket).unwrap(), seagull], 5).unwrap()
+    let seagull = Pet::try_from(PetName::Seagull).unwrap();
+    let mut team = Team::new(&[Pet::try_from(PetName::Cricket).unwrap(), seagull], 5).unwrap();
+    team.set_item(
+        Position::Last,
+        Some(Food::try_from(FoodName::Honey).unwrap()),
+    )
+    .unwrap();
+    team
 }
 
 pub fn test_blobfish_team() -> Team {

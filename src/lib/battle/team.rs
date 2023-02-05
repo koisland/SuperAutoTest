@@ -1,7 +1,7 @@
 use crate::{
     battle::{
         effect::Effect,
-        state::{Condition, Outcome, Position, Target, TeamFightOutcome},
+        state::{Condition, Outcome, Position, Status, Target, TeamFightOutcome},
         team_effect_apply::{EffectApply, EffectApplyHelpers},
         trigger::*,
     },
@@ -151,16 +151,28 @@ impl PartialEq for Team {
 
 impl Team {
     /// Create a new team of pets of a given size.
-    ///
+    /// # Examples
+    /// ---
+    /// Standard 5-pet team.
     /// ```
     /// use sapt::{Pet, PetName, Team, EffectApply};
-    ///
     /// let team = Team::new(
-    ///     &[Pet::try_from(PetName::Dog).unwrap()],
+    ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 5],
     ///     5
     /// );
-    ///
     /// assert!(team.is_ok());
+    /// assert_eq!(team.unwrap().friends.len(), 5);
+    /// ```
+    /// ---
+    /// Team of 20 pets.
+    /// ```
+    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// let team = Team::new(
+    ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 20],
+    ///     20
+    /// );
+    /// assert!(team.is_ok());
+    /// assert_eq!(team.unwrap().friends.len(), 20);
     /// ```
     pub fn new(pets: &[Pet], max_size: usize) -> Result<Team, SAPTestError> {
         if pets.len() > max_size {
@@ -190,7 +202,6 @@ impl Team {
         }
     }
 
-
     /// Create reference counted pets.
     fn create_rc_pets(pets: &[Pet]) -> Vec<Rc<RefCell<Pet>>> {
         // Index pets.
@@ -219,7 +230,7 @@ impl Team {
 
     #[allow(dead_code)]
     /// Restore a team to its initial state.
-    ///
+    /// # Example
     /// ```
     /// use sapt::{Pet, PetName, Team, EffectApply};
     ///
@@ -259,7 +270,7 @@ impl Team {
     pub fn clear_team(&mut self) -> &mut Self {
         let mut new_idx = 0;
         self.friends.retain(|pet| {
-            // Check if empty slot
+            // Check if not dead.
             if pet.borrow().stats.health != 0 {
                 pet.borrow_mut().pos = Some(new_idx);
                 new_idx += 1;
@@ -314,10 +325,8 @@ impl Team {
     ///     Some(Food::new(&FoodName::Garlic).unwrap())
     /// ).unwrap();
     ///
-    /// assert!(
-    ///     team.first().map_or(
-    ///         false, |pet| pet.borrow().item.as_ref().unwrap().name == FoodName::Garlic)
-    /// );
+    /// let dog = team.first().unwrap();
+    /// assert_eq!(dog.borrow().item.as_ref().unwrap().name, FoodName::Garlic);
     /// ```
     pub fn set_item(
         &mut self,
@@ -340,6 +349,39 @@ impl Team {
                 item.ability.trigger.affected_pet = Some(Rc::downgrade(pet));
             }
             pet.borrow_mut().item = item_copy;
+            pet.borrow_mut().update_missing_food_effects();
+        }
+        Ok(self)
+    }
+    /// Assign an item to a team member.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    ///
+    /// let mut team = Team::new(
+    ///     &[Pet::try_from(PetName::Dog).unwrap()],
+    ///     5
+    /// ).unwrap();
+    /// team.set_level(Position::First, 2).unwrap();
+    ///
+    /// let dog = team.first().unwrap();
+    /// assert_eq!(dog.borrow().get_level(), 2);
+    /// ```
+    pub fn set_level(&mut self, pos: Position, lvl: usize) -> Result<&mut Self, SAPTestError> {
+        // Create a temporary effect to grab all desired pets to give items to.
+        let null_effect = Effect {
+            target: Target::Friend,
+            position: pos,
+            owner: self.curr_pet.clone(),
+            ..Default::default()
+        };
+        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)?;
+
+        for (_, pet) in affected_pets.iter() {
+            pet.borrow_mut().set_level(lvl)?;
+            for effect in pet.borrow_mut().effect.iter_mut() {
+                effect.assign_owner(Some(pet));
+            }
         }
         Ok(self)
     }
@@ -477,7 +519,7 @@ impl Team {
                 Condition::IgnoreSelf => self
                     .all()
                     .into_iter()
-                    .filter(|pet| Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
+                    .filter(|pet| !Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
                     .collect_vec(),
                 Condition::HighestTier => self
                     .all()
@@ -786,6 +828,14 @@ impl Team {
             });
         }
 
+        // Assign effects to new pet.
+        for effect in rc_pet.borrow_mut().effect.iter_mut() {
+            effect.assign_owner(Some(&rc_pet));
+        }
+        if let Some(food_item) = rc_pet.borrow_mut().item.as_mut() {
+            food_item.ability.assign_owner(Some(&rc_pet));
+        }
+
         // Set summon triggers.
         let mut self_trigger = TRIGGER_SELF_SUMMON;
         let mut any_trigger = TRIGGER_ANY_SUMMON;
@@ -805,11 +855,7 @@ impl Team {
         if let Some(opponent) = opponent {
             opponent.triggers.push_back(any_enemy_trigger)
         }
-        self.triggers.extend([
-            // May run into issue with mushroomed scorpion.
-            self_trigger,
-            any_trigger,
-        ]);
+        self.triggers.extend([self_trigger, any_trigger]);
 
         info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), rc_pet.borrow());
         self.friends.insert(pos, rc_pet);
@@ -821,7 +867,8 @@ impl Team {
     /// Fight another team for a single battle phase.
     ///
     /// # Examples
-    /// #### To complete the battle.
+    /// ---
+    /// To complete the battle.
     /// ```rust
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
@@ -841,7 +888,8 @@ impl Team {
     ///
     /// assert!(outcome == TeamFightOutcome::Loss);
     /// ```
-    /// #### To complete `n` turns.
+    /// ---
+    /// To complete `n` turns.
     /// ```rust
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
@@ -872,6 +920,9 @@ impl Team {
             opponent.trigger_effects(self);
         }
 
+        self.clear_team();
+        opponent.clear_team();
+
         // If current phase is 0, add before first battle triggers.
         // Used for butterfly.
         if self.history.curr_phase == 0 {
@@ -900,9 +951,6 @@ impl Team {
                     .to_owned(),
             );
 
-            self.clear_team();
-            opponent.clear_team();
-
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
                 self.trigger_effects(opponent);
                 opponent.trigger_effects(self);
@@ -919,27 +967,28 @@ impl Team {
 
             // Update outcomes with weak references.
             for trigger in outcome.friends.iter_mut() {
-                trigger.set_affected(&pet).set_afflicted(&opponent_pet);
+                trigger.set_affected(&pet).set_afflicting(&opponent_pet);
             }
             for trigger in outcome.opponents.iter_mut() {
-                trigger.set_affected(&opponent_pet).set_afflicted(&pet);
+                trigger.set_affected(&opponent_pet).set_afflicting(&pet);
             }
 
-            // if let Some(hurt_trigger) = outcome
-            //     .friends
-            //     .iter()
-            //     .find(|trigger| trigger.status == Status::Hurt)
-            // {
-            //     self.create_node(hurt_trigger);
-            // }
+            // Create node for hurt and attack status.
+            if let Some(trigger) = outcome
+                .friends
+                .iter()
+                .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
+            {
+                self.create_node(trigger);
+            }
 
-            // if let Some(opponent_hurt_trigger) = outcome
-            //     .opponents
-            //     .iter()
-            //     .find(|trigger| trigger.status == Status::Hurt)
-            // {
-            //     opponent.create_node(opponent_hurt_trigger);
-            // }
+            if let Some(trigger) = outcome
+                .opponents
+                .iter()
+                .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
+            {
+                opponent.create_node(trigger);
+            }
 
             // Add triggers to team from outcome of battle.
             self.triggers.extend(outcome.friends.into_iter());
@@ -969,6 +1018,8 @@ impl Team {
                 opponent.trigger_effects(self).clear_team();
             }
         }
+
+        // Check if battle complete.
         if !self.friends.is_empty() && !opponent.friends.is_empty() {
             TeamFightOutcome::None
         } else {
@@ -989,13 +1040,13 @@ impl Team {
         }
     }
 
-    // /// Create a node logging an effect's result for a [`Team`]'s history.
-    // fn create_node(&mut self, trigger: &Outcome) -> &mut Self {
-    //     let node_idx = self.history.effect_graph.add_node(trigger.clone());
-    //     self.history.prev_node = self.history.curr_node;
-    //     self.history.curr_node = Some(node_idx);
-    //     self
-    // }
+    /// Create a node logging an effect's result for a [`Team`]'s history.
+    fn create_node(&mut self, trigger: &Outcome) -> &mut Self {
+        let node_idx = self.history.effect_graph.add_node(trigger.clone());
+        self.history.prev_node = self.history.curr_node;
+        self.history.curr_node = Some(node_idx);
+        self
+    }
 }
 
 impl Display for Team {

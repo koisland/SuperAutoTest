@@ -108,7 +108,7 @@ fn test_team_restore() {
 
 #[test]
 fn test_team_swap() {
-    let mut team = Team::new(
+    let team = Team::new(
         &[
             Pet::try_from(PetName::Snake).unwrap(),
             Pet::try_from(PetName::Hippo).unwrap(),
@@ -175,7 +175,7 @@ fn test_team_push() {
 
 #[test]
 fn test_team_swap_stats() {
-    let mut team = Team::new(
+    let team = Team::new(
         &[
             Pet::try_from(PetName::Snake).unwrap(),
             Pet::try_from(PetName::Hippo).unwrap(),

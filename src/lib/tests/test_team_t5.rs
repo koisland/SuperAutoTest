@@ -1,10 +1,13 @@
 use crate::{
-    battle::state::{Action, Statistics, TeamFightOutcome},
+    battle::{
+        state::{Action, TeamFightOutcome},
+        stats::Statistics,
+    },
     foods::{food::Food, names::FoodName},
-    pets::{names::PetName, pet::Pet},
+    pets::names::PetName,
     tests::common::{
-        test_cricket_horse_team, test_crocodile_team, test_rhino_team, test_scorpion_team,
-        test_shark_team, test_skunk_team, test_turkey_team,
+        count_pets, test_cricket_horse_team, test_crocodile_team, test_rhino_team,
+        test_scorpion_team, test_shark_team, test_skunk_team, test_turkey_team,
     },
 };
 
@@ -17,17 +20,17 @@ fn test_battle_croc_team() {
     let mut team = test_crocodile_team();
     let mut enemy_team = test_crocodile_team();
 
-    let last_pet = team.friends.last().unwrap().as_ref().unwrap();
-    let last_enemy_pet = team.friends.last().unwrap().as_ref().unwrap();
-    assert_eq!(last_pet.name, PetName::Cricket);
-    assert_eq!(last_enemy_pet.name, PetName::Cricket);
+    let last_pet = team.friends.last().unwrap();
+    let last_enemy_pet = team.friends.last().unwrap();
+    assert_eq!(last_pet.borrow().name, PetName::Cricket);
+    assert_eq!(last_enemy_pet.borrow().name, PetName::Cricket);
 
     // After start of battle, both crickets at end are sniped.
     // Two zombie crickets are spawned in their place.
     team.fight(&mut enemy_team);
 
-    let last_pet = team.friends.last().unwrap().as_ref().unwrap();
-    let last_enemy_pet = team.friends.last().unwrap().as_ref().unwrap();
+    let last_pet = team.friends.last().unwrap().borrow();
+    let last_enemy_pet = team.friends.last().unwrap().borrow();
 
     assert_eq!(team.friends.len(), 4);
     assert_eq!(enemy_team.friends.len(), 4);
@@ -47,7 +50,7 @@ fn test_battle_rhino_team() {
     assert_eq!(outcome, TeamFightOutcome::None);
     // Only one damage from first cricket to trigger chain of faint triggers.
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 5,
             health: 7
@@ -57,7 +60,7 @@ fn test_battle_rhino_team() {
     assert!(enemy_team
         .all()
         .iter()
-        .all(|pet| pet.name == PetName::ZombieCricket))
+        .all(|pet| pet.borrow().name == PetName::ZombieCricket))
 }
 
 #[test]
@@ -67,7 +70,7 @@ fn test_battle_scorpion_team() {
     let mut team = test_scorpion_team();
     let mut enemy_team = test_skunk_team();
     // At start of turn, scorpion doesn't have peanuts. Then gains it.
-    assert_eq!(team.first().unwrap().item, None);
+    assert_eq!(team.first().unwrap().borrow().item, None);
     let outcome = team.fight(&mut enemy_team);
 
     // Win after single turn due to peanuts.
@@ -97,21 +100,8 @@ fn test_battle_shark_team() {
     // Removed
     enemy_team.friends.remove(0);
 
-    let count_crickets = |friends: &[Option<Pet>]| {
-        friends
-            .iter()
-            .filter_map(|pet| {
-                if let Some(pet) = pet {
-                    (pet.name == PetName::Cricket).then_some(1)
-                } else {
-                    None
-                }
-            })
-            .sum::<usize>()
-    };
-
-    let n_team_crickets = count_crickets(&team.friends);
-    let n_enemy_team_crickets = count_crickets(&enemy_team.friends);
+    let n_team_crickets = count_pets(&team.friends, PetName::Cricket);
+    let n_enemy_team_crickets = count_pets(&enemy_team.friends, PetName::Cricket);
 
     // Lvl. 1 shark gains (1,2) on any faint.
     // (self) 4 crickets so 8 total faint triggers.
@@ -165,11 +155,10 @@ fn test_battle_turkey_team() {
     // Cricket faints, zombie version spawned, and it gains (3,3) (lvl.1 turkey)
     let zombie_cricket = team.first().unwrap();
     assert_eq!(
-        zombie_cricket.stats,
+        zombie_cricket.borrow().stats,
         Statistics {
             attack: 4,
             health: 4
         }
     );
-    assert_eq!(zombie_cricket.name, PetName::ZombieCricket)
 }

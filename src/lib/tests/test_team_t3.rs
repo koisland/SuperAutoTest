@@ -1,5 +1,8 @@
 use crate::{
-    battle::state::{Statistics, Status, TeamFightOutcome},
+    battle::{
+        state::{Status, TeamFightOutcome},
+        stats::Statistics,
+    },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
@@ -21,7 +24,7 @@ fn test_battle_badger_team() {
     let mut team = test_badger_team();
     let mut enemy_team = test_dolphin_team();
 
-    assert_eq!(team.nth(1).unwrap().stats.health, 5);
+    assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
     // Dolphin immediately kills badger.
     // Badger's effect triggers dealing 3 dmg to both adjacent pets.
     let mut fight = team.fight(&mut enemy_team);
@@ -30,7 +33,7 @@ fn test_battle_badger_team() {
     }
 
     assert_eq!(fight, TeamFightOutcome::Win);
-    assert_eq!(team.first().unwrap().stats.health, 2)
+    assert_eq!(team.first().unwrap().borrow().stats.health, 2)
 }
 
 #[test]
@@ -40,7 +43,7 @@ fn test_battle_blowfish_team() {
     let mut team = test_blowfish_team();
     let mut enemy_team = test_ant_team();
 
-    assert_eq!(team.nth(1).unwrap().stats.health, 5);
+    assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
 
     team.fight(&mut enemy_team);
 
@@ -48,7 +51,7 @@ fn test_battle_blowfish_team() {
     // Another dies to elephant attack.
     assert_eq!(enemy_team.all().len(), 1);
     // Blowfish takes 1 dmg.
-    assert_eq!(team.nth(1).unwrap().stats.health, 4);
+    assert_eq!(team.nth(1).unwrap().borrow().stats.health, 4);
 }
 
 #[test]
@@ -82,16 +85,16 @@ fn test_battle_camel_team() {
     let mut team = test_camel_team();
     let mut enemy_team = test_ant_team();
 
-    assert_eq!(team.nth(1).unwrap().stats.health, 6);
+    assert_eq!(team.nth(1).unwrap().borrow().stats.health, 6);
     // Ant has 1 health.
-    assert_eq!(team.nth(2).unwrap().stats.health, 1);
+    assert_eq!(team.nth(2).unwrap().borrow().stats.health, 1);
 
     team.fight(&mut enemy_team);
 
     // Camel takes 1 dmg from elephant.
-    assert_eq!(team.nth(1).unwrap().stats.health, 5);
+    assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
     // And gives ant 2 hp.
-    assert_eq!(team.nth(2).unwrap().stats.health, 3);
+    assert_eq!(team.nth(2).unwrap().borrow().stats.health, 3);
 }
 
 #[test]
@@ -101,9 +104,9 @@ fn test_battle_dog_team() {
     let mut team = test_dog_team();
     let mut enemy_team = test_ant_team();
 
-    assert_eq!(team.nth(0).unwrap().name, PetName::Cricket);
+    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Cricket);
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 4
@@ -111,10 +114,10 @@ fn test_battle_dog_team() {
     );
     team.fight(&mut enemy_team);
 
-    assert_eq!(team.nth(0).unwrap().name, PetName::ZombieCricket);
+    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::ZombieCricket);
     // Dog gains (1,1) after Zombie Cricket spawns.
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 4,
             health: 5
@@ -130,7 +133,7 @@ fn test_battle_kangaroo_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -140,7 +143,7 @@ fn test_battle_kangaroo_team() {
 
     // Friend ahead attacks once increasing stats by (2,2)
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 4
@@ -158,9 +161,9 @@ fn test_battle_ox_team() {
     {
         let ox = team.nth(1).unwrap();
         // No item on default lvl.1 ox.
-        assert!(ox.item.is_none());
+        assert!(ox.borrow().item.is_none());
         assert_eq!(
-            ox.stats,
+            ox.borrow().stats,
             Statistics {
                 attack: 1,
                 health: 3
@@ -173,10 +176,12 @@ fn test_battle_ox_team() {
 
     let ox = team.nth(0).unwrap();
     // Gets melon armor.
-    assert_eq!(ox.item, Some(Food::new(&FoodName::Melon).unwrap()));
+    let mut melon_armor = Food::new(&FoodName::Melon).unwrap();
+    melon_armor.ability.assign_owner(Some(&ox));
+    assert_eq!(ox.borrow().item, Some(melon_armor));
     // And an extra attack.
     assert_eq!(
-        ox.stats,
+        ox.borrow().stats,
         Statistics {
             attack: 2,
             health: 3
@@ -201,7 +206,7 @@ fn test_battle_sheep_team() {
         assert_eq!(pets.len(), 2);
 
         for pet in pets.iter() {
-            assert_eq!(pet.name, PetName::Ram)
+            assert_eq!(pet.borrow().name, PetName::Ram)
         }
     }
 }
@@ -215,11 +220,10 @@ fn test_battle_filled_team() {
     team.fight(&mut enemy_team);
 
     // Overflow in pets (ram in this case) gets added to team's dead.
-    assert_eq!(2, team.fainted.len());
-    assert_eq!(
-        PetName::Ram,
-        team.fainted.first().unwrap().as_ref().unwrap().name
-    )
+    let fainted_pets = &team.fainted;
+    let first_pet = fainted_pets.first().unwrap().borrow().name.clone();
+    assert_eq!(2, fainted_pets.len());
+    assert_eq!(PetName::Ram, first_pet)
 }
 
 #[test]
@@ -228,7 +232,7 @@ fn test_battle_aardvark_team() {
     let mut team = test_aardvark_team();
     let mut enemy_team = test_cricket_horse_team();
 
-    let aardvark_stats = team.first().unwrap().stats;
+    let aardvark_stats = team.first().unwrap().borrow().stats;
     assert_eq!(aardvark_stats, Statistics::new(2, 3).unwrap());
 
     // Fights first cricket.
@@ -236,10 +240,13 @@ fn test_battle_aardvark_team() {
 
     // Cricket faints and Zombie Cricket spawns
     assert_eq!(
-        enemy_team.fainted.first().unwrap().as_ref().unwrap().name,
+        enemy_team.fainted.first().unwrap().borrow().name,
         PetName::Cricket
     );
-    assert_eq!(enemy_team.first().unwrap().name, PetName::ZombieCricket);
+    assert_eq!(
+        enemy_team.first().unwrap().borrow().name,
+        PetName::ZombieCricket
+    );
 
     // One dmg from cricket, zombie cricket spawns and (2,2) given to aardvark.
     assert_eq!(
@@ -252,7 +259,7 @@ fn test_battle_aardvark_team() {
                 attack: 2,
                 health: 2
             },
-        team.first().unwrap().stats
+        team.first().unwrap().borrow().stats
     );
 }
 
@@ -263,27 +270,29 @@ fn test_battle_bear_team() {
     let mut enemy_team = test_hummingbird_team();
 
     // Dog at position behind bear has no item.
-    assert_eq!(team.nth(1).unwrap().item, None);
+    assert_eq!(team.nth(1).unwrap().borrow().item, None);
     // Enemy team first pet (duck) has strawberry.
-    assert_eq!(
-        enemy_team.first().unwrap().item.as_ref().unwrap().name,
-        FoodName::Strawberry
-    );
+    let enemy_duck_item = enemy_team.first().unwrap().borrow().item.clone();
+    assert_eq!(enemy_duck_item.unwrap().name, FoodName::Strawberry);
     team.fight(&mut enemy_team);
 
     // Bear fainted.
-    assert_eq!(
-        team.fainted.first().unwrap().as_ref().unwrap().name,
-        PetName::Bear
-    );
+    assert_eq!(team.fainted.first().unwrap().borrow().name, PetName::Bear);
     // Duck now has honey.
     assert_eq!(
-        enemy_team.first().unwrap().item.as_ref().unwrap().name,
+        enemy_team
+            .first()
+            .unwrap()
+            .borrow()
+            .item
+            .as_ref()
+            .unwrap()
+            .name,
         FoodName::Honey
     );
     // Dog now has honey.
     assert_eq!(
-        team.first().unwrap().item.as_ref().unwrap().name,
+        team.first().unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Honey
     );
 }
@@ -295,10 +304,10 @@ fn test_battle_seagull_team() {
     let mut enemy_team = test_ant_team();
 
     // First pet summons zombie cricket.
-    assert_eq!(team.first().unwrap().name, PetName::Cricket);
+    assert_eq!(team.first().unwrap().borrow().name, PetName::Cricket);
     // Seagull has honey.
     assert_eq!(
-        team.nth(1).unwrap().item.as_ref().unwrap().name,
+        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Honey
     );
     team.fight(&mut enemy_team);
@@ -307,8 +316,8 @@ fn test_battle_seagull_team() {
     {
         let zombie_cricket = team.first().unwrap();
         assert!(
-            zombie_cricket.name == PetName::ZombieCricket
-                && zombie_cricket.item.as_ref().unwrap().name == FoodName::Honey
+            zombie_cricket.borrow().name == PetName::ZombieCricket
+                && zombie_cricket.borrow().item.as_ref().unwrap().name == FoodName::Honey
         );
     }
 
@@ -316,7 +325,10 @@ fn test_battle_seagull_team() {
     team.fight(&mut enemy_team);
 
     // Seagull ability only activates once. Bee does not get honey.
-    assert!(team.first().unwrap().name == PetName::Bee && team.first().unwrap().item == None);
+    assert!(
+        team.first().unwrap().borrow().name == PetName::Bee
+            && team.first().unwrap().borrow().item == None
+    );
 }
 
 #[test]
@@ -326,16 +338,16 @@ fn test_battle_blobfish_team() {
     let mut enemy_team = test_hummingbird_team();
 
     // Dog behind has no experience.
-    assert_eq!(team.nth(1).unwrap().exp, 0);
+    assert_eq!(team.nth(1).unwrap().borrow().exp, 0);
     team.fight(&mut enemy_team);
 
     // Blobfish dies.
     assert_eq!(
-        team.fainted.first().unwrap().as_ref().unwrap().name,
+        team.fainted.first().unwrap().as_ref().borrow().name,
         PetName::Blobfish
     );
     // Dog in front now has 1 experience.
-    assert_eq!(team.first().unwrap().exp, 1);
+    assert_eq!(team.first().unwrap().borrow().exp, 1);
 }
 
 #[test]
@@ -347,20 +359,22 @@ fn test_battle_clownfish_team() {
     // Dog behind blobfish is level 1 and has 1 exp.
     let dog_stats = {
         let dog = team.nth(1).unwrap();
-        assert!(dog.exp == 1 && dog.lvl == 1);
-        assert_eq!(Statistics::new(4, 5).unwrap(), dog.stats);
-        dog.stats
+        assert!(dog.borrow().exp == 1 && dog.borrow().lvl == 1);
+        assert_eq!(Statistics::new(4, 5).unwrap(), dog.borrow().stats);
+        let stats = dog.borrow().stats;
+        stats
     };
     // Blobfish dies during fight and levels dog to 2.
     team.fight(&mut enemy_team);
 
     {
         let dog = team.first().unwrap();
-        assert!(dog.exp == 2 && dog.lvl == 2);
+        let new_dog_stats = dog.borrow().stats;
+        assert!(dog.borrow().exp == 2 && dog.borrow().lvl == 2);
         // Dog gains (1,1) from blobfish experience and (2,2) from clownfish on level.
         assert_eq!(
             dog_stats + Statistics::new(1, 1).unwrap() + Statistics::new(2, 2).unwrap(),
-            dog.stats
+            new_dog_stats
         )
     }
 }
@@ -374,7 +388,7 @@ fn test_battle_toad_team() {
     // Seed ensures that target always cricket at pos 1.
     enemy_team.set_seed(2);
     assert_eq!(
-        enemy_team.nth(1).unwrap().stats,
+        enemy_team.nth(1).unwrap().borrow().stats,
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
@@ -382,12 +396,19 @@ fn test_battle_toad_team() {
 
     // Cricket hit by mosquito and takes 1 dmg
     assert_eq!(
-        enemy_team.nth(1).unwrap().stats,
+        enemy_team.nth(0).unwrap().borrow().stats,
         Statistics::new(1, 1).unwrap()
     );
     // Frog triggers and cricket now has weakness.
     assert_eq!(
-        enemy_team.nth(1).unwrap().item.as_ref().unwrap().name,
+        enemy_team
+            .nth(0)
+            .unwrap()
+            .borrow()
+            .item
+            .as_ref()
+            .unwrap()
+            .name,
         FoodName::Weak
     );
 }
@@ -399,11 +420,11 @@ fn test_battle_woodpecker_team() {
     let mut enemy_team = test_cricket_horse_team();
 
     assert_eq!(
-        enemy_team.nth(0).unwrap().stats,
+        enemy_team.nth(0).unwrap().borrow().stats,
         Statistics::new(1, 2).unwrap()
     );
     assert_eq!(
-        enemy_team.nth(1).unwrap().stats,
+        enemy_team.nth(1).unwrap().borrow().stats,
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
@@ -411,11 +432,11 @@ fn test_battle_woodpecker_team() {
 
     // Two crickets at front on enemy team die.
     assert_eq!(
-        enemy_team.friends.first().unwrap().as_ref().unwrap().stats,
+        enemy_team.friends.first().unwrap().borrow().stats,
         Statistics::new(1, 0).unwrap()
     );
     assert_eq!(
-        enemy_team.friends.get(1).unwrap().as_ref().unwrap().stats,
+        enemy_team.friends.get(1).unwrap().borrow().stats,
         Statistics::new(1, 0).unwrap()
     );
 }
@@ -426,8 +447,14 @@ fn test_battle_woodpecker_self_hurt_team() {
     let mut team = test_woodpecker_self_hurt_team();
     let mut enemy_team = test_cricket_horse_team();
 
-    assert_eq!(team.nth(0).unwrap().stats, Statistics::new(1, 2).unwrap());
-    assert_eq!(team.nth(1).unwrap().stats, Statistics::new(1, 2).unwrap());
+    assert_eq!(
+        team.nth(0).unwrap().borrow().stats,
+        Statistics::new(1, 2).unwrap()
+    );
+    assert_eq!(
+        team.nth(1).unwrap().borrow().stats,
+        Statistics::new(1, 2).unwrap()
+    );
 
     // Trigger start of battle effects and clear dead pets.
     team.trigger_effects(&mut enemy_team);
@@ -435,11 +462,11 @@ fn test_battle_woodpecker_self_hurt_team() {
 
     // Two crickets at front of woodpecker on same team faint.
     assert_eq!(
-        team.fainted.first().unwrap().as_ref().unwrap().stats,
+        team.fainted.first().unwrap().borrow().stats,
         Statistics::new(1, 0).unwrap()
     );
     assert_eq!(
-        team.fainted.get(1).unwrap().as_ref().unwrap().stats,
+        team.fainted.get(1).unwrap().borrow().stats,
         Statistics::new(1, 0).unwrap()
     );
 }
