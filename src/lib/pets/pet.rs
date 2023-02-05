@@ -153,6 +153,7 @@ impl Pet {
     /// ```rust
     /// use sapt::{
     ///     battle::{
+    ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
     ///         state::{Action, Position, Status, Target},
     ///     },
@@ -164,15 +165,7 @@ impl Pet {
     ///     &[
     ///         Effect::new(
     ///             Entity::Pet,
-    ///             Outcome {
-    ///                 status: Status::StartOfBattle,
-    ///                 to_target: Target::None,
-    ///                 from_target: Target::None,
-    ///                 position: Position::None,
-    ///                 to_idx: None,
-    ///                 from_idx: None,
-    ///                 stat_diff: None,
-    ///             },
+    ///             TRIGGER_START_BATTLE,
     ///             Target::Friend,
     ///             Position::Adjacent,
     ///             Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
@@ -354,7 +347,7 @@ impl Pet {
         }
     }
 
-    /// Helper function to set pet idx for matching on effect triggers.
+    /// Private helper function to set pet idx for matching on effect triggers.
     /// * Note: This does not update other pets on the same [`Team`](crate::battle::team::Team).
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
@@ -376,13 +369,12 @@ impl Pet {
     ///     Action::Gain(None)
     /// );
     ///
-    /// let team = Team::new(&[Some(toucan)], 5).unwrap();
-    ///
+    /// let team = Team::new(&[toucan], 5).unwrap();
+    /// let toucan = team.first().unwrap();
+    /// let toucan_effect = &toucan.borrow().effect;
+    /// // Toucan effect with Gain Action now is mapped to current item.
     /// assert_eq!(
-    ///     team.friends
-    ///         .first().unwrap().as_ref().unwrap()
-    ///         .effect.first().unwrap()
-    ///         .action,
+    ///     toucan_effect.first().as_ref().unwrap().action,
     ///     Action::Gain(Some(Box::new(honey)))
     /// )
     /// ```

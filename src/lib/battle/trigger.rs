@@ -1,8 +1,6 @@
-use crate::{
-    battle::{
-        state::{Condition, Outcome, Position, Status, Target},
-        stats::Statistics,
-    },
+use crate::battle::{
+    state::{Condition, Outcome, Position, Status, Target},
+    stats::Statistics,
 };
 
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.

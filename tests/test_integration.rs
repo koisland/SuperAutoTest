@@ -2,9 +2,9 @@ use sapt::{
     battle::{
         effect::Entity,
         state::{Action, Position, Status, Target},
-        trigger::*
+        trigger::*,
     },
-    Effect, EffectApply, Food, FoodName, Outcome, Pet, PetName, Statistics, Team,
+    Effect, EffectApply, Food, FoodName, Pet, PetName, Statistics, Team,
 };
 
 #[test]
@@ -17,6 +17,7 @@ fn test_create_known_pet() {
         1,
     )
     .unwrap();
+
     assert!([pet_from_name.clone(), pet_from_constructor]
         .iter()
         .all(|pet| pet == &pet_from_name));
@@ -32,15 +33,7 @@ fn test_create_custom_pet() {
         Statistics::new(50, 50).unwrap(),
         &[Effect::new(
             Entity::Pet,
-            Outcome {
-                status: Status::StartOfBattle,
-                position: Position::None,
-                stat_diff: None,
-                affected_pet: None,
-                afflicting_pet: None,
-                affected_team: Target::None,
-                afflicting_team: Target::None,
-            },
+            TRIGGER_START_BATTLE,
             Target::Friend,
             Position::Adjacent,
             Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
@@ -63,8 +56,8 @@ fn test_create_custom_pet() {
     team.trigger_effects(&mut enemy_team);
 
     assert!(
-        team.nth(0).unwrap().borrow().item.as_ref().unwrap().name == FoodName::Melon
-            && team.nth(2).unwrap().borrow().item.as_ref().unwrap().name == FoodName::Melon
+        team.friends[0].borrow().item.as_ref().unwrap().name == FoodName::Melon
+            && team.friends[2].borrow().item.as_ref().unwrap().name == FoodName::Melon
     )
 }
 
@@ -131,14 +124,7 @@ fn test_apply_effect() {
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    let mosquito_effect = team
-        .first()
-        .unwrap()
-        .borrow()
-        .effect
-        .first()
-        .cloned()
-        .unwrap();
+    let mosquito_effect = team.friends[0].borrow().effect[0].clone();
     team.apply_effect(&TRIGGER_START_BATTLE, &mosquito_effect, &mut enemy_team)
         .unwrap();
 

@@ -264,7 +264,7 @@ impl EffectApply for Team {
                 if let (Some((_, pet_1)), Some((_, pet_2))) =
                     (target_pets.first(), target_pets.get(1))
                 {
-                    self.swap_pet_stats(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut())?;
+                    self.swap_pet_stats(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut());
                 } else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "Swap Stats".to_string(),
@@ -338,13 +338,12 @@ impl EffectApplyHelpers for Team {
         target_pet: Rc<RefCell<Pet>>,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError> {
-        
-        let (_,  chosen_pet) = targets.first().ok_or(SAPTestError::InvalidTeamAction {
+        let (_, chosen_pet) = targets.first().ok_or(SAPTestError::InvalidTeamAction {
             subject: "Evolve Pet".to_string(),
             indices: vec![],
             reason: "No pet found to evolve.".to_string(),
         })?;
-        
+
         // Clone the pet, upgrade the chosen pet's abilities, and remove its item.
         let mut leveled_pet = chosen_pet.borrow().clone();
         leveled_pet.set_level(lvl)?;
@@ -352,7 +351,7 @@ impl EffectApplyHelpers for Team {
 
         // Kill the original pet.
         chosen_pet.borrow_mut().stats.health = 0;
-        info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, chosen_pet.borrow());        
+        info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, chosen_pet.borrow());
 
         // Add death triggers.
         let mut self_faint_triggers = get_self_faint_triggers(&None);

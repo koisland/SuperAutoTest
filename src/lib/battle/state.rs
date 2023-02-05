@@ -21,8 +21,8 @@ use crate::{
 /// use sapt::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
 ///
 /// let pet = Pet::try_from(PetName::Blowfish).unwrap();
-/// let mut team = Team::new(&vec![Some(pet); 5], 5).unwrap();
-/// let mut enemy_team = team.clone();
+/// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
+/// let mut enemy_team = Team::clone(&team);
 ///
 /// // Continue fighting while the winner of a fight is None.
 /// let mut winner = team.fight(&mut enemy_team);

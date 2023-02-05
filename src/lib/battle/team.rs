@@ -23,7 +23,7 @@ use std::{
 };
 
 /// A Super Auto Pets team.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Team {
     /// Name of the team.
     pub name: String,
@@ -68,6 +68,75 @@ impl Default for Team {
     }
 }
 
+impl Clone for Team {
+    fn clone(&self) -> Self {
+        // Because we use reference counted ptrs, default clone impl will just increase strong reference counts.
+        // This will result in a panic as borrowing the original pet as mut multiple times.
+        // So we need to clone the inner values and reassign owners.
+        let mut copied_team = Self {
+            name: self.name.clone(),
+            friends: self
+                .friends
+                .iter()
+                .map(|pet| Rc::new(RefCell::new(pet.borrow().clone())))
+                .collect_vec(),
+            fainted: self
+                .fainted
+                .iter()
+                .map(|pet| Rc::new(RefCell::new(pet.borrow().clone())))
+                .collect_vec(),
+            max_size: self.max_size,
+            triggers: self.triggers.clone(),
+            history: self.history.clone(),
+            seed: self.seed,
+            stored_friends: self
+                .stored_friends
+                .iter()
+                .map(|pet| Rc::new(RefCell::new(pet.borrow().clone())))
+                .collect_vec(),
+            pet_count: self.pet_count,
+            curr_pet: self.curr_pet.clone(),
+        };
+        // Reassign references.
+        for pet in copied_team
+            .friends
+            .iter()
+            .chain(copied_team.fainted.iter())
+            .chain(copied_team.stored_friends.iter())
+        {
+            for effect in pet.borrow_mut().effect.iter_mut() {
+                effect.assign_owner(Some(pet));
+            }
+            if let Some(food_item) = pet.borrow_mut().item.as_mut() {
+                food_item.ability.assign_owner(Some(pet));
+            }
+        }
+        // Reassign affected pets for triggers.
+        for trigger in copied_team.triggers.iter_mut() {
+            if let Some(aff_pet) = copied_team.friends.iter().find(|pet| {
+                trigger
+                    .affected_pet
+                    .as_ref()
+                    .map_or(false, |aff_pet| aff_pet.ptr_eq(&Rc::downgrade(pet)))
+            }) {
+                // NOTE: Only affected pet. Remove afflicting pet.
+                trigger.affected_pet = Some(Rc::downgrade(aff_pet));
+                trigger.afflicting_pet = None
+            }
+        }
+        // Set current pet.
+        if let Some(Some(current_pet)) = copied_team.curr_pet.as_ref().map(|current_pet| {
+            copied_team
+                .friends
+                .iter()
+                .find(|pet| current_pet.ptr_eq(&Rc::downgrade(pet)))
+        }) {
+            copied_team.curr_pet = Some(Rc::downgrade(current_pet));
+        }
+        copied_team
+    }
+}
+
 impl PartialEq for Team {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
@@ -105,31 +174,13 @@ impl Team {
                 ),
             })
         } else {
-            // Index pets.
-            let mut rc_pets: Vec<Rc<RefCell<Pet>>> = vec![];
+            let rc_pets = Team::create_rc_pets(pets);
+            let stored_rc_pets = Team::create_rc_pets(pets);
 
-            for (i, mut pet) in pets.iter().cloned().enumerate() {
-                // Create id if one not assigned.
-                pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
-                pet.pos = Some(i);
-                pet.update_missing_food_effects();
-
-                let rc_pet = Rc::new(RefCell::new(pet));
-
-                // Store weak reference to owner for all effects.
-                for effect in rc_pet.borrow_mut().effect.iter_mut() {
-                    effect.trigger.affected_pet = Some(Rc::downgrade(&rc_pet));
-                    effect.owner = Some(Rc::downgrade(&rc_pet));
-                }
-                if let Some(item) = rc_pet.borrow_mut().item.as_mut() {
-                    item.ability.owner = Some(Rc::downgrade(&rc_pet))
-                }
-                rc_pets.push(rc_pet)
-            }
             let n_rc_pets = rc_pets.len();
             let curr_pet = rc_pets.first().map(Rc::downgrade);
             Ok(Team {
-                stored_friends: rc_pets.clone(),
+                stored_friends: stored_rc_pets,
                 friends: rc_pets,
                 max_size,
                 pet_count: n_rc_pets,
@@ -137,6 +188,33 @@ impl Team {
                 ..Default::default()
             })
         }
+    }
+
+
+    /// Create reference counted pets.
+    fn create_rc_pets(pets: &[Pet]) -> Vec<Rc<RefCell<Pet>>> {
+        // Index pets.
+        let mut rc_pets: Vec<Rc<RefCell<Pet>>> = vec![];
+
+        for (i, mut pet) in pets.iter().cloned().enumerate() {
+            // Create id if one not assigned.
+            pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
+            pet.set_pos(i);
+            pet.update_missing_food_effects();
+
+            let rc_pet = Rc::new(RefCell::new(pet));
+
+            // Store weak reference to owner for all effects.
+            for effect in rc_pet.borrow_mut().effect.iter_mut() {
+                effect.trigger.affected_pet = Some(Rc::downgrade(&rc_pet));
+                effect.owner = Some(Rc::downgrade(&rc_pet));
+            }
+            if let Some(item) = rc_pet.borrow_mut().item.as_mut() {
+                item.ability.owner = Some(Rc::downgrade(&rc_pet))
+            }
+            rc_pets.push(rc_pet)
+        }
+        rc_pets
     }
 
     #[allow(dead_code)]
@@ -247,7 +325,7 @@ impl Team {
         item: Option<Food>,
     ) -> Result<&mut Self, SAPTestError> {
         // Create a temporary effect to grab all desired pets to give items to.
-        let null_effect = Effect{
+        let null_effect = Effect {
             target: Target::Friend,
             position: pos,
             owner: self.curr_pet.clone(),
@@ -296,11 +374,11 @@ impl Team {
     ///     Pet::try_from(PetName::Mosquito).unwrap()
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
-    ///
+    /// let matching_pets = team.get_pets_by_cond(
+    ///     &Condition::TriggeredBy(Status::StartOfBattle)
+    /// );
     /// assert_eq!(
-    ///     team.get_pets_by_cond(
-    ///         &Condition::TriggeredBy(Status::StartOfBattle)
-    ///     ).len(),
+    ///     matching_pets.len(),
     ///     2
     /// );
     /// ```
@@ -426,12 +504,10 @@ impl Team {
     ///     Pet::try_from(PetName::Leopard).unwrap(),
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
-    ///     
     /// team.swap_pets(
     ///     &mut team.nth(0).unwrap().borrow_mut(),
-    ///     &mut team.nth(1).unwrap().borrow_mut(),
-    ///     None
-    /// ).unwrap();
+    ///     &mut team.nth(1).unwrap().borrow_mut()
+    /// );
     /// assert!(
     ///     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
     ///     team.nth(1).unwrap().borrow().name == PetName::Gorilla
@@ -451,23 +527,25 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
     /// ], 5).unwrap();
+    /// let gorilla = team.nth(0).unwrap();
+    /// let leopard = team.nth(1).unwrap();
     /// assert!(
-    ///     team.nth(0).unwrap().stats == Statistics::new(6, 9).unwrap() &&
-    ///     team.nth(1).unwrap().stats == Statistics::new(10, 4).unwrap()
+    ///     gorilla.borrow().stats == Statistics::new(6, 9).unwrap() &&
+    ///     leopard.borrow().stats == Statistics::new(10, 4).unwrap()
     /// );
     ///
-    /// team.swap_pet_stats(0, 1).unwrap();
+    /// team.swap_pet_stats(&mut gorilla.borrow_mut(), &mut leopard.borrow_mut());
     /// assert!(
-    ///     team.nth(0).unwrap().stats == Statistics::new(10, 4).unwrap() &&
-    ///     team.nth(1).unwrap().stats == Statistics::new(6, 9).unwrap()
+    ///     gorilla.borrow().stats == Statistics::new(10, 4).unwrap() &&
+    ///     leopard.borrow().stats == Statistics::new(6, 9).unwrap()
     /// )
     /// ```
-    pub fn swap_pet_stats(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> Result<&Self, SAPTestError> {
+    pub fn swap_pet_stats(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> &Self {
         std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
-        Ok(self)
+        self
     }
 
     /// Push a pet to another position on the team.
@@ -478,17 +556,17 @@ impl Team {
     /// use sapt::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     ///
     /// // Push Gorilla two slots back.
     /// team.push_pet(0, -2, None).unwrap();
     /// assert!(
-    ///     team.nth(0).unwrap().name == PetName::Leopard &&
-    ///     team.nth(1).unwrap().name == PetName::Cat &&
-    ///     team.nth(2).unwrap().name == PetName::Gorilla
+    ///     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
+    ///     team.nth(1).unwrap().borrow().name == PetName::Cat &&
+    ///     team.nth(2).unwrap().borrow().name == PetName::Gorilla
     /// )
     /// ```
     pub fn push_pet(
@@ -539,13 +617,13 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
-    ///     team.nth(1).unwrap().name,
+    ///     team.nth(1).unwrap().borrow().name,
     ///     PetName::Leopard
     /// )
     /// ```
@@ -563,13 +641,13 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
-    ///     team.first().unwrap().name,
+    ///     team.first().unwrap().borrow().name,
     ///     PetName::Gorilla
     /// )
     /// ```
@@ -587,13 +665,13 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
-    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
-    ///     team.last().unwrap().name,
+    ///     team.last().unwrap().borrow().name,
     ///     PetName::Cat
     /// )
     /// ```
@@ -611,16 +689,13 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     Some(Pet::try_from(PetName::Dog).unwrap()),
-    ///     None,
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
-    ///     None,
-    ///     None
+    ///     Pet::try_from(PetName::Dog).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     /// team.set_seed(0);
     ///
     /// assert_eq!(
-    ///     team.any().unwrap().name,
+    ///     team.any().unwrap().borrow().name,
     ///     PetName::Cat
     /// )
     /// ```
@@ -637,11 +712,9 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     None,
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
-    ///     None,
-    ///     Some(Pet::try_from(PetName::Cat).unwrap())
+    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap()
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -679,16 +752,14 @@ impl Team {
     /// use sapt::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
-    ///     None,
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
-    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
-    ///     None,
-    ///     Some(Pet::try_from(PetName::Cat).unwrap())
+    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
     ///
     /// team.add_pet(Pet::try_from(PetName::Turtle).unwrap(), 0, None);
     /// assert_eq!(
-    ///     team.first().unwrap().name,
+    ///     team.first().unwrap().borrow().name,
     ///     PetName::Turtle
     /// )
     pub fn add_pet(
@@ -755,11 +826,11 @@ impl Team {
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
-    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
+    ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
+    ///     &[Pet::try_from(PetName::Hippo).unwrap()],
     ///     5
     /// ).unwrap();
     ///
@@ -775,11 +846,11 @@ impl Team {
     /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
-    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
+    ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
+    ///     &[Pet::try_from(PetName::Hippo).unwrap()],
     ///     5
     /// ).unwrap();
     ///

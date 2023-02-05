@@ -1,5 +1,7 @@
 use std::rc::Rc;
 
+use itertools::Itertools;
+
 use crate::{
     battle::{
         state::{Status, TeamFightOutcome},
@@ -85,7 +87,23 @@ fn test_team_restore() {
     team.restore();
 
     // Team restored to original state.
-    assert_eq!(team, original_team);
+    // Note references will not be equivalent.
+    assert_ne!(team, original_team);
+
+    // But stats, starting triggers, and effect uses are equivalent.
+    assert_eq!(team.triggers, original_team.triggers);
+
+    for (restored_pet, original_pet) in team.friends.iter().zip_eq(original_team.friends.iter()) {
+        assert!(restored_pet.borrow().stats == original_pet.borrow().stats);
+        for (effect_restored, effect_original) in restored_pet
+            .borrow()
+            .effect
+            .iter()
+            .zip_eq(original_pet.borrow().effect.iter())
+        {
+            assert!(effect_restored.uses == effect_original.uses)
+        }
+    }
 }
 
 #[test]
@@ -184,8 +202,7 @@ fn test_team_swap_stats() {
     team.swap_pet_stats(
         &mut team.nth(0).unwrap().borrow_mut(),
         &mut team.nth(1).unwrap().borrow_mut(),
-    )
-    .unwrap();
+    );
 
     assert_eq!(
         team.nth(0).unwrap().borrow().stats,
@@ -212,8 +229,7 @@ fn test_team_swap_stats() {
     team.swap_pet_stats(
         &mut team.nth(1).unwrap().borrow_mut(),
         &mut team.nth(2).unwrap().borrow_mut(),
-    )
-    .unwrap();
+    );
 
     assert_eq!(
         team.nth(1).unwrap().borrow().stats,
