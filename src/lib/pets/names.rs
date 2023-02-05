@@ -108,11 +108,10 @@ pub enum PetName {
     Clownfish,
     Toad,
     Woodpecker,
-
     Armadillo,
     Doberman,
-    Lynx,      // TODO:
-    Porcupine, // TODO:
+    Lynx,
+    Porcupine,
     Caterpillar,
     Anteater,
     Donkey,
@@ -127,7 +126,7 @@ pub enum PetName {
     Lion,
     Swordfish,
     Triceratops,
-    Vulture, // TODO:
+    Vulture, // TODO: Create a new trigger that checks if number of fainted pets is even.
 
     Alpaca,
     Tapir,

@@ -291,6 +291,10 @@ impl PetCombat for Pet {
             outcome.friends.push(TRIGGER_KNOCKOUT)
         }
 
+        // Add outcome for attacking pet.
+        enemy_outcome.friends.insert(0, TRIGGER_SELF_ATTACK);
+        outcome.friends.insert(0, TRIGGER_SELF_ATTACK);
+
         // Set the new health of a pet.
         self.stats.health = new_health;
         enemy.stats.health = new_enemy_health;

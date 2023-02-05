@@ -1,11 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
-
 use crate::{
     battle::{
         state::{Condition, Outcome, Position, Status, Target},
         stats::Statistics,
     },
-    Pet,
 };
 
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
@@ -28,15 +25,6 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
     [self_faint, any_faint, ahead_faint]
 }
 
-/// Get attack triggers.
-pub fn get_atk_triggers(pet: &Rc<RefCell<Pet>>) -> [Outcome; 2] {
-    let mut atk_trigger = TRIGGER_SELF_ATTACK;
-    let mut next_atk_trigger = TRIGGER_AHEAD_ATTACK;
-
-    atk_trigger.affected_pet = Some(Rc::downgrade(pet));
-    next_atk_trigger.affected_pet = Some(Rc::downgrade(pet));
-    [atk_trigger, next_atk_trigger]
-}
 /// All start of battle triggers.
 /// * Currently start of turn triggers are included as `Shop`s have not been implemented.
 pub const ALL_TRIGGERS_START_BATTLE: [Outcome; 2] = [TRIGGER_START_TURN, TRIGGER_START_BATTLE];
@@ -226,6 +214,17 @@ pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
 /// Trigger for when the current [`Pet`](crate::pets::pet::Pet) attacks.
 pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     status: Status::Attack,
+    position: Position::OnSelf,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};
+
+/// Trigger for before the current [`Pet`](crate::pets::pet::Pet) attacks.
+pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
+    status: Status::BeforeAttack,
     position: Position::OnSelf,
     affected_pet: None,
     afflicting_pet: None,

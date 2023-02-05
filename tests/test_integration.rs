@@ -2,6 +2,7 @@ use sapt::{
     battle::{
         effect::Entity,
         state::{Action, Position, Status, Target},
+        trigger::*
     },
     Effect, EffectApply, Food, FoodName, Outcome, Pet, PetName, Statistics, Team,
 };
@@ -109,41 +110,6 @@ fn test_pet_exp() {
 
 #[test]
 fn test_apply_effect() {
-    use sapt::{EffectApply, Pet, PetName, Statistics, Team};
-
-    // Get mosquito effect.
-    let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
-    let mosquito_effect = mosquito.effect.first().unwrap().clone();
-
-    let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
-    let mut enemy_team = team.clone();
-    enemy_team.set_seed(0);
-
-    // Get start of battle trigger.
-    let start_of_battle_trigger = team.triggers.pop_back().unwrap();
-
-    // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    team.apply_effect(&start_of_battle_trigger, &mosquito_effect, &mut enemy_team)
-        .unwrap();
-
-    // Enemy mosquito takes one damage.
-    assert_eq!(
-        enemy_team.friends[4].borrow().stats,
-        Statistics::new(2, 1).unwrap()
-    );
-    assert!(enemy_team
-        .triggers
-        .iter()
-        .find(|trigger| trigger.status == Status::Hurt)
-        .is_some());
-}
-
-#[test]
-fn test() {
-    use sapt::{
-        battle::{state::Status, trigger::*},
-        EffectApply, Pet, PetName, Statistics, Team,
-    };
     // Get mosquito effect.
     let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     // Get effect with no reference.
@@ -186,6 +152,4 @@ fn test() {
         .iter()
         .find(|trigger| trigger.status == Status::Hurt)
         .is_some());
-    println!("{}", team);
-    println!("{}", enemy_team);
 }

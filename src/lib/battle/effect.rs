@@ -3,11 +3,16 @@ use crate::{
     Pet,
 };
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fmt::Display, rc::Weak};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    rc::{Rc, Weak},
+};
 
 /// Owner of [`Effect`].
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Entity {
+    #[default]
     /// A [`Pet`](crate::pets::pet::Pet).
     Pet,
     /// A [`Food`](crate::foods::food::Food).
@@ -15,7 +20,7 @@ pub enum Entity {
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Effect {
     /// Owner of effect.
     pub entity: Entity,
@@ -90,6 +95,14 @@ impl Effect {
             uses,
             temp: temporary,
         }
+    }
+
+    /// Assign this effect to a pet.
+    pub fn assign_owner(&mut self, owner: Option<&Rc<RefCell<Pet>>>) -> &mut Self {
+        let owner_ref = owner.map(Rc::downgrade);
+        self.owner = owner_ref.clone();
+        self.trigger.affected_pet = owner_ref;
+        self
     }
 }
 

@@ -25,12 +25,14 @@ fn test_attack_pet() {
         outcome,
         AttackOutcome {
             friends: vec![
+                TRIGGER_SELF_ATTACK,
                 TRIGGER_SELF_FAINT,
                 TRIGGER_ANY_FAINT,
                 TRIGGER_AHEAD_FAINT,
                 TRIGGER_ANY_ENEMY_HURT
             ],
             opponents: vec![
+                TRIGGER_SELF_ATTACK,
                 TRIGGER_SELF_HURT,
                 TRIGGER_ANY_HURT,
                 TRIGGER_KNOCKOUT,

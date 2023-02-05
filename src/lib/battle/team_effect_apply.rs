@@ -29,7 +29,7 @@ const NONSPECIFIC_POSITIONS: [Position; 3] = [
 ];
 
 /// Enable applying [`Effect`]s to multiple [`Team`]s.
-/// # Examples
+/// # Example
 /// ```
 /// use sapt::EffectApply;
 /// ```
@@ -40,7 +40,7 @@ pub trait EffectApply {
     /// use sapt::{EffectApply, Team, Pet, PetName};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
-    /// let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
+    /// let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
     /// let mut enemy_team = team.clone();
     ///
     /// // Start of battle triggers.
@@ -302,6 +302,19 @@ pub(crate) trait EffectApplyHelpers {
         effect: &Effect,
         opponent: &Team,
     ) -> Result<TargetPet, SAPTestError>;
+    fn copy_effect(
+        &self,
+        attr_to_copy: &CopyAttr,
+        targets: TargetPet,
+        receiving_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<(), SAPTestError>;
+    fn evolve_pet(
+        &mut self,
+        lvl: usize,
+        targets: TargetPet,
+        target_pet: Rc<RefCell<Pet>>,
+        opponent: &mut Team,
+    ) -> Result<(), SAPTestError>;
     /// Calculates an adjusted index based on the current index and a relative index.
     /// * `:param curr_idx:` The current index.
     /// * `:param rel_idx:` Number of positions relative to the current index.
@@ -318,6 +331,154 @@ pub(crate) trait EffectApplyHelpers {
 }
 
 impl EffectApplyHelpers for Team {
+    fn evolve_pet(
+        &mut self,
+        lvl: usize,
+        targets: TargetPet,
+        target_pet: Rc<RefCell<Pet>>,
+        opponent: &mut Team,
+    ) -> Result<(), SAPTestError> {
+        
+        let (_,  chosen_pet) = targets.first().ok_or(SAPTestError::InvalidTeamAction {
+            subject: "Evolve Pet".to_string(),
+            indices: vec![],
+            reason: "No pet found to evolve.".to_string(),
+        })?;
+        
+        // Clone the pet, upgrade the chosen pet's abilities, and remove its item.
+        let mut leveled_pet = chosen_pet.borrow().clone();
+        leveled_pet.set_level(lvl)?;
+        leveled_pet.item = None;
+
+        // Kill the original pet.
+        chosen_pet.borrow_mut().stats.health = 0;
+        info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, chosen_pet.borrow());        
+
+        // Add death triggers.
+        let mut self_faint_triggers = get_self_faint_triggers(&None);
+        let mut enemy_self_faint_triggers = get_self_enemy_faint_triggers(&None);
+        for trigger in self_faint_triggers
+            .iter_mut()
+            .chain(enemy_self_faint_triggers.iter_mut())
+        {
+            trigger.set_affected(chosen_pet);
+        }
+        self.triggers.extend(self_faint_triggers);
+        opponent.triggers.extend(enemy_self_faint_triggers);
+
+        // Set the target's pet ability to summon the pet.
+        let target_pet_ref = Rc::downgrade(&target_pet);
+        let mut target_pet_trigger = TRIGGER_SELF_FAINT;
+        target_pet_trigger.affected_pet = Some(target_pet_ref.clone());
+        target_pet.borrow_mut().effect = vec![Effect {
+            owner: Some(target_pet_ref),
+            entity: Entity::Pet,
+            trigger: target_pet_trigger,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Summon(Some(Box::new(leveled_pet.clone())), None),
+            uses: Some(1),
+            temp: true,
+        }];
+        info!(target: "dev", "(\"{}\")\nEvolving {}.", self.name, leveled_pet);
+        info!(target: "dev", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", self.name, target_pet.borrow());
+        Ok(())
+    }
+
+    fn copy_effect(
+        &self,
+        attr_to_copy: &CopyAttr,
+        targets: TargetPet,
+        receiving_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<(), SAPTestError> {
+        // Choose the first pet.
+        let copied_attr = if let Some((_, pet_to_copy)) = targets.first() {
+            match attr_to_copy.clone() {
+                CopyAttr::Stats(replacement_stats) => Some(CopyAttr::Stats(
+                    replacement_stats.map_or(Some(pet_to_copy.borrow().stats), Some),
+                )),
+                CopyAttr::PercentStats(perc_stats_mult) => {
+                    // Multiply the stats of a chosen pet by some multiplier
+                    let mut new_stats = pet_to_copy.borrow().stats * perc_stats_mult;
+                    new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
+                    info!(
+                        target: "dev", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
+                        self.name,
+                        perc_stats_mult.attack,
+                        perc_stats_mult.health,
+                        receiving_pet.borrow()
+                    );
+                    Some(CopyAttr::Stats(Some(new_stats)))
+                }
+                CopyAttr::Effect(_, lvl) => Some(CopyAttr::Effect(
+                    pet_to_copy.borrow().get_effect(lvl.unwrap_or(1))?,
+                    lvl,
+                )),
+                CopyAttr::Item(_) => pet_to_copy
+                    .borrow()
+                    .item
+                    .as_ref()
+                    .map(|food| CopyAttr::Item(Some(Box::new(food.clone())))),
+                _ => None,
+            }
+        } else {
+            None
+        };
+
+        // Chose the target of recipient of copied pet stats/effect.
+        // Calculate stats or set ability.
+        match copied_attr.unwrap_or(CopyAttr::None) {
+            CopyAttr::Stats(new_stats) => {
+                // If some stats given use those as base.
+                let new_stats = if let Some(mut new_stats) = new_stats {
+                    // If any stat value is 0, use the target's original stats, otherwise, use the new stats.
+                    *new_stats.comp_set_value(&receiving_pet.borrow().stats, 0)
+                } else {
+                    // Otherwise, copy stats from target.
+                    receiving_pet.borrow().stats
+                };
+
+                receiving_pet.borrow_mut().stats = new_stats;
+
+                info!(
+                    target: "dev", "(\"{}\")\nSet stats for {} to {}.",
+                    self.name,
+                    receiving_pet.borrow(),
+                    receiving_pet.borrow().stats
+                );
+            }
+            CopyAttr::Effect(mut effects, _) => {
+                for effect in effects.iter_mut() {
+                    effect.assign_owner(Some(receiving_pet));
+                }
+                receiving_pet.borrow_mut().effect = effects;
+
+                info!(
+                    target: "dev", "(\"{}\")\nSet effect for {} to {:?}.",
+                    self.name,
+                    receiving_pet.borrow(),
+                    receiving_pet.borrow().effect
+                );
+            }
+            CopyAttr::Item(item) => {
+                if let Some(mut food) = item {
+                    // Assign ability owner to target_pet.
+                    food.ability.assign_owner(Some(receiving_pet));
+
+                    receiving_pet.borrow_mut().item = Some(*food);
+                    info!(
+                        target: "dev", "(\"{}\")\nCopyied item for {} to {:?}.",
+                        self.name,
+                        receiving_pet.borrow(),
+                        receiving_pet.borrow().item
+                    );
+                }
+            }
+            CopyAttr::None => {}
+            CopyAttr::PercentStats(_) => {}
+        }
+        Ok(())
+    }
     fn apply_single_effect(
         &mut self,
         target_pet: Rc<RefCell<Pet>>,
@@ -336,13 +497,13 @@ impl EffectApplyHelpers for Team {
             Action::Remove(stats) => {
                 let mut atk_outcome = target_pet.borrow_mut().indirect_attack(stats);
 
-                // TODO: Update triggers from where they came from.
+                // Update triggers from where they came from.
                 for trigger in atk_outcome
                     .friends
                     .iter_mut()
                     .chain(atk_outcome.opponents.iter_mut())
                 {
-                    trigger.affected_pet = Some(Rc::downgrade(&target_pet));
+                    trigger.set_affected(&target_pet);
                     trigger.afflicting_pet = effect.owner.clone();
                 }
                 // Collect triggers for both teams.
@@ -442,6 +603,8 @@ impl EffectApplyHelpers for Team {
 
                     self.add_pet(*summoned_pet, adj_target_idx, Some(opponent))?;
 
+                    // TODO: Assign effects to spawned pet.
+
                     // Added pet so id is safe to unwrap.
                     let new_pet_id = &self.friends.get(adj_target_idx).unwrap().borrow().id;
                     target_ids.push(new_pet_id.clone())
@@ -490,7 +653,7 @@ impl EffectApplyHelpers for Team {
                     .iter_mut()
                     .chain(enemy_faint_triggers.iter_mut())
                 {
-                    trigger.affected_pet = Some(Rc::downgrade(&target_pet));
+                    trigger.set_affected(&target_pet);
                 }
                 // Add death triggers.
                 self.triggers.extend(self_faint_triggers);
@@ -511,7 +674,7 @@ impl EffectApplyHelpers for Team {
                 // If kill by indirect, still counts as knockout.
                 if target_pet.borrow().stats.health == 0 {
                     let mut knockout_trigger = TRIGGER_KNOCKOUT;
-                    knockout_trigger.affected_pet = Some(Rc::downgrade(&target_pet));
+                    knockout_trigger.set_affected(&target_pet);
                     knockout_trigger.afflicting_pet = effect.owner.clone();
                     opponent.triggers.push_front(knockout_trigger)
                 }
@@ -521,7 +684,7 @@ impl EffectApplyHelpers for Team {
                     .iter_mut()
                     .chain(atk_outcome.opponents.iter_mut())
                 {
-                    trigger.affected_pet = Some(Rc::downgrade(&target_pet));
+                    trigger.set_affected(&target_pet);
                     trigger.afflicting_pet = effect.owner.clone();
                 }
 
@@ -546,69 +709,14 @@ impl EffectApplyHelpers for Team {
                 self.apply_single_effect(target_pet, &effect_copy, opponent)?
             }
             Action::Whale(lvl, rel_pos) => {
+                let mut copy_effect = effect.clone();
                 // Based on a specific relative position, select the pet to 'swallow' and remove.
-                let chosen_pet = if let (Position::Relative(rel_pos), Some(target_pos)) =
-                    (rel_pos, target_pet.borrow().pos)
-                {
-                    // Do in new scope so mut ref to pet is dropped.
-                    let (_, adj_idx) = self._cvt_rel_idx_to_adj_idx(target_pos, *rel_pos)?;
-                    let chosen_pet = self.nth(adj_idx);
-                    let evolved_pet = chosen_pet.as_ref().map(|pet| {
-                        if let Ok(leveled_pet) = pet.borrow().clone().set_level(*lvl) {
-                            pet.borrow_mut().stats.health = 0;
-                            info!(target: "dev", "(\"{}\")\nKilled pet {}.", name, pet.borrow());
-                            // Clone the pet and remove its item.
-                            let mut leveled_pet = leveled_pet.clone();
-                            leveled_pet.item = None;
-                            Some(leveled_pet)
-                        } else {
-                            None
-                        }
-                    });
-                    if let (Some(Some(evolved_pet)), Some(dead_evolved_pet)) =
-                        (evolved_pet, chosen_pet.as_ref())
-                    {
-                        let mut self_faint_triggers = get_self_faint_triggers(&None);
-                        let mut enemy_self_faint_triggers = get_self_enemy_faint_triggers(&None);
-                        for trigger in self_faint_triggers
-                            .iter_mut()
-                            .chain(enemy_self_faint_triggers.iter_mut())
-                        {
-                            trigger.affected_pet = Some(Rc::downgrade(dead_evolved_pet));
-                        }
-                        // Add death triggers.
-                        self.triggers.extend(self_faint_triggers);
-                        opponent.triggers.extend(enemy_self_faint_triggers);
-                        Some(evolved_pet)
-                    } else {
-                        None
-                    }
-                } else {
-                    None
-                };
+                copy_effect.position = rel_pos.clone();
+                copy_effect.target = Target::Friend;
 
-                // Upgrade the chosen pet's abilities. And get the target pet.
-                if let Some(leveled_pet) = chosen_pet {
-                    // Set the target's pet ability to summon the pet.
-                    target_pet.borrow_mut().effect = vec![Effect {
-                        owner: Some(Rc::downgrade(&target_pet)),
-                        entity: Entity::Pet,
-                        trigger: TRIGGER_SELF_FAINT,
-                        target: Target::Friend,
-                        position: Position::OnSelf,
-                        action: Action::Summon(Some(Box::new(leveled_pet.clone())), None),
-                        uses: Some(1),
-                        temp: true,
-                    }];
-                    info!(target: "dev", "(\"{}\")\nEvolving {}.", name, leveled_pet);
-                    info!(target: "dev", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", name, target_pet.borrow());
-                } else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Evolve Pet".to_string(),
-                        indices: vec![],
-                        reason: format!("Cannot access position {rel_pos:?} or targeted pet."),
-                    });
-                }
+                let targets = self.get_pets_by_effect(&TRIGGER_NONE, &copy_effect, opponent)?;
+
+                self.evolve_pet(*lvl, targets, target_pet, opponent)?;
             }
             // TODO: May need to also choose to copy from an enemy pet at some point.
             Action::Copy(attr, target, pos) => {
@@ -617,88 +725,9 @@ impl EffectApplyHelpers for Team {
                 copy_effect.position = pos.clone();
                 copy_effect.target = *target;
 
-                // Choose the first pet.
-                let copied_attr = if let Some((_, pet_to_copy)) = self
-                    .get_pets_by_effect(&TRIGGER_NONE, &copy_effect, opponent)?
-                    .first()
-                {
-                    match attr.clone() {
-                        CopyAttr::Stats(replacement_stats) => Some(CopyAttr::Stats(
-                            replacement_stats.map_or(Some(pet_to_copy.borrow().stats), Some),
-                        )),
-                        CopyAttr::PercentStats(perc_stats_mult) => {
-                            // Multiply the stats of a chosen pet by some multiplier
-                            let mut new_stats = pet_to_copy.borrow().stats * perc_stats_mult;
-                            new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
-                            info!(
-                                target: "dev", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
-                                name,
-                                perc_stats_mult.attack,
-                                perc_stats_mult.health,
-                                target_pet.borrow()
-                            );
-                            Some(CopyAttr::Stats(Some(new_stats)))
-                        }
-                        CopyAttr::Effect(_, lvl) => Some(CopyAttr::Effect(
-                            pet_to_copy.borrow().get_effect(lvl.unwrap_or(1))?,
-                            lvl,
-                        )),
-                        CopyAttr::Item(_) => pet_to_copy
-                            .borrow()
-                            .item
-                            .as_ref()
-                            .map(|food| CopyAttr::Item(Some(Box::new(food.clone())))),
-                        _ => None,
-                    }
-                } else {
-                    None
-                };
+                let targets = self.get_pets_by_effect(&TRIGGER_NONE, &copy_effect, opponent)?;
+                self.copy_effect(attr, targets, &target_pet)?;
 
-                // Chose the target of recipient of copied pet stats/effect.
-                // Calculate stats or set ability.
-                match copied_attr.unwrap_or(CopyAttr::None) {
-                    CopyAttr::Stats(new_stats) => {
-                        // If some stats given use those as base.
-                        let new_stats = if let Some(mut new_stats) = new_stats {
-                            // If any stat value is 0, use the target's original stats, otherwise, use the new stats.
-                            *new_stats.comp_set_value(&target_pet.borrow().stats, 0)
-                        } else {
-                            // Otherwise, copy stats from target.
-                            target_pet.borrow().stats
-                        };
-
-                        target_pet.borrow_mut().stats = new_stats;
-
-                        info!(
-                            target: "dev", "(\"{}\")\nSet stats for {} to {}.",
-                            name,
-                            target_pet.borrow(),
-                            target_pet.borrow().stats
-                        );
-                    }
-                    CopyAttr::Effect(effect, _) => {
-                        target_pet.borrow_mut().effect = effect;
-                        info!(
-                            target: "dev", "(\"{}\")\nSet effect for {} to {:?}.",
-                            name,
-                            target_pet.borrow(),
-                            target_pet.borrow().effect
-                        );
-                    }
-                    CopyAttr::Item(item) => {
-                        if let Some(food) = item {
-                            target_pet.borrow_mut().item = Some(*food);
-                            info!(
-                                target: "dev", "(\"{}\")\nCopyied item for {} to {:?}.",
-                                name,
-                                target_pet.borrow(),
-                                target_pet.borrow().item
-                            );
-                        }
-                    }
-                    CopyAttr::None => {}
-                    CopyAttr::PercentStats(_) => {}
-                }
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Thorns(stats) => {

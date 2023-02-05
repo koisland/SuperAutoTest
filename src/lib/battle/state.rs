@@ -1,5 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fmt::Display, ops::RangeInclusive, rc::Weak};
+use std::{
+    cell::RefCell,
+    fmt::Display,
+    ops::RangeInclusive,
+    rc::{Rc, Weak},
+};
 
 use crate::{
     battle::{effect::Effect, stats::Statistics},
@@ -67,7 +72,7 @@ pub enum Condition {
 }
 
 /// Positions to select pets by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Position {
     ///Some number of [`Pet`]s based on a given [`Condition`].
     N(Condition, usize),
@@ -91,12 +96,13 @@ pub enum Position {
     Multiple(Vec<Position>),
     /// All [`Pet`]'s adjacent to current index.
     Adjacent,
+    #[default]
     /// No position.
     None,
 }
 
 /// Target team for an effect.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Target {
     /// Friend team.
     Friend,
@@ -107,6 +113,7 @@ pub enum Target {
     /// Either `Friend` or `Enemy` team.
     /// * Ex. [Badger](crate::pets::names::PetName::Badger)
     Either,
+    #[default]
     /// No target.
     None,
 }
@@ -173,6 +180,19 @@ impl Display for Outcome {
     }
 }
 
+impl Outcome {
+    /// Attach the affected pet reference to an Outcome.
+    pub fn set_affected(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
+        self.affected_pet = Some(Rc::downgrade(pet));
+        self
+    }
+
+    /// Attach the afflicting pet reference to an Outcome.
+    pub fn set_afflicted(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
+        self.afflicting_pet = Some(Rc::downgrade(pet));
+        self
+    }
+}
 /// Status of [`Entity`](super::effect::Entity).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Status {
@@ -186,6 +206,8 @@ pub enum Status {
     BeforeFirstBattle,
     /// End of Battle.
     EndOfBattle,
+    /// Before pet attacks.
+    BeforeAttack,
     /// Pet is attacking.
     Attack,
     /// Pet levels up.
@@ -231,7 +253,7 @@ pub enum CopyAttr {
 }
 
 /// Pet actions.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Action {
     /// Add some amount of `Statistics` to a `Pet`.
     Add(Statistics),
@@ -285,6 +307,7 @@ pub enum Action {
     Experience,
     /// WIP: Endure damage so health doesn't go below one.
     Endure,
+    #[default]
     /// No action to take.
     None,
 }

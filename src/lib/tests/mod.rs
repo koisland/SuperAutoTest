@@ -10,8 +10,8 @@ mod test_team_build;
 #[cfg(test)]
 mod test_team_t1;
 
-// #[cfg(test)]
-// mod test_team_t2;
+#[cfg(test)]
+mod test_team_t2;
 
 // #[cfg(test)]
 // mod test_team_t3;

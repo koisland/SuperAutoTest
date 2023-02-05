@@ -221,8 +221,8 @@ impl Pet {
         if let Ok(pet_record) =
             stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)
         {
-            let effect: Vec<Effect> = pet_record.try_into()?;
-            Ok(effect)
+            let effects: Vec<Effect> = pet_record.try_into()?;
+            Ok(effects)
         } else {
             Err(SAPTestError::QueryFailure {
                 subject: "No Effect".to_string(),

@@ -1,8 +1,8 @@
 use crate::{
     battle::{
         effect::Effect,
-        state::{Condition, Outcome, Position, Status, TeamFightOutcome},
-        team_effect_apply::EffectApply,
+        state::{Condition, Outcome, Position, Target, TeamFightOutcome},
+        team_effect_apply::{EffectApply, EffectApplyHelpers},
         trigger::*,
     },
     error::SAPTestError,
@@ -246,16 +246,23 @@ impl Team {
         pos: Position,
         item: Option<Food>,
     ) -> Result<&mut Self, SAPTestError> {
-        // self.get_pets_by_effect()
-        // let affected_pets = self.get_pets_by_trigger_pos(&TRIGGER_NONE, &pos);
+        // Create a temporary effect to grab all desired pets to give items to.
+        let null_effect = Effect{
+            target: Target::Friend,
+            position: pos,
+            owner: self.curr_pet.clone(),
+            ..Default::default()
+        };
+        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)?;
 
-        // for pet in affected_pets?.iter() {
-        //     let mut item_copy = item.clone();
-        //     if let Some(item) = item_copy.as_mut() {
-        //         item.ability.owner = Some(Rc::downgrade(pet));
-        //     }
-        //     pet.borrow_mut().item = item_copy;
-        // }
+        for (_, pet) in affected_pets.iter() {
+            let mut item_copy = item.clone();
+            if let Some(item) = item_copy.as_mut() {
+                item.ability.owner = Some(Rc::downgrade(pet));
+                item.ability.trigger.affected_pet = Some(Rc::downgrade(pet));
+            }
+            pet.borrow_mut().item = item_copy;
+        }
         Ok(self)
     }
 
@@ -304,7 +311,7 @@ impl Team {
                 .flat_map(|condition| self.get_pets_by_cond(condition))
                 .collect()
         } else if let Condition::MultipleAll(conditions) = cond {
-            let matching_pets = vec![];
+            let mut matching_pets = vec![];
             let all_matches = conditions
                 .iter()
                 .filter_map(|cond| {
@@ -313,11 +320,12 @@ impl Team {
                 })
                 .collect_vec();
             // Take first set of matches.
-            if let Some(mut matching_pets) = all_matches.first().cloned() {
+            if let Some(mut first_matching_pets) = all_matches.first().cloned() {
                 // Remove any pets not within.
                 for matches in all_matches.iter() {
-                    matching_pets.retain(|pet| matches.contains(pet))
+                    first_matching_pets.retain(|pet| matches.contains(pet))
                 }
+                matching_pets.extend(first_matching_pets.iter().cloned())
             }
             matching_pets
         } else {
@@ -542,8 +550,7 @@ impl Team {
     /// )
     /// ```
     pub fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        self
-            .friends
+        self.friends
             .get(idx)
             .filter(|pet| pet.borrow().stats.health != 0)
             .cloned()
@@ -591,10 +598,10 @@ impl Team {
     /// )
     /// ```
     pub fn last(&self) -> Option<Rc<RefCell<Pet>>> {
-        self
-            .friends
+        self.friends
             .last()
-            .filter(|pet| pet.borrow().stats.health != 0).cloned()
+            .filter(|pet| pet.borrow().stats.health != 0)
+            .cloned()
     }
 
     /// Get a random available pet.
@@ -809,9 +816,18 @@ impl Team {
         // Check that two pets exist and attack.
         // Attack will result in triggers being added.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
-            // Trigger Before Attack && Friend Ahead attack.
-            self.triggers.extend(get_atk_triggers(&pet));
-            opponent.triggers.extend(get_atk_triggers(&opponent_pet));
+            self.triggers.push_back(
+                TRIGGER_SELF_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&pet)
+                    .to_owned(),
+            );
+            opponent.triggers.push_back(
+                TRIGGER_SELF_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&opponent_pet)
+                    .to_owned(),
+            );
 
             self.clear_team();
             opponent.clear_team();
@@ -832,36 +848,49 @@ impl Team {
 
             // Update outcomes with weak references.
             for trigger in outcome.friends.iter_mut() {
-                trigger.affected_pet = Some(Rc::downgrade(&pet));
-                trigger.afflicting_pet = Some(Rc::downgrade(&opponent_pet));
+                trigger.set_affected(&pet).set_afflicted(&opponent_pet);
             }
             for trigger in outcome.opponents.iter_mut() {
-                trigger.affected_pet = Some(Rc::downgrade(&opponent_pet));
-                trigger.afflicting_pet = Some(Rc::downgrade(&pet));
-            }
-            // Create attack node.
-            self.create_node(&TRIGGER_SELF_ATTACK);
-            opponent.create_node(&TRIGGER_SELF_ATTACK);
-
-            if let Some(hurt_trigger) = outcome
-                .friends
-                .iter()
-                .find(|trigger| trigger.status == Status::Hurt)
-            {
-                self.create_node(hurt_trigger);
+                trigger.set_affected(&opponent_pet).set_afflicted(&pet);
             }
 
-            if let Some(opponent_hurt_trigger) = outcome
-                .opponents
-                .iter()
-                .find(|trigger| trigger.status == Status::Hurt)
-            {
-                opponent.create_node(opponent_hurt_trigger);
-            }
+            // if let Some(hurt_trigger) = outcome
+            //     .friends
+            //     .iter()
+            //     .find(|trigger| trigger.status == Status::Hurt)
+            // {
+            //     self.create_node(hurt_trigger);
+            // }
+
+            // if let Some(opponent_hurt_trigger) = outcome
+            //     .opponents
+            //     .iter()
+            //     .find(|trigger| trigger.status == Status::Hurt)
+            // {
+            //     opponent.create_node(opponent_hurt_trigger);
+            // }
 
             // Add triggers to team from outcome of battle.
             self.triggers.extend(outcome.friends.into_iter());
             opponent.triggers.extend(outcome.opponents.into_iter());
+
+            // Add triggers for pet behind.
+            if let Some(pet_behind) = opponent.nth(1) {
+                opponent.triggers.push_back(
+                    TRIGGER_AHEAD_ATTACK
+                        .clone()
+                        .set_affected(&pet_behind)
+                        .to_owned(),
+                )
+            }
+            if let Some(pet_behind) = self.nth(1) {
+                self.triggers.push_back(
+                    TRIGGER_AHEAD_ATTACK
+                        .clone()
+                        .set_affected(&pet_behind)
+                        .to_owned(),
+                )
+            }
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
@@ -889,13 +918,13 @@ impl Team {
         }
     }
 
-    /// Create a node logging an effect's result for a [`Team`]'s history.
-    fn create_node(&mut self, trigger: &Outcome) -> &mut Self {
-        let node_idx = self.history.effect_graph.add_node(trigger.clone());
-        self.history.prev_node = self.history.curr_node;
-        self.history.curr_node = Some(node_idx);
-        self
-    }
+    // /// Create a node logging an effect's result for a [`Team`]'s history.
+    // fn create_node(&mut self, trigger: &Outcome) -> &mut Self {
+    //     let node_idx = self.history.effect_graph.add_node(trigger.clone());
+    //     self.history.prev_node = self.history.curr_node;
+    //     self.history.curr_node = Some(node_idx);
+    //     self
+    // }
 }
 
 impl Display for Team {

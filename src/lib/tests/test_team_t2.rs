@@ -1,5 +1,5 @@
 use crate::{
-    battle::state::{Statistics, TeamFightOutcome},
+    battle::state::{Position, TeamFightOutcome},
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
@@ -8,7 +8,7 @@ use crate::{
         test_rat_team, test_skunk_team, test_spider_team, test_stork_team, test_toucan_team,
         test_wombat_team,
     },
-    EffectApply, Food, FoodName,
+    EffectApply, Food, FoodName, Statistics,
 };
 
 #[test]
@@ -33,7 +33,7 @@ fn test_battle_elephant_peacock_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 5
@@ -44,7 +44,7 @@ fn test_battle_elephant_peacock_team() {
     // Lvl.1 elephant deals 1 dmg once to pet at back.
     // Lvl.1 peacock gains 4 atk.
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 6,
             health: 4
@@ -59,14 +59,14 @@ fn test_battle_crab_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 1
         }
     );
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 50
@@ -77,7 +77,7 @@ fn test_battle_crab_team() {
     // Crab at lvl. 1 copies 25 from big ant at pos 2.
     // Gets hit for 2 dmg.
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 23
@@ -92,7 +92,7 @@ fn test_battle_dodo_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 3
@@ -101,13 +101,13 @@ fn test_battle_dodo_team() {
     // Dodo atk at lvl. 1 is 3.
     // 3 * 0.33 = 1.
     assert_eq!(
-        (team.nth(1).unwrap().stats.attack as f32 * 0.33).round(),
+        (team.nth(1).unwrap().borrow().stats.attack as f32 * 0.33).round(),
         1.0
     );
     team.fight(&mut enemy_team);
 
     assert_eq!(
-        team.first().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics {
             attack: 4,
             health: 1
@@ -122,14 +122,14 @@ fn test_battle_flamingo_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 1
         }
     );
     assert_eq!(
-        team.nth(2).unwrap().stats,
+        team.nth(2).unwrap().borrow().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -139,14 +139,14 @@ fn test_battle_flamingo_team() {
 
     // Flamingo faints giving two pets behind (1, 1).
     assert_eq!(
-        team.nth(0).unwrap().stats,
+        team.nth(0).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 2
         }
     );
     assert_eq!(
-        team.nth(1).unwrap().stats,
+        team.nth(1).unwrap().borrow().stats,
         Statistics {
             attack: 3,
             health: 2
@@ -162,8 +162,11 @@ fn test_battle_rat_lvl_1_team() {
     team_lvl_1.fight(&mut enemy_team_lvl_1);
     team_lvl_1.fight(&mut enemy_team_lvl_1);
 
-    assert_eq!(team_lvl_1.first().unwrap().name, PetName::DirtyRat);
-    assert_eq!(enemy_team_lvl_1.first().unwrap().name, PetName::DirtyRat);
+    assert_eq!(team_lvl_1.first().unwrap().borrow().name, PetName::DirtyRat);
+    assert_eq!(
+        enemy_team_lvl_1.first().unwrap().borrow().name,
+        PetName::DirtyRat
+    );
 }
 
 #[test]
@@ -176,8 +179,8 @@ fn test_battle_rat_lvl_2_team() {
     enemy_team_lvl_2.name = "enemy".to_owned();
 
     // Both rats are level 2.
-    assert_eq!(team_lvl_2.first().unwrap().lvl, 2);
-    assert_eq!(enemy_team_lvl_2.first().unwrap().lvl, 2);
+    assert_eq!(team_lvl_2.first().unwrap().borrow().lvl, 2);
+    assert_eq!(enemy_team_lvl_2.first().unwrap().borrow().lvl, 2);
 
     team_lvl_2.fight(&mut enemy_team_lvl_2);
     team_lvl_2.fight(&mut enemy_team_lvl_2);
@@ -188,8 +191,8 @@ fn test_battle_rat_lvl_2_team() {
 
     // All pets on both teams are dirty rats.
     for team in [team_lvl_2, enemy_team_lvl_2].iter_mut() {
-        for pet_name in team.all().iter().map(|pet| pet.name.clone()) {
-            assert_eq!(pet_name, PetName::DirtyRat)
+        for pet_name in team.all().iter() {
+            assert_eq!(pet_name.borrow().name, PetName::DirtyRat)
         }
     }
 }
@@ -203,8 +206,8 @@ fn test_battle_spider_team() {
     team.fight(&mut enemy_team);
 
     // Spiders kill themselves and both spawn a random tier 3 pet from the Turtle pack.
-    assert_eq!(team.first().unwrap().tier, 3);
-    assert_eq!(enemy_team.first().unwrap().tier, 3);
+    assert_eq!(team.first().unwrap().borrow().tier, 3);
+    assert_eq!(enemy_team.first().unwrap().borrow().tier, 3);
 }
 
 #[test]
@@ -217,11 +220,18 @@ fn test_battle_bat_team() {
 
     // Skunk takes additional 3 damage from weakness.
     assert_eq!(
-        enemy_team.first().unwrap().stats,
+        enemy_team.first().unwrap().borrow().stats,
         Statistics::new(3, 1).unwrap()
     );
     assert_eq!(
-        enemy_team.first().unwrap().item.as_ref().unwrap().name,
+        enemy_team
+            .first()
+            .unwrap()
+            .borrow()
+            .item
+            .as_ref()
+            .unwrap()
+            .name,
         FoodName::Weak
     );
 }
@@ -234,36 +244,33 @@ fn test_battle_atlantic_puffin_team() {
     enemy_team.set_seed(0);
 
     // Dog at 4th position is 4.
-    assert_eq!(enemy_team.nth(4).unwrap().stats.health, 4);
+    assert_eq!(enemy_team.nth(4).unwrap().borrow().stats.health, 4);
     // Two strawberries on team.
     assert_eq!(
         team.all()
             .iter()
-            .map(|pet| pet
-                .item
-                .as_ref()
-                .map_or(0, |food| if food.name == FoodName::Strawberry {
+            .map(|pet| pet.borrow().item.as_ref().map_or(0, |item| {
+                if item.name == FoodName::Strawberry {
                     1
                 } else {
                     0
-                }))
+                }
+            }))
             .sum::<usize>(),
         2
     );
     // Activate start of battle effects.
     team.trigger_effects(&mut enemy_team);
     // Dog took 4 damage from puffin. 2 dmg x 2 strawberries.
-    assert_eq!(
-        enemy_team
-            .friends
-            .get(4)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .stats
-            .health,
-        0
-    )
+    let dog_health = enemy_team
+        .friends
+        .get(4)
+        .as_ref()
+        .unwrap()
+        .borrow()
+        .stats
+        .health;
+    assert_eq!(dog_health, 0)
 }
 
 #[test]
@@ -275,15 +282,15 @@ fn test_battle_dove_team() {
     team.fight(&mut enemy_team);
 
     // Lvl 1 dove faints.
-    assert_eq!(
-        team.fainted.get(0).unwrap().as_ref().unwrap().name,
-        PetName::Dove
-    );
+    assert_eq!(team.fainted.get(0).unwrap().borrow().name, PetName::Dove);
     for i in 0..2 {
         // First two strawberry friends get (2,2)
-        assert_eq!(team.nth(i).unwrap().stats, Statistics::new(4, 3).unwrap());
         assert_eq!(
-            team.nth(i).unwrap().item.as_ref().unwrap().name,
+            team.nth(i).unwrap().borrow().stats,
+            Statistics::new(4, 3).unwrap()
+        );
+        assert_eq!(
+            team.nth(i).unwrap().borrow().item.as_ref().unwrap().name,
             FoodName::Strawberry
         )
     }
@@ -296,19 +303,22 @@ fn test_battle_koala_team() {
     let mut enemy_team = test_mammoth_team();
 
     // Original koala stats.
-    assert_eq!(team.nth(1).unwrap().stats, Statistics::new(1, 2).unwrap());
+    assert_eq!(
+        team.nth(1).unwrap().borrow().stats,
+        Statistics::new(1, 2).unwrap()
+    );
 
     // Fight and mammoth hurt.
     team.fight(&mut enemy_team);
 
     let buffed_stats = Statistics::new(2, 3).unwrap();
-    assert_eq!(team.nth(1).unwrap().stats, buffed_stats);
+    assert_eq!(team.nth(1).unwrap().borrow().stats, buffed_stats);
 
     // Fight again and mammoth hurt.
     team.fight(&mut enemy_team);
 
     // No change since single use.
-    assert_eq!(team.nth(1).unwrap().stats, buffed_stats);
+    assert_eq!(team.nth(1).unwrap().borrow().stats, buffed_stats);
 }
 
 #[test]
@@ -318,24 +328,26 @@ fn test_battle_panda_team() {
     let mut enemy_team = test_mammoth_team();
 
     // Adds 50% of attack (1,0).
-    let add_stats = team.nth(1).unwrap().stats
+    let add_stats = team.nth(1).unwrap().borrow().stats
         * Statistics {
             attack: 50,
             health: 50,
         };
     assert_eq!(add_stats, Statistics::new(1, 2).unwrap());
     // Initial dog stats.
-    let original_stats = team.first().unwrap().stats;
+    let original_stats = team.first().unwrap().borrow().stats;
 
     team.trigger_effects(&mut enemy_team);
 
-    assert_eq!(team.first().unwrap().stats, original_stats + add_stats);
-    team.clear_team();
-    // Panda died.
     assert_eq!(
-        team.fainted.first().unwrap().as_ref().unwrap().name,
-        PetName::Panda
-    )
+        team.first().unwrap().borrow().stats,
+        original_stats + add_stats
+    );
+    team.clear_team();
+
+    // Panda died.
+    let first_fainted_pet = &team.fainted[0].borrow().name;
+    assert_eq!(*first_fainted_pet, PetName::Panda)
 }
 
 #[test]
@@ -345,20 +357,20 @@ fn test_battle_pug_team() {
     let mut enemy_team = test_mammoth_team();
 
     // Pug has lvl. 1 with 1 exp.
-    assert_eq!(team.first().as_ref().unwrap().exp, 1);
-    assert_eq!(team.first().as_ref().unwrap().lvl, 1);
+    assert_eq!(team.first().unwrap().borrow().exp, 1);
+    assert_eq!(team.first().unwrap().borrow().lvl, 1);
     assert_eq!(
-        team.first().as_ref().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics::new(3, 2).unwrap()
     );
     // Activate start of battle effect of pug.
     team.trigger_effects(&mut enemy_team);
 
     // Ant levels up.
-    assert_eq!(team.first().as_ref().unwrap().exp, 2);
-    assert_eq!(team.first().as_ref().unwrap().lvl, 2);
+    assert_eq!(team.first().unwrap().borrow().exp, 2);
+    assert_eq!(team.first().unwrap().borrow().lvl, 2);
     assert_eq!(
-        team.first().as_ref().unwrap().stats,
+        team.first().unwrap().borrow().stats,
         Statistics::new(4, 3).unwrap()
     );
 }
@@ -372,17 +384,9 @@ fn test_battle_stork_team() {
     team.fight(&mut enemy_team);
 
     // TODO: Currently, has no tier information so uses tier 1 ( (stork tier) 2 - 1) by default.
-    assert_eq!(team.first().as_ref().unwrap().tier, 1);
-    assert_eq!(
-        team.fainted
-            .first()
-            .as_ref()
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .name,
-        PetName::Stork
-    )
+    assert_eq!(team.first().unwrap().borrow().tier, 1);
+    let first_fainted_pet = &team.fainted.first().unwrap().borrow().name;
+    assert_eq!(*first_fainted_pet, PetName::Stork)
 }
 
 #[test]
@@ -391,19 +395,23 @@ fn test_battle_racoon_team() {
     let mut team = test_racoon_team();
     let mut enemy_team = test_mammoth_team();
     // Give melon to first pet.
-    enemy_team.first().unwrap().item = Some(Food::try_from(FoodName::Melon).unwrap());
+    enemy_team
+        .set_item(
+            Position::First,
+            Some(Food::try_from(FoodName::Melon).unwrap()),
+        )
+        .unwrap();
 
-    // Not item for racoon.
-    assert_eq!(team.first().unwrap().item, None);
+    // No item for racoon.
+    assert_eq!(team.first().unwrap().borrow().item, None);
 
     // Trigger attack.
     team.fight(&mut enemy_team);
 
     // Racoon got mammoth's melon.
-    assert_eq!(
-        team.first().unwrap().item.as_ref().unwrap().name,
-        FoodName::Melon
-    );
+    let racoon = team.first().unwrap();
+    let racoon_item = racoon.borrow().item.as_ref().unwrap().name.clone();
+    assert_eq!(racoon_item, FoodName::Melon);
 }
 
 #[test]
@@ -413,19 +421,18 @@ fn test_battle_toucan_team() {
     let mut enemy_team = test_mammoth_team();
 
     // Toucan has honey.
+    let toucan = team.first().unwrap();
     assert_eq!(
-        team.first().unwrap().item.as_ref().unwrap().name,
+        toucan.borrow().item.as_ref().unwrap().name.clone(),
         FoodName::Honey
     );
     // Dog behind toucan has no item.
-    assert_eq!(team.nth(1).unwrap().item, None);
+    let dog = team.nth(1).unwrap();
+    assert_eq!(dog.borrow().item, None);
     team.fight(&mut enemy_team);
 
     // Dog behind bee now has honey.
-    assert_eq!(
-        team.nth(1).unwrap().item.as_ref().unwrap().name,
-        FoodName::Honey
-    );
+    assert_eq!(dog.borrow().item.as_ref().unwrap().name, FoodName::Honey);
 }
 
 #[test]
@@ -434,14 +441,23 @@ fn test_battle_wombat_team() {
     let mut team = test_wombat_team();
     let mut enemy_team = test_mammoth_team();
     // Mammoth faint effect.
-    let mammoth_effect = enemy_team.first().unwrap().get_effect(1).unwrap();
+    // Note: No owners are attached to this effect.
+    let mammoth_effect = enemy_team.first().unwrap().borrow().get_effect(1).unwrap();
 
     // Activate start of battle.
     team.trigger_effects(&mut enemy_team);
 
     // Wombat gains mammoth's effect.
-    assert_eq!(
-        team.first().unwrap().effect.first().unwrap(),
-        mammoth_effect.first().unwrap()
-    )
+    let wombat_effect = team
+        .first()
+        .unwrap()
+        .borrow_mut()
+        .effect
+        .first_mut()
+        .unwrap()
+        .assign_owner(None)
+        .to_owned();
+    let mammoth_effect = mammoth_effect.first().unwrap();
+
+    assert_eq!(&wombat_effect, mammoth_effect)
 }

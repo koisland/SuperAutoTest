@@ -657,8 +657,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             PetName::Panda => {
                 let add_stats = Statistics::new(record.attack, record.health)
-                    .map(|pet_stats| pet_stats * effect_stats)
-                    .expect("Can't convert stats from record.");
+                    .map(|pet_stats| pet_stats * effect_stats)?;
                 vec![
                     Effect {
                         owner: None,
@@ -722,7 +721,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
-                trigger: TRIGGER_SELF_ATTACK,
+                trigger: TRIGGER_SELF_BEFORE_ATTACK,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Copy(CopyAttr::Item(None), Target::Enemy, Position::First),
@@ -931,8 +930,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: Some(1),
             }],
             PetName::Anteater => {
-                let lvl_ant = Pet::new(PetName::Ant, None, None, record.lvl)
-                    .expect("Can't create ants for anteater.");
+                let lvl_ant = Pet::new(PetName::Ant, None, None, record.lvl)?;
 
                 vec![Effect {
                     owner: None,

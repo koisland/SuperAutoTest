@@ -314,7 +314,7 @@ fn test_attack_peanuts_melon_overflow() {
 
 #[test]
 fn test_attack_chili() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = Team::new(
         &[
