@@ -1,22 +1,29 @@
 use crate::{
     battle::{
         effect::{Effect, Entity, Modify},
-        state::{Action, Condition, CopyAttr, Outcome, Position, Target},
+        state::{
+            Action, Condition, ConditionType, CopyType, GainType, Outcome, Position, RandomizeType,
+            StatChangeType, SummonType, Target,
+        },
         stats::Statistics,
         team::Team,
         trigger::*,
     },
+    db::{query::query_pet, setup::get_connection},
     error::SAPTestError,
     pets::{
         names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
-    Pet, PetCombat,
+    Food, Pet, PetCombat,
 };
 
 use itertools::Itertools;
 use log::{error, info};
-use rand::{seq::IteratorRandom, SeedableRng};
+use rand::{
+    seq::{IteratorRandom, SliceRandom},
+    SeedableRng,
+};
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
@@ -162,7 +169,7 @@ impl EffectApply for Team {
                     //  * If trigger for a summon action is a Zombie Fly, ignore it.
                     //  * If trigger for a summon action is a Fly and is also the current pet is that fly, ignore it.
                     if let Some(trigger_pet_name) = trigger_pet_name.as_ref() {
-                        if let Action::Summon(_, _) = pet_effect.action {
+                        if let Action::Summon(_) = pet_effect.action {
                             if *trigger_pet_name == PetName::ZombieFly
                                 || (*trigger_pet_name == PetName::Fly && same_pet_as_trigger)
                             {
@@ -226,53 +233,30 @@ impl EffectApply for Team {
         self.curr_pet = effect.owner.clone();
 
         let target_pets = self.get_pets_by_effect(trigger, effect, opponent)?;
-        match effect.action {
-            Action::SwapPositions => {
+        match &effect.action {
+            Action::Swap(swap_type) => {
                 if target_pets.len() != 2 {
                     return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Swap Positions".to_string(),
+                        subject: format!("Swap {swap_type:?}"),
                         indices: vec![],
                         reason: format!(
-                            "Only two friends allowed for swapping positions. Given: {}",
+                            "Only two friends allowed for swapping. Given: {}",
                             target_pets.len()
                         ),
                     });
                 }
-                if let (Some((_, pet_1)), Some((_, pet_2))) =
-                    (target_pets.first(), target_pets.get(1))
-                {
-                    // Uses mem swap so doesn't need team target.
-                    self.swap_pets(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut());
-                } else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Swap Positions".to_string(),
-                        indices: vec![],
-                        reason: "Cannot access pets.".to_string(),
-                    });
-                }
-            }
-            Action::SwapStats => {
-                if target_pets.len() != 2 {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Swap Stats".to_string(),
-                        indices: vec![],
-                        reason: format!(
-                            "Only two friends allowed for swapping stats. Given: {}",
-                            target_pets.len()
-                        ),
-                    });
-                }
-                if let (Some((_, pet_1)), Some((_, pet_2))) =
-                    (target_pets.first(), target_pets.get(1))
-                {
-                    self.swap_pet_stats(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut());
-                } else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Swap Stats".to_string(),
-                        indices: vec![],
-                        reason: "Cannot access pets.".to_string(),
-                    });
-                }
+
+                // Safe to unwrap.
+                let ((_, pet_1), (_, pet_2)) =
+                    (target_pets.first().unwrap(), target_pets.get(1).unwrap());
+                match swap_type {
+                    RandomizeType::Positions => {
+                        self.swap_pets(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut())
+                    }
+                    RandomizeType::Stats => {
+                        self.swap_pet_stats(&mut pet_1.borrow_mut(), &mut pet_2.borrow_mut())
+                    }
+                };
             }
             _ => {
                 for (team, pet) in target_pets.into_iter() {
@@ -305,10 +289,16 @@ pub(crate) trait EffectApplyHelpers {
     ) -> Result<TargetPet, SAPTestError>;
     fn copy_effect(
         &self,
-        attr_to_copy: &CopyAttr,
+        attr_to_copy: &CopyType,
         targets: TargetPet,
         receiving_pet: &Rc<RefCell<Pet>>,
     ) -> Result<(), SAPTestError>;
+    fn summon_pet(
+        &mut self,
+        target_pet: Rc<RefCell<Pet>>,
+        summon_type: &SummonType,
+        opponent: &mut Team,
+    ) -> Result<Option<String>, SAPTestError>;
     fn evolve_pet(
         &mut self,
         lvl: usize,
@@ -332,6 +322,76 @@ pub(crate) trait EffectApplyHelpers {
 }
 
 impl EffectApplyHelpers for Team {
+    fn summon_pet(
+        &mut self,
+        target_pet: Rc<RefCell<Pet>>,
+        summon_type: &SummonType,
+        opponent: &mut Team,
+    ) -> Result<Option<String>, SAPTestError> {
+        let pet = match summon_type {
+            SummonType::QueryPet(sql, params) => {
+                let conn = get_connection()?;
+                let pets = query_pet(&conn, sql, params)?;
+                let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
+                // Only select one pet.
+                let pet_record = pets.choose(&mut rng).ok_or(SAPTestError::QueryFailure {
+                    subject: "Summon Query".to_string(),
+                    reason: format!("No record found for query: {sql} with {params:?}"),
+                })?;
+                Pet::try_from(pet_record.clone())?
+            }
+            SummonType::StoredPet(box_pet) => *box_pet.clone(),
+            SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
+            SummonType::CustomPet(name, stat_types, lvl) => {
+                let mut stats = match stat_types {
+                    StatChangeType::StaticValue(stats) => *stats,
+                    StatChangeType::SelfMultValue(stats) => target_pet.borrow().stats * *stats,
+                };
+                Pet::new(
+                    name.clone(),
+                    None,
+                    Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
+                    *lvl,
+                )?
+            }
+            SummonType::SelfPet(stats) => {
+                // Current pet. Remove item
+                let mut pet = target_pet.borrow().clone();
+                pet.item = None;
+                pet.stats = *stats;
+                pet
+            }
+        };
+
+        let target_idx = target_pet
+            .borrow()
+            .pos
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Missing Summon Position".to_string(),
+                indices: vec![],
+                reason: format!("Target pet {} has no position.", target_pet.borrow()),
+            })?;
+
+        // Handle case where pet in front faints and vector is empty.
+        // Would panic attempting to insert at any position not at 0.
+        // Also update position to be correct.
+        let adj_target_idx = if target_idx > self.friends.len() {
+            0
+        } else {
+            target_idx
+        };
+
+        self.add_pet(pet, adj_target_idx, Some(opponent))?;
+        let new_pet_id = self
+            .friends
+            .get(adj_target_idx)
+            .unwrap()
+            .borrow()
+            .id
+            .clone();
+        Ok(new_pet_id)
+    }
+
     fn evolve_pet(
         &mut self,
         lvl: usize,
@@ -376,7 +436,7 @@ impl EffectApplyHelpers for Team {
             trigger: target_pet_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Summon(Some(Box::new(leveled_pet.clone())), None),
+            action: Action::Summon(SummonType::StoredPet(Box::new(leveled_pet.clone()))),
             uses: Some(1),
             temp: true,
         }];
@@ -387,17 +447,17 @@ impl EffectApplyHelpers for Team {
 
     fn copy_effect(
         &self,
-        attr_to_copy: &CopyAttr,
+        attr_to_copy: &CopyType,
         targets: TargetPet,
         receiving_pet: &Rc<RefCell<Pet>>,
     ) -> Result<(), SAPTestError> {
         // Choose the first pet.
         let copied_attr = if let Some((_, pet_to_copy)) = targets.first() {
             match attr_to_copy.clone() {
-                CopyAttr::Stats(replacement_stats) => Some(CopyAttr::Stats(
+                CopyType::Stats(replacement_stats) => Some(CopyType::Stats(
                     replacement_stats.map_or(Some(pet_to_copy.borrow().stats), Some),
                 )),
-                CopyAttr::PercentStats(perc_stats_mult) => {
+                CopyType::PercentStats(perc_stats_mult) => {
                     // Multiply the stats of a chosen pet by some multiplier
                     let mut new_stats = pet_to_copy.borrow().stats * perc_stats_mult;
                     new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
@@ -408,17 +468,17 @@ impl EffectApplyHelpers for Team {
                         perc_stats_mult.health,
                         receiving_pet.borrow()
                     );
-                    Some(CopyAttr::Stats(Some(new_stats)))
+                    Some(CopyType::Stats(Some(new_stats)))
                 }
-                CopyAttr::Effect(_, lvl) => Some(CopyAttr::Effect(
+                CopyType::Effect(_, lvl) => Some(CopyType::Effect(
                     pet_to_copy.borrow().get_effect(lvl.unwrap_or(1))?,
                     lvl,
                 )),
-                CopyAttr::Item(_) => pet_to_copy
+                CopyType::Item(_) => pet_to_copy
                     .borrow()
                     .item
                     .as_ref()
-                    .map(|food| CopyAttr::Item(Some(Box::new(food.clone())))),
+                    .map(|food| CopyType::Item(Some(Box::new(food.clone())))),
                 _ => None,
             }
         } else {
@@ -427,8 +487,8 @@ impl EffectApplyHelpers for Team {
 
         // Chose the target of recipient of copied pet stats/effect.
         // Calculate stats or set ability.
-        match copied_attr.unwrap_or(CopyAttr::None) {
-            CopyAttr::Stats(new_stats) => {
+        match copied_attr.unwrap_or(CopyType::None) {
+            CopyType::Stats(new_stats) => {
                 // If some stats given use those as base.
                 let new_stats = if let Some(mut new_stats) = new_stats {
                     // If any stat value is 0, use the target's original stats, otherwise, use the new stats.
@@ -447,7 +507,7 @@ impl EffectApplyHelpers for Team {
                     receiving_pet.borrow().stats
                 );
             }
-            CopyAttr::Effect(mut effects, _) => {
+            CopyType::Effect(mut effects, _) => {
                 for effect in effects.iter_mut() {
                     effect.assign_owner(Some(receiving_pet));
                 }
@@ -460,7 +520,7 @@ impl EffectApplyHelpers for Team {
                     receiving_pet.borrow().effect
                 );
             }
-            CopyAttr::Item(item) => {
+            CopyType::Item(item) => {
                 if let Some(mut food) = item {
                     // Assign ability owner to target_pet.
                     food.ability.assign_owner(Some(receiving_pet));
@@ -474,8 +534,8 @@ impl EffectApplyHelpers for Team {
                     );
                 }
             }
-            CopyAttr::None => {}
-            CopyAttr::PercentStats(_) => {}
+            CopyType::None => {}
+            CopyType::PercentStats(_) => {}
         }
         Ok(())
     }
@@ -486,15 +546,37 @@ impl EffectApplyHelpers for Team {
         opponent: &mut Team,
     ) -> Result<(), SAPTestError> {
         let mut target_ids: Vec<Option<String>> = vec![];
+        let effect_owner = effect
+            .owner
+            .clone()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Missing Effect Owner".to_string(),
+                indices: vec![],
+                reason: format!("{effect:?} has no owner."),
+            })?
+            .upgrade()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Dropped Owner".to_string(),
+                indices: vec![],
+                reason: "Pet reference dropped.".to_string(),
+            })?;
 
         match &effect.action {
-            Action::Add(stats) => {
-                target_pet.borrow_mut().stats += *stats;
-                info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, stats, target_pet.borrow());
+            Action::Add(stat_change) => {
+                let added_stats = match stat_change {
+                    StatChangeType::StaticValue(stats) => *stats,
+                    StatChangeType::SelfMultValue(stats) => effect_owner.borrow().stats * *stats,
+                };
+                target_pet.borrow_mut().stats += added_stats;
+                info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())
             }
-            Action::Remove(stats) => {
-                let mut atk_outcome = target_pet.borrow_mut().indirect_attack(stats);
+            Action::Remove(stat_change) => {
+                let remove_stats = match stat_change {
+                    StatChangeType::StaticValue(stats) => *stats,
+                    StatChangeType::SelfMultValue(stats) => effect_owner.borrow().stats * *stats,
+                };
+                let mut atk_outcome = target_pet.borrow_mut().indirect_attack(&remove_stats);
 
                 // Update triggers from where they came from.
                 for trigger in atk_outcome
@@ -506,17 +588,23 @@ impl EffectApplyHelpers for Team {
                     trigger.afflicting_pet = effect.owner.clone();
                 }
                 // Collect triggers for both teams.
-                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, stats.attack, target_pet.borrow());
+                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, target_pet.borrow());
                 self.triggers.extend(atk_outcome.friends);
                 opponent.triggers.extend(atk_outcome.opponents);
 
                 target_ids.push(target_pet.borrow().id.clone())
             }
-            Action::Gain(food) => {
-                if let Some(mut food) = food.clone() {
+            Action::Gain(gain_food_type) => {
+                let food = match gain_food_type {
+                    GainType::SelfItem => effect_owner.borrow().item.clone(),
+                    GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
+                    GainType::StoredItem(food) => Some(*food.clone()),
+                };
+
+                if let Some(mut food) = food {
                     info!(target: "dev", "(\"{}\")\nGave {} to {}.", self.name, food, target_pet.borrow());
                     food.ability.assign_owner(Some(&target_pet));
-                    target_pet.borrow_mut().item = Some(*food);
+                    target_pet.borrow_mut().item = Some(food);
                     target_ids.push(target_pet.borrow().id.clone())
                 }
             }
@@ -574,45 +662,9 @@ impl EffectApplyHelpers for Team {
                     }
                 }
             }
-            Action::Summon(stored_pet, stats) => {
-                // If stored pet is None, assume is summoning self.
-                let stored_box_pet = if stored_pet.is_none() {
-                    if let Some(summon_stats) = stats {
-                        // Copy the pet, set its stats to opt_summon_stats
-                        let mut one_up_pet = target_pet.borrow().clone();
-                        one_up_pet.stats = *summon_stats;
-                        // Remove the item.
-                        one_up_pet.item = None;
-
-                        Some(Box::new(one_up_pet))
-                    } else {
-                        None
-                    }
-                } else {
-                    // Otherwise use stored pet.
-                    stored_pet.clone()
-                };
-
-                if let (Some(summoned_pet), Some(target_idx)) =
-                    (stored_box_pet, target_pet.borrow().pos)
-                {
-                    // Handle case where pet in front faints and vector is empty.
-                    // Would panic attempting to insert at any position not at 0.
-                    // Also update position to be correct.
-                    let adj_target_idx = if target_idx > self.friends.len() {
-                        0
-                    } else {
-                        target_idx
-                    };
-
-                    self.add_pet(*summoned_pet, adj_target_idx, Some(opponent))?;
-
-                    // TODO: Assign effects to spawned pet.
-
-                    // Added pet so id is safe to unwrap.
-                    let new_pet_id = &self.friends.get(adj_target_idx).unwrap().borrow().id;
-                    target_ids.push(new_pet_id.clone())
-                }
+            Action::Summon(summon_type) => {
+                let summoned_pet_id = self.summon_pet(target_pet, summon_type, opponent)?;
+                target_ids.push(summoned_pet_id);
             }
             Action::Multiple(actions) => {
                 for action in actions {
@@ -622,28 +674,37 @@ impl EffectApplyHelpers for Team {
                     self.apply_single_effect(target_pet.clone(), &effect_copy, opponent)?
                 }
             }
-            Action::IfTargetCondition(action, condition) => {
-                let matching_pets = self.get_pets_by_cond(condition);
+            Action::Conditional(condition_type, action) => {
+                match condition_type {
+                    ConditionType::ForEach(target, condition) => {
+                        // Get number of pets matching condition
+                        let num_matches = if *target == Target::Friend {
+                            self.get_pets_by_cond(condition).len()
+                        } else {
+                            opponent.get_pets_by_cond(condition).len()
+                        };
+                        // Create new effect with action.
+                        let mut effect_copy = effect.clone();
+                        effect_copy.action = *action.clone();
+                        // For each pet that matches the condition, execute the action.
+                        for _ in 0..num_matches {
+                            self.apply_single_effect(target_pet.clone(), &effect_copy, opponent)?
+                        }
+                    }
+                    ConditionType::If(target, condition) => {
+                        let matching_pets = if *target == Target::Friend {
+                            self.get_pets_by_cond(condition)
+                        } else {
+                            opponent.get_pets_by_cond(condition)
+                        };
 
-                // If a pet matches condition, run action.
-                if matching_pets.contains(&target_pet) {
-                    let mut effect_copy = effect.clone();
-                    effect_copy.action = *action.clone();
-                    self.apply_single_effect(target_pet, &effect_copy, opponent)?;
-                }
-            }
-            Action::ForEachCondition(action, target, condition) => {
-                let num_matches = if *target == Target::Friend {
-                    self.get_pets_by_cond(condition).len()
-                } else {
-                    opponent.get_pets_by_cond(condition).len()
-                };
-                // Create new effect with action.
-                let mut effect_copy = effect.clone();
-                effect_copy.action = *action.clone();
-                // For each pet that matches the condition, execute the action.
-                for _ in 0..num_matches {
-                    self.apply_single_effect(target_pet.clone(), &effect_copy, opponent)?
+                        // If a pet matches condition, run action.
+                        if matching_pets.contains(&target_pet) {
+                            let mut effect_copy = effect.clone();
+                            effect_copy.action = *action.clone();
+                            self.apply_single_effect(target_pet, &effect_copy, opponent)?;
+                        }
+                    }
                 }
             }
             Action::Kill => {
@@ -706,7 +767,10 @@ impl EffectApplyHelpers for Team {
             }
             Action::Lynx => {
                 let opponent_lvls: usize = opponent.all().iter().map(|pet| pet.borrow().lvl).sum();
-                let lvl_dmg_action = Action::Remove(Statistics::new(opponent_lvls, 0).unwrap());
+                let lvl_dmg_action = Action::Remove(StatChangeType::StaticValue(Statistics::new(
+                    opponent_lvls,
+                    0,
+                )?));
                 let mut effect_copy = effect.clone();
                 effect_copy.action = lvl_dmg_action;
 
@@ -722,7 +786,6 @@ impl EffectApplyHelpers for Team {
 
                 self.evolve_pet(*lvl, targets, target_pet, opponent)?;
             }
-            // TODO: May need to also choose to copy from an enemy pet at some point.
             Action::Copy(attr, target, pos) => {
                 // Create effect to select a pet.
                 let mut copy_effect = effect.clone();

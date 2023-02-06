@@ -2,7 +2,10 @@
 //!
 //! # Example
 //! ```rust
-//! use sapt::{Pet, PetName, PetCombat, Food, FoodName, Team};
+//! use sapt::{SapDB, Pet, PetName, PetCombat, Food, FoodName, Team};
+//!
+//! // Initialize the database.
+//! let db = SapDB::new();
 //!
 //! let mut pet = Pet::try_from(PetName::Ant).unwrap();
 //! let mut enemy_pet = Pet::try_from(PetName::Ant).unwrap();
@@ -44,6 +47,7 @@ pub mod pets;
 pub use crate::battle::{
     effect::Effect, state::Outcome, stats::Statistics, team::Team, team_effect_apply::EffectApply,
 };
+pub use crate::db::setup::SapDB;
 pub use crate::foods::{food::Food, names::FoodName};
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};
 

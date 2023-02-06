@@ -2,12 +2,16 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum SAPTestError {
+    #[error("Failed to scrape data from Fandom wiki.")]
+    RequestFailure(#[from] reqwest::Error),
     #[error("Failed interaction with database.")]
     DatabaseFailure(#[from] rusqlite::Error),
     #[error("Failed Query: {subject:?} due to {reason:?}")]
     QueryFailure { subject: String, reason: String },
     #[error("Cannot convert statistics to isize.")]
     ValueConversionFailure(#[from] std::num::TryFromIntError),
+    #[error("Failed to parse value from string.")]
+    ValueParseFailure(#[from] std::num::ParseIntError),
     #[error("Invalid team action: {subject:?} ({indices:?}) due to {reason:?}")]
     InvalidTeamAction {
         subject: String,

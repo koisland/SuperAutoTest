@@ -211,7 +211,6 @@ impl Team {
             // Create id if one not assigned.
             pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
             pet.set_pos(i);
-            pet.update_missing_food_effects();
 
             let rc_pet = Rc::new(RefCell::new(pet));
 
@@ -349,7 +348,6 @@ impl Team {
                 item.ability.trigger.affected_pet = Some(Rc::downgrade(pet));
             }
             pet.borrow_mut().item = item_copy;
-            pet.borrow_mut().update_missing_food_effects();
         }
         Ok(self)
     }

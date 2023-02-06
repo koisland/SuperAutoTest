@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::HashMap, error::Error, str::FromStr};
+use std::{borrow::Cow, collections::HashMap, str::FromStr};
 
 use itertools::Itertools;
 use log::{info, warn};
@@ -26,7 +26,7 @@ pub enum TokenTableCols {
 }
 
 impl TokenTableCols {
-    pub fn get_cols(table: &[&str]) -> Result<Vec<TokenTableCols>, Box<dyn Error>> {
+    pub fn get_cols(table: &[&str]) -> Result<Vec<TokenTableCols>, SAPTestError> {
         let mut cols: Vec<TokenTableCols> = vec![];
 
         if let (Some(all_cols_str), Some(sub_cols)) = (table.first(), table.get(1)) {
@@ -73,13 +73,14 @@ impl FromStr for TokenTableCols {
     }
 }
 
-pub fn clean_token_block(block: &str) -> Result<String, Box<dyn Error>> {
+pub fn clean_token_block(block: &str) -> Result<String, SAPTestError> {
     let block = if let Some(cap) = RGX_SUMMON_STATS.captures(block) {
         let num_sub_cols = cap.get(1).map(|mtch| mtch.as_str());
         let summon_stats = cap.get(2).map(|mtch| mtch.as_str());
 
         if let (Some(cols), Some(stats)) = (num_sub_cols, summon_stats) {
-            let mut stats_per_lvl = (0..cols.parse::<usize>()?)
+            let num_cols = cols.parse::<usize>()?;
+            let mut stats_per_lvl = (0..num_cols)
                 .into_iter()
                 .map(|_| format!("|{stats}"))
                 .join("\n");
@@ -100,21 +101,21 @@ pub fn parse_single_token(
     block: &str,
     cols: &[TokenTableCols],
     pets: &mut Vec<PetRecord>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), SAPTestError> {
     let cleaned_block = clean_token_block(block)?;
 
     // Trim start to remove | delim so correct number of values.
     let col_vals = cleaned_block.split('|').collect_vec();
 
     if cols.len() != col_vals.len() {
-        return Err(Box::new(SAPTestError::ParserFailure {
+        return Err(SAPTestError::ParserFailure {
             subject: "Token Cols".to_string(),
             reason: format!(
                 "Token columns not equal to column values. {} != {}",
                 cols.len(),
                 col_vals.len()
             ),
-        }));
+        });
     }
     let col_map_vals: HashMap<&TokenTableCols, &str> = cols
         .iter()
@@ -174,7 +175,7 @@ pub fn parse_single_token(
     Ok(())
 }
 /// Parse token info into a list of `Pet`s.
-pub fn parse_token_info(url: &str) -> Result<Vec<PetRecord>, Box<dyn Error>> {
+pub fn parse_token_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     let response = get_page_info(url)?;
     let mut pets: Vec<PetRecord> = vec![];
 

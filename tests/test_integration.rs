@@ -1,22 +1,22 @@
 use sapt::{
     battle::{
         effect::Entity,
-        state::{Action, Position, Status, Target},
+        state::{Action, GainType, Position, Status, Target},
         trigger::*,
     },
-    Effect, EffectApply, Food, FoodName, Pet, PetName, Statistics, Team,
+    Effect, EffectApply, FoodName, Pet, PetName, SapDB, Statistics, Team,
 };
+
+#[test]
+fn test_init_db() {
+    assert!(SapDB::new().is_ok())
+}
 
 #[test]
 fn test_create_known_pet() {
     let pet_from_name = Pet::try_from(PetName::Ant).unwrap();
-    let pet_from_constructor = Pet::new(
-        PetName::Ant,
-        Some("Ant".to_string()),
-        Some(Statistics::new(2, 1).unwrap()),
-        1,
-    )
-    .unwrap();
+    let pet_from_constructor =
+        Pet::new(PetName::Ant, None, Some(Statistics::new(2, 1).unwrap()), 1).unwrap();
 
     assert!([pet_from_name.clone(), pet_from_constructor]
         .iter()
@@ -36,7 +36,7 @@ fn test_create_custom_pet() {
             TRIGGER_START_BATTLE,
             Target::Friend,
             Position::Adjacent,
-            Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+            Action::Gain(GainType::DefaultItem(FoodName::Melon)),
             Some(1),
             false,
         )],

@@ -3,7 +3,7 @@ use std::rc::Rc;
 use crate::{
     battle::{
         effect::Entity,
-        state::{Action, CopyAttr, Position, Target, TeamFightOutcome},
+        state::{Action, CopyType, Position, SummonType, Target, TeamFightOutcome},
         stats::Statistics,
         team_effect_apply::EffectApply,
         trigger::{TRIGGER_SELF_FAINT, TRIGGER_START_TURN},
@@ -103,7 +103,7 @@ fn test_battle_parrot_team() {
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Copy(
-                CopyAttr::Effect(vec![], Some(1)),
+                CopyType::Effect(vec![], Some(1)),
                 Target::Friend,
                 Position::Relative(1),
             ),
@@ -129,7 +129,7 @@ fn test_battle_parrot_team() {
             trigger: updated_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Summon(Some(Box::new(zombie_cricket)), None),
+            action: Action::Summon(SummonType::StoredPet(Box::new(zombie_cricket))),
             uses: Some(1),
             entity: Entity::Pet,
             temp: false,
@@ -305,7 +305,7 @@ fn test_battle_whale_team() {
 
     assert_eq!(
         whale_effect.first().unwrap().action,
-        Action::Summon(Some(Box::new(cricket_copy)), None)
+        Action::Summon(SummonType::StoredPet(Box::new(cricket_copy)))
     );
 }
 

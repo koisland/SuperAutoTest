@@ -63,7 +63,7 @@ impl Effect {
     ///     battle::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
-    ///         state::{Position, Action, Target, Condition}
+    ///         state::{Position, Action, Target, Condition, StatChangeType}
     ///     }
     /// };
     /// let lvl_1_ant_effect = Effect::new(
@@ -71,7 +71,7 @@ impl Effect {
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
     ///     Position::Any(Condition::None),
-    ///     Action::Add(Statistics {attack: 2, health: 1}),
+    ///     Action::Add(StatChangeType::StaticValue(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false
     /// );

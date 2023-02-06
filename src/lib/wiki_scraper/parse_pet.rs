@@ -239,7 +239,7 @@ pub fn parse_single_pet(
 }
 
 /// Parse pet info into a list of `Pet`s.
-pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, Box<dyn Error>> {
+pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     let response = get_page_info(url)?;
     let mut pets: Vec<PetRecord> = vec![];
     let mut curr_tier: usize = 1;

@@ -243,7 +243,7 @@ pub enum Status {
 ///
 /// [`Statistics`] for `health` or `attack` are a set percentage.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum CopyAttr {
+pub enum CopyType {
     /// Percent pet stats to copy.
     PercentStats(Statistics),
     /// Pet stats to copy.
@@ -256,26 +256,79 @@ pub enum CopyAttr {
     None,
 }
 
+/// Types of Statistics changes for Action::Remove or Action::Add.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum StatChangeType {
+    /// Change stats by a static value.
+    StaticValue(Statistics),
+    /// Change stats by a value multiplied by the pet stats of the owner of this action.
+    SelfMultValue(Statistics),
+}
+
+/// Types of summons for Action::Summon.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum SummonType {
+    /// Summon a pet via a SQL query.
+    QueryPet(String, Vec<String>),
+    /// Summon a stored pet.
+    StoredPet(Box<Pet>),
+    /// Summon a default pet.
+    DefaultPet(PetName),
+    /// Summon a custom pet with stats that from StatChangeType.
+    CustomPet(PetName, StatChangeType, usize),
+    /// Summon the pet owning the effect of this action.
+    SelfPet(Statistics),
+}
+
+/// Types of item gains for Action::Gain.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum GainType {
+    /// Gain the item of the pet owning the effect of this action.
+    SelfItem,
+    /// Gain the default food item.
+    DefaultItem(FoodName),
+    /// Gain the stored item.
+    StoredItem(Box<Food>),
+}
+
+/// Types of ways Action::Swap or Action::Shuffle can alter pets.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum RandomizeType {
+    /// Alter positions.
+    Positions,
+    /// Alter positions.
+    Stats,
+}
+
+/// Conditional Logic.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum ConditionType {
+    /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
+    ForEach(Target, Condition),
+    /// If target meets condition, do `Action`.
+    If(Target, Condition),
+}
+
 /// Pet actions.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Action {
     /// Add some amount of `Statistics` to a `Pet`.
-    Add(Statistics),
+    Add(StatChangeType),
     /// Remove some amount of `Statistics` from a `Pet`.
-    Remove(Statistics),
+    Remove(StatChangeType),
     /// Debuff a `Pet` by subtracting some **percent** of `Statistics` from it.
     Debuff(Statistics),
-    /// Swap positions of `Pet`s
-    SwapPositions,
-    /// Swap `Statistics` of `Pet`s.
-    SwapStats,
+    /// Shuffle all pets on a specific RandomizeType.
+    Shuffle(RandomizeType),
+    /// Swap two pets on a specific RandomizeType.
+    Swap(RandomizeType),
     /// Push a `Pet` to some new position from its original position. The following positions are implemented.
     /// * [`Position::Relative`]
     /// * [`Position::First`]
     /// * [`Position::Last`]
     Push(Position),
     /// Copy some attribute from a `Pet` to a given `Position`.
-    Copy(CopyAttr, Target, Position),
+    Copy(CopyType, Target, Position),
     /// Negate some amount of `Statistics` damage.
     Negate(Statistics),
     /// Do a critical attack with a percent probability dealing double damage.
@@ -290,23 +343,19 @@ pub enum Action {
     /// Take no damage. Action of `Coconut`.
     Invincible,
     /// Gain a `Food` item.
-    Gain(Option<Box<Food>>),
+    Gain(GainType),
     /// WIP: Get gold.
     Profit,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
-    Summon(Option<Box<Pet>>, Option<Statistics>),
+    Summon(SummonType),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
-    /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
-    ForEachCondition(Box<Action>, Target, Condition),
-    /// If target meets condition, do `Action`.
-    IfTargetCondition(Box<Action>, Condition),
+    /// Perform a conditional `Action`.
+    Conditional(ConditionType, Box<Action>),
     /// Hardcoded Rhino ability.
     Rhino(Statistics),
     /// Hardcoded lynx ability.
     Lynx,
-    /// Return damage back to pet that triggered effect.
-    Thorns(Statistics),
     /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.

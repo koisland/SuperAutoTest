@@ -53,14 +53,8 @@ fn test_battle_fly_team() {
     team.fight(&mut enemy_team);
 
     // Zombie fly spawned after cricket dies.
-    // Applies before cricket because fly has higher attack.
-    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieFly);
-    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieCricket);
-
-    // Zombie flies fight. But no flies are spawned when zombie flies die.
-    team.fight(&mut enemy_team);
-
     assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieCricket);
+    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieFly);
 
     // Finish battle.
     let mut outcome = team.fight(&mut enemy_team);

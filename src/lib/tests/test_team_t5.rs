@@ -1,9 +1,9 @@
 use crate::{
     battle::{
-        state::{Action, TeamFightOutcome},
+        state::{Action, GainType, StatChangeType, TeamFightOutcome},
         stats::Statistics,
     },
-    foods::{food::Food, names::FoodName},
+    foods::names::FoodName,
     pets::names::PetName,
     tests::common::{
         count_pets, test_cricket_horse_team, test_crocodile_team, test_rhino_team,
@@ -86,7 +86,7 @@ fn test_battle_scorpion_team() {
         .weight;
     assert_eq!(
         action,
-        &Action::Gain(Some(Box::new(Food::try_from(FoodName::Peanut).unwrap())))
+        &Action::Gain(GainType::DefaultItem(FoodName::Peanut))
     )
 }
 
@@ -127,13 +127,13 @@ fn test_battle_shark_team() {
     let mut added_enemy_shark_stats = Statistics::default();
     for node in team.history.effect_graph.raw_edges() {
         let (_, _, action, _) = &node.weight;
-        if let Action::Add(stats) = action {
+        if let Action::Add(StatChangeType::StaticValue(stats)) = action {
             added_shark_stats += stats.clone()
         }
     }
     for node in enemy_team.history.effect_graph.raw_edges() {
         let (_, _, action, _) = &node.weight;
-        if let Action::Add(stats) = action {
+        if let Action::Add(StatChangeType::StaticValue(stats)) = action {
             added_enemy_shark_stats += stats.clone()
         }
     }

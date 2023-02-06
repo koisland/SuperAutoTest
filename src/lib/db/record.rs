@@ -44,7 +44,7 @@ pub struct FoodRecord {
 /// A record with information about a pet from Super Auto Pets.
 ///
 /// This information is queried and parsed from the Super Auto Pets Fandom wiki.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Eq)]
 pub struct PetRecord {
     /// Name of pet.
     pub name: PetName,

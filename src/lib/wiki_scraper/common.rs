@@ -1,9 +1,8 @@
-use crate::regex_patterns::*;
+use crate::{error::SAPTestError, regex_patterns::*};
 use log::info;
 use reqwest::blocking;
-use std::error::Error;
 
-pub fn get_page_info(url: &str) -> Result<String, Box<dyn Error>> {
+pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");
     Ok(blocking::get(url)?.text()?)
 }

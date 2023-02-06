@@ -283,7 +283,7 @@ pub fn parse_one_food_entry(
 }
 
 /// Parse food info into a list of `Food`s.
-pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, Box<dyn Error>> {
+pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, SAPTestError> {
     let response = get_page_info(url)?;
     let mut foods: Vec<FoodRecord> = vec![];
 

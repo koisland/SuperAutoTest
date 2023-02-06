@@ -1,7 +1,7 @@
 use crate::{
     battle::{
         effect::Entity,
-        state::{Action, Condition, Position, Target},
+        state::{Action, Condition, Position, StatChangeType, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -51,7 +51,7 @@ fn test_create_def_pet() {
     assert_eq!(
         pet,
         Pet {
-            id: Some("Ant".to_string()),
+            id: None,
             name: PetName::Ant,
             tier: 1,
             stats: Statistics {
@@ -66,7 +66,7 @@ fn test_create_def_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(Condition::None),
-                action: Action::Add(Statistics::new(2, 1).unwrap()),
+                action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],
@@ -90,7 +90,7 @@ fn test_get_effect() {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(Condition::None),
-            action: Action::Add(Statistics::new(2, 1).unwrap()),
+            action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
             uses: Some(1),
             temp: false
         },],
@@ -104,7 +104,9 @@ fn test_levelup() {
 
     // Lvl 1 effect adds (2,1)
     assert_eq!(test_ant.lvl, 1);
-    if let Action::Add(stats) = &test_ant.effect.first().as_ref().unwrap().action {
+    if let Action::Add(StatChangeType::StaticValue(stats)) =
+        &test_ant.effect.first().as_ref().unwrap().action
+    {
         assert_eq!(
             *stats,
             Statistics {
@@ -118,7 +120,9 @@ fn test_levelup() {
 
     // Lvl 2 effect adds (4,2)
     assert_eq!(test_ant.lvl, 2);
-    if let Action::Add(stats) = &test_ant.effect.first().as_ref().unwrap().action {
+    if let Action::Add(StatChangeType::StaticValue(stats)) =
+        &test_ant.effect.first().as_ref().unwrap().action
+    {
         assert_eq!(
             *stats,
             Statistics {
@@ -171,7 +175,7 @@ fn test_create_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(Condition::None),
-                action: Action::Add(Statistics::new(2, 1).unwrap()),
+                action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],

@@ -3,13 +3,13 @@ use crate::{
         record::{FoodRecord, PetRecord},
         utils::{map_row_to_food, map_row_to_pet},
     },
+    error::SAPTestError,
     wiki_scraper::{
         parse_food::parse_food_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
     },
 };
 use log::info;
 use rusqlite::Connection;
-use std::error::Error;
 
 /// Query pets generating a list of [`PetRecord`]s.
 pub fn query_pet(
@@ -51,7 +51,7 @@ pub fn query_food(
 /// * Scrapes pet and token information from the Fandom wiki.
 /// * Inserts a new record for each pet by `level` and `pack`.
 /// * Changes in any field aside from `name`, `pack`, and `level` will update an entry.
-pub fn update_pet_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
+pub fn update_pet_info(conn: &Connection) -> Result<(), SAPTestError> {
     // Read in insert or replace SQL.
     let sql_insert_pet = "
 INSERT INTO pets (
@@ -117,7 +117,7 @@ WHERE
 /// Update food information in the database.
 /// * Inserts a new record for each food by `pack`.
 /// * Changes in any field aside from `name` and `pack` will update an entry.
-pub fn update_food_info(conn: &Connection) -> Result<(), Box<dyn Error>> {
+pub fn update_food_info(conn: &Connection) -> Result<(), SAPTestError> {
     // Read in insert or replace SQL.
     let sql_insert_food = "
 INSERT INTO foods (

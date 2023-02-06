@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::fmt::Display;
 
 use crate::{
-    battle::{effect::Effect, state::Action, stats::Statistics},
-    db::{setup::get_connection, utils::map_row_to_pet},
+    battle::{effect::Effect, stats::Statistics},
+    db::{record::PetRecord, setup::get_connection, utils::map_row_to_pet},
     error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
@@ -30,21 +30,21 @@ pub struct Pet {
     pub tier: usize,
     /// [`Statistics`] of pet.
     pub stats: Statistics,
-    /// Level of pet.
-    pub(crate) lvl: usize,
-    /// Experience of pet.
-    pub(crate) exp: usize,
     /// Pet [`Effect`]s.
     pub effect: Vec<Effect>,
     /// Held pet [`Food`] item.
     pub item: Option<Food>,
-    /// Pet position on a [`Team`](crate::battle::team::Team).
-    pub(crate) pos: Option<usize>,
     /// Cost of pet.
     pub cost: usize,
     /// Seed for pet RNG.
     /// * Used in damage calculation for items [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
     pub seed: u64,
+    /// Level of pet.
+    pub(crate) lvl: usize,
+    /// Experience of pet.
+    pub(crate) exp: usize,
+    /// Pet position on a [`Team`](crate::battle::team::Team).
+    pub(crate) pos: Option<usize>,
 }
 
 impl PartialEq for Pet {
@@ -76,8 +76,32 @@ impl TryFrom<PetName> for Pet {
     type Error = SAPTestError;
 
     fn try_from(value: PetName) -> Result<Pet, SAPTestError> {
-        let def_name = value.to_string();
-        Pet::new(value, Some(def_name), None, 1)
+        Pet::new(value, None, None, 1)
+    }
+}
+
+impl TryFrom<PetRecord> for Pet {
+    type Error = SAPTestError;
+
+    fn try_from(record: PetRecord) -> Result<Pet, SAPTestError> {
+        let pet_stats = Statistics::new(record.attack, record.health)?;
+        let (tier, lvl, cost) = (record.tier, record.lvl, record.cost);
+        let pet_name = record.name.clone();
+        let effect: Vec<Effect> = record.try_into()?;
+
+        Ok(Pet {
+            id: None,
+            name: pet_name,
+            tier,
+            stats: pet_stats,
+            lvl,
+            exp: 0,
+            effect,
+            item: None,
+            pos: None,
+            cost,
+            seed: random(),
+        })
     }
 }
 
@@ -117,34 +141,20 @@ impl Pet {
     ) -> Result<Pet, SAPTestError> {
         let conn = get_connection()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
-        let mut pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
+        let pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
 
-        // Use record stats if none provided.
-        let pet_stats = if let Some(pet_stats) = stats {
-            let atk = pet_stats.attack.clamp(MIN_PET_STATS, MAX_PET_STATS);
-            let health = pet_stats.health.clamp(MIN_PET_STATS, MAX_PET_STATS);
-            pet_record.attack = atk.try_into()?;
-            pet_record.health = health.try_into()?;
-            Statistics::new(atk, health)?
-        } else {
-            Statistics::new(pet_record.attack, pet_record.health)?
+        let mut pet = Pet::try_from(pet_record)?;
+
+        // Use given stats if provided.
+        if let Some(pet_stats) = stats {
+            pet.stats.attack = pet_stats.attack.clamp(MIN_PET_STATS, MAX_PET_STATS);
+            pet.stats.health = pet_stats.health.clamp(MIN_PET_STATS, MAX_PET_STATS);
         };
-        let (tier, lvl, cost) = (pet_record.tier, pet_record.lvl, pet_record.cost);
-        let effect: Vec<Effect> = pet_record.try_into()?;
 
-        Ok(Pet {
-            id,
-            name,
-            tier,
-            stats: pet_stats,
-            lvl,
-            exp: 0,
-            effect,
-            item: None,
-            pos: None,
-            cost,
-            seed: random(),
-        })
+        // Assign id if any.
+        pet.id = id;
+
+        Ok(pet)
     }
 
     /// Build a custom pet.
@@ -155,7 +165,7 @@ impl Pet {
     ///     battle::{
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
-    ///         state::{Action, Position, Status, Target},
+    ///         state::{Action, Position, Status, Target, GainType},
     ///     },
     ///     Effect, Food, FoodName, Outcome, Pet, Statistics,
     /// };
@@ -168,7 +178,7 @@ impl Pet {
     ///             TRIGGER_START_BATTLE,
     ///             Target::Friend,
     ///             Position::Adjacent,
-    ///             Action::Gain(Some(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+    ///             Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
     ///             Some(1),
     ///             false,
     ///     )],
@@ -196,7 +206,7 @@ impl Pet {
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
-    /// use sapt::{Pet, PetName, Statistics, battle::state::Action};
+    /// use sapt::{Pet, PetName, Statistics, battle::state::{Action, StatChangeType}};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -204,7 +214,7 @@ impl Pet {
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
     /// assert_eq!(
     ///     *lvl_2_ant_action,
-    ///     Action::Add(Statistics::new(4,2).unwrap())
+    ///     Action::Add(StatChangeType::StaticValue(Statistics::new(4,2).unwrap()))
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
@@ -214,8 +224,7 @@ impl Pet {
         if let Ok(pet_record) =
             stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)
         {
-            let effects: Vec<Effect> = pet_record.try_into()?;
-            Ok(effects)
+            Ok(pet_record.try_into()?)
         } else {
             Err(SAPTestError::QueryFailure {
                 subject: "No Effect".to_string(),
@@ -352,42 +361,5 @@ impl Pet {
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         self
-    }
-
-    /// Updates missing food items from an [`Action::Gain`](crate::battle::state::Action::Gain) effect.
-    /// * Specifically for [`Toucan`](crate::pets::names::PetName::Toucan).
-    ///
-    /// ```rust
-    /// use sapt::{Pet, PetName, Food, FoodName, Team, EffectApply, battle::state::Action};
-    ///
-    /// let honey = Food::try_from(FoodName::Honey).unwrap();
-    /// let mut toucan = Pet::try_from(PetName::Toucan).unwrap();
-    /// toucan.item = Some(honey.clone());
-    ///
-    /// assert_eq!(
-    ///     toucan.effect.first().unwrap().action,
-    ///     Action::Gain(None)
-    /// );
-    ///
-    /// let team = Team::new(&[toucan], 5).unwrap();
-    /// let toucan = team.first().unwrap();
-    /// let toucan_effect = &toucan.borrow().effect;
-    /// // Toucan effect with Gain Action now is mapped to current item.
-    /// assert_eq!(
-    ///     toucan_effect.first().as_ref().unwrap().action,
-    ///     Action::Gain(Some(Box::new(honey)))
-    /// )
-    /// ```
-    pub(crate) fn update_missing_food_effects(&mut self) {
-        for effect in self.effect.iter_mut() {
-            let effect_missing_food = if let Action::Gain(food) = &effect.action {
-                food.is_none()
-            } else {
-                false
-            };
-            if self.item.as_ref().is_some() && effect_missing_food {
-                effect.action = Action::Gain(Some(Box::new(self.item.as_ref().unwrap().clone())))
-            }
-        }
     }
 }

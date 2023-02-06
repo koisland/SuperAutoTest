@@ -4,7 +4,7 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     battle::{
         effect::Modify,
-        state::{Action, Outcome, Position},
+        state::{Action, Outcome, Position, StatChangeType},
         stats::Statistics,
         trigger::*,
     },
@@ -160,7 +160,10 @@ impl PetCombat for Pet {
 
             match food_effect {
                 // Get stat modifiers from effects.
-                Action::Add(stats) | Action::Remove(stats) => *stats,
+                Action::Add(stat_change) | Action::Remove(stat_change) => match stat_change {
+                    StatChangeType::StaticValue(stats) => *stats,
+                    StatChangeType::SelfMultValue(stats_mult) => self.stats * *stats_mult,
+                },
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;
                     // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).
