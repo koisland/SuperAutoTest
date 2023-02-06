@@ -108,6 +108,35 @@ To see API usage, see [`docs/README.md`](docs/README.md)
 * WIP
 
 ---
+## Benchmarks
+Benchmarks for `sapt` are located in `benches/battle_benchmarks.rs` and run using the [`criterion`](https://docs.rs/crate/criterion/latest) crate.
+
+Compared against [`sapai`](https://github.com/manny405/sapai#battles), a Super Auto Pets testing framework written in Python.
+
+Both tests were run on an AMD Ryzen 5 5600 6-Core Processor @ 3.50 GHz.
+
+```bash
+# sapt
+cargo bench && open target/criterion/sapai_example/report/index.html
+```
+
+```bash
+# sapai
+cd benches/
+git clone https://github.com/manny405/sapai.git && cd sapai
+python setup.py install
+# Then run `battle_benchmarks_sapai.ipynb`.
+```
+
+### sapt
+* **166.84 ns ± 1.0369 µs** with **100 measurements**.
+
+![](docs/images//pdf.svg)
+
+### sapai
+* **4.29 ms ± 51.8 µs** per loop (mean ± std. dev. of 7 runs, **100 loops each**)
+
+---
 
 ## Examples
 
@@ -181,3 +210,4 @@ Check the logs saved to `~/logs` to debug any issues.
 ### Sources
 * https://superautopets.fandom.com/wiki
 * https://emoji.supply/kitchen/
+* https://github.com/manny405/sapai

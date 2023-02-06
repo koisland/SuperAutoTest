@@ -13,6 +13,13 @@ petgraph = "0.6.2"
 rand_chacha = "0.3.1"
 thiserror = "1.0.38"
 
+[dev-dependencies]
+criterion = {version = "0.3", features = ["html_reports"]}
+
+[[bench]]
+name = "battle_benchmarks"
+harness = false
+
 [lib]
 name = "sapt"
 path = "src/lib/lib.rs"
