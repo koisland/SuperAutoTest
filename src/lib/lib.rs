@@ -2,24 +2,22 @@
 //!
 //! # Example
 //! ```rust
-//! use sapt::{SapDB, Pet, PetName, PetCombat, Food, FoodName, Team};
+//! use sapt::{SapDB, Pet, PetName, PetCombat, Food, FoodName, Team, Position};
 //!
 //! // Initialize the database.
 //! let db = SapDB::new();
 //!
+//! // Create pets.
 //! let mut pet = Pet::try_from(PetName::Ant).unwrap();
 //! let mut enemy_pet = Pet::try_from(PetName::Ant).unwrap();
 //!
+//! // Create a team.
+//! let mut team = Team::new(&vec![pet; 5], 5).unwrap();
+//! let mut enemy_team = Team::new(&vec![enemy_pet; 5], 5).unwrap();
+//!
 //! // Give food to pets.
-//! pet.item = Some(Food::try_from(FoodName::Melon).unwrap());
-//! pet.item = Some(Food::try_from(FoodName::Melon).unwrap());
-//!
-//! // And fight individually.
-//! pet.attack(&mut enemy_pet);
-//!
-//! // Or, create a team.
-//! let mut team = Team::new(&[pet], 5).unwrap();
-//! let mut enemy_team = Team::new(&[enemy_pet], 5).unwrap();
+//! team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
+//! enemy_team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
 //!
 //! // And fight as a team.
 //! team.fight(&mut enemy_team);
@@ -45,7 +43,11 @@ pub mod foods;
 pub mod pets;
 
 pub use crate::battle::{
-    effect::Effect, state::Outcome, stats::Statistics, team::Team, team_effect_apply::EffectApply,
+    effect::Effect,
+    state::{Outcome, Position},
+    stats::Statistics,
+    team::Team,
+    team_effect_apply::EffectApply,
 };
 pub use crate::db::setup::SapDB;
 pub use crate::foods::{food::Food, names::FoodName};

@@ -17,31 +17,7 @@ appenders:
     path: "log/dev.log"
     encoder:
       pattern: "{d} {l} {M} - {m}{n}"
-  server:
-    kind: rolling_file
-    path: "log/server.log"
-    encoder:
-      pattern: "{d} {l} {M} - {m}{n}"
-    policy:
-      kind: compound
-      trigger:
-        kind: size
-        limit: 10mb
-      roller:
-        kind: fixed_window
-        base: 1
-        count: 5
-        pattern: "logs/sapdb-service.{}.log"
-root:
-  level: info
-  appenders:
-    - server
 loggers:
-  api:
-    level: info
-    appenders:
-      - server
-    additive: false
   db:
     level: debug
     appenders:

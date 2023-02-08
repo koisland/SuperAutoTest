@@ -1,2 +1,0 @@
-[global.databases]
-sap_sqlite_db = { url = "./sap.db" }
