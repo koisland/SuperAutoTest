@@ -731,3 +731,235 @@ pub fn test_tiger_team() -> Team {
     )
     .unwrap()
 }
+
+pub fn test_hyena_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Hyena).unwrap(),
+            Pet::try_from(PetName::Gorilla).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_lionfish_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Dog).unwrap(),
+            Pet::try_from(PetName::Lionfish).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_eagle_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Eagle).unwrap()], 5).unwrap()
+}
+
+pub fn test_microbe_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Microbe).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_lion_highest_tier_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Lion).unwrap(),
+            Pet::try_from(PetName::Dog).unwrap(),
+            Pet::try_from(PetName::Dog).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_lion_lowest_tier_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Lion).unwrap(),
+            Pet::try_from(PetName::Gorilla).unwrap(),
+            Pet::try_from(PetName::Gorilla).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_swordfish_team() -> Team {
+    Team::new(
+        &[
+            Pet::new(
+                PetName::Swordfish,
+                None,
+                Some(Statistics {
+                    attack: 25,
+                    health: 25,
+                }),
+                1,
+            )
+            .unwrap(),
+            Pet::new(
+                PetName::Gorilla,
+                None,
+                Some(Statistics {
+                    attack: 50,
+                    health: 50,
+                }),
+                1,
+            )
+            .unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_triceratops_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Triceratops).unwrap(),
+            Pet::try_from(PetName::Gorilla).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_vulture_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Vulture).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_alpaca_team() -> Team {
+    let mut team = Team::new(
+        &[
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Alpaca).unwrap(),
+            Pet::try_from(PetName::Alpaca).unwrap(),
+        ],
+        5,
+    )
+    .unwrap();
+
+    // Give mushroom to alpaca.
+    team.set_item(
+        Position::Relative(-1),
+        Some(Food::try_from(FoodName::Mushroom).unwrap()),
+    )
+    .unwrap();
+    team
+}
+
+pub fn test_tapir_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Tapir).unwrap()], 5).unwrap()
+}
+
+pub fn test_walrus_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Walrus).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_white_tiger_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::WhiteTiger).unwrap(),
+            Pet::try_from(PetName::Deer).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_octopus_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Octopus).unwrap()], 5).unwrap()
+}
+
+pub fn test_orca_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Orca).unwrap()], 5).unwrap()
+}
+
+pub fn test_piranha_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Piranha).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_reindeer_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Reindeer).unwrap()], 5).unwrap()
+}
+
+pub fn test_sabertooth_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::SabertoothTiger).unwrap()], 5).unwrap()
+}
+
+pub fn test_spinosaurus_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Dog).unwrap(),
+            Pet::try_from(PetName::Dog).unwrap(),
+            Pet::try_from(PetName::Spinosaurus).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_stegosaurus_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Dog).unwrap(),
+            Pet::try_from(PetName::Stegosaurus).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_velociraptor_team() -> Team {
+    let mut team = Team::new(
+        &[
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Cricket).unwrap(),
+            Pet::try_from(PetName::Velociraptor).unwrap(),
+        ],
+        5,
+    )
+    .unwrap();
+    team.set_item(
+        Position::Range(-2..=-1),
+        Some(Food::try_from(FoodName::Strawberry).unwrap()),
+    )
+    .unwrap();
+    team
+}

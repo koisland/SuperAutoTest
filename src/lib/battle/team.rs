@@ -43,7 +43,7 @@ pub struct Team {
     /// Seed used to reproduce the outcome of events.
     pub seed: u64,
     /// Clone of pets used for restoring team.
-    pub(super) stored_friends: Vec<Rc<RefCell<Pet>>>,
+    pub(super) stored_friends: Vec<Pet>,
     /// Count of all pets summoned on team.
     pub(super) pet_count: usize,
     /// Current pet.
@@ -89,21 +89,12 @@ impl Clone for Team {
             triggers: self.triggers.clone(),
             history: self.history.clone(),
             seed: self.seed,
-            stored_friends: self
-                .stored_friends
-                .iter()
-                .map(|pet| Rc::new(RefCell::new(pet.borrow().clone())))
-                .collect_vec(),
+            stored_friends: self.stored_friends.clone(),
             pet_count: self.pet_count,
             curr_pet: self.curr_pet.clone(),
         };
         // Reassign references.
-        for pet in copied_team
-            .friends
-            .iter()
-            .chain(copied_team.fainted.iter())
-            .chain(copied_team.stored_friends.iter())
-        {
+        for pet in copied_team.friends.iter().chain(copied_team.fainted.iter()) {
             for effect in pet.borrow_mut().effect.iter_mut() {
                 effect.assign_owner(Some(pet));
             }
@@ -187,12 +178,11 @@ impl Team {
             })
         } else {
             let rc_pets = Team::create_rc_pets(pets);
-            let stored_rc_pets = Team::create_rc_pets(pets);
 
             let n_rc_pets = rc_pets.len();
             let curr_pet = rc_pets.first().map(Rc::downgrade);
             Ok(Team {
-                stored_friends: stored_rc_pets,
+                stored_friends: pets.to_vec(),
                 friends: rc_pets,
                 max_size,
                 pet_count: n_rc_pets,
@@ -241,7 +231,9 @@ impl Team {
     /// assert_eq!(default_team, Team::default());
     /// ```
     pub fn restore(&mut self) -> &mut Self {
-        self.friends = self.stored_friends.clone();
+        self.friends = Team::create_rc_pets(&self.stored_friends);
+        // Set current pet to first in line.
+        self.curr_pet = self.friends.first().map(Rc::downgrade);
         self.fainted.clear();
         self.history = History::new();
         self.triggers = VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE);
@@ -335,11 +327,17 @@ impl Team {
         // Create a temporary effect to grab all desired pets to give items to.
         let null_effect = Effect {
             target: Target::Friend,
-            position: pos,
+            position: pos.clone(),
             owner: self.curr_pet.clone(),
             ..Default::default()
         };
-        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)?;
+        let affected_pets = self
+            .get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)
+            .map_err(|_| SAPTestError::InvalidTeamAction {
+                subject: "Item Pet Position".to_string(),
+                indices: vec![],
+                reason: format!("Position is not valid: {pos:?}"),
+            })?;
 
         for (_, pet) in affected_pets.iter() {
             let mut item_copy = item.clone();
@@ -351,7 +349,7 @@ impl Team {
         }
         Ok(self)
     }
-    /// Assign an item to a team member.
+    /// Set level of a team member.
     /// # Example
     /// ```
     /// use sapt::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
@@ -432,13 +430,14 @@ impl Team {
             let mut matching_pets = vec![];
             let all_matches = conditions
                 .iter()
-                .filter_map(|cond| {
-                    let matching_pets = self.get_pets_by_cond(cond);
-                    (!matching_pets.is_empty()).then_some(matching_pets)
-                })
+                .map(|cond| self.get_pets_by_cond(cond))
                 .collect_vec();
-            // Take first set of matches.
-            if let Some(mut first_matching_pets) = all_matches.first().cloned() {
+            // Take smallest set of matches.
+            if let Some(mut first_matching_pets) = all_matches
+                .iter()
+                .min_by(|matches_1, matches_2| matches_1.len().cmp(&matches_2.len()))
+                .cloned()
+            {
                 // Remove any pets not within.
                 for matches in all_matches.iter() {
                     first_matching_pets.retain(|pet| matches.contains(pet))
@@ -496,10 +495,15 @@ impl Team {
                     .all()
                     .into_iter()
                     .filter(|pet| {
-                        pet.borrow()
-                            .item
-                            .as_ref()
-                            .map_or(false, |food| food.name == *item_name)
+                        // If item_name is None. Means check pet has no food.
+                        if item_name.is_none() {
+                            pet.borrow().item.is_none()
+                        } else {
+                            pet.borrow()
+                                .item
+                                .as_ref()
+                                .map_or(false, |food| food.name == *item_name.as_ref().unwrap())
+                        }
                     })
                     .collect_vec(),
                 Condition::TriggeredBy(trigger) => self
@@ -514,7 +518,7 @@ impl Team {
                     .collect_vec(),
                 // Allow all if condition is None.
                 Condition::None => self.all(),
-                Condition::IgnoreSelf => self
+                Condition::NotSelf => self
                     .all()
                     .into_iter()
                     .filter(|pet| !Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
@@ -529,6 +533,11 @@ impl Team {
                     .into_iter()
                     .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
+                Condition::NotPetName(pet_name) => self
+                    .all()
+                    .into_iter()
+                    .filter(|pet| pet.borrow().name != *pet_name)
+                    .collect_vec(),
                 _ => unimplemented!("Condition not implemented."),
             }
         }
@@ -553,7 +562,7 @@ impl Team {
     ///     team.nth(1).unwrap().borrow().name == PetName::Gorilla
     /// )
     /// ```
-    pub fn swap_pets(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> &Self {
+    pub fn swap_pets(&mut self, pet_1: &mut Pet, pet_2: &mut Pet) -> &mut Self {
         std::mem::swap(pet_1, pet_2);
         // Additionally, swap the team related fields.
         std::mem::swap(&mut pet_1.pos, &mut pet_2.pos);
@@ -775,7 +784,7 @@ impl Team {
             .collect_vec()
     }
 
-    pub(super) fn set_indices(&mut self) -> &mut Self {
+    pub(super) fn set_indices(&self) -> &Self {
         for (i, friend) in self.friends.iter().enumerate() {
             if let Ok(mut unborrowed_pet) = friend.try_borrow_mut() {
                 unborrowed_pet.pos = Some(i);
@@ -802,6 +811,7 @@ impl Team {
     ///     team.first().unwrap().borrow().name,
     ///     PetName::Turtle
     /// )
+    /// ```
     pub fn add_pet(
         &mut self,
         mut pet: Pet,
@@ -857,6 +867,10 @@ impl Team {
 
         info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), rc_pet.borrow());
         self.friends.insert(pos, rc_pet);
+
+        // Set current pet to always be first in line.
+        self.curr_pet = Some(Rc::downgrade(self.friends.first().unwrap()));
+        // And reset indices.
         self.set_indices();
 
         Ok(self)
@@ -933,21 +947,27 @@ impl Team {
         // Increment battle phase counter.
         self.history.curr_phase += 1;
 
-        // Check that two pets exist and attack.
-        // Attack will result in triggers being added.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
-            self.triggers.push_back(
+            self.triggers.extend([
                 TRIGGER_SELF_BEFORE_ATTACK
                     .clone()
                     .set_affected(&pet)
                     .to_owned(),
-            );
-            opponent.triggers.push_back(
+                TRIGGER_ANY_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&pet)
+                    .to_owned(),
+            ]);
+            opponent.triggers.extend([
                 TRIGGER_SELF_BEFORE_ATTACK
                     .clone()
                     .set_affected(&opponent_pet)
                     .to_owned(),
-            );
+                TRIGGER_ANY_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&opponent_pet)
+                    .to_owned(),
+            ]);
 
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
                 self.trigger_effects(opponent);
@@ -956,7 +976,11 @@ impl Team {
 
             self.clear_team();
             opponent.clear_team();
+        }
 
+        // Check that two pets exist and attack.
+        // Attack will result in triggers being added.
+        if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
             // Attack and get outcome of fight.
             info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
             let mut outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());

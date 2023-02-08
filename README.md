@@ -1,7 +1,7 @@
 # SuperAutoTest
 [![Release](https://img.shields.io/github/v/release/koisland/SuperAutoTest)]()
 [![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
-[![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/test_framework/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
+[![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/main/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
 
 <img src="docs/images/turtle_crystal_ball.png" width="40%" />
 
@@ -206,6 +206,13 @@ curl http://127.0.0.1:8000/food?tier=3&pack=Star
 ### Troubleshooting
 Check the logs saved to `~/logs` to debug any issues.
 
+### TODO:
+* Add serialization of team and pets.
+* Migrate to sqlx
+* Deploy to crates.io
+* Fix rocket app.
+* Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
+* Rework Statistics struct math operations to more consistent.
 
 ### Sources
 * https://superautopets.fandom.com/wiki

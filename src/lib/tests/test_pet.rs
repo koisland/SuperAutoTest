@@ -1,7 +1,8 @@
 use crate::{
     battle::{
+        actions::{Action, StatChangeType},
         effect::Entity,
-        state::{Action, Condition, Position, StatChangeType, Target},
+        state::{Condition, Position, Target},
         stats::Statistics,
         trigger::*,
     },

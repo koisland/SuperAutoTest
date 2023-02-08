@@ -1,7 +1,8 @@
 use petgraph::{stable_graph::NodeIndex, Directed, Graph};
 
 use crate::battle::{
-    state::{Action, Outcome, Position, Target},
+    actions::Action,
+    state::{Outcome, Position, Target},
     trigger::TRIGGER_START_BATTLE,
 };
 

@@ -129,13 +129,11 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
             num_regex(RGX_SUMMON_HEALTH, &pet_effect),
         );
         // If any is seen return atk/health values.
-        if raw_summon_stats.0.is_some() || raw_summon_stats.1.is_some() {
-            // If only one value given.
-            if RGX_ATK_HEALTH.is_match(&effect) {
-                (raw_summon_stats.0, raw_summon_stats.0)
-            } else {
-                raw_summon_stats
-            }
+        // If only one value given.
+        if RGX_ATK_HEALTH.is_match(&pet_effect) {
+            (raw_summon_stats.0, raw_summon_stats.0)
+        } else if raw_summon_stats.0.is_some() || raw_summon_stats.1.is_some() {
+            raw_summon_stats
         } else {
             // Check for percents or single values.
             (
@@ -149,7 +147,9 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
             num_regex(RGX_HEALTH, &pet_effect),
         );
 
-        if raw_stats.0.is_some() || raw_stats.1.is_some() {
+        if RGX_ATK_HEALTH.is_match(&pet_effect) {
+            (raw_stats.0, raw_stats.0)
+        } else if raw_stats.0.is_some() || raw_stats.1.is_some() {
             if RGX_ATK_HEALTH.is_match(&effect) {
                 (raw_stats.0, raw_stats.0)
             } else {

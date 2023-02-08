@@ -1,14 +1,20 @@
 use crate::{
-    battle::{state::TeamFightOutcome, stats::Statistics},
+    battle::{
+        state::{Position, Status, TeamFightOutcome},
+        stats::Statistics,
+    },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{
-        count_pets, test_boar_team, test_fly_team, test_gorilla_team, test_leopard_team,
-        test_mammoth_team, test_scorpion_team, test_sheep_team, test_snake_team, test_tiger_team,
+        count_pets, test_alpaca_team, test_boar_team, test_cricket_horse_team, test_fly_team,
+        test_gorilla_team, test_leopard_team, test_mammoth_team, test_octopus_team, test_orca_team,
+        test_piranha_team, test_reindeer_team, test_sabertooth_team, test_scorpion_team,
+        test_sheep_team, test_snake_team, test_spinosaurus_team, test_stegosaurus_team,
+        test_tapir_team, test_tiger_team, test_velociraptor_team, test_walrus_team,
+        test_white_tiger_team,
     },
+    EffectApply,
 };
-
-// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_boar_team() {
@@ -240,4 +246,271 @@ fn test_battle_tiger_team() {
     let pets = team.all();
     assert_eq!(pets.get(0).unwrap().borrow().name, PetName::Leopard);
     assert_eq!(pets.get(1).unwrap().borrow().name, PetName::Tiger);
+}
+
+#[test]
+fn test_battle_alpaca_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_alpaca_team();
+    let mut enemy_team = test_gorilla_team();
+
+    assert_eq!(count_pets(&team.friends, PetName::Alpaca), 2);
+    // First alpaca has mushroom so will respawn as (1,1)
+    assert_eq!(
+        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
+        FoodName::Mushroom
+    );
+
+    for i in 0..4 {
+        team.fight(&mut enemy_team);
+        // Cricket spawns and gets two exp leveling it to lvl 2.
+        if i == 0 {
+            let zombie_cricket = team.first().unwrap();
+            assert_eq!(zombie_cricket.borrow().lvl, 2);
+            assert_eq!(zombie_cricket.borrow().exp, 2);
+        };
+        // Alpaca respawns.
+        if i == 3 {
+            let respawned_alpaca = team.first().unwrap();
+            // Alpaca summoned but doesn't get exp from remaining alpaca.
+            assert_eq!(respawned_alpaca.borrow().exp, 0);
+        }
+    }
+}
+
+#[test]
+fn test_battle_tapir_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_tapir_team();
+    team.set_seed(25);
+    let mut enemy_team = test_gorilla_team();
+
+    team.fight(&mut enemy_team);
+
+    // Tapir faints and a lobster spawns at lvl.1.
+    assert_eq!(team.fainted.len(), 1);
+    let lobster = team.first().unwrap();
+    assert!(
+        lobster.borrow().name == PetName::Custom("Lobster".to_string())
+            && lobster.borrow().lvl == 1
+    );
+
+    team.restore();
+
+    // Level tapir to lvl 2.
+    team.set_level(Position::First, 2).unwrap();
+
+    team.fight(&mut enemy_team);
+
+    // Same lobster spawns but at lvl 2.
+    let lobster = team.first().unwrap();
+    assert!(
+        lobster.borrow().name == PetName::Custom("Lobster".to_string())
+            && lobster.borrow().lvl == 2
+    );
+}
+
+#[test]
+fn test_battle_walrus_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_walrus_team();
+    team.set_seed(25);
+    let mut enemy_team = test_gorilla_team();
+
+    team.fight(&mut enemy_team);
+
+    // First cricket after walrus faints gets peanuts.
+    assert_eq!(
+        team.first().unwrap().borrow().item.as_ref().unwrap().name,
+        FoodName::Peanut
+    );
+}
+
+#[test]
+fn test_battle_white_tiger_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_white_tiger_team();
+    let mut enemy_team = test_gorilla_team();
+
+    team.trigger_effects(&mut enemy_team);
+
+    // Deer behind gets 3 exp leveling to 2.
+    let deer = team.nth(1).unwrap();
+    assert!(deer.borrow().lvl == 2 && deer.borrow().exp == 3);
+}
+
+#[test]
+fn test_battle_octopus_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_octopus_team();
+    let mut enemy_team = test_cricket_horse_team();
+    enemy_team.set_seed(25);
+
+    team.fight(&mut enemy_team);
+
+    // Octopus only takes one damage.
+    assert_eq!(team.first().unwrap().borrow().stats.health, 7);
+    // But kills two crickets with ability + attack.
+    assert_eq!(enemy_team.fainted.len(), 2);
+}
+
+#[test]
+fn test_battle_orca_team() {
+    let mut team = test_orca_team();
+    team.set_seed(25);
+    let mut enemy_team = test_gorilla_team();
+
+    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team);
+
+    let summoned_pet = team.first().unwrap();
+    let effect = &summoned_pet.borrow().effect[0];
+    let effect_trigger_status = effect.trigger.status.clone();
+    // Summoned pet is a pet with a faint trigger.
+    assert_eq!(effect_trigger_status, Status::Faint);
+}
+
+#[test]
+fn test_battle_piranha_team() {
+    let mut team = test_piranha_team();
+    let mut enemy_team = test_gorilla_team();
+
+    for pet in team.all().get(1..).unwrap() {
+        assert!(pet.borrow().stats.attack == 1)
+    }
+
+    // Piranha (lvl.1) faints.
+    team.fight(&mut enemy_team);
+
+    // And all pets behind get (3,0).
+    for pet in team.all() {
+        assert!(pet.borrow().stats.attack == 4)
+    }
+}
+
+#[test]
+fn test_battle_reindeer_team() {
+    let mut team = test_reindeer_team();
+    let mut enemy_team = test_gorilla_team();
+
+    // No item before fight.
+    let reindeer = team.first().unwrap();
+    assert_eq!(reindeer.borrow().item, None);
+
+    team.fight(&mut enemy_team);
+
+    // After fight has melon but already used.
+    assert_eq!(
+        reindeer.borrow().item.as_ref().unwrap().name,
+        FoodName::Melon
+    );
+    assert_eq!(
+        reindeer.borrow().item.as_ref().unwrap().ability.uses,
+        Some(0)
+    );
+}
+
+#[test]
+fn test_battle_sabertooth_team() {
+    // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+    let mut team = test_sabertooth_team();
+    let mut enemy_team = test_cricket_horse_team();
+
+    let sabertooth_stats = team.first().unwrap().borrow().stats;
+
+    team.fight(&mut enemy_team);
+
+    // Sabertooth hurt.
+    assert_ne!(sabertooth_stats, team.nth(1).unwrap().borrow().stats);
+    let summoned_pet = team.first().unwrap();
+    // Tier 1, lvl 1, pet at fixed (8,8) summoned.
+    assert!(
+        summoned_pet.borrow().stats == Statistics::new(8, 8).unwrap()
+            && summoned_pet.borrow().tier == 1
+            && summoned_pet.borrow().lvl == 1
+    );
+}
+
+#[test]
+fn test_battle_spinosaurus_team() {
+    let mut team = test_spinosaurus_team();
+    team.set_seed(52);
+    let mut enemy_team = test_piranha_team();
+
+    // Dog at pos 1 to get buff is (3,4).
+    let dog = team.nth(1).unwrap();
+    let dog_stats_original = dog.borrow().stats;
+    assert_eq!(dog_stats_original, Statistics::new(3, 4).unwrap());
+
+    // Dog at pos 0 faints
+    team.fight(&mut enemy_team);
+
+    // Dog gains (3,2) from spinosaurus.
+    assert_eq!(team.fainted.len(), 1);
+    assert_eq!(
+        dog_stats_original + Statistics::new(3, 2).unwrap(),
+        dog.borrow().stats
+    );
+}
+
+#[test]
+fn test_battle_stegosaurus_team() {
+    let mut team = test_stegosaurus_team();
+    let mut enemy_team = test_gorilla_team();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics::new(3, 4).unwrap()
+    );
+
+    // Current turn is 1 so stego should give (1/1 * 1) = (1/1)
+    assert!(team.history.curr_turn == 0);
+
+    // Activate start of battle effects.
+    team.trigger_effects(&mut enemy_team);
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics::new(4, 5).unwrap()
+    );
+
+    // Reset team.
+    team.restore();
+
+    // Increase turns to 3. Stego should give (1/1 * 3) = (3/3)
+    team.history.curr_turn += 2;
+
+    // Re-activate start of battle effects.
+    team.trigger_effects(&mut enemy_team);
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics::new(6, 7).unwrap()
+    );
+}
+
+#[test]
+fn test_battle_velociraptor_team() {
+    let mut team = test_velociraptor_team();
+    let mut enemy_team = test_gorilla_team();
+
+    // Cricket at pos 1 has strawberry.
+    assert_eq!(
+        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
+        FoodName::Strawberry
+    );
+    // Trigger start of battle effects.
+    team.trigger_effects(&mut enemy_team);
+
+    // Cricket at pos 1 now has coconut.
+    assert_eq!(
+        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
+        FoodName::Coconut
+    );
 }

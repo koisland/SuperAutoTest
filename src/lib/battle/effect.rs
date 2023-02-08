@@ -1,5 +1,8 @@
 use crate::{
-    battle::state::{Action, Outcome, Position, Target},
+    battle::{
+        actions::Action,
+        state::{Outcome, Position, Target},
+    },
     Pet,
 };
 use serde::{Deserialize, Serialize};
@@ -63,7 +66,8 @@ impl Effect {
     ///     battle::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
-    ///         state::{Position, Action, Target, Condition, StatChangeType}
+    ///         state::{Position, Target, Condition},
+    ///         actions::{Action, StatChangeType}
     ///     }
     /// };
     /// let lvl_1_ant_effect = Effect::new(

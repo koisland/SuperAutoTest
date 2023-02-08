@@ -165,7 +165,8 @@ impl Pet {
     ///     battle::{
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
-    ///         state::{Action, Position, Status, Target, GainType},
+    ///         actions::{Action, GainType},
+    ///         state::{Position, Status, Target},
     ///     },
     ///     Effect, Food, FoodName, Outcome, Pet, Statistics,
     /// };
@@ -206,7 +207,7 @@ impl Pet {
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
-    /// use sapt::{Pet, PetName, Statistics, battle::state::{Action, StatChangeType}};
+    /// use sapt::{Pet, PetName, Statistics, battle::actions::{Action, StatChangeType}};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -351,7 +352,18 @@ impl Pet {
             })
         } else {
             self.lvl = lvl;
+            // Reassign owner if any.
+            let owner = self
+                .effect
+                .first()
+                .map(|effect| effect.owner.clone())
+                .unwrap_or(None);
             self.effect = self.get_effect(self.lvl)?;
+            if let Some(Some(owner)) = owner.map(|pet_ref| pet_ref.upgrade()) {
+                for effect in self.effect.iter_mut() {
+                    effect.assign_owner(Some(&owner));
+                }
+            }
             Ok(self)
         }
     }

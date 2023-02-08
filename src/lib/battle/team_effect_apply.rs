@@ -1,10 +1,10 @@
 use crate::{
     battle::{
-        effect::{Effect, Entity, Modify},
-        state::{
-            Action, Condition, ConditionType, CopyType, GainType, Outcome, Position, RandomizeType,
-            StatChangeType, SummonType, Target,
+        actions::{
+            Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
         },
+        effect::{Effect, Entity, Modify},
+        state::{Condition, Outcome, Position, Target},
         stats::Statistics,
         team::Team,
         trigger::*,
@@ -29,9 +29,10 @@ use std::{cell::RefCell, rc::Rc};
 
 /// Pet doesn't store a reference to team so this was a workaround.
 type TargetPet = Vec<(Target, Rc<RefCell<Pet>>)>;
-const NONSPECIFIC_POSITIONS: [Position; 4] = [
+const NONSPECIFIC_POSITIONS: [Position; 5] = [
     Position::None,
     Position::Any(Condition::None),
+    Position::Any(Condition::NotSelf),
     Position::Relative(-1),
     Position::All(Condition::None),
 ];
@@ -233,8 +234,8 @@ impl EffectApply for Team {
         self.curr_pet = effect.owner.clone();
 
         let target_pets = self.get_pets_by_effect(trigger, effect, opponent)?;
-        match &effect.action {
-            Action::Swap(swap_type) => {
+        match (&effect.target, &effect.action) {
+            (_, Action::Swap(swap_type)) => {
                 if target_pets.len() != 2 {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: format!("Swap {swap_type:?}"),
@@ -258,6 +259,30 @@ impl EffectApply for Team {
                     }
                 };
             }
+            // Must be here to only activate once.
+            (target_team, Action::Shuffle(shuffle_by)) => {
+                let teams = match target_team {
+                    Target::Friend => vec![self],
+                    Target::Enemy => vec![opponent],
+                    Target::Either => vec![self, opponent],
+                    _ => unimplemented!("Cannot shuffle on given target."),
+                };
+                for team in teams {
+                    let mut rng = ChaCha12Rng::seed_from_u64(team.seed);
+                    match shuffle_by {
+                        RandomizeType::Positions => {
+                            team.friends.shuffle(&mut rng);
+                            team.set_indices();
+                        }
+                        RandomizeType::Stats => {
+                            for pet in team.friends.iter() {
+                                pet.borrow_mut().stats.invert();
+                            }
+                        }
+                    }
+                }
+            }
+
             _ => {
                 for (team, pet) in target_pets.into_iter() {
                     match team {
@@ -329,7 +354,7 @@ impl EffectApplyHelpers for Team {
         opponent: &mut Team,
     ) -> Result<Option<String>, SAPTestError> {
         let pet = match summon_type {
-            SummonType::QueryPet(sql, params) => {
+            SummonType::QueryPet(sql, params, stats) => {
                 let conn = get_connection()?;
                 let pets = query_pet(&conn, sql, params)?;
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
@@ -338,7 +363,12 @@ impl EffectApplyHelpers for Team {
                     subject: "Summon Query".to_string(),
                     reason: format!("No record found for query: {sql} with {params:?}"),
                 })?;
-                Pet::try_from(pet_record.clone())?
+                let mut pet = Pet::try_from(pet_record.clone())?;
+                // Set stats if some value provided.
+                if let Some(set_stats) = stats {
+                    pet.stats = *set_stats;
+                }
+                pet
             }
             SummonType::StoredPet(box_pet) => *box_pet.clone(),
             SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
@@ -594,6 +624,18 @@ impl EffectApplyHelpers for Team {
 
                 target_ids.push(target_pet.borrow().id.clone())
             }
+            Action::Vulture(stats) => {
+                // Should only target enemies for this to work as we are only checking the opposing team the effect comes from.
+                // Add 1 because faint triggers and only after does pet move into fainted.
+                let num_fainted = opponent.fainted.len() + 1;
+                // If num fainted pets is even, do damage.
+                if num_fainted % 2 == 0 {
+                    info!(target: "dev", "(\"{}\")\nTwo pets fainted.", self.name);
+                    let mut remove_effect = effect.clone();
+                    remove_effect.action = Action::Remove(StatChangeType::StaticValue(*stats));
+                    self.apply_single_effect(target_pet, &remove_effect, opponent)?;
+                }
+            }
             Action::Gain(gain_food_type) => {
                 let food = match gain_food_type {
                     GainType::SelfItem => effect_owner.borrow().item.clone(),
@@ -786,6 +828,18 @@ impl EffectApplyHelpers for Team {
 
                 self.evolve_pet(*lvl, targets, target_pet, opponent)?;
             }
+            Action::Stegosaurus(stats) => {
+                let mut turn_mult_stats = *stats;
+                // Multiply by turn number. Need to multiply raw values since mult op treats as percent.
+                let turn_multiplier = TryInto::<isize>::try_into(self.history.curr_turn + 1)?;
+                turn_mult_stats.attack *= turn_multiplier;
+                turn_mult_stats.health *= turn_multiplier;
+
+                // Modify action to add turn-multiplied stats and apply effect.
+                let mut effect_copy = effect.clone();
+                effect_copy.action = Action::Add(StatChangeType::StaticValue(turn_mult_stats));
+                self.apply_single_effect(target_pet, &effect_copy, opponent)?;
+            }
             Action::Copy(attr, target, pos) => {
                 // Create effect to select a pet.
                 let mut copy_effect = effect.clone();
@@ -856,9 +910,9 @@ impl EffectApplyHelpers for Team {
             effect_pet.upgrade()
         } else {
             return Err(SAPTestError::InvalidTeamAction {
-                subject: "Pet Reference".to_string(),
+                subject: "Current Pet Reference".to_string(),
                 indices: vec![],
-                reason: "Doesn't exist".to_string(),
+                reason: "Doesn't exist.".to_string(),
             });
         };
 

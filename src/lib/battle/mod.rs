@@ -1,5 +1,7 @@
 //! Battle logic for a [`Team`](crate::battle::team::Team).
 
+/// Effect actions.
+pub mod actions;
 /// Effect struct.
 pub mod effect;
 /// Logic for monitoring [`Pet`](crate::Pet) and [`Team`](crate::Team) state.

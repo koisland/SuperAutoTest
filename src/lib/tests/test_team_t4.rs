@@ -2,8 +2,9 @@ use std::rc::Rc;
 
 use crate::{
     battle::{
+        actions::{Action, CopyType, SummonType},
         effect::Entity,
-        state::{Action, CopyType, Position, SummonType, Target, TeamFightOutcome},
+        state::{Position, Target, TeamFightOutcome},
         stats::Statistics,
         team_effect_apply::EffectApply,
         trigger::{TRIGGER_SELF_FAINT, TRIGGER_START_TURN},

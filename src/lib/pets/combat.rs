@@ -3,8 +3,9 @@ use rand_chacha::ChaCha12Rng;
 
 use crate::{
     battle::{
+        actions::{Action, StatChangeType},
         effect::Modify,
-        state::{Action, Outcome, Position, StatChangeType},
+        state::{Outcome, Position},
         stats::Statistics,
         trigger::*,
     },
@@ -217,20 +218,16 @@ impl PetCombat for Pet {
         };
 
         // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
-        let max_enemy_dmg = if self
-            .item
-            .as_ref()
-            .map_or(false, |food| food.ability.action == Action::Invincible)
-        {
+        let max_enemy_dmg = if self.item.as_ref().map_or(false, |food| {
+            food.ability.action == Action::Invincible && food.ability.uses != Some(0)
+        }) {
             0
         } else {
             MAX_DMG
         };
-        let max_dmg = if enemy
-            .item
-            .as_ref()
-            .map_or(false, |food| food.ability.action == Action::Invincible)
-        {
+        let max_dmg = if enemy.item.as_ref().map_or(false, |food| {
+            food.ability.action == Action::Invincible && food.ability.uses != Some(0)
+        }) {
             0
         } else {
             MAX_DMG

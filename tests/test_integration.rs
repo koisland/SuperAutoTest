@@ -1,10 +1,11 @@
 use sapt::{
     battle::{
+        actions::{Action, GainType},
         effect::Entity,
-        state::{Action, GainType, Position, Status, Target},
+        state::{Position, Status, Target},
         trigger::*,
     },
-    Effect, EffectApply, FoodName, Pet, PetName, SapDB, Statistics, Team,
+    Effect, EffectApply, Food, FoodName, Pet, PetName, SapDB, Statistics, Team,
 };
 
 #[test]
@@ -64,15 +65,23 @@ fn test_create_custom_pet() {
 #[test]
 fn test_create_team() {
     let mut team = Team::default();
-    team.add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
+    let dog = Pet::try_from(PetName::Dog).unwrap();
+    // Add 5 dogs.
+    team.add_pet(dog.clone(), 0, None)
         .unwrap()
-        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
+        .add_pet(dog.clone(), 0, None)
         .unwrap()
-        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
+        .add_pet(dog.clone(), 0, None)
         .unwrap()
-        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
+        .add_pet(dog.clone(), 0, None)
         .unwrap()
-        .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None)
+        .add_pet(dog, 0, None)
+        .unwrap()
+        // Give the 2nd pet behind current pet Garlic.
+        .set_item(
+            Position::Relative(-2),
+            Food::try_from(FoodName::Garlic).ok(),
+        )
         .unwrap();
 
     assert_eq!(team.friends.len(), 5)

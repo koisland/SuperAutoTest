@@ -25,7 +25,7 @@ pub static RGX_SUMMON_STATS: &LRegex = regex!(r#"\|\scolspan="(\d+)"\s\|([\d\w]+
 // Stats
 pub static RGX_ATK: &LRegex = regex!(r#"([\d-]+)%*\s+attack"#);
 pub static RGX_HEALTH: &LRegex = regex!(r#"([\d-]+)%*\s+health"#);
-pub static RGX_ATK_HEALTH: &LRegex = regex!(r#"([\d-]+)%\sof*\sattack\sand\shealth"#);
+pub static RGX_ATK_HEALTH: &LRegex = regex!(r#"([\d-]+)%*\s+attack\sand\shealth"#);
 pub static RGX_DMG: &LRegex = regex!(r#"(\d+)%*\sdamage"#);
 pub static RGX_DMG_REDUCE: &LRegex = regex!(r#"(\d+)%*\sless\sdamage"#);
 

@@ -170,7 +170,7 @@ impl Statistics {
     ///
     /// assert_eq!(
     ///     stats,
-    ///     Statistics {health: 2, attack: 1}
+    ///     Statistics {attack: 1, health: 2}
     /// )
     /// ```
     pub fn invert(&mut self) -> &mut Self {
