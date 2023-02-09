@@ -1,4 +1,4 @@
-# SuperAutoTest
+# SAPTest
 [![Release](https://img.shields.io/github/v/release/koisland/SuperAutoTest)]()
 [![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/main/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
