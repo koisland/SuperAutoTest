@@ -2,16 +2,13 @@ use sapt::{
     battle::{
         actions::{Action, GainType},
         effect::Entity,
-        state::{Position, Status, Target},
+        state::{Position, Status, Target, TeamFightOutcome},
         trigger::*,
     },
-    Effect, EffectApply, Food, FoodName, Pet, PetName, SapDB, Statistics, Team,
+    Effect, EffectApply, Food, FoodName, Pet, PetName, Statistics, Team,
 };
 
-#[test]
-fn test_init_db() {
-    assert!(SapDB::new().is_ok())
-}
+use std::thread;
 
 #[test]
 fn test_create_known_pet() {
@@ -85,6 +82,45 @@ fn test_create_team() {
         .unwrap();
 
     assert_eq!(team.friends.len(), 5)
+}
+
+#[test]
+fn test_multithreaded_team_battle() {
+    let n_threads = 12;
+    let mut children = vec![];
+
+    // Spawn 12 threads.
+    for _ in 0..n_threads {
+        children.push(thread::spawn(|| {
+            let mut team_1 = Team::new(
+                &vec![
+                    Pet::try_from(PetName::Ant).unwrap(),
+                    Pet::try_from(PetName::Ant).unwrap(),
+                    Pet::try_from(PetName::Ant).unwrap(),
+                    Pet::try_from(PetName::Ant).unwrap(),
+                    Pet::try_from(PetName::Ant).unwrap(),
+                ],
+                5,
+            )
+            .unwrap();
+            let mut team_2 = team_1.clone();
+
+            let mut outcome = team_1.fight(&mut team_2);
+            while let TeamFightOutcome::None = outcome {
+                outcome = team_1.fight(&mut team_2);
+            }
+            outcome
+        }))
+    }
+
+    let mut thread_team_1_outcomes = vec![];
+    for child_thread in children.into_iter() {
+        let outcome = child_thread.join();
+        // Good outcome?
+        assert!(outcome.is_ok());
+
+        thread_team_1_outcomes.push(outcome.unwrap())
+    }
 }
 
 #[test]

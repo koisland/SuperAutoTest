@@ -7,16 +7,13 @@
 
 Database and testing framework for Super Auto Pets.
 
-Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite3` database.
+Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite` database.
 
 ---
 
 ## Usage
 ```rust
-use sapt::{SapDB, Pet, PetName, PetCombat, Food, FoodName, Team, Position};
-
-// Initialize the database.
-let db = SapDB::new();
+use sapt::{Pet, PetName, PetCombat, Food, FoodName, Team, Position};
 
 // Create pets.
 let pet = Pet::try_from(PetName::Ant).unwrap();
@@ -37,10 +34,8 @@ team.fight(&mut enemy_team);
 ---
 ## Benchmarks
 Benchmarks for `sapt` are located in `benches/battle_benchmarks.rs` and run using the [`criterion`](https://docs.rs/crate/criterion/latest) crate.
-
-Compared against [`sapai`](https://github.com/manny405/sapai#battles), a Super Auto Pets testing framework written in Python.
-
-Both tests were run on an AMD Ryzen 5 5600 6-Core Processor @ 3.50 GHz.
+* Compared against [`sapai`](https://github.com/manny405/sapai#battles), a Super Auto Pets testing framework written in Python.
+* Both tests were run on an AMD Ryzen 5 5600 6-Core Processor @ 3.50 GHz.
 
 ```bash
 # sapt
@@ -63,23 +58,32 @@ python setup.py install
 ### sapai
 * **4.29 ms ± 51.8 µs** per loop (mean ± std. dev. of 7 runs, **100 loops each**)
 
+---
 
-### Troubleshooting
+## Troubleshooting
 To enable verbose logging to troubleshoot issues, enable `log4rs` and use the main log config file.
 ```rust
-log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+fn main() {
+  log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
+
+  // Code here.
+  ...
+}
 ```
 
-### TODO:
+---
+## TODO:
 * Add serialization of team and pets.
-* Migrate to `sqlx`.
 * Deploy to `crates.io`.
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
 * Rework Statistics struct math operations to be more consistent.
 * Add shops.
   * Consider using the Python package [sapai](https://github.com/manny405/sapai) if shop functionality is required.
+* Create Rust binding for Python.
 
-### Sources
+---
+## Sources
 * https://superautopets.fandom.com/wiki
 * https://emoji.supply/kitchen/
 * https://github.com/manny405/sapai

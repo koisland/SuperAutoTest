@@ -10,7 +10,7 @@ use crate::{
     pets::pet::{MAX_PET_STATS, MIN_PET_STATS},
 };
 
-/// Statistics for a [`Pet`](crate::pets::pet::Pet) or an [`Action`].
+/// Statistics for a [`Pet`](crate::pets::pet::Pet) or an [`Action`](crate::battle::actions::Action).
 /// * Generally, a single integer value. ex. `50`
 /// * But also, used as a **percentage** for certain pets.
 ///     * Ex. [`Skunk`](crate::pets::names::PetName::Skunk) or [`Leopard`](crate::pets::names::PetName::Leopard).

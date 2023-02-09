@@ -4,10 +4,11 @@ use std::fmt::Display;
 
 use crate::{
     battle::{effect::Effect, stats::Statistics},
-    db::{record::PetRecord, setup::get_connection, utils::map_row_to_pet},
+    db::record::PetRecord,
     error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
+    SAPDB,
 };
 
 /// Minimum pet level.
@@ -139,9 +140,16 @@ impl Pet {
         stats: Option<Statistics>,
         lvl: usize,
     ) -> Result<Pet, SAPTestError> {
-        let conn = get_connection()?;
+        let conn = SAPDB.pool.get()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
-        let pet_record = stmt.query_row([name.to_string(), lvl.to_string()], map_row_to_pet)?;
+        let pet_record: PetRecord = stmt
+            .query([name.to_string(), lvl.to_string()])?
+            .next()?
+            .ok_or(SAPTestError::QueryFailure {
+                subject: "No Pet Found".to_string(),
+                reason: format!("No pet ({name}) found at level ({lvl})."),
+            })?
+            .try_into()?;
 
         let mut pet = Pet::try_from(pet_record)?;
 
@@ -219,19 +227,18 @@ impl Pet {
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
-        let conn = get_connection()?;
-        let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
-        // Get pet stats and n_triggers from sqlite db. Otherwise, set to default.
-        if let Ok(pet_record) =
-            stmt.query_row([self.name.to_string(), lvl.to_string()], map_row_to_pet)
-        {
-            Ok(pet_record.try_into()?)
-        } else {
-            Err(SAPTestError::QueryFailure {
-                subject: "No Effect".to_string(),
+        SAPDB
+            .execute_pet_query(
+                "SELECT * FROM pets WHERE name = ? AND lvl = ?",
+                &[self.name.to_string(), lvl.to_string()],
+            )?
+            .into_iter()
+            .next()
+            .ok_or(SAPTestError::QueryFailure {
+                subject: "No Pet Effect".to_string(),
                 reason: format!("No effect for {} at level {lvl}.", self.name),
-            })
-        }
+            })?
+            .try_into()
     }
 
     /// Get pet experience.

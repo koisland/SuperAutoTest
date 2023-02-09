@@ -54,7 +54,7 @@ pub enum Condition {
     LowestTier,
     /// Choose all pets that have an item with a given [`FoodName`].
     HasFood(Option<FoodName>),
-    /// Choose all pet that have an [`Effect`] triggered by some [`Status`].
+    /// Choose all pet that have an [`Effect`](crate::Effect) triggered by some [`Status`].
     TriggeredBy(Status),
     /// Multiple conditions.
     Multiple(Vec<Condition>),
@@ -119,7 +119,7 @@ pub enum Target {
     None,
 }
 
-/// The outcome of any [`Pet`] action. Serve as [`Effect`] triggers in battle.
+/// The outcome of any [`Pet`] action. Serve as [`Effect`](crate::Effect) triggers in battle.
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Outcome {
     /// Status of a [`Pet`].

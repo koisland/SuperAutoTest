@@ -3,10 +3,8 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    battle::effect::Effect,
-    db::{setup::get_connection, utils::map_row_to_food},
-    error::SAPTestError,
-    foods::names::FoodName,
+    battle::effect::Effect, db::record::FoodRecord, error::SAPTestError, foods::names::FoodName,
+    SAPDB,
 };
 
 /// A Super Auto Pets food.
@@ -48,9 +46,14 @@ impl Display for Food {
 impl Food {
     /// Create a `Food` from `FoodName`.
     pub fn new(name: &FoodName) -> Result<Food, SAPTestError> {
-        let conn = get_connection()?;
-        let mut stmt = conn.prepare("SELECT * FROM foods WHERE name = ?")?;
-        let food_record = stmt.query_row([name.to_string()], map_row_to_food)?;
+        let food_record: FoodRecord = SAPDB
+            .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
+            .into_iter()
+            .next()
+            .ok_or(SAPTestError::QueryFailure {
+                subject: "No Food Effect".to_string(),
+                reason: format!("No food record for {name}"),
+            })?;
         let effect = Effect::try_from(&food_record)?;
 
         Ok(Food {

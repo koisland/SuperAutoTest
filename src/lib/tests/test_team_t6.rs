@@ -298,6 +298,7 @@ fn test_battle_tapir_team() {
     );
 
     team.restore();
+    team.set_seed(25);
 
     // Level tapir to lvl 2.
     team.set_level(Position::First, 2).unwrap();

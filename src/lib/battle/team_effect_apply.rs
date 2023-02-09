@@ -9,13 +9,13 @@ use crate::{
         team::Team,
         trigger::*,
     },
-    db::{query::query_pet, setup::get_connection},
+    db::record::PetRecord,
     error::SAPTestError,
     pets::{
         names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
-    Food, Pet, PetCombat,
+    Food, Pet, PetCombat, SAPDB,
 };
 
 use itertools::Itertools;
@@ -355,14 +355,16 @@ impl EffectApplyHelpers for Team {
     ) -> Result<Option<String>, SAPTestError> {
         let pet = match summon_type {
             SummonType::QueryPet(sql, params, stats) => {
-                let conn = get_connection()?;
-                let pets = query_pet(&conn, sql, params)?;
-                let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
+                let pet_records: Vec<PetRecord> = SAPDB.execute_pet_query(sql, params)?;
+                let mut rng = ChaCha12Rng::seed_from_u64(target_pet.borrow().seed);
                 // Only select one pet.
-                let pet_record = pets.choose(&mut rng).ok_or(SAPTestError::QueryFailure {
-                    subject: "Summon Query".to_string(),
-                    reason: format!("No record found for query: {sql} with {params:?}"),
-                })?;
+                let pet_record =
+                    pet_records
+                        .choose(&mut rng)
+                        .ok_or(SAPTestError::QueryFailure {
+                            subject: "Summon Query".to_string(),
+                            reason: format!("No record found for query: {sql} with {params:?}"),
+                        })?;
                 let mut pet = Pet::try_from(pet_record.clone())?;
                 // Set stats if some value provided.
                 if let Some(set_stats) = stats {

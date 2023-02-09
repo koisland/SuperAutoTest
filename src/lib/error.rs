@@ -6,6 +6,8 @@ pub enum SAPTestError {
     RequestFailure(#[from] reqwest::Error),
     #[error("Failed interaction with database.")]
     DatabaseFailure(#[from] rusqlite::Error),
+    #[error("Failed to initialize database.")]
+    DatabaseInitFailure(#[from] r2d2::Error),
     #[error("Failed Query: {subject:?} due to {reason:?}")]
     QueryFailure { subject: String, reason: String },
     #[error("Cannot convert statistics to isize.")]
