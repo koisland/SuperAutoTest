@@ -1,18 +1,16 @@
 //! Battle logic for a [`Team`](crate::battle::team::Team).
 
-/// Effect actions.
+/// [`Effect`](crate::Effect) actions and their possible types.
 pub mod actions;
-/// Effect struct.
+/// [`Effect`](crate::Effect) struct.
 pub mod effect;
-/// Logic for monitoring [`Pet`](crate::Pet) and [`Team`](crate::Team) state.
+/// [`Pet`](crate::Pet) and [`Team`](crate::Team) state.
 pub mod state;
-/// Logic for [`Pet`](crate::Pet) and [`Food`](crate::Food) stats.
+/// [`Pet`](crate::Pet) and [`Food`](crate::Food) stats.
 pub mod stats;
-/// Methods for constructing and modifying a Super Auto Pets [`Team`](crate::Team).
+/// [`Team`](crate::Team) of [`Pet`](crate::Pet)s.
 pub mod team;
-/// Methods for applying [`Effect`](crate::Effect)s to a Super Auto Pets [`Team`](crate::Team).
+/// [`Effect`](crate::Effect) application to one or more [`Team`](crate::Team)s.
 pub mod team_effect_apply;
-/// TODO: Methods for summarizing a Super Auto Pets [`Team`](crate::Team).
-pub mod team_summary;
 /// [`Effect`](crate::Effect) triggers.
 pub mod trigger;

@@ -1,5 +1,3 @@
-use std::path::Path;
-
 use crate::{
     db::record::{FoodRecord, PetRecord},
     error::SAPTestError,
@@ -9,6 +7,7 @@ use crate::{
 };
 use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
+use std::path::Path;
 
 /// SAP `SQLite` Database.
 /// * Currently, just used to initialize.
@@ -22,8 +21,19 @@ pub struct SapDB {
 
 impl SapDB {
     /// Initialize database.
-    /// * Creates a `sqlite` file in the root dir of the repo with the `pets` and `foods` tables.
-    /// * Updates the tables with the most recent information from the SAP wiki.
+    /// * Creates a `sqlite` file at the specified `file` path with the `pets` and `foods` tables.
+    /// * Updates all tables with the most recent information from the SAP wiki.
+    /// # Example
+    /// ```
+    /// use std::path::Path;
+    /// use sapt::SapDB;
+    ///
+    /// let db_path = "./sap.db";
+    /// let db = SapDB::new(db_path);
+    ///
+    /// assert!(db.is_ok());
+    /// assert!(Path::new(db_path).exists());
+    /// ```
     pub fn new<P>(file: P) -> Result<Self, SAPTestError>
     where
         P: AsRef<Path> + Into<String>,
@@ -219,7 +229,15 @@ impl SapDB {
         Ok(self)
     }
 
-    /// Query database for [PetRecord](crate::db::record::PetRecord)s.
+    /// Query database for [`PetRecord`](crate::db::record::PetRecord)s.
+    /// # Example
+    /// ```
+    /// use sapt::SAPDB;
+    ///
+    /// let stmt = "SELECT * FROM pets";
+    /// let query = SAPDB.execute_pet_query(stmt, &[]);
+    /// assert!(query.is_ok())
+    /// ```
     pub fn execute_pet_query(
         &self,
         sql: &str,
@@ -236,7 +254,14 @@ impl SapDB {
         Ok(pets_found)
     }
 
-    /// Query database for [FoodRecord](crate::db::record::FoodRecord)s.
+    /// Query database for [`FoodRecord`](crate::db::record::FoodRecord)s.
+    /// # Example
+    /// ```
+    /// use sapt::SAPDB;
+    /// let stmt = "SELECT * FROM foods";
+    /// let query = SAPDB.execute_food_query(stmt, &[]);
+    /// assert!(query.is_ok())
+    /// ```
     pub fn execute_food_query(
         &self,
         sql: &str,

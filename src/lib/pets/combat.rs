@@ -23,38 +23,51 @@ const FULL_DMG_NEG_ITEMS: [FoodName; 2] = [FoodName::Coconut, FoodName::Melon];
 
 /// Implements combat mechanics for a single [`Pet`].
 pub trait PetCombat {
-    /// Perform damage calculation and get new health for self and opponent.
-    fn calculate_damage(&self, enemy: &Pet) -> (isize, isize);
-
-    /// Handle the logic of `Pet` interaction during the battle phase.
-    /// * Alters a `Pet`'s `stats.attack` and `stats.health`
-    /// * Decrements any held `Food`'s `uses` attribute.
-    /// * Returns `AttackOutcome` showing status of pets.
+    /// Perform damage calculation for a direct [`attack`](crate::PetCombat::attack) returning new health for self and opponent.
+    /// # Example
     /// ```
     /// use sapt::{Pet, PetName, PetCombat};
+    /// let (ant_1, ant_2) = (
+    ///     Pet::try_from(PetName::Ant).unwrap(),
+    ///     Pet::try_from(PetName::Ant).unwrap()
+    /// );
+    /// let (new_ant_1_health, new_ant_2_health) = ant_1.calculate_new_health(&ant_2);
+    /// assert!(new_ant_1_health == 0 && new_ant_2_health == 0)
+    /// ```
+    fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize);
+
+    /// Handle the logic of [`Pet`](crate::Pet) interaction during the battle phase.
+    /// * Decrements a held [`Food`](crate::Food) uses.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName, Food, FoodName, PetCombat};
     ///
     /// let (mut ant_1, mut ant_2) = (
     ///     Pet::try_from(PetName::Ant).unwrap(),
     ///     Pet::try_from(PetName::Ant).unwrap()
     /// );
+    /// // Give first ant melon.
+    /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
     ///
-    /// assert_eq!(ant_1.stats.health, 1);
-    /// assert_eq!(ant_2.stats.health, 1);
+    /// // Original stats and effect uses.
+    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 1);
+    /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(1));
     ///
+    /// // Attack alters attack, health, and held item uses.
     /// ant_1.attack(&mut ant_2);
-    ///
-    /// assert_eq!(ant_1.stats.health, 0);
-    /// assert_eq!(ant_2.stats.health, 0);
-    ///
+    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 0);
+    /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(0));
     /// ```
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome;
 
-    /// Perform a projectile/indirect attack on a `Pet`.
+    /// Perform a projectile/indirect attack on a [`Pet`](crate::Pet).
     /// # Examples
     /// ```
     /// use sapt::{Pet, PetName, PetCombat, Statistics};
     ///
     /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    ///
+    /// assert_eq!(ant.stats.health, 1);
     ///
     /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
     ///
@@ -62,12 +75,55 @@ pub trait PetCombat {
     /// ```
     fn indirect_attack(&mut self, hit_stats: &Statistics) -> AttackOutcome;
 
-    /// Get `Outcome` when health is altered.
+    /// Get triggers for both pets when health is altered.
+    /// # Example
+    /// ```
+    /// use sapt::{Pet, PetName, PetCombat, battle::trigger::TRIGGER_SELF_UNHURT};
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// // New health is identical.
+    /// let outcome = ant_1.get_outcome(1);
+    /// // Unhurt trigger for friends.
+    /// assert_eq!(
+    ///     outcome.friends.first().unwrap(),
+    ///     &TRIGGER_SELF_UNHURT
+    /// );
+    /// ```
     fn get_outcome(&self, new_health: isize) -> AttackOutcome;
 
-    /// Gets the `Statistic` modifiers of held foods that alter a pet's stats during battle.
-    ///
-    /// If a pet has no held food, no `Statistics` are provided.
+    /// Gets the [`Statistic`](crate::Statistics) modifiers of held foods that alter a pet's stats during battle.
+    /// # Examples
+    /// ---
+    /// **Nothing** - Gives no additional stats in damage calculation.
+    /// ```
+    /// use sapt::{Pet, PetName, Statistics, PetCombat};
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// assert_eq!(
+    ///     ant_1.get_food_stat_modifier(),
+    ///     Statistics::new(0, 0).unwrap()
+    /// );
+    /// ```
+    /// ---
+    /// **Melon** - Gives `20` additional health in damage calculation.
+    /// ```
+    /// use sapt::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
+    /// assert_eq!(
+    ///     ant_1.get_food_stat_modifier(),
+    ///     Statistics::new(0, 20).unwrap()
+    /// );
+    /// ```
+    /// ---
+    /// **MeatBone** - Gives `4` additional attack in damage calculation.
+    /// ```
+    /// use sapt::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// ant_1.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
+    /// assert_eq!(
+    ///     ant_1.get_food_stat_modifier(),
+    ///     Statistics::new(4, 0).unwrap()
+    /// );
+    /// ```
     fn get_food_stat_modifier(&self) -> Statistics;
 }
 
@@ -192,7 +248,7 @@ impl PetCombat for Pet {
         })
     }
 
-    fn calculate_damage(&self, enemy: &Pet) -> (isize, isize) {
+    fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {
         // Get stat modifier from food.
         let stat_modifier = self.get_food_stat_modifier();
         let enemy_stat_modifier = enemy.get_food_stat_modifier();
@@ -272,7 +328,7 @@ impl PetCombat for Pet {
     }
 
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome {
-        let (new_health, new_enemy_health) = self.calculate_damage(enemy);
+        let (new_health, new_enemy_health) = self.calculate_new_health(enemy);
 
         // Decrement number of uses on items, if any.
         self.item.as_mut().map(|item| item.ability.remove_uses(1));

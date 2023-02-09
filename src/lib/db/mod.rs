@@ -1,10 +1,10 @@
-//! SQLite database of game information.
+//! SQLite [`SapDB`](crate::SapDB) database of game information.
 
-/// Super Auto Pet game packs.
+/// Game packs.
 pub mod pack;
-/// Record types for Super Auto Pets.
+/// Record types.
 pub mod record;
 /// Database setup functions.
 pub mod setup;
 /// Database helper functions.
-pub mod utils;
+mod utils;

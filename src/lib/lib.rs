@@ -51,7 +51,7 @@ pub use crate::battle::{
     team::Team,
     team_effect_apply::EffectApply,
 };
-use crate::db::setup::SapDB;
+pub use crate::db::setup::SapDB;
 pub use crate::foods::{food::Food, names::FoodName};
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};
 

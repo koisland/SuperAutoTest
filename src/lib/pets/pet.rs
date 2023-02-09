@@ -23,7 +23,7 @@ pub const MAX_PET_STATS: isize = 50;
 /// A Super Auto Pet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
-    /// An ID for a pet.
+    /// An identifier for a pet.
     pub id: Option<String>,
     /// Name for pet.
     pub name: PetName,
@@ -38,7 +38,7 @@ pub struct Pet {
     /// Cost of pet.
     pub cost: usize,
     /// Seed for pet RNG.
-    /// * Used in damage calculation for items [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
+    /// * Used in damage calculation for items like [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
     pub seed: u64,
     /// Level of pet.
     pub(crate) lvl: usize,
@@ -375,7 +375,7 @@ impl Pet {
         }
     }
 
-    /// Private helper function to set pet idx for matching on effect triggers.
+    /// Helper function to set pet idx for matching on effect triggers.
     /// * Note: This does not update other pets on the same [`Team`](crate::battle::team::Team).
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);

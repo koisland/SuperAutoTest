@@ -10,9 +10,7 @@ use crate::{
 };
 use serde::{Deserialize, Serialize};
 
-/// General Pet attribute use for [`Action::Copy`].
-///
-/// [`Statistics`] for `health` or `attack` are a set percentage.
+/// [`Pet`] attribute used for [`Action::Copy`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum CopyType {
     /// Percent pet stats to copy.
@@ -27,7 +25,7 @@ pub enum CopyType {
     None,
 }
 
-/// Types of Statistics changes for Action::Remove or Action::Add.
+/// Types of [`Statistics`] changes for [`Action::Remove`] or [`Action::Add`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum StatChangeType {
     /// Change stats by a static value.
@@ -37,7 +35,7 @@ pub enum StatChangeType {
     SelfMultValue(Statistics),
 }
 
-/// Types of summons for Action::Summon.
+/// Types of summons for [`Action::Summon`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum SummonType {
     /// Summon a pet via a SQL query.
@@ -65,7 +63,7 @@ pub enum GainType {
     StoredItem(Box<Food>),
 }
 
-/// Types of ways Action::Swap or Action::Shuffle can alter pets.
+/// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can alter pets.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum RandomizeType {
     /// Alter positions.
@@ -74,7 +72,7 @@ pub enum RandomizeType {
     Stats,
 }
 
-/// Conditional Logic.
+/// Conditional logic for [`Action::Conditional`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum ConditionType {
     /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
@@ -126,7 +124,7 @@ pub enum Action {
     Multiple(Vec<Action>),
     /// Perform a conditional `Action`.
     Conditional(ConditionType, Box<Action>),
-    /// Hardcoded Rhino ability.
+    /// Hardcoded rhino ability.
     Rhino(Statistics),
     /// Hardcoded lynx ability.
     Lynx,

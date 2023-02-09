@@ -3,8 +3,8 @@
 /// Combat for individual [`Pet`](crate::Pet)s.
 pub mod combat;
 /// Effects for each [`Pet`](crate::Pet).
-pub mod effects;
+mod effects;
 /// Names for each [`Pet`](crate::Pet).
 pub mod names;
-/// Constructor and methods for a Super Auto [Pet](crate::Pet).
+/// Constructor and methods for [`Pet`](crate::Pet)s.
 pub mod pet;

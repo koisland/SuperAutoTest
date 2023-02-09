@@ -5,10 +5,21 @@ use sapt::{
         state::{Position, Status, Target, TeamFightOutcome},
         trigger::*,
     },
-    Effect, EffectApply, Food, FoodName, Pet, PetName, Statistics, Team,
+    Effect, EffectApply, Food, FoodName, Pet, PetName, Statistics, Team, SAPDB,
 };
-
 use std::thread;
+
+#[test]
+fn test_query_db() {
+    let food_stmt = "SELECT * FROM foods";
+    let pet_stmt = "SELECT * FROM pets";
+
+    let food_query = SAPDB.execute_food_query(food_stmt, &[]);
+    let pet_query = SAPDB.execute_pet_query(pet_stmt, &[]);
+
+    assert!(food_query.is_ok());
+    assert!(pet_query.is_ok());
+}
 
 #[test]
 fn test_create_known_pet() {

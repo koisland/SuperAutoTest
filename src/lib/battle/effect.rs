@@ -38,10 +38,10 @@ pub struct Effect {
     pub position: Position,
     /// Action to take.
     pub action: Action,
-    /// Number of uses of [`Effect`] per trigger.
+    /// Number of uses of effect per trigger.
     /// * `None` indicates unlimited uses.
     pub uses: Option<usize>,
-    /// If the [`Effect`] is temporary or not.
+    /// If the effect is temporary or not.
     pub temp: bool,
 }
 
@@ -101,7 +101,34 @@ impl Effect {
         }
     }
 
+    /// Get owner of effect.
+    /// # Example
+    /// ```
+    /// use sapt::Effect;
+    /// // By default, no effect owner.
+    /// let mut effect = Effect::default();
+    /// assert!(effect.get_owner().is_none());
+    /// ```
+    pub fn get_owner(&self) -> Option<Weak<RefCell<Pet>>> {
+        self.owner.as_ref().cloned()
+    }
+
     /// Assign this effect to a pet.
+    /// * Used in [`Team`](crate::Team) to assign and track owners of [`Effect`]s.
+    /// # Example
+    /// ```rust
+    /// use std::{rc::Rc, cell::RefCell};
+    /// use sapt::{Pet, PetName, Effect};
+    ///
+    /// let ant = Pet::try_from(PetName::Ant).unwrap();
+    /// let rc_ant = Rc::new(RefCell::new(ant));
+    ///
+    /// // Create an example effect.
+    /// let mut effect = Effect::default();
+    /// // ^ and its trigger now belongs to ant.
+    /// effect.assign_owner(Some(&rc_ant));
+    /// assert!(effect.get_owner().unwrap().ptr_eq(&Rc::downgrade(&rc_ant)))
+    /// ```
     pub fn assign_owner(&mut self, owner: Option<&Rc<RefCell<Pet>>>) -> &mut Self {
         let owner_ref = owner.map(Rc::downgrade);
         self.owner = owner_ref.clone();
