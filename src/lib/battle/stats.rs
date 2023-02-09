@@ -33,7 +33,7 @@ impl Statistics {
     ///
     /// # Examples
     /// ```
-    /// use sapt::Statistics;
+    /// use saptest::Statistics;
     ///
     /// let ant_effect_stats = Statistics::new(2, 1).unwrap();
     /// assert_eq!(
@@ -118,7 +118,7 @@ impl Statistics {
     /// Restrict values of `attack` and `health` to a given `min` and `max`.
     /// # Examples
     /// ```
-    /// use sapt::Statistics;
+    /// use saptest::Statistics;
     /// let mut effect_dmg = Statistics::new(-2, -2).unwrap();
     /// let mut stats = Statistics::new(6, 150).unwrap();
     ///
@@ -137,7 +137,7 @@ impl Statistics {
     ///
     /// # Examples
     /// ```rust
-    /// use sapt::Statistics;
+    /// use saptest::Statistics;
     ///
     /// let mut crab_stats = Statistics::new(3, 1).unwrap();
     /// let gorilla_stats = Statistics::new(6, 9).unwrap();
@@ -163,7 +163,7 @@ impl Statistics {
     /// Invert attack and health.
     /// # Examples
     /// ```rust
-    /// use sapt::Statistics;
+    /// use saptest::Statistics;
     ///
     /// let mut stats = Statistics::new(2, 1).unwrap();
     /// stats.invert();

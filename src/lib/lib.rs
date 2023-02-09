@@ -2,7 +2,7 @@
 //!
 //! # Example
 //! ```rust
-//! use sapt::{Pet, PetName, PetCombat, Food, FoodName, Team, Position};
+//! use saptest::{Pet, PetName, PetCombat, Food, FoodName, Team, Position};
 //!
 //! // Create pets.
 //! let pet = Pet::try_from(PetName::Ant).unwrap();

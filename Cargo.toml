@@ -24,10 +24,13 @@ name = "battle_benchmarks"
 harness = false
 
 [lib]
-name = "sapt"
+name = "saptest"
 path = "src/lib/lib.rs"
 
 [package]
-name = "sapt"
+name = "saptest"
 version = "0.1.0"
 edition = "2021"
+author = ["koisland"]
+description = "A library for testing Super Auto Pets teams."
+license = "MIT"

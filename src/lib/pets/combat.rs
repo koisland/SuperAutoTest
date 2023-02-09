@@ -26,7 +26,7 @@ pub trait PetCombat {
     /// Perform damage calculation for a direct [`attack`](crate::PetCombat::attack) returning new health for self and opponent.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, PetCombat};
+    /// use saptest::{Pet, PetName, PetCombat};
     /// let (ant_1, ant_2) = (
     ///     Pet::try_from(PetName::Ant).unwrap(),
     ///     Pet::try_from(PetName::Ant).unwrap()
@@ -40,7 +40,7 @@ pub trait PetCombat {
     /// * Decrements a held [`Food`](crate::Food) uses.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Food, FoodName, PetCombat};
+    /// use saptest::{Pet, PetName, Food, FoodName, PetCombat};
     ///
     /// let (mut ant_1, mut ant_2) = (
     ///     Pet::try_from(PetName::Ant).unwrap(),
@@ -63,7 +63,7 @@ pub trait PetCombat {
     /// Perform a projectile/indirect attack on a [`Pet`](crate::Pet).
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, PetCombat, Statistics};
+    /// use saptest::{Pet, PetName, PetCombat, Statistics};
     ///
     /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -78,7 +78,7 @@ pub trait PetCombat {
     /// Get triggers for both pets when health is altered.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, PetCombat, battle::trigger::TRIGGER_SELF_UNHURT};
+    /// use saptest::{Pet, PetName, PetCombat, battle::trigger::TRIGGER_SELF_UNHURT};
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// // New health is identical.
     /// let outcome = ant_1.get_outcome(1);
@@ -95,7 +95,7 @@ pub trait PetCombat {
     /// ---
     /// **Nothing** - Gives no additional stats in damage calculation.
     /// ```
-    /// use sapt::{Pet, PetName, Statistics, PetCombat};
+    /// use saptest::{Pet, PetName, Statistics, PetCombat};
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
@@ -105,7 +105,7 @@ pub trait PetCombat {
     /// ---
     /// **Melon** - Gives `20` additional health in damage calculation.
     /// ```
-    /// use sapt::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
     /// assert_eq!(
@@ -116,7 +116,7 @@ pub trait PetCombat {
     /// ---
     /// **MeatBone** - Gives `4` additional attack in damage calculation.
     /// ```
-    /// use sapt::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
     /// assert_eq!(

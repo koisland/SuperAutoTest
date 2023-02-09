@@ -1,4 +1,4 @@
-use sapt::{
+use saptest::{
     battle::{
         actions::{Action, GainType},
         effect::Entity,

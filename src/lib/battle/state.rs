@@ -13,7 +13,7 @@ use crate::{battle::stats::Statistics, foods::names::FoodName, pets::pet::Pet, P
 /// # Examples
 /// This can be used as an exit condition in a fight.
 /// ```rust
-/// use sapt::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
+/// use saptest::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
 ///
 /// let pet = Pet::try_from(PetName::Blowfish).unwrap();
 /// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
@@ -186,7 +186,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use sapt::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mut faint_trigger = TRIGGER_SELF_FAINT.clone();
@@ -205,7 +205,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use sapt::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mosquito = Rc::new(RefCell::new(Pet::try_from(PetName::Mosquito).unwrap()));
@@ -224,7 +224,7 @@ impl Outcome {
     /// Get the affected pet of a trigger.
     /// # Example
     /// ```
-    /// use sapt::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
     /// // No single affected pet as affects every pet.
     /// assert!(TRIGGER_START_BATTLE.get_affected().is_none())
     /// ```
@@ -235,7 +235,7 @@ impl Outcome {
     /// Get the afflicting pet of a trigger.
     /// # Example
     /// ```
-    /// use sapt::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
     /// // No single afflicting pet as no pet causes the start of battle.
     /// assert!(TRIGGER_START_BATTLE.get_afflicting().is_none())
     /// ```

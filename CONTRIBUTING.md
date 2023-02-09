@@ -32,7 +32,7 @@ fn test_hello_world() {
 ## Tests
 Ensure that the entire test suite passes before submitting a PR.
 ```bash
-# Test the sapt library.
+# Test the saptest library.
 cargo test --lib
 ```
 To check code coverage, install [cargo tarpaulin](https://crates.io/crates/cargo-tarpaulin).

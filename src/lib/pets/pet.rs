@@ -114,7 +114,7 @@ impl Pet {
     /// * By default, pets are randomly seeded.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Statistics};
+    /// use saptest::{Pet, PetName, Statistics};
     ///
     /// let pet = Pet::new(
     ///     PetName::Ant,
@@ -169,7 +169,7 @@ impl Pet {
     /// * Custom pets have `level` and `tier` of `0` by default.
     /// # Example
     /// ```rust
-    /// use sapt::{
+    /// use saptest::{
     ///     battle::{
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
@@ -215,7 +215,7 @@ impl Pet {
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
-    /// use sapt::{Pet, PetName, Statistics, battle::actions::{Action, StatChangeType}};
+    /// use saptest::{Pet, PetName, Statistics, battle::actions::{Action, StatChangeType}};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -244,7 +244,7 @@ impl Pet {
     /// Get pet experience.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName};
+    /// use saptest::{Pet, PetName};
     ///
     /// let pet = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -257,7 +257,7 @@ impl Pet {
     /// Get pet level.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName};
+    /// use saptest::{Pet, PetName};
     ///
     /// let pet = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -271,7 +271,7 @@ impl Pet {
     /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName};
+    /// use saptest::{Pet, PetName};
     /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// // Add single point.
@@ -343,7 +343,7 @@ impl Pet {
     /// * Note: This only adjusts level and effect. Stats and previous experience are unaltered.
     /// # Examples
     /// ```rust
-    /// use sapt::{Pet, PetName};
+    /// use saptest::{Pet, PetName};
     /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
     ///
     /// assert!(pet.set_level(2).is_ok());

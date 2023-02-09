@@ -61,7 +61,7 @@ impl Effect {
     /// Generate a new effect.
     /// # Example
     /// ```rust
-    /// use sapt::{
+    /// use saptest::{
     ///     Effect, Outcome, Statistics,
     ///     battle::{
     ///         effect::Entity,
@@ -104,7 +104,7 @@ impl Effect {
     /// Get owner of effect.
     /// # Example
     /// ```
-    /// use sapt::Effect;
+    /// use saptest::Effect;
     /// // By default, no effect owner.
     /// let mut effect = Effect::default();
     /// assert!(effect.get_owner().is_none());
@@ -118,7 +118,7 @@ impl Effect {
     /// # Example
     /// ```rust
     /// use std::{rc::Rc, cell::RefCell};
-    /// use sapt::{Pet, PetName, Effect};
+    /// use saptest::{Pet, PetName, Effect};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     /// let rc_ant = Rc::new(RefCell::new(ant));
@@ -152,7 +152,7 @@ pub trait Modify {
     /// Add `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();
@@ -166,7 +166,7 @@ pub trait Modify {
     /// Remove `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();

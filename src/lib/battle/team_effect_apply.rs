@@ -40,13 +40,13 @@ const NONSPECIFIC_POSITIONS: [Position; 5] = [
 /// Enable applying [`Effect`]s to multiple [`Team`]s.
 /// # Example
 /// ```
-/// use sapt::EffectApply;
+/// use saptest::EffectApply;
 /// ```
 pub trait EffectApply {
     /// Apply [`Pet`](crate::pets::pet::Pet) [`Effect`]s based on a team's stored [`Outcome`] triggers.
     /// # Examples
     /// ```rust
-    /// use sapt::{EffectApply, Team, Pet, PetName};
+    /// use saptest::{EffectApply, Team, Pet, PetName};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
@@ -67,7 +67,7 @@ pub trait EffectApply {
     /// * Effects and triggers should contain a Weak reference to the owning/affecting pet.
     /// # Examples
     /// ```rust
-    /// use sapt::{EffectApply, Team, Pet, PetName, Statistics, battle::{state::Status, trigger::*}};
+    /// use saptest::{EffectApply, Team, Pet, PetName, Statistics, battle::{state::Status, trigger::*}};
     /// // Get mosquito effect.
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// // Get effect with no reference.

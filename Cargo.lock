@@ -1235,7 +1235,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sapt"
+name = "saptest"
 version = "0.1.0"
 dependencies = [
  "criterion",

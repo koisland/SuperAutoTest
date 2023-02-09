@@ -26,7 +26,7 @@ impl SapDB {
     /// # Example
     /// ```
     /// use std::path::Path;
-    /// use sapt::SapDB;
+    /// use saptest::SapDB;
     ///
     /// let db_path = "./sap.db";
     /// let db = SapDB::new(db_path);
@@ -232,7 +232,7 @@ impl SapDB {
     /// Query database for [`PetRecord`](crate::db::record::PetRecord)s.
     /// # Example
     /// ```
-    /// use sapt::SAPDB;
+    /// use saptest::SAPDB;
     ///
     /// let stmt = "SELECT * FROM pets";
     /// let query = SAPDB.execute_pet_query(stmt, &[]);
@@ -257,7 +257,7 @@ impl SapDB {
     /// Query database for [`FoodRecord`](crate::db::record::FoodRecord)s.
     /// # Example
     /// ```
-    /// use sapt::SAPDB;
+    /// use saptest::SAPDB;
     /// let stmt = "SELECT * FROM foods";
     /// let query = SAPDB.execute_food_query(stmt, &[]);
     /// assert!(query.is_ok())

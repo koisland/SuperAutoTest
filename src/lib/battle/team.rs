@@ -146,7 +146,7 @@ impl Team {
     /// ---
     /// Standard 5-pet team.
     /// ```
-    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, EffectApply};
     /// let team = Team::new(
     ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 5],
     ///     5
@@ -157,7 +157,7 @@ impl Team {
     /// ---
     /// Team of 20 pets.
     /// ```
-    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, EffectApply};
     /// let team = Team::new(
     ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 20],
     ///     20
@@ -221,7 +221,7 @@ impl Team {
     /// Restore a team to its initial state.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, EffectApply};
     ///
     /// let mut default_team = Team::default();
     /// default_team
@@ -244,7 +244,7 @@ impl Team {
     /// Clear team of empty slots and/or fainted pets and reset indices.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, EffectApply};
     ///
     /// let mut default_team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -280,7 +280,7 @@ impl Team {
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
     /// # Examples
     ///  ```
-    /// use sapt::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, EffectApply};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&[mosquito.clone(), mosquito.clone()], 5).unwrap();
@@ -305,7 +305,7 @@ impl Team {
     /// Assign an item to a team member.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    /// use saptest::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
     ///
     /// let mut team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -352,7 +352,7 @@ impl Team {
     /// Set level of a team member.
     /// # Example
     /// ```
-    /// use sapt::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    /// use saptest::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
     ///
     /// let mut team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -385,7 +385,7 @@ impl Team {
     /// Get all pet effects on the team.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -404,7 +404,7 @@ impl Team {
     /// Get pets by a given [`Condition`].
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team, battle::state::{Condition, Status}};
+    /// use saptest::{Pet, PetName, Team, battle::state::{Condition, Status}};
     ///
     /// let pets = [
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -546,7 +546,7 @@ impl Team {
     /// Swap a pets position with another on the team.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let pets = [
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -573,7 +573,7 @@ impl Team {
     /// Swap a pets stats with another on the team.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team, Statistics};
+    /// use saptest::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -602,7 +602,7 @@ impl Team {
     /// * An `opponent` can be provided optionally to update their `triggers`.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team, Statistics};
+    /// use saptest::{Pet, PetName, Team, Statistics};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -663,7 +663,7 @@ impl Team {
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -687,7 +687,7 @@ impl Team {
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -711,7 +711,7 @@ impl Team {
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -735,7 +735,7 @@ impl Team {
     /// * Fainted pets and/or empty slots are ignored.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Dog).unwrap(),
@@ -758,7 +758,7 @@ impl Team {
     /// * Fainted pets and/or empty slots are ignored.
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Cat).unwrap(),
@@ -798,7 +798,7 @@ impl Team {
     ///
     /// # Examples
     /// ```
-    /// use sapt::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Cat).unwrap(),
@@ -882,7 +882,7 @@ impl Team {
     /// ---
     /// To complete the battle.
     /// ```rust
-    /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
@@ -903,7 +903,7 @@ impl Team {
     /// ---
     /// To complete `n` turns.
     /// ```rust
-    /// use sapt::{Team, Pet, PetName, battle::state::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, battle::state::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
