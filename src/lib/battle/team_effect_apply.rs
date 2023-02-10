@@ -38,15 +38,14 @@ const NONSPECIFIC_POSITIONS: [Position; 5] = [
 ];
 
 /// Enable applying [`Effect`]s to multiple [`Team`]s.
-/// # Example
 /// ```
-/// use saptest::EffectApply;
+/// use saptest::TeamEffects;
 /// ```
-pub trait EffectApply {
+pub trait TeamEffects {
     /// Apply [`Pet`](crate::pets::pet::Pet) [`Effect`]s based on a team's stored [`Outcome`] triggers.
     /// # Examples
     /// ```rust
-    /// use saptest::{EffectApply, Team, Pet, PetName};
+    /// use saptest::{TeamEffects, Team, Pet, PetName};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
@@ -67,7 +66,7 @@ pub trait EffectApply {
     /// * Effects and triggers should contain a Weak reference to the owning/affecting pet.
     /// # Examples
     /// ```rust
-    /// use saptest::{EffectApply, Team, Pet, PetName, Statistics, battle::{state::Status, trigger::*}};
+    /// use saptest::{TeamEffects, Team, Pet, PetName, Statistics, battle::{state::Status, trigger::*}};
     /// // Get mosquito effect.
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// // Get effect with no reference.
@@ -106,7 +105,7 @@ pub trait EffectApply {
     ) -> Result<(), SAPTestError>;
 }
 
-impl EffectApply for Team {
+impl TeamEffects for Team {
     fn trigger_effects(&mut self, opponent: &mut Team) -> &mut Self {
         info!(target: "dev", "(\"{}\")\nTriggers:\n{}", self.name, self.triggers.iter().join("\n"));
 
@@ -239,7 +238,6 @@ impl EffectApply for Team {
                 if target_pets.len() != 2 {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: format!("Swap {swap_type:?}"),
-                        indices: vec![],
                         reason: format!(
                             "Only two friends allowed for swapping. Given: {}",
                             target_pets.len()
@@ -400,7 +398,6 @@ impl EffectApplyHelpers for Team {
             .pos
             .ok_or(SAPTestError::InvalidTeamAction {
                 subject: "Missing Summon Position".to_string(),
-                indices: vec![],
                 reason: format!("Target pet {} has no position.", target_pet.borrow()),
             })?;
 
@@ -433,7 +430,6 @@ impl EffectApplyHelpers for Team {
     ) -> Result<(), SAPTestError> {
         let (_, chosen_pet) = targets.first().ok_or(SAPTestError::InvalidTeamAction {
             subject: "Evolve Pet".to_string(),
-            indices: vec![],
             reason: "No pet found to evolve.".to_string(),
         })?;
 
@@ -583,13 +579,11 @@ impl EffectApplyHelpers for Team {
             .clone()
             .ok_or(SAPTestError::InvalidTeamAction {
                 subject: "Missing Effect Owner".to_string(),
-                indices: vec![],
                 reason: format!("{effect:?} has no owner."),
             })?
             .upgrade()
             .ok_or(SAPTestError::InvalidTeamAction {
                 subject: "Dropped Owner".to_string(),
-                indices: vec![],
                 reason: "Pet reference dropped.".to_string(),
             })?;
 
@@ -809,6 +803,24 @@ impl EffectApplyHelpers for Team {
                 target_pet.borrow_mut().stats -= debuff_stats;
                 info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, target_pet.borrow(), perc_stats)
             }
+            Action::Tapir => {
+                let mut rng = ChaCha12Rng::seed_from_u64(effect_owner.borrow().seed);
+                // Choose a pet on the current team that isn't a tapir.
+                let chosen_friend = self
+                    .friends
+                    .iter()
+                    .filter_map(|pet| {
+                        let pet_name = pet.borrow().name.clone();
+                        (pet_name != PetName::Tapir).then_some(pet_name)
+                    })
+                    .choose(&mut rng);
+
+                if let Some(pet_name) = chosen_friend {
+                    let summon =
+                        Box::new(Pet::new(pet_name, None, None, effect_owner.borrow().lvl)?);
+                    self.summon_pet(target_pet, &SummonType::StoredPet(summon), opponent)?;
+                }
+            }
             Action::Lynx => {
                 let opponent_lvls: usize = opponent.all().iter().map(|pet| pet.borrow().lvl).sum();
                 let lvl_dmg_action = Action::Remove(StatChangeType::StaticValue(Statistics::new(
@@ -911,11 +923,8 @@ impl EffectApplyHelpers for Team {
         let curr_pet = if let Some(effect_pet) = &effect.owner {
             effect_pet.upgrade()
         } else {
-            return Err(SAPTestError::InvalidTeamAction {
-                subject: "Current Pet Reference".to_string(),
-                indices: vec![],
-                reason: "Doesn't exist.".to_string(),
-            });
+            // Otherwise, use first pet on team.
+            self.first()
         };
 
         let mut pets = vec![];

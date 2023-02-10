@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 /// A record with information about a food from Super Auto Pets.
 ///
 /// This information is queried and parsed from the Super Auto Pets Fandom wiki.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct FoodRecord {
     /// Name of food.
     pub name: FoodName,

@@ -124,7 +124,6 @@ pub enum Target {
 pub struct Outcome {
     /// Status of a [`Pet`].
     pub status: Status,
-    // TODO: https://serde.rs/field-attrs.html. Replace with serde(serialize_with).
     #[serde(skip)]
     /// The affected pet.
     pub(crate) affected_pet: Option<Weak<RefCell<Pet>>>,

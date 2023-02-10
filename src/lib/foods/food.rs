@@ -25,7 +25,7 @@ impl TryFrom<FoodName> for Food {
     type Error = SAPTestError;
 
     fn try_from(value: FoodName) -> Result<Self, Self::Error> {
-        Food::new(&value)
+        Food::new(&value, None)
     }
 }
 
@@ -33,7 +33,7 @@ impl TryFrom<&FoodName> for Food {
     type Error = SAPTestError;
 
     fn try_from(value: &FoodName) -> Result<Self, Self::Error> {
-        Food::new(value)
+        Food::new(value, None)
     }
 }
 
@@ -44,17 +44,45 @@ impl Display for Food {
 }
 
 impl Food {
-    /// Create a `Food` from `FoodName`.
-    pub fn new(name: &FoodName) -> Result<Food, SAPTestError> {
-        let food_record: FoodRecord = SAPDB
-            .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
-            .into_iter()
-            .next()
-            .ok_or(SAPTestError::QueryFailure {
-                subject: "No Food Effect".to_string(),
-                reason: format!("No food record for {name}"),
-            })?;
-        let effect = Effect::try_from(&food_record)?;
+    /// Create a `Food` from [`FoodName`] and an optional [`Effect`].
+    /// # Example
+    /// ```
+    /// use saptest::{Food, FoodName, Effect};
+    /// let food = Food::new(&FoodName::Custom("Air".to_string()), Some(Effect::default()));
+    /// assert!(food.is_ok());
+    /// ```
+    pub fn new(name: &FoodName, effect: Option<Effect>) -> Result<Food, SAPTestError> {
+        // Set default.
+        let (food_record, effect) =
+            if let (FoodName::Custom(_), Some(custom_effect)) = (name, effect.clone()) {
+                (
+                    FoodRecord {
+                        name: name.clone(),
+                        single_use: false,
+                        holdable: true,
+                        cost: 3,
+                        ..Default::default()
+                    },
+                    custom_effect,
+                )
+            } else {
+                let food_record: FoodRecord = SAPDB
+                    .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
+                    .into_iter()
+                    .next()
+                    .ok_or(SAPTestError::QueryFailure {
+                        subject: "No Food Effect".to_string(),
+                        reason: format!("No food record for {name}"),
+                    })?;
+
+                // Allow custom effect for food if provided.
+                let effect = if let Some(custom_effect) = effect {
+                    custom_effect
+                } else {
+                    Effect::try_from(&food_record)?
+                };
+                (food_record, effect)
+            };
 
         Ok(Food {
             name: name.clone(),

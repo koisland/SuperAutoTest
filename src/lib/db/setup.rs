@@ -9,9 +9,7 @@ use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
 
-/// SAP `SQLite` Database.
-/// * Currently, just used to initialize.
-/// * Uses [`rusqlite`](https://docs.rs/crate/sqlite/0.29.0) but will migrate to `sqlx` in future.
+/// Super Auto Pets `SQLite` Database.
 pub struct SapDB {
     /// Database file.
     pub file: String,

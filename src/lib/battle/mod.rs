@@ -12,5 +12,7 @@ pub mod stats;
 pub mod team;
 /// [`Effect`](crate::Effect) application to one or more [`Team`](crate::Team)s.
 pub mod team_effect_apply;
+/// Serialize a [`Team`](crate::Team) using [`serde_json`].
+pub mod team_serialize;
 /// [`Effect`](crate::Effect) triggers.
 pub mod trigger;

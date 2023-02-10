@@ -868,7 +868,15 @@ pub fn test_alpaca_team() -> Team {
 }
 
 pub fn test_tapir_team() -> Team {
-    Team::new(&[Pet::try_from(PetName::Tapir).unwrap()], 5).unwrap()
+    Team::new(
+        &[
+            Pet::try_from(PetName::Tapir).unwrap(),
+            Pet::try_from(PetName::Tapir).unwrap(),
+            Pet::try_from(PetName::Tiger).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
 }
 
 pub fn test_walrus_team() -> Team {

@@ -6,6 +6,7 @@ use crate::error::SAPTestError;
 
 #[allow(missing_docs)]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
+/// Possible names for [`Food`](crate::Food)s
 pub enum FoodName {
     Apple,
     Bacon,
@@ -51,6 +52,12 @@ pub enum FoodName {
     Weak,
     SleepingPill,
     Custom(String),
+}
+
+impl Default for FoodName {
+    fn default() -> Self {
+        FoodName::Custom("CustomFood".to_string())
+    }
 }
 
 impl FromStr for FoodName {

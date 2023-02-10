@@ -1,4 +1,4 @@
-//! This library provides a testing framework for the game [Super Auto Pets](https://teamwoodgames.com/).
+//! A testing framework for the game [Super Auto Pets](https://teamwoodgames.com/).
 //!
 //! # Example
 //! ```rust
@@ -25,7 +25,7 @@
 //!
 //! # Details
 //! * [SQLite](https://www.sqlite.org/index.html) and the Rust wrapper for it, [rusqlite](https://docs.rs/rusqlite/latest/rusqlite/), are used to store and query game information.
-//!     * This information is scraped and parsed from the Super Auto Pets Fandom Wiki.
+//! * This information is scraped and parsed from the Super Auto Pets Fandom Wiki. Read more under the [`db`](crate::db) module.
 //!
 //! # Shops
 //! * Currently not implemented.
@@ -41,21 +41,25 @@ use std::sync::Arc;
 
 pub mod battle;
 pub mod db;
+pub mod error;
 pub mod foods;
 pub mod pets;
 
+#[doc(inline)]
 pub use crate::battle::{
     effect::Effect,
     state::{Outcome, Position},
     stats::Statistics,
     team::Team,
-    team_effect_apply::EffectApply,
+    team_effect_apply::TeamEffects,
 };
+#[doc(inline)]
 pub use crate::db::setup::SapDB;
+#[doc(inline)]
 pub use crate::foods::{food::Food, names::FoodName};
+#[doc(inline)]
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};
 
-mod error;
 mod graph;
 mod regex_patterns;
 mod wiki_scraper;
@@ -69,6 +73,7 @@ const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw
 const DB_FNAME: &str = "./sap.db";
 
 lazy_static! {
+    #[doc(hidden)]
     /// Global pooled database.
     pub static ref SAPDB: Arc<SapDB> = Arc::new(SapDB::new(crate::DB_FNAME).unwrap());
 }

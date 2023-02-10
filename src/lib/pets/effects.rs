@@ -1107,11 +1107,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets where name != ? and lvl = ?".to_string(),
-                    vec!["Tapir".to_string(), record.lvl.to_string()],
-                    None,
-                )),
+                action: Action::Tapir,
                 uses: Some(record.n_triggers),
             }],
             PetName::Walrus => vec![Effect {

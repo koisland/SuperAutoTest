@@ -12,7 +12,7 @@ use crate::{
         test_hummingbird_team, test_kangaroo_team, test_ox_team, test_seagull_team,
         test_sheep_team, test_toad_team, test_woodpecker_self_hurt_team, test_woodpecker_team,
     },
-    EffectApply,
+    TeamEffects,
 };
 
 // use crate::LOG_CONFIG;
@@ -176,7 +176,7 @@ fn test_battle_ox_team() {
 
     let ox = team.nth(0).unwrap();
     // Gets melon armor.
-    let mut melon_armor = Food::new(&FoodName::Melon).unwrap();
+    let mut melon_armor = Food::try_from(&FoodName::Melon).unwrap();
     melon_armor.ability.assign_owner(Some(&ox));
     assert_eq!(ox.borrow().item, Some(melon_armor));
     // And an extra attack.

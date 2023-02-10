@@ -4,7 +4,7 @@ use std::{fmt, str::FromStr};
 use crate::error::SAPTestError;
 
 /// Packs in Super Auto Pets.
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize, Clone, Default)]
 pub enum Pack {
     /// The [Turtle pack](https://superautopets.fandom.com/wiki/Turtle_Pack).
     Turtle,
@@ -16,6 +16,7 @@ pub enum Pack {
     Weekly,
     /// The [Golden pack]().
     Golden,
+    #[default]
     /// An unknown pack. Indicates a typo or a new update.
     Unknown,
 }

@@ -13,7 +13,7 @@ use crate::{
         test_tapir_team, test_tiger_team, test_velociraptor_team, test_walrus_team,
         test_white_tiger_team,
     },
-    EffectApply,
+    TeamEffects,
 };
 
 #[test]
@@ -284,21 +284,16 @@ fn test_battle_tapir_team() {
     // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = test_tapir_team();
-    team.set_seed(25);
     let mut enemy_team = test_gorilla_team();
 
     team.fight(&mut enemy_team);
 
-    // Tapir faints and a lobster spawns at lvl.1.
+    // Tapir faints and a tiger spawns at lvl.1.
     assert_eq!(team.fainted.len(), 1);
-    let lobster = team.first().unwrap();
-    assert!(
-        lobster.borrow().name == PetName::Custom("Lobster".to_string())
-            && lobster.borrow().lvl == 1
-    );
+    let spawned_pet = team.first().unwrap();
+    assert!(spawned_pet.borrow().name == PetName::Tiger && spawned_pet.borrow().lvl == 1);
 
     team.restore();
-    team.set_seed(25);
 
     // Level tapir to lvl 2.
     team.set_level(Position::First, 2).unwrap();
@@ -306,11 +301,8 @@ fn test_battle_tapir_team() {
     team.fight(&mut enemy_team);
 
     // Same lobster spawns but at lvl 2.
-    let lobster = team.first().unwrap();
-    assert!(
-        lobster.borrow().name == PetName::Custom("Lobster".to_string())
-            && lobster.borrow().lvl == 2
-    );
+    let spawned_pet = team.first().unwrap();
+    assert!(spawned_pet.borrow().name == PetName::Tiger && spawned_pet.borrow().lvl == 2);
 }
 
 #[test]

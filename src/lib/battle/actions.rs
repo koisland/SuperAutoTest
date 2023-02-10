@@ -46,7 +46,7 @@ pub enum SummonType {
     StoredPet(Box<Pet>),
     /// Summon a default pet.
     DefaultPet(PetName),
-    /// Summon a custom pet with stats that from StatChangeType.
+    /// Summon a custom pet with stats from [`StatChangeType`].
     CustomPet(PetName, StatChangeType, usize),
     /// Summon the pet owning the effect of this action.
     SelfPet(Statistics),
@@ -132,6 +132,8 @@ pub enum Action {
     Vulture(Statistics),
     /// Hardcoded stegosaurus ability
     Stegosaurus(Statistics),
+    /// Hardcoded tapir ability.
+    Tapir,
     /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.

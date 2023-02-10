@@ -2,12 +2,15 @@ use crate::{
     battle::{
         effect::Effect,
         state::{Condition, Outcome, Position, Status, Target, TeamFightOutcome},
-        team_effect_apply::{EffectApply, EffectApplyHelpers},
+        team_effect_apply::{EffectApplyHelpers, TeamEffects},
         trigger::*,
     },
     error::SAPTestError,
     graph::effect_graph::History,
-    pets::{combat::PetCombat, pet::Pet},
+    pets::{
+        combat::PetCombat,
+        pet::{assign_effect_owner, Pet},
+    },
     Food,
 };
 
@@ -15,6 +18,7 @@ use itertools::Itertools;
 use log::info;
 use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
+use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
     collections::VecDeque,
@@ -23,7 +27,7 @@ use std::{
 };
 
 /// A Super Auto Pets team.
-#[derive(Debug)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Team {
     /// Name of the team.
     pub name: String,
@@ -35,9 +39,10 @@ pub struct Team {
     pub max_size: usize,
     /// Stored triggers used to invoke effects.
     ///
-    /// Calling [`trigger_effects`](super::team_effect_apply::EffectApply::trigger_effects) will exhaust all stored triggers.
+    /// Calling [`trigger_effects`](super::team_effect_apply::TeamEffects::trigger_effects) will exhaust all stored triggers.
     /// * As a result, this will always be empty unless mutated.
     pub triggers: VecDeque<Outcome>,
+    #[serde(skip)]
     /// Effect history of a team.
     pub history: History,
     /// Seed used to reproduce the outcome of events.
@@ -46,6 +51,7 @@ pub struct Team {
     pub(super) stored_friends: Vec<Pet>,
     /// Count of all pets summoned on team.
     pub(super) pet_count: usize,
+    #[serde(skip)]
     /// Current pet.
     pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
 }
@@ -94,36 +100,7 @@ impl Clone for Team {
             curr_pet: self.curr_pet.clone(),
         };
         // Reassign references.
-        for pet in copied_team.friends.iter().chain(copied_team.fainted.iter()) {
-            for effect in pet.borrow_mut().effect.iter_mut() {
-                effect.assign_owner(Some(pet));
-            }
-            if let Some(food_item) = pet.borrow_mut().item.as_mut() {
-                food_item.ability.assign_owner(Some(pet));
-            }
-        }
-        // Reassign affected pets for triggers.
-        for trigger in copied_team.triggers.iter_mut() {
-            if let Some(aff_pet) = copied_team.friends.iter().find(|pet| {
-                trigger
-                    .affected_pet
-                    .as_ref()
-                    .map_or(false, |aff_pet| aff_pet.ptr_eq(&Rc::downgrade(pet)))
-            }) {
-                // NOTE: Only affected pet. Remove afflicting pet.
-                trigger.affected_pet = Some(Rc::downgrade(aff_pet));
-                trigger.afflicting_pet = None
-            }
-        }
-        // Set current pet.
-        if let Some(Some(current_pet)) = copied_team.curr_pet.as_ref().map(|current_pet| {
-            copied_team
-                .friends
-                .iter()
-                .find(|pet| current_pet.ptr_eq(&Rc::downgrade(pet)))
-        }) {
-            copied_team.curr_pet = Some(Rc::downgrade(current_pet));
-        }
+        copied_team.reset_pet_references(None);
         copied_team
     }
 }
@@ -146,7 +123,7 @@ impl Team {
     /// ---
     /// Standard 5-pet team.
     /// ```
-    /// use saptest::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, TeamEffects};
     /// let team = Team::new(
     ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 5],
     ///     5
@@ -157,7 +134,7 @@ impl Team {
     /// ---
     /// Team of 20 pets.
     /// ```
-    /// use saptest::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, TeamEffects};
     /// let team = Team::new(
     ///     &vec![Pet::try_from(PetName::Dog).unwrap(); 20],
     ///     20
@@ -169,7 +146,6 @@ impl Team {
         if pets.len() > max_size {
             Err(SAPTestError::InvalidTeamAction {
                 subject: "Init Team".to_string(),
-                indices: vec![pets.len()],
                 reason: format!(
                     "Pets provided exceed specified max size. {} > {}",
                     pets.len(),
@@ -192,6 +168,47 @@ impl Team {
         }
     }
 
+    /// Reassign owners for pets.
+    pub(crate) fn reset_pet_references(&mut self, opponent: Option<&mut Team>) -> &mut Self {
+        // Assign references.
+        for pet in self.friends.iter().chain(self.fainted.iter()) {
+            assign_effect_owner(pet)
+        }
+        // Assign affected pets for triggers.
+        let pet_and_trigger_pet_equal =
+            |rc_pet: &&Rc<RefCell<Pet>>, weak_pet: Option<&Weak<RefCell<Pet>>>| {
+                weak_pet.map_or(false, |aff_pet| aff_pet.ptr_eq(&Rc::downgrade(rc_pet)))
+            };
+        for trigger in self.triggers.iter_mut() {
+            if let Some(affected_pet) = self
+                .friends
+                .iter()
+                .find(|pet| pet_and_trigger_pet_equal(pet, trigger.affected_pet.as_ref()))
+            {
+                trigger.set_affected(affected_pet);
+            }
+            if let Some(enemy_pets) = opponent.as_ref().map(|team| &team.friends) {
+                if let Some(afflicting_pet) = self
+                    .friends
+                    .iter()
+                    .chain(enemy_pets.iter())
+                    .find(|pet| pet_and_trigger_pet_equal(pet, trigger.afflicting_pet.as_ref()))
+                {
+                    trigger.set_afflicting(afflicting_pet);
+                }
+            }
+        }
+        // Set current pet.
+        if let Some(Some(current_pet)) = self.curr_pet.as_ref().map(|current_pet| {
+            self.friends
+                .iter()
+                .find(|pet| current_pet.ptr_eq(&Rc::downgrade(pet)))
+        }) {
+            self.curr_pet = Some(Rc::downgrade(current_pet));
+        }
+        self
+    }
+
     /// Create reference counted pets.
     fn create_rc_pets(pets: &[Pet]) -> Vec<Rc<RefCell<Pet>>> {
         // Index pets.
@@ -204,24 +221,18 @@ impl Team {
 
             let rc_pet = Rc::new(RefCell::new(pet));
 
-            // Store weak reference to owner for all effects.
-            for effect in rc_pet.borrow_mut().effect.iter_mut() {
-                effect.trigger.affected_pet = Some(Rc::downgrade(&rc_pet));
-                effect.owner = Some(Rc::downgrade(&rc_pet));
-            }
-            if let Some(item) = rc_pet.borrow_mut().item.as_mut() {
-                item.ability.owner = Some(Rc::downgrade(&rc_pet))
-            }
+            // Assign weak reference to owner for all effects.
+            assign_effect_owner(&rc_pet);
+
             rc_pets.push(rc_pet)
         }
         rc_pets
     }
 
-    #[allow(dead_code)]
     /// Restore a team to its initial state.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, TeamEffects};
     ///
     /// let mut default_team = Team::default();
     /// default_team
@@ -244,7 +255,7 @@ impl Team {
     /// Clear team of empty slots and/or fainted pets and reset indices.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, TeamEffects};
     ///
     /// let mut default_team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -280,7 +291,7 @@ impl Team {
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
     /// # Examples
     ///  ```
-    /// use saptest::{Pet, PetName, Team, EffectApply};
+    /// use saptest::{Pet, PetName, Team, TeamEffects};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&[mosquito.clone(), mosquito.clone()], 5).unwrap();
@@ -297,8 +308,11 @@ impl Team {
     /// ```
     pub fn set_seed(&mut self, seed: u64) {
         self.seed = seed;
-        for pet in self.friends.iter() {
+        for pet in self.friends.iter().chain(self.fainted.iter()) {
             pet.borrow_mut().seed = seed
+        }
+        for stored_pet in self.stored_friends.iter_mut() {
+            stored_pet.seed = seed
         }
     }
 
@@ -313,7 +327,7 @@ impl Team {
     /// ).unwrap();
     /// team.set_item(
     ///     Position::Relative(0),
-    ///     Some(Food::new(&FoodName::Garlic).unwrap())
+    ///     Some(Food::try_from(&FoodName::Garlic).unwrap())
     /// ).unwrap();
     ///
     /// let dog = team.first().unwrap();
@@ -335,7 +349,6 @@ impl Team {
             .get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)
             .map_err(|_| SAPTestError::InvalidTeamAction {
                 subject: "Item Pet Position".to_string(),
-                indices: vec![],
                 reason: format!("Position is not valid: {pos:?}"),
             })?;
 
@@ -446,10 +459,9 @@ impl Team {
             }
             matching_pets
         } else {
+            let all_pets = self.all().into_iter();
             match cond {
-                Condition::Healthiest => self
-                    .all()
-                    .into_iter()
+                Condition::Healthiest => all_pets
                     .max_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -458,9 +470,7 @@ impl Team {
                             .cmp(&pet_2.borrow().stats.health)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Illest => self
-                    .all()
-                    .into_iter()
+                Condition::Illest => all_pets
                     .min_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -469,9 +479,7 @@ impl Team {
                             .cmp(&pet_2.borrow().stats.health)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Strongest => self
-                    .all()
-                    .into_iter()
+                Condition::Strongest => all_pets
                     .max_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -480,9 +488,7 @@ impl Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Weakest => self
-                    .all()
-                    .into_iter()
+                Condition::Weakest => all_pets
                     .min_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -491,9 +497,7 @@ impl Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::HasFood(item_name) => self
-                    .all()
-                    .into_iter()
+                Condition::HasFood(item_name) => all_pets
                     .filter(|pet| {
                         // If item_name is None. Means check pet has no food.
                         if item_name.is_none() {
@@ -506,9 +510,7 @@ impl Team {
                         }
                     })
                     .collect_vec(),
-                Condition::TriggeredBy(trigger) => self
-                    .all()
-                    .into_iter()
+                Condition::TriggeredBy(trigger) => all_pets
                     .filter(|pet| {
                         pet.borrow()
                             .effect
@@ -518,24 +520,16 @@ impl Team {
                     .collect_vec(),
                 // Allow all if condition is None.
                 Condition::None => self.all(),
-                Condition::NotSelf => self
-                    .all()
-                    .into_iter()
+                Condition::NotSelf => all_pets
                     .filter(|pet| !Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
                     .collect_vec(),
-                Condition::HighestTier => self
-                    .all()
-                    .into_iter()
+                Condition::HighestTier => all_pets
                     .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                Condition::LowestTier => self
-                    .all()
-                    .into_iter()
+                Condition::LowestTier => all_pets
                     .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                Condition::NotPetName(pet_name) => self
-                    .all()
-                    .into_iter()
+                Condition::NotPetName(pet_name) => all_pets
                     .filter(|pet| pet.borrow().name != *pet_name)
                     .collect_vec(),
                 _ => unimplemented!("Condition not implemented."),
@@ -651,8 +645,7 @@ impl Team {
         } else {
             return Err(SAPTestError::InvalidTeamAction {
                 subject: "Push Pet".to_string(),
-                indices: vec![pos],
-                reason: "Invalid indices.".to_string(),
+                reason: format!("Invalid indices ({pos})."),
             });
         }
 
@@ -831,7 +824,6 @@ impl Team {
 
             return Err(SAPTestError::InvalidTeamAction {
                 subject: "Add Pet".to_string(),
-                indices: vec![pos],
                 reason: format!("Maximum number of pets ({}) reached.", self.max_size),
             });
         }
@@ -919,6 +911,7 @@ impl Team {
     /// for _ in 0..n-1 {
     ///     outcome = team.fight(&mut enemy_team);
     /// }
+    /// ```
     pub fn fight(&mut self, opponent: &mut Team) -> TeamFightOutcome {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);

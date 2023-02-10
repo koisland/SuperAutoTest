@@ -1,6 +1,6 @@
 # SAPTest
-[![Release](https://img.shields.io/github/v/release/koisland/SuperAutoTest)]()
-[![crates.io](https://img.shields.io/crates/v/saptest)](https://crates.io/crates/saptest)
+[![](https://img.shields.io/crates/v/saptest)](https://crates.io/crates/saptest)
+[![](https://img.shields.io/docsrs/saptest/latest?color=blue)](https://docs.rs/saptest/latest/saptest/)
 [![CI](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml/badge.svg)](https://github.com/koisland/SuperAutoTest/actions/workflows/ci.yaml)
 [![codecov](https://codecov.io/gh/koisland/SuperAutoTest/branch/main/graph/badge.svg?token=0HTPI2EF7T)](https://codecov.io/gh/koisland/SuperAutoTest)
 
@@ -75,10 +75,11 @@ fn main() {
 
 ---
 ## TODO:
-* Add serialization of team and pets.
-* Deploy to `crates.io`.
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
 * Rework Statistics struct math operations to be more consistent.
+* Add toml config to select which version of the wiki page to use.
+* Reorganize Team impl.
+* Add trait for randomly generating teams.
 * Add shops.
   * Consider using the Python package [sapai](https://github.com/manny405/sapai) if shop functionality is required.
 * Create Rust binding for Python.

@@ -1,10 +1,11 @@
 use crate::{
-    battle::{state::TeamFightOutcome, stats::Statistics, team_effect_apply::EffectApply},
-    foods::{food::Food, names::FoodName},
+    battle::{state::TeamFightOutcome, stats::Statistics, team_effect_apply::TeamEffects},
+    foods::names::FoodName,
     pets::names::PetName,
     tests::common::{
-        test_ant_team, test_cricket_horse_team, test_frilled_dragon_team, test_frog_team,
-        test_hummingbird_team, test_iguana_seahorse_team, test_mosq_team, test_moth_team,
+        count_pets, test_ant_team, test_cricket_horse_team, test_frilled_dragon_team,
+        test_frog_team, test_hummingbird_team, test_iguana_seahorse_team, test_mosq_team,
+        test_moth_team,
     },
 };
 // use crate::LOG_CONFIG;
@@ -203,18 +204,13 @@ fn test_battle_hummingbird_team() {
         }
     );
     // Duck has strawberry.
+    let duck = team.friends.first().unwrap();
     assert_eq!(
-        team.friends.first().unwrap().as_ref().borrow().item,
-        Some(Food::try_from(FoodName::Strawberry).unwrap())
+        duck.borrow().item.as_ref().unwrap().name,
+        FoodName::Strawberry
     );
     // Two hummingbirds on team.
-    assert_eq!(
-        team.friends
-            .iter()
-            .filter_map(|pet| (pet.borrow().name == PetName::Hummingbird).then_some(1))
-            .sum::<usize>(),
-        2
-    );
+    assert_eq!(count_pets(&team.friends, PetName::Hummingbird), 2);
     // Trigger start of battle effects.
     team.trigger_effects(&mut enemy_team);
 

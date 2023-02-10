@@ -15,7 +15,7 @@ use crate::{
         test_skunk_team, test_swordfish_team, test_triceratops_team, test_turkey_team,
         test_vulture_team,
     },
-    EffectApply, Food,
+    Food, TeamEffects,
 };
 
 // use crate::LOG_CONFIG;

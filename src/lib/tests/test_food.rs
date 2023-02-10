@@ -1,15 +1,57 @@
 use crate::{
     battle::{
-        state::{Position, TeamFightOutcome},
+        actions::{Action, GainType, StatChangeType},
+        effect::Entity,
+        state::{Position, Target, TeamFightOutcome},
         stats::Statistics,
         team::Team,
+        trigger::{TRIGGER_NONE, TRIGGER_START_BATTLE},
     },
     foods::{food::Food, names::FoodName},
     pets::{combat::PetCombat, names::PetName, pet::Pet},
     tests::common::test_ant_team,
+    Effect,
 };
 // use crate::LOG_CONFIG;
 
+#[test]
+fn test_custom_food() {
+    let custom_food = Food::new(
+        &FoodName::Custom("Dung".to_string()),
+        Some(Effect {
+            entity: Entity::Food,
+            owner: None,
+            trigger: TRIGGER_START_BATTLE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
+            uses: Some(1),
+            temp: true,
+        }),
+    );
+    assert!(custom_food.is_ok())
+}
+
+#[test]
+fn test_food_override_effect() {
+    let buffed_apple = Food::new(
+        &FoodName::Apple,
+        Some(Effect {
+            entity: Entity::Food,
+            owner: None,
+            trigger: TRIGGER_NONE,
+            target: Target::Friend,
+            position: Position::OnSelf,
+            action: Action::Add(StatChangeType::StaticValue(Statistics {
+                attack: 5,
+                health: 5,
+            })),
+            uses: Some(1),
+            temp: true,
+        }),
+    );
+    assert!(buffed_apple.is_ok())
+}
 #[test]
 fn test_attack_meat() {
     let mut dog_w_meat = Pet::try_from(PetName::Dog).unwrap();
@@ -335,8 +377,11 @@ fn test_attack_chili() {
 
     // Give first pet chili on first team.
     // Will kill entire team in first attack
-    team.set_item(Position::First, Some(Food::new(&FoodName::Chili).unwrap()))
-        .unwrap();
+    team.set_item(
+        Position::First,
+        Some(Food::try_from(&FoodName::Chili).unwrap()),
+    )
+    .unwrap();
 
     let outcome = team.fight(&mut enemy_team);
 
@@ -352,8 +397,11 @@ fn test_battle_honey_team() {
     let mut enemy_team = test_ant_team();
 
     // Give last pet honey on first team.
-    team.set_item(Position::Last, Some(Food::new(&FoodName::Honey).unwrap()))
-        .unwrap();
+    team.set_item(
+        Position::Last,
+        Some(Food::try_from(&FoodName::Honey).unwrap()),
+    )
+    .unwrap();
 
     let mut fight = team.fight(&mut enemy_team);
     while let TeamFightOutcome::None = fight {
@@ -375,7 +423,7 @@ fn test_battle_mushroom_team() {
     // Give last pet mushroom on first team.
     team.set_item(
         Position::Last,
-        Some(Food::new(&FoodName::Mushroom).unwrap()),
+        Some(Food::try_from(&FoodName::Mushroom).unwrap()),
     )
     .unwrap();
 

@@ -1,6 +1,6 @@
 use rand::random;
 use serde::{Deserialize, Serialize};
-use std::fmt::Display;
+use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::{
     battle::{effect::Effect, stats::Statistics},
@@ -19,6 +19,16 @@ pub const MAX_PET_LEVEL: usize = 3;
 pub const MIN_PET_STATS: isize = 0;
 /// Maximum pet stats value.
 pub const MAX_PET_STATS: isize = 50;
+
+/// Assign effect owner.
+pub(crate) fn assign_effect_owner(pet: &Rc<RefCell<Pet>>) {
+    for effect in pet.borrow_mut().effect.iter_mut() {
+        effect.assign_owner(Some(pet));
+    }
+    if let Some(food_item) = pet.borrow_mut().item.as_mut() {
+        food_item.ability.assign_owner(Some(pet));
+    }
+}
 
 /// A Super Auto Pet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,9 +118,9 @@ impl TryFrom<PetRecord> for Pet {
 
 impl Pet {
     /// Create a new pet.
-    /// * All [`Effect`]s are determined by the given `stats` and `lvl`.
-    ///     * To use custom [`Effect`]s, use the `Pet { ... }` constructor.
-    /// * Providing `None` for `stats` will yield the default [`Statistics`] for the pet at the given `lvl`.
+    /// * All [`Effect`](crate::Effect)s are determined by the given `stats` and `lvl`.
+    ///     * To use custom [`Effect`](crate::Effect)s, use the [`custom`](crate::Pet) constructor.
+    /// * Providing `None` for `stats` will yield the default [`Statistics`](crate::Statistics) for the pet at the given `lvl`.
     /// * By default, pets are randomly seeded.
     /// # Examples
     /// ```

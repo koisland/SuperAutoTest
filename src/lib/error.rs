@@ -1,31 +1,68 @@
+//! Error types for library.
+
 use thiserror::Error;
 
+/// Error types.
 #[derive(Error, Debug)]
 pub enum SAPTestError {
+    /// Failure to serialize team.
+    #[error("Failed to serialize/deserialize team.")]
+    SerializeFailure(#[from] serde_json::Error),
+
+    /// Failure to request data from Fandom wiki.
     #[error("Failed to scrape data from Fandom wiki.")]
     RequestFailure(#[from] reqwest::Error),
-    #[error("Failed interaction with database.")]
+
+    /// Failure to execute query from SQLite database.
+    #[error("Failed database query execution.")]
     DatabaseFailure(#[from] rusqlite::Error),
+
+    /// Failure to initalize pooled connection with SQLite database.
     #[error("Failed to initialize database.")]
-    DatabaseInitFailure(#[from] r2d2::Error),
+    DatabasePoolFailure(#[from] r2d2::Error),
+
+    /// Empty/invalid query for SQLite database.
     #[error("Failed Query: {subject:?} due to {reason:?}")]
-    QueryFailure { subject: String, reason: String },
-    #[error("Cannot convert statistics to isize.")]
-    ValueConversionFailure(#[from] std::num::TryFromIntError),
-    #[error("Failed to parse value from string.")]
-    ValueParseFailure(#[from] std::num::ParseIntError),
-    #[error("Invalid team action: {subject:?} ({indices:?}) due to {reason:?}")]
-    InvalidTeamAction {
+    QueryFailure {
+        /// Subject of query failure.
         subject: String,
-        indices: Vec<usize>,
+        /// Reason for query failure.
         reason: String,
     },
+
+    /// Failure to convert [`Statisitics`](crate::Statistics) value to `isize`.
+    #[error("Cannot convert Statistics value to isize.")]
+    ValueConversionFailure(#[from] std::num::TryFromIntError),
+
+    /// Failed to parse `usize` from string.
+    /// * Used in wiki parsing.
+    #[error("Failed to parse `usize` from string.")]
+    ValueParseFailure(#[from] std::num::ParseIntError),
+
+    /// Invalid [`Team`](crate::Team) action.
+    #[error("Invalid team action: {subject:?} due to {reason:?}")]
+    InvalidTeamAction {
+        /// Subject of action.
+        subject: String,
+        /// Reason for action failure.
+        reason: String,
+    },
+
+    /// Invalid [`Pet`](crate::Pet) action.
     #[error("Invalid pet action: {subject:?} due to {reason:?}")]
-    InvalidPetAction { subject: String, reason: String },
+    InvalidPetAction {
+        /// Subject of action.
+        subject: String,
+        /// Reason for action failure.
+        reason: String,
+    },
+
+    /// Failed to parse wiki page.
     #[error("Failed to parse: {subject:?} due to {reason:?}")]
-    ParserFailure { subject: String, reason: String },
-    #[error("Failed to convert name: {subject:?} due to {reason:?}")]
-    NameFailure { subject: String, reason: String },
-    #[error("Unknown error.")]
-    Unknown,
+    ParserFailure {
+        /// Subject of wiki failure.
+        subject: String,
+        /// Reason for failure.
+        reason: String,
+    },
 }

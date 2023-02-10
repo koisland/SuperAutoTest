@@ -8,7 +8,7 @@ use crate::{
         test_rat_team, test_skunk_team, test_spider_team, test_stork_team, test_toucan_team,
         test_wombat_team,
     },
-    EffectApply, Food, FoodName, Statistics,
+    Food, FoodName, Statistics, TeamEffects,
 };
 
 #[test]

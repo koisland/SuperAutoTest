@@ -6,7 +6,7 @@ use crate::{
         effect::Entity,
         state::{Position, Target, TeamFightOutcome},
         stats::Statistics,
-        team_effect_apply::EffectApply,
+        team_effect_apply::TeamEffects,
         trigger::{TRIGGER_SELF_FAINT, TRIGGER_START_TURN},
     },
     foods::names::FoodName,
