@@ -7,7 +7,7 @@ use crate::{
     FoodName, PetName,
 };
 use rusqlite::Row;
-use std::str::FromStr;
+use std::{fmt::Write, str::FromStr};
 
 impl TryFrom<&Row<'_>> for PetRecord {
     type Error = SAPTestError;
@@ -60,5 +60,59 @@ impl TryFrom<&Row<'_>> for FoodRecord {
             turn_effect: turn_effect_str == *"true",
             cost: food_row.get(13)?,
         })
+    }
+}
+
+/// Dynamically grow SQL statement given params.
+pub fn setup_param_query(table: &str, params: &[(&str, &Vec<String>)]) -> String {
+    let mut sql_stmt = format!("SELECT * FROM {table} WHERE ");
+
+    // Iterate through params and set up SQL statement.
+    // No user param values are inserted.
+    for (i, (param_name, param_value)) in params.iter().enumerate() {
+        // If value is empty, use NOT IN to get all other values.
+        let sql_in = if param_value.iter().all(|param| param.is_empty()) {
+            "NOT IN"
+        } else {
+            "IN"
+        };
+        // Set number of query params.
+        let n_elems = param_value.len();
+        let params_string = vec!["?"; n_elems].join(", ");
+
+        // If at end of params, don't include AND.
+        if i + 1 == params.len() {
+            let _ = write!(sql_stmt, "{} {} ({})", param_name, sql_in, params_string);
+        } else {
+            let _ = write!(
+                sql_stmt,
+                "{} {} ({}) AND ",
+                param_name, sql_in, params_string
+            );
+        }
+    }
+    sql_stmt
+}
+
+#[cfg(test)]
+mod test {
+    use super::setup_param_query;
+
+    #[test]
+    fn test_build_param_query() {
+        let name_params = vec!["apple".to_string(), "coconut".to_string()];
+        let stmt = setup_param_query("foods", &[("name", &name_params)]);
+        assert_eq!("SELECT * FROM foods WHERE name IN (?, ?)", &stmt)
+    }
+
+    #[test]
+    fn test_build_empty_param_query() {
+        let name_params = vec!["apple".to_string(), "coconut".to_string()];
+        let pack_params: Vec<String> = vec![];
+        let stmt = setup_param_query("foods", &[("name", &name_params), ("pack", &pack_params)]);
+        assert_eq!(
+            "SELECT * FROM foods WHERE name IN (?, ?) AND pack NOT IN ()",
+            &stmt
+        )
     }
 }

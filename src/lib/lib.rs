@@ -44,6 +44,7 @@ pub mod db;
 pub mod error;
 pub mod foods;
 pub mod pets;
+mod shop;
 
 #[doc(inline)]
 pub use crate::battle::{

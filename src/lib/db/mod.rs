@@ -24,4 +24,4 @@ pub mod record;
 /// Database setup functions.
 pub mod setup;
 /// Database helper functions.
-mod utils;
+pub mod utils;
