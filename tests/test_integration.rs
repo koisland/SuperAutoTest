@@ -89,7 +89,7 @@ fn test_create_custom_pet() {
     let mut enemy_team = team.clone();
 
     // Trigger start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     assert!(
         team.friends[0].borrow().item.as_ref().unwrap().name == FoodName::Melon
@@ -144,9 +144,9 @@ fn test_multithreaded_team_battle() {
             .unwrap();
             let mut team_2 = team_1.clone();
 
-            let mut outcome = team_1.fight(&mut team_2);
+            let mut outcome = team_1.fight(&mut team_2).unwrap();
             while let TeamFightOutcome::None = outcome {
-                outcome = team_1.fight(&mut team_2);
+                outcome = team_1.fight(&mut team_2).unwrap();
             }
             outcome
         }))

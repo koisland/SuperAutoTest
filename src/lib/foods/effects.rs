@@ -233,20 +233,16 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::Pizza
             | FoodName::SoftIce
             | FoodName::HotDog
-            | FoodName::Orange => {
-                let actions =
-                    vec![Action::Add(StatChangeType::StaticValue(effect_stats)); record.n_targets];
-                Effect {
-                    owner: None,
-                    entity: Entity::Food,
-                    trigger: TRIGGER_NONE,
-                    target: Target::Friend,
-                    position: Position::Any(Condition::None),
-                    action: Action::Multiple(actions),
-                    uses,
-                    temp: record.end_of_battle,
-                }
-            }
+            | FoodName::Orange => Effect {
+                owner: None,
+                entity: Entity::Food,
+                trigger: TRIGGER_NONE,
+                target: Target::Friend,
+                position: Position::Any(Condition::None),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses,
+                temp: record.end_of_battle,
+            },
             FoodName::Apple
             | FoodName::Bacon
             | FoodName::Cookie

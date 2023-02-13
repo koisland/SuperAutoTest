@@ -20,9 +20,9 @@ use crate::{battle::stats::Statistics, foods::names::FoodName, pets::pet::Pet, P
 /// let mut enemy_team = Team::clone(&team);
 ///
 /// // Continue fighting while the winner of a fight is None.
-/// let mut winner = team.fight(&mut enemy_team);
+/// let mut winner = team.fight(&mut enemy_team).unwrap();
 /// while let TeamFightOutcome::None = winner {
-///     winner = team.fight(&mut enemy_team);
+///     winner = team.fight(&mut enemy_team).unwrap();
 /// }
 /// ```
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]

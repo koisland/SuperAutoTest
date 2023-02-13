@@ -31,10 +31,10 @@ fn test_battle_deer_team() {
     let mut enemy_team = test_ox_team();
 
     // Only one deer.
-    assert!(team.first().unwrap().borrow().name == PetName::Deer && team.all().len() == 1,);
-    let mut fight = team.fight(&mut enemy_team);
+    assert!(team.first().unwrap().borrow().name == PetName::Deer && team.all().len() == 1);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
+        fight = team.fight(&mut enemy_team).unwrap()
     }
     // 1st attack kills dear and summons bus.
     // 2nd attack kills dog and ox before its effect triggers.
@@ -71,9 +71,9 @@ fn test_battle_hippo_team() {
         .all()
         .iter()
         .all(|pet| pet.borrow().name == PetName::Ant));
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
+        fight = team.fight(&mut enemy_team).unwrap()
     }
 
     // Hippo takes 2 dmg (1st) + 8 dmg (2nd + 3rd) = 10 dmg
@@ -115,7 +115,7 @@ fn test_battle_parrot_team() {
     );
     // Cricket is level 2.
     assert_eq!(team.first().unwrap().borrow().lvl, 2);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // After the parrot's effects is a level one cricket.
     // Update id and affected pet to match.
@@ -157,7 +157,7 @@ fn test_battle_rooster_lvl_1_team() {
         )
     }
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     let chick = team.first().unwrap();
     // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
@@ -192,7 +192,7 @@ fn test_battle_rooster_lvl_2_team() {
         )
     }
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     let chick = team.friends.first().unwrap();
     let chick_2 = team.friends.get(1).unwrap();
@@ -242,8 +242,8 @@ fn test_battle_skunk_team() {
     );
 
     // Apply start of battle effects. No fighting.
-    team.trigger_effects(&mut enemy_team);
-    enemy_team.trigger_effects(&mut team);
+    team.trigger_effects(&mut enemy_team).unwrap();
+    enemy_team.trigger_effects(&mut team).unwrap();
 
     // Health reduced by 33% (2) from 5 -> 3.
     assert_eq!(
@@ -273,7 +273,7 @@ fn test_battle_turtle_team() {
 
     // Three attacks to kill both lvl.1 turtles.
     for _ in 0..3 {
-        team.fight(&mut enemy_team);
+        team.fight(&mut enemy_team).unwrap();
     }
 
     let pet_behind_turtle = team.first().unwrap();
@@ -298,7 +298,7 @@ fn test_battle_whale_team() {
     }
     let cricket_copy = team.friends.first().unwrap().borrow().clone();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // After start of battle, whale eats cricket and changes effect to summon cricket.
     let whale = team.first().unwrap();
@@ -317,7 +317,7 @@ fn test_battle_armadillo_team() {
     let mut team = test_armadillo_team();
     let mut enemy_team = test_hippo_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     for (i, pet) in team.all().into_iter().enumerate() {
         // First pet is armadillo, it takes (2,6)-(0,4).
@@ -353,7 +353,7 @@ fn test_battle_doberman_team() {
             .name,
         PetName::Doberman
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Doberman gets coconut and gets (5,5)
     let doberman = team.first().unwrap();
@@ -390,7 +390,7 @@ fn test_battle_doberman_highest_tier_team() {
             .name,
         PetName::Doberman
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Doberman doesn't get coconut or stats.
     assert_eq!(team.first().unwrap().borrow().item, None);
@@ -413,7 +413,7 @@ fn test_battle_lynx_team() {
         5
     );
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Hippo faints at start of battle.
     assert_eq!(
@@ -432,7 +432,7 @@ fn test_battle_lynx_team() {
     );
 
     // Retrigger start of battle effects
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hippo takes 4 dmg.
     assert_eq!(
@@ -452,8 +452,8 @@ fn test_battle_porcupine_team() {
     enemy_team.first().unwrap().borrow_mut().stats.health += 8;
 
     // Trigger start of battle effects. Then clear fainted pets.
-    enemy_team.trigger_effects(&mut team);
-    team.trigger_effects(&mut enemy_team);
+    enemy_team.trigger_effects(&mut team).unwrap();
+    team.trigger_effects(&mut enemy_team).unwrap();
     enemy_team.clear_team();
 
     // 2 Mosquitoes faint from returned fire from porcupine
@@ -465,7 +465,7 @@ fn test_battle_porcupine_team() {
     );
 
     // Continue fight.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // 1st mosquito faints from direct damage + returned porcupine damage.
     assert_eq!(enemy_team.fainted.len(), 3);
@@ -483,14 +483,14 @@ fn test_battle_caterpillar_team() {
 
     // Trigger start of battle effects.
     // Copy does not trigger yet.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     let butterfly = team.first().unwrap();
     assert_eq!(butterfly.borrow().stats, Statistics::new(1, 1).unwrap());
     assert_eq!(butterfly.borrow().name, PetName::Butterfly);
 
     // Right before battle phase, butterfly will copy effect.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Butterfly takes 4 dmg from hippo but copied (50/50) dog.
     let butterfly = team.first().unwrap();
@@ -508,7 +508,7 @@ fn test_battle_sniped_caterpillar_team() {
     enemy_team.friends.remove(1);
     team.set_seed(42);
 
-    let outcome = team.fight(&mut enemy_team);
+    let outcome = team.fight(&mut enemy_team).unwrap();
 
     // The team wins.
     assert_eq!(outcome, TeamFightOutcome::Win);
@@ -526,7 +526,7 @@ fn test_battle_anteater_team() {
 
     // Single anteater.
     assert_eq!(team.all().len(), 1);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // After faint, two anteaters spawn.
     assert_eq!(
@@ -550,7 +550,7 @@ fn test_battle_donkey_team() {
 
     assert_eq!(enemy_team.nth(1).unwrap().borrow().name, PetName::Snake);
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Cricket faints and donkey ability triggers.
     assert_eq!(enemy_team.fainted.len(), 1);
@@ -572,7 +572,7 @@ fn test_battle_eel_team() {
 
     let eel_stats = team.first().unwrap().borrow().stats;
 
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Eel at lvl.1 gains 50% of original health.
     assert_eq!(
@@ -601,7 +601,7 @@ fn test_battle_hawk_team() {
         );
     }
 
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     {
         // Gorilla takes 7 dmg.
@@ -632,7 +632,7 @@ fn test_battle_pelican_team() {
         assert_eq!(ant_item.as_ref().unwrap().name, FoodName::Strawberry)
     }
 
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Pelican at lvl.1 give strawberry ant (2,1)
     assert_eq!(

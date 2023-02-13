@@ -971,3 +971,15 @@ pub fn test_velociraptor_team() -> Team {
     .unwrap();
     team
 }
+
+pub fn test_beaver_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Beaver).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}

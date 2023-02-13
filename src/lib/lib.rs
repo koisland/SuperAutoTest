@@ -44,7 +44,7 @@ pub mod db;
 pub mod error;
 pub mod foods;
 pub mod pets;
-mod shop;
+pub mod shop;
 
 #[doc(inline)]
 pub use crate::battle::{
@@ -60,6 +60,8 @@ pub use crate::db::setup::SapDB;
 pub use crate::foods::{food::Food, names::FoodName};
 #[doc(inline)]
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};
+#[doc(inline)]
+pub use crate::shop::store::Shop;
 
 mod graph;
 mod regex_patterns;

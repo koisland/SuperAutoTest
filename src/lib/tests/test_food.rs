@@ -383,7 +383,7 @@ fn test_attack_chili() {
     )
     .unwrap();
 
-    let outcome = team.fight(&mut enemy_team);
+    let outcome = team.fight(&mut enemy_team).unwrap();
 
     // Ant team wins instead of drawing due to chili's splash damage.
     assert_eq!(outcome, TeamFightOutcome::Win);
@@ -403,9 +403,9 @@ fn test_battle_honey_team() {
     )
     .unwrap();
 
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team);
+        fight = team.fight(&mut enemy_team).unwrap();
     }
 
     // Ant team completes by team has honey so bee spawns.
@@ -427,9 +427,9 @@ fn test_battle_mushroom_team() {
     )
     .unwrap();
 
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team);
+        fight = team.fight(&mut enemy_team).unwrap();
     }
 
     // Team wins over enemy by summoning ant with (1,1).

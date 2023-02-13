@@ -10,6 +10,7 @@ use crate::{
     db::record::PetRecord,
     error::SAPTestError,
     foods::{food::Food, names::FoodName},
+    shop::trigger::TRIGGER_PET_SOLD,
     Pet, PetName, Statistics,
 };
 use std::convert::TryInto;
@@ -21,6 +22,16 @@ impl TryFrom<PetRecord> for Vec<Effect> {
         let effect_stats = Statistics::new(record.effect_atk, record.effect_health)?;
 
         Ok(match &record.name {
+            PetName::Beaver => vec![Effect {
+                entity: Entity::Pet,
+                owner: None,
+                trigger: TRIGGER_PET_SOLD,
+                target: Target::Friend,
+                position: Position::Multiple(vec![Position::Any(Condition::None); record.lvl]),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+                temp: record.temp_effect,
+            }],
             PetName::Ant => vec![Effect {
                 owner: None,
                 trigger: TRIGGER_SELF_FAINT,
@@ -702,16 +713,28 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     uses: Some(record.n_triggers),
                 }]
             }
-            PetName::Racoon => vec![Effect {
-                owner: None,
-                entity: Entity::Pet,
-                temp: record.temp_effect,
-                trigger: TRIGGER_SELF_BEFORE_ATTACK,
-                target: Target::Friend,
-                position: Position::OnSelf,
-                action: Action::Copy(CopyType::Item(None), Target::Enemy, Position::First),
-                uses: Some(record.n_triggers),
-            }],
+            PetName::Racoon => vec![
+                Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_BEFORE_ATTACK,
+                    target: Target::Enemy,
+                    position: Position::First,
+                    action: Action::Gain(GainType::NoItem),
+                    uses: Some(record.n_triggers),
+                },
+                Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_BEFORE_ATTACK,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Copy(CopyType::Item(None), Target::Enemy, Position::First),
+                    uses: Some(record.n_triggers),
+                },
+            ],
             PetName::Toucan => {
                 let n_pets_behind: isize = record.lvl.try_into()?;
                 vec![Effect {

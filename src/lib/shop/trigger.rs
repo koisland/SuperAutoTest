@@ -1,5 +1,7 @@
-use crate::{Outcome, Position, battle::state::{Status, Target}};
-
+use crate::{
+    battle::state::{Condition, Status, Target},
+    Outcome, Position,
+};
 
 pub const TRIGGER_FOOD_BOUGHT: Outcome = Outcome {
     status: Status::BuyFood,
@@ -7,7 +9,7 @@ pub const TRIGGER_FOOD_BOUGHT: Outcome = Outcome {
     affected_team: Target::Friend,
     afflicting_pet: None,
     afflicting_team: Target::None,
-    position: Position::TriggerAffected,
+    position: Position::OnSelf,
     stat_diff: None,
 };
 
@@ -17,7 +19,27 @@ pub const TRIGGER_PET_BOUGHT: Outcome = Outcome {
     affected_team: Target::Friend,
     afflicting_pet: None,
     afflicting_team: Target::None,
-    position: Position::TriggerAffected,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
+pub const TRIGGER_ANY_PET_SOLD: Outcome = Outcome {
+    status: Status::Sell,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::Any(Condition::None),
+    stat_diff: None,
+};
+
+pub const TRIGGER_PET_SOLD: Outcome = Outcome {
+    status: Status::Sell,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
     stat_diff: None,
 };
 

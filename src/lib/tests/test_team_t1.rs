@@ -7,7 +7,10 @@ use crate::{
         test_frog_team, test_hummingbird_team, test_iguana_seahorse_team, test_mosq_team,
         test_moth_team,
     },
+    Shop,
 };
+
+use super::common::test_beaver_team;
 // use crate::LOG_CONFIG;
 // use petgraph::{dot::Dot, visit::Dfs};
 
@@ -25,7 +28,7 @@ fn test_battle_ant_team() {
     assert!(all_2_1);
 
     // One battle phase and one ant faints.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     let any_gets_2_1 = team
         .friends
@@ -54,8 +57,8 @@ fn test_battle_cricket_horse_team() {
     );
 
     // After one turn.
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
@@ -77,9 +80,9 @@ fn test_battle_mosquito_team() {
     let mut enemy_team = test_ant_team();
     enemy_team.set_seed(0);
 
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
+        fight = team.fight(&mut enemy_team).unwrap()
     }
     // Mosquitoes kill any team before game starts.
     assert_eq!(fight, TeamFightOutcome::Win);
@@ -112,7 +115,7 @@ fn test_battle_frilled_dragon_team() {
         }
     );
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Team has two crickets with faint triggers. Gains (1,1) for each.
     let last_pet = team.all().into_iter().last();
@@ -151,7 +154,7 @@ fn test_battle_frog_team() {
     // Frilled dragon activates.
     // Then frog activates swapping stats of cricket and frilled dragon.
     // Cricket with 2/2 dies spawning zombie cricket.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Frilled dragon gets cricket stats.
     assert_eq!(
@@ -178,7 +181,7 @@ fn test_battle_moth_team() {
         }
     );
     // Ant deals 2 dmg. 2 moths gives (6,0).
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(
         team.friends.first().unwrap().as_ref().borrow().stats,
@@ -212,7 +215,7 @@ fn test_battle_hummingbird_team() {
     // Two hummingbirds on team.
     assert_eq!(count_pets(&team.friends, PetName::Hummingbird), 2);
     // Trigger start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Duck gets 2/1 for every hummingbird since only strawberry friend.
     assert_eq!(
@@ -234,9 +237,18 @@ fn test_battle_iguana_seahorse_team() {
     // Start of battle pushes horse to 2nd position and it gets hit by iguana.
     // Seahorse knockouts cricket leaving zombie cricket.
     // Zombie cricket hit by iguana.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Only one pet remaining on enemy team.
     assert_eq!(enemy_team.first().unwrap().borrow().name, PetName::Cricket);
     assert_eq!(enemy_team.friends.len(), 1)
+}
+
+#[test]
+fn test_shop_beaver_team() {
+    let mut team = test_beaver_team();
+
+    let mut shop = Shop::new(&mut team, Some(1212)).unwrap();
+    shop.sell(0, &mut team).unwrap();
+    println!("{shop}")
 }

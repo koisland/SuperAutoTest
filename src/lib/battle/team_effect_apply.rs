@@ -28,7 +28,7 @@ use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
 /// Pet doesn't store a reference to team so this was a workaround.
-type TargetPet = Vec<(Target, Rc<RefCell<Pet>>)>;
+type TargetPets = Vec<(Target, Rc<RefCell<Pet>>)>;
 const NONSPECIFIC_POSITIONS: [Position; 5] = [
     Position::None,
     Position::Any(Condition::None),
@@ -55,12 +55,12 @@ pub trait TeamEffects {
     /// assert_eq!(team.triggers.len(), 2);
     ///
     /// // Trigger effects.
-    /// team.trigger_effects(&mut enemy_team);
+    /// team.trigger_effects(&mut enemy_team).unwrap();
     ///
     /// // Exhaust triggers.
     /// assert_eq!(team.triggers.len(), 0);
     /// ```
-    fn trigger_effects(&mut self, opponent: &mut Team) -> &mut Self;
+    fn trigger_effects(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError>;
     /// Apply an [`Effect`] with an associated [`Outcome`] trigger to a [`Team`].
     /// * The `opponent` [`Team`] will get updated with additional [`Outcome`]s.
     /// * Effects and triggers should contain a Weak reference to the owning/affecting pet.
@@ -106,7 +106,7 @@ pub trait TeamEffects {
 }
 
 impl TeamEffects for Team {
-    fn trigger_effects(&mut self, opponent: &mut Team) -> &mut Self {
+    fn trigger_effects(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
         info!(target: "dev", "(\"{}\")\nTriggers:\n{}", self.name, self.triggers.iter().join("\n"));
 
         // Continue iterating until all triggers consumed.
@@ -211,16 +211,14 @@ impl TeamEffects for Team {
                 let node_idx = self.history.effect_graph.add_node(trigger.clone());
                 self.history.curr_node = Some(node_idx);
 
-                if let Err(err) = self.apply_effect(&trigger, &effect, opponent) {
-                    error!(target: "dev", "(\"{}\")\nSomething went wrong. {:?}", self.name, err)
-                };
+                self.apply_effect(&trigger, &effect, opponent)?
             }
 
             // Set curr node to previous.
             self.history.prev_node = self.history.curr_node;
         }
 
-        self
+        Ok(self)
     }
 
     fn apply_effect(
@@ -303,17 +301,25 @@ pub(crate) trait EffectApplyHelpers {
         effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError>;
+    fn get_pets_by_pos(
+        &self,
+        curr_pet: Option<Rc<RefCell<Pet>>>,
+        target: Target,
+        pos: Position,
+        trigger: Option<Outcome>,
+        opponent: Option<&Team>,
+    ) -> Result<TargetPets, SAPTestError>;
     /// Get pets by Outcome trigger and a Position.
     fn get_pets_by_effect(
         &self,
         trigger: &Outcome,
         effect: &Effect,
         opponent: &Team,
-    ) -> Result<TargetPet, SAPTestError>;
+    ) -> Result<TargetPets, SAPTestError>;
     fn copy_effect(
         &self,
         attr_to_copy: &CopyType,
-        targets: TargetPet,
+        targets: TargetPets,
         receiving_pet: &Rc<RefCell<Pet>>,
     ) -> Result<(), SAPTestError>;
     fn summon_pet(
@@ -325,7 +331,7 @@ pub(crate) trait EffectApplyHelpers {
     fn evolve_pet(
         &mut self,
         lvl: usize,
-        targets: TargetPet,
+        targets: TargetPets,
         target_pet: Rc<RefCell<Pet>>,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError>;
@@ -424,7 +430,7 @@ impl EffectApplyHelpers for Team {
     fn evolve_pet(
         &mut self,
         lvl: usize,
-        targets: TargetPet,
+        targets: TargetPets,
         target_pet: Rc<RefCell<Pet>>,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError> {
@@ -476,7 +482,7 @@ impl EffectApplyHelpers for Team {
     fn copy_effect(
         &self,
         attr_to_copy: &CopyType,
-        targets: TargetPet,
+        targets: TargetPets,
         receiving_pet: &Rc<RefCell<Pet>>,
     ) -> Result<(), SAPTestError> {
         // Choose the first pet.
@@ -637,9 +643,14 @@ impl EffectApplyHelpers for Team {
                     GainType::SelfItem => effect_owner.borrow().item.clone(),
                     GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
                     GainType::StoredItem(food) => Some(*food.clone()),
+                    GainType::NoItem => None,
                 };
 
-                if let Some(mut food) = food {
+                if food.is_none() {
+                    info!(target: "dev", "(\"{}\")\nRemoved food from {}.", self.name, target_pet.borrow());
+                    target_pet.borrow_mut().item = None;
+                    target_ids.push(target_pet.borrow().id.clone())
+                } else if let Some(mut food) = food {
                     info!(target: "dev", "(\"{}\")\nGave {} to {}.", self.name, food, target_pet.borrow());
                     food.ability.assign_owner(Some(&target_pet));
                     target_pet.borrow_mut().item = Some(food);
@@ -701,8 +712,17 @@ impl EffectApplyHelpers for Team {
                 }
             }
             Action::Summon(summon_type) => {
-                let summoned_pet_id = self.summon_pet(target_pet, summon_type, opponent)?;
-                target_ids.push(summoned_pet_id);
+                let summon_result = self.summon_pet(target_pet, summon_type, opponent);
+                if let Err(err) = summon_result {
+                    // Fallible error. Attempted to add too many pets.
+                    if let SAPTestError::InvalidPetAction { .. } = err {
+                    } else {
+                        // Otherwise, something actually went wrong.
+                        return Err(err);
+                    }
+                } else if let Ok(summoned_pet_id) = summon_result {
+                    target_ids.push(summoned_pet_id)
+                };
             }
             Action::Multiple(actions) => {
                 for action in actions {
@@ -914,23 +934,34 @@ impl EffectApplyHelpers for Team {
         ))
     }
 
-    fn get_pets_by_effect(
+    fn get_pets_by_pos(
         &self,
-        trigger: &Outcome,
-        effect: &Effect,
-        opponent: &Team,
-    ) -> Result<Vec<(Target, Rc<RefCell<Pet>>)>, SAPTestError> {
-        let curr_pet = if let Some(effect_pet) = &effect.owner {
-            effect_pet.upgrade()
-        } else {
-            // Otherwise, use first pet on team.
-            self.first()
+        curr_pet: Option<Rc<RefCell<Pet>>>,
+        target: Target,
+        pos: Position,
+        trigger: Option<Outcome>,
+        opponent: Option<&Team>,
+    ) -> Result<TargetPets, SAPTestError> {
+        let mut pets = vec![];
+
+        let opponent = match &target {
+            // Set opponent to be self as target opponent will never be used.
+            Target::Friend => self,
+            Target::Enemy | Target::Either => {
+                let Some(enemy_team) = opponent else {
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: "No Enemy Team Provided".to_string(),
+                        reason: format!("Enemy team is required for finding pets by target {:?}", &target)
+                    })
+                };
+                enemy_team
+            }
+            _ => unimplemented!(),
         };
 
-        let mut pets = vec![];
-        match (effect.target, &effect.position) {
+        match (target, &pos) {
             (Target::Friend | Target::Enemy, Position::Any(condition)) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
@@ -941,7 +972,7 @@ impl EffectApplyHelpers for Team {
                     .into_iter()
                     .choose(&mut rng)
                 {
-                    pets.push((effect.target, random_pet))
+                    pets.push((target, random_pet))
                 }
             }
             (Target::Either, Position::Any(condition)) => {
@@ -962,13 +993,13 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::All(condition)) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
                 };
                 for pet in team.get_pets_by_cond(condition) {
-                    pets.push((effect.target, pet))
+                    pets.push((target, pet))
                 }
             }
             (Target::Either, Position::All(condition)) => {
@@ -979,23 +1010,29 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::Opposite) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
                 };
                 if let Some(Some(pos)) = &curr_pet.map(|pet| pet.borrow().pos) {
                     if let Some(opposite_pet) = team.nth(*pos) {
-                        pets.push((effect.target, opposite_pet))
+                        pets.push((target, opposite_pet))
                     }
                 }
             }
             (_, Position::OnSelf) => {
                 if let Some(self_pet) = &curr_pet {
-                    pets.push((effect.target, self_pet.clone()))
+                    pets.push((target, self_pet.clone()))
                 }
             }
             (_, Position::TriggerAffected) => {
+                let Some(trigger) = trigger else {
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: "No Trigger Provided".to_string(),
+                        reason: format!("Trigger required for finding pets by {:?}", pos.clone())
+                    })
+                };
                 if let Some(Some(affected_pet)) = trigger
                     .affected_pet
                     .as_ref()
@@ -1005,6 +1042,13 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (_, Position::TriggerAfflicting) => {
+                let Some(trigger) = trigger else {
+                    let pos = pos.clone();
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: "No Trigger Provided".to_string(),
+                        reason: format!("Trigger required for finding pets by {pos:?}")
+                    })
+                };
                 if let Some(Some(afflicting_pet)) = trigger
                     .afflicting_pet
                     .as_ref()
@@ -1014,7 +1058,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
@@ -1026,7 +1070,7 @@ impl EffectApplyHelpers for Team {
                     // Pet can only be on same team.
                     if target_team == Target::Friend {
                         if let Some(rel_pet) = team.friends.get(adj_idx) {
-                            pets.push((effect.target, rel_pet.clone()))
+                            pets.push((target, rel_pet.clone()))
                         }
                     }
                 }
@@ -1047,7 +1091,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::Range(effect_range)) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
@@ -1085,30 +1129,34 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::First) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
                 };
                 if let Some(first_pet) = team.all().first() {
-                    pets.push((effect.target, first_pet.clone()))
+                    pets.push((target, first_pet.clone()))
                 }
             }
             (Target::Friend | Target::Enemy, Position::Last) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
                 };
                 if let Some(last_pet) = team.all().last() {
-                    pets.push((effect.target, last_pet.clone()))
+                    pets.push((target, last_pet.clone()))
                 }
             }
             (_, Position::Multiple(positions)) => {
-                let mut effect_copy = effect.clone();
                 for pos in positions {
-                    effect_copy.position = pos.clone();
-                    pets.extend(self.get_pets_by_effect(trigger, &effect_copy, opponent)?)
+                    pets.extend(self.get_pets_by_pos(
+                        curr_pet.clone(),
+                        target,
+                        pos.clone(),
+                        trigger.clone(),
+                        Some(opponent),
+                    )?)
                 }
             }
             (Target::Either, Position::N(condition, num_pets)) => {
@@ -1127,7 +1175,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             (Target::Friend | Target::Enemy, Position::N(condition, n)) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
@@ -1136,26 +1184,52 @@ impl EffectApplyHelpers for Team {
                 // Get n values of indices.
                 for _ in 0..*n {
                     if let Some(pet) = found_pets.next() {
-                        pets.push((effect.target, pet))
+                        pets.push((target, pet))
                     }
                 }
             }
             (Target::Friend | Target::Enemy, Position::Adjacent) => {
-                let team = if effect.target == Target::Friend {
+                let team = if target == Target::Friend {
                     self
                 } else {
                     opponent
                 };
                 // Get pet ahead and behind.
-                let mut effect_copy = effect.clone();
                 for rel_pos in [-1, 1].into_iter() {
-                    effect_copy.position = Position::Relative(rel_pos);
-                    pets.extend(team.get_pets_by_effect(trigger, &effect_copy, opponent)?)
+                    pets.extend(team.get_pets_by_pos(
+                        curr_pet.clone(),
+                        target,
+                        Position::Relative(rel_pos),
+                        None,
+                        Some(opponent),
+                    )?)
                 }
             }
             _ => unimplemented!(),
         }
 
         Ok(pets)
+    }
+
+    fn get_pets_by_effect(
+        &self,
+        trigger: &Outcome,
+        effect: &Effect,
+        opponent: &Team,
+    ) -> Result<TargetPets, SAPTestError> {
+        let curr_pet = if let Some(effect_pet) = &effect.owner {
+            effect_pet.upgrade()
+        } else {
+            // Otherwise, use first pet on team.
+            self.first()
+        };
+
+        self.get_pets_by_pos(
+            curr_pet,
+            effect.target,
+            effect.position.clone(),
+            Some(trigger.clone()),
+            Some(opponent),
+        )
     }
 }

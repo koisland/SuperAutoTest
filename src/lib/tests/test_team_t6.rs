@@ -31,7 +31,7 @@ fn test_battle_boar_team() {
             health: 6
         }
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // After battle with first sheep (2,2) gains (4,2)
     assert_eq!(
@@ -55,17 +55,17 @@ fn test_battle_fly_team() {
     let mut team = test_fly_team();
     let mut enemy_team = test_fly_team();
 
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     // Zombie fly spawned after cricket dies.
     assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieCricket);
     assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieFly);
 
     // Finish battle.
-    let mut outcome = team.fight(&mut enemy_team);
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = outcome {
-        outcome = team.fight(&mut enemy_team)
+        outcome = team.fight(&mut enemy_team).unwrap()
     }
 
     assert_eq!(outcome, TeamFightOutcome::Draw);
@@ -91,7 +91,7 @@ fn test_battle_gorilla_team() {
             health: 9
         }
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Gorilla is hurt and gains coconut.
     let mut coconut = Food::try_from(FoodName::Coconut).unwrap();
@@ -132,7 +132,7 @@ fn test_battle_leopard_team() {
     );
 
     // Leopard activates at start of battle and deals 50% of leopard attack.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(
         enemy_team.first().unwrap().borrow().stats,
@@ -165,7 +165,7 @@ fn test_battle_mammoth_team() {
 
     // 4 attack phases to kill mammoth.
     for _ in 0..4 {
-        team.fight(&mut enemy_team);
+        team.fight(&mut enemy_team).unwrap();
     }
 
     // All pets on team gained (2,2)
@@ -210,7 +210,7 @@ fn test_battle_snake_team() {
 
     // One battle phase passes.
     // Cricket attacks and snake triggers killing sheep.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Two ram spawn as result.
     for pet in enemy_team.all() {
@@ -240,7 +240,7 @@ fn test_battle_tiger_team() {
         assert_eq!(enemy_pets.len(), 2)
     }
     // Start of battle triggers leopard effect twice (due to tiger behind it) against scorpion team.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Frontline leopard lives because its effect triggers twice.
     let pets = team.all();
@@ -263,7 +263,7 @@ fn test_battle_alpaca_team() {
     );
 
     for i in 0..4 {
-        team.fight(&mut enemy_team);
+        team.fight(&mut enemy_team).unwrap();
         // Cricket spawns and gets two exp leveling it to lvl 2.
         if i == 0 {
             let zombie_cricket = team.first().unwrap();
@@ -286,7 +286,7 @@ fn test_battle_tapir_team() {
     let mut team = test_tapir_team();
     let mut enemy_team = test_gorilla_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Tapir faints and a tiger spawns at lvl.1.
     assert_eq!(team.fainted.len(), 1);
@@ -298,7 +298,7 @@ fn test_battle_tapir_team() {
     // Level tapir to lvl 2.
     team.set_level(Position::First, 2).unwrap();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Same lobster spawns but at lvl 2.
     let spawned_pet = team.first().unwrap();
@@ -313,7 +313,7 @@ fn test_battle_walrus_team() {
     team.set_seed(25);
     let mut enemy_team = test_gorilla_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // First cricket after walrus faints gets peanuts.
     assert_eq!(
@@ -329,7 +329,7 @@ fn test_battle_white_tiger_team() {
     let mut team = test_white_tiger_team();
     let mut enemy_team = test_gorilla_team();
 
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Deer behind gets 3 exp leveling to 2.
     let deer = team.nth(1).unwrap();
@@ -344,7 +344,7 @@ fn test_battle_octopus_team() {
     let mut enemy_team = test_cricket_horse_team();
     enemy_team.set_seed(25);
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Octopus only takes one damage.
     assert_eq!(team.first().unwrap().borrow().stats.health, 7);
@@ -358,8 +358,8 @@ fn test_battle_orca_team() {
     team.set_seed(25);
     let mut enemy_team = test_gorilla_team();
 
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     let summoned_pet = team.first().unwrap();
     let effect = &summoned_pet.borrow().effect[0];
@@ -378,7 +378,7 @@ fn test_battle_piranha_team() {
     }
 
     // Piranha (lvl.1) faints.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // And all pets behind get (3,0).
     for pet in team.all() {
@@ -395,7 +395,7 @@ fn test_battle_reindeer_team() {
     let reindeer = team.first().unwrap();
     assert_eq!(reindeer.borrow().item, None);
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // After fight has melon but already used.
     assert_eq!(
@@ -417,7 +417,7 @@ fn test_battle_sabertooth_team() {
 
     let sabertooth_stats = team.first().unwrap().borrow().stats;
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Sabertooth hurt.
     assert_ne!(sabertooth_stats, team.nth(1).unwrap().borrow().stats);
@@ -442,7 +442,7 @@ fn test_battle_spinosaurus_team() {
     assert_eq!(dog_stats_original, Statistics::new(3, 4).unwrap());
 
     // Dog at pos 0 faints
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Dog gains (3,2) from spinosaurus.
     assert_eq!(team.fainted.len(), 1);
@@ -466,7 +466,7 @@ fn test_battle_stegosaurus_team() {
     assert!(team.history.curr_turn == 0);
 
     // Activate start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -480,7 +480,7 @@ fn test_battle_stegosaurus_team() {
     team.history.curr_turn += 2;
 
     // Re-activate start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -499,7 +499,7 @@ fn test_battle_velociraptor_team() {
         FoodName::Strawberry
     );
     // Trigger start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Cricket at pos 1 now has coconut.
     assert_eq!(

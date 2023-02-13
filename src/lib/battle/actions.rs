@@ -61,6 +61,8 @@ pub enum GainType {
     DefaultItem(FoodName),
     /// Gain the stored item.
     StoredItem(Box<Food>),
+    /// Remove item.
+    NoItem,
 }
 
 /// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can alter pets.

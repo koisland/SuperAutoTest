@@ -27,9 +27,9 @@ fn test_battle_badger_team() {
     assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
     // Dolphin immediately kills badger.
     // Badger's effect triggers dealing 3 dmg to both adjacent pets.
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
+        fight = team.fight(&mut enemy_team).unwrap()
     }
 
     assert_eq!(fight, TeamFightOutcome::Win);
@@ -45,7 +45,7 @@ fn test_battle_blowfish_team() {
 
     assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // One pet dies to blowfish indirect attack.
     // Another dies to elephant attack.
@@ -61,9 +61,9 @@ fn test_battle_blowfish_rally_battle() {
     let mut team = test_blowfish_rally_team();
     let mut enemy_team = test_blowfish_rally_team();
 
-    let mut fight = team.fight(&mut enemy_team);
+    let mut fight = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team)
+        fight = team.fight(&mut enemy_team).unwrap()
     }
 
     // Only one attack occurs in fight.
@@ -89,7 +89,7 @@ fn test_battle_camel_team() {
     // Ant has 1 health.
     assert_eq!(team.nth(2).unwrap().borrow().stats.health, 1);
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Camel takes 1 dmg from elephant.
     assert_eq!(team.nth(1).unwrap().borrow().stats.health, 5);
@@ -112,7 +112,7 @@ fn test_battle_dog_team() {
             health: 4
         }
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(team.nth(0).unwrap().borrow().name, PetName::ZombieCricket);
     // Dog gains (1,1) after Zombie Cricket spawns.
@@ -139,7 +139,7 @@ fn test_battle_kangaroo_team() {
             health: 2
         }
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Friend ahead attacks once increasing stats by (2,2)
     assert_eq!(
@@ -171,8 +171,8 @@ fn test_battle_ox_team() {
         );
     };
 
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     let ox = team.nth(0).unwrap();
     // Gets melon armor.
@@ -198,7 +198,7 @@ fn test_battle_sheep_team() {
 
     assert_eq!(team.all().len(), 1);
     // Sheep faint and summon two ram.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     for team in [team, enemy_team].iter_mut() {
         let pets = team.all();
@@ -217,7 +217,7 @@ fn test_battle_filled_team() {
     let mut team = test_filled_sheep_team();
     let mut enemy_team = test_filled_sheep_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Overflow in pets (ram in this case) gets added to team's dead.
     let fainted_pets = &team.fainted;
@@ -236,7 +236,7 @@ fn test_battle_aardvark_team() {
     assert_eq!(aardvark_stats, Statistics::new(2, 3).unwrap());
 
     // Fights first cricket.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Cricket faints and Zombie Cricket spawns
     assert_eq!(
@@ -274,7 +274,7 @@ fn test_battle_bear_team() {
     // Enemy team first pet (duck) has strawberry.
     let enemy_duck_item = enemy_team.first().unwrap().borrow().item.clone();
     assert_eq!(enemy_duck_item.unwrap().name, FoodName::Strawberry);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Bear fainted.
     assert_eq!(team.fainted.first().unwrap().borrow().name, PetName::Bear);
@@ -310,7 +310,7 @@ fn test_battle_seagull_team() {
         team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Honey
     );
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Zombie cricket gets honey from seagull.
     {
@@ -322,7 +322,7 @@ fn test_battle_seagull_team() {
     }
 
     // Fight again to kill zombie cricket with honey.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Seagull ability only activates once. Bee does not get honey.
     assert!(
@@ -339,7 +339,7 @@ fn test_battle_blobfish_team() {
 
     // Dog behind has no experience.
     assert_eq!(team.nth(1).unwrap().borrow().exp, 0);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Blobfish dies.
     assert_eq!(
@@ -365,7 +365,7 @@ fn test_battle_clownfish_team() {
         stats
     };
     // Blobfish dies during fight and levels dog to 2.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     {
         let dog = team.first().unwrap();
@@ -392,7 +392,7 @@ fn test_battle_toad_team() {
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Cricket hit by mosquito and takes 1 dmg
     assert_eq!(
@@ -428,7 +428,7 @@ fn test_battle_woodpecker_team() {
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Two crickets at front on enemy team die.
     assert_eq!(
@@ -457,7 +457,7 @@ fn test_battle_woodpecker_self_hurt_team() {
     );
 
     // Trigger start of battle effects and clear dead pets.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
     team.clear_team();
 
     // Two crickets at front of woodpecker on same team faint.

@@ -73,9 +73,9 @@ fn test_team_restore() {
 
     let mut enemy_team = test_ant_team();
 
-    let mut outcome = team.fight(&mut enemy_team);
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
     while outcome == TeamFightOutcome::None {
-        outcome = team.fight(&mut enemy_team);
+        outcome = team.fight(&mut enemy_team).unwrap();
     }
 
     // Teams faints.

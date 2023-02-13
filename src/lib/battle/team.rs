@@ -11,7 +11,7 @@ use crate::{
         combat::PetCombat,
         pet::{assign_effect_owner, Pet},
     },
-    Food,
+    Food, Shop,
 };
 
 use itertools::Itertools;
@@ -29,6 +29,8 @@ use std::{
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {
+    /// Seed used to reproduce the outcome of events.
+    pub seed: u64,
     /// Name of the team.
     pub name: String,
     /// Pets on the team.
@@ -42,22 +44,27 @@ pub struct Team {
     /// Calling [`trigger_effects`](super::team_effect_apply::TeamEffects::trigger_effects) will exhaust all stored triggers.
     /// * As a result, this will always be empty unless mutated.
     pub triggers: VecDeque<Outcome>,
-    #[serde(skip)]
     /// Effect history of a team.
+    #[serde(skip)]
     pub history: History,
-    /// Seed used to reproduce the outcome of events.
-    pub seed: u64,
+    /// Pet shop.
+    #[serde(skip)]
+    pub(crate) shop: Shop,
+    /// Current pet.
+    #[serde(skip)]
+    pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
     /// Clone of pets used for restoring team.
     pub(super) stored_friends: Vec<Pet>,
     /// Count of all pets summoned on team.
     pub(super) pet_count: usize,
-    #[serde(skip)]
-    /// Current pet.
-    pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
 }
 
 impl Default for Team {
     fn default() -> Self {
+        let seed = random();
+        let mut shop = Shop::default();
+        shop.set_seed(Some(seed));
+
         Self {
             // TODO: Replace with auto generated names.
             name: Default::default(),
@@ -66,9 +73,10 @@ impl Default for Team {
             fainted: Default::default(),
             max_size: 5,
             triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
+            shop,
             history: History::new(),
             pet_count: Default::default(),
-            seed: random(),
+            seed,
             curr_pet: None,
         }
     }
@@ -98,6 +106,7 @@ impl Clone for Team {
             stored_friends: self.stored_friends.clone(),
             pet_count: self.pet_count,
             curr_pet: self.curr_pet.clone(),
+            shop: self.shop.clone(),
         };
         // Reassign references.
         copied_team.reset_pet_references(None);
@@ -822,7 +831,7 @@ impl Team {
             // Add overflow to dead pets.
             self.fainted.push(rc_pet);
 
-            return Err(SAPTestError::InvalidTeamAction {
+            return Err(SAPTestError::InvalidPetAction {
                 subject: "Add Pet".to_string(),
                 reason: format!("Maximum number of pets ({}) reached.", self.max_size),
             });
@@ -885,9 +894,9 @@ impl Team {
     ///     5
     /// ).unwrap();
     ///
-    /// let mut outcome = team.fight(&mut enemy_team);
+    /// let mut outcome = team.fight(&mut enemy_team).unwrap();
     /// while let TeamFightOutcome::None = outcome {
-    ///     outcome = team.fight(&mut enemy_team);
+    ///     outcome = team.fight(&mut enemy_team).unwrap();
     /// }
     ///
     /// assert!(outcome == TeamFightOutcome::Loss);
@@ -907,12 +916,12 @@ impl Team {
     /// ).unwrap();
     ///
     /// let n = 2;
-    /// let mut outcome = team.fight(&mut enemy_team);
+    /// let mut outcome = team.fight(&mut enemy_team).unwrap();
     /// for _ in 0..n-1 {
-    ///     outcome = team.fight(&mut enemy_team);
+    ///     outcome = team.fight(&mut enemy_team).unwrap();
     /// }
     /// ```
-    pub fn fight(&mut self, opponent: &mut Team) -> TeamFightOutcome {
+    pub fn fight(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError> {
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 
@@ -921,8 +930,8 @@ impl Team {
         opponent.clear_team();
 
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-            self.trigger_effects(opponent);
-            opponent.trigger_effects(self);
+            self.trigger_effects(opponent)?;
+            opponent.trigger_effects(self)?;
         }
 
         self.clear_team();
@@ -963,8 +972,8 @@ impl Team {
             ]);
 
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(opponent);
-                opponent.trigger_effects(self);
+                self.trigger_effects(opponent)?;
+                opponent.trigger_effects(self)?;
             }
 
             self.clear_team();
@@ -1029,30 +1038,33 @@ impl Team {
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(opponent).clear_team();
-                opponent.trigger_effects(self).clear_team();
+                self.trigger_effects(opponent)?.clear_team();
+                opponent.trigger_effects(self)?.clear_team();
             }
         }
 
         // Check if battle complete.
-        if !self.friends.is_empty() && !opponent.friends.is_empty() {
-            TeamFightOutcome::None
-        } else {
-            // Add end of battle node.
-            self.history.prev_node = self.history.curr_node;
-            self.history.curr_node = Some(self.history.effect_graph.add_node(TRIGGER_END_BATTLE));
-
-            if self.friends.is_empty() && opponent.friends.is_empty() {
-                info!(target: "dev", "Draw!");
-                TeamFightOutcome::Draw
-            } else if !opponent.friends.is_empty() {
-                info!(target: "dev", "Enemy team won...");
-                TeamFightOutcome::Loss
+        Ok(
+            if !self.friends.is_empty() && !opponent.friends.is_empty() {
+                TeamFightOutcome::None
             } else {
-                info!(target: "dev", "Your team won!");
-                TeamFightOutcome::Win
-            }
-        }
+                // Add end of battle node.
+                self.history.prev_node = self.history.curr_node;
+                self.history.curr_node =
+                    Some(self.history.effect_graph.add_node(TRIGGER_END_BATTLE));
+
+                if self.friends.is_empty() && opponent.friends.is_empty() {
+                    info!(target: "dev", "Draw!");
+                    TeamFightOutcome::Draw
+                } else if !opponent.friends.is_empty() {
+                    info!(target: "dev", "Enemy team won...");
+                    TeamFightOutcome::Loss
+                } else {
+                    info!(target: "dev", "Your team won!");
+                    TeamFightOutcome::Win
+                }
+            },
+        )
     }
 
     /// Create a node logging an effect's result for a [`Team`]'s history.

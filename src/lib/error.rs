@@ -8,7 +8,7 @@ pub enum SAPTestError {
     #[error("Shop error")]
     ShopError {
         // Failure reason.
-        reason: String
+        reason: String,
     },
 
     /// Failure to serialize team.

@@ -22,9 +22,9 @@ fn bench_blowfish_rally(c: &mut Criterion) {
 
     c.bench_function("blowfish_rally", |b| {
         b.iter(|| {
-            let mut outcome = team.fight(&mut enemy_team);
+            let mut outcome = team.fight(&mut enemy_team).unwrap();
             while let TeamFightOutcome::None = outcome {
-                outcome = team.fight(&mut enemy_team);
+                outcome = team.fight(&mut enemy_team).unwrap();
             }
         })
     });
@@ -53,9 +53,9 @@ fn bench_sapai(c: &mut Criterion) {
     });
     c.bench_function("sapai_example", |b| {
         b.iter(|| {
-            let mut outcome = team.fight(&mut enemy_team);
+            let mut outcome = team.fight(&mut enemy_team).unwrap();
             while let TeamFightOutcome::None = outcome {
-                outcome = team.fight(&mut enemy_team);
+                outcome = team.fight(&mut enemy_team).unwrap();
             }
         })
     });

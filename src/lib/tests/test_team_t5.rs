@@ -34,7 +34,7 @@ fn test_battle_croc_team() {
 
     // After start of battle, both crickets at end are sniped.
     // Two zombie crickets are spawned in their place.
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     let last_pet = team.friends.last().unwrap().borrow();
     let last_enemy_pet = team.friends.last().unwrap().borrow();
@@ -52,7 +52,7 @@ fn test_battle_rhino_team() {
     let mut team = test_rhino_team();
     let mut enemy_team = test_cricket_horse_team();
 
-    let outcome = team.fight(&mut enemy_team);
+    let outcome = team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(outcome, TeamFightOutcome::None);
     // Only one damage from first cricket to trigger chain of faint triggers.
@@ -78,7 +78,7 @@ fn test_battle_scorpion_team() {
     let mut enemy_team = test_skunk_team();
     // At start of turn, scorpion doesn't have peanuts. Then gains it.
     assert_eq!(team.first().unwrap().borrow().item, None);
-    let outcome = team.fight(&mut enemy_team);
+    let outcome = team.fight(&mut enemy_team).unwrap();
 
     // Win after single turn due to peanuts.
     assert_eq!(outcome, TeamFightOutcome::Win);
@@ -124,10 +124,10 @@ fn test_battle_shark_team() {
         health: (2 * n_enemy_team_crickets * 2).try_into().unwrap(),
     };
 
-    let mut outcome = team.fight(&mut enemy_team);
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
 
     while let TeamFightOutcome::None = outcome {
-        outcome = team.fight(&mut enemy_team);
+        outcome = team.fight(&mut enemy_team).unwrap();
     }
 
     let mut added_shark_stats = Statistics::default();
@@ -156,8 +156,8 @@ fn test_battle_turkey_team() {
     let mut team = test_turkey_team();
     let mut enemy_team = test_turkey_team();
 
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     // Cricket faints, zombie version spawned, and it gains (3,3) (lvl.1 turkey)
     let zombie_cricket = team.first().unwrap();
@@ -194,7 +194,7 @@ fn test_battle_hyena_team() {
         .map(|pet| pet.borrow().stats)
         .collect_vec();
 
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // At lvl. 1 hyena swaps stats of all pets.
     for (mut og, new) in team
@@ -220,7 +220,7 @@ fn test_battle_hyena_team() {
 
     // Level up hyena.
     team.set_level(Position::First, 2).unwrap();
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hyena at lvl. 2 swaps positions of pets.
     assert_eq!(team.first().unwrap().borrow().name, PetName::Gorilla);
@@ -232,7 +232,7 @@ fn test_battle_hyena_team() {
 
     // Level up hyena.
     team.set_level(Position::First, 3).unwrap();
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hyena at lvl. 3 swaps positions and stats of pets.
     let gorilla = team.first().unwrap();
@@ -259,7 +259,7 @@ fn test_battle_lionfish_team() {
     assert_eq!(mammoth.borrow().item, None);
     assert_eq!(mammoth.borrow().stats, Statistics::new(3, 10).unwrap());
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Prior to Dog at position 0 of team attacking, lionfish ability activates giving weakness to frontline mammoth.
     // Mammoth takes additional damage as a result.
@@ -277,7 +277,7 @@ fn test_battle_eagle_team() {
     let mut team = test_eagle_team();
     let mut enemy_team = test_eagle_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     let summoned_pet = team.first().unwrap();
     assert_eq!(summoned_pet.borrow().tier, 6);
@@ -290,7 +290,7 @@ fn test_battle_microbe_team() {
     let mut team = test_microbe_team();
     let mut enemy_team = test_eagle_team();
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // All pets have weakness after microbe faints.
     for pet in team.friends.iter().chain(enemy_team.friends.iter()) {
@@ -316,7 +316,7 @@ fn test_battle_lion_lowest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Stats are unchanged.
     assert_eq!(lion_original_stats, team.first().unwrap().borrow().stats)
@@ -340,7 +340,7 @@ fn test_battle_lion_highest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Adds 50% of attack and health to original stats.
     assert_eq!(
@@ -363,7 +363,7 @@ fn test_battle_swordfish_team() {
     assert!(swordfish.borrow().stats.health == 25);
 
     // Activate start of battle effect.
-    team.trigger_effects(&mut enemy_team);
+    team.trigger_effects(&mut enemy_team).unwrap();
 
     // Both swordfish and enemy eagle are hit and take 25 dmg.
     assert!(swordfish.borrow().stats.health == 0);
@@ -383,7 +383,7 @@ fn test_battle_triceratops_team() {
     assert_eq!(triceratops.borrow().stats, Statistics::new(5, 6).unwrap());
     assert_eq!(gorilla.borrow().stats, Statistics::new(6, 9).unwrap());
 
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
 
     // Triceratops takes 1 dmg. Gorilla behind gets (3,3) buff.
     assert_eq!(triceratops.borrow().stats, Statistics::new(5, 5).unwrap());
@@ -399,9 +399,9 @@ fn test_battle_vulture_team() {
     enemy_team.set_seed(25);
 
     // Three attack phases to reach two fainted pets.
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
-    team.fight(&mut enemy_team);
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
 
     // Two fainted pets.
     assert_eq!(team.fainted.len(), 2);
