@@ -11,6 +11,7 @@ use crate::{
         combat::PetCombat,
         pet::{assign_effect_owner, Pet},
     },
+    shop::store::ShopState,
     Food, Shop,
 };
 
@@ -72,7 +73,7 @@ impl Default for Team {
             stored_friends: Default::default(),
             fainted: Default::default(),
             max_size: 5,
-            triggers: VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE),
+            triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
             shop,
             history: History::new(),
             pet_count: Default::default(),
@@ -166,14 +167,17 @@ impl Team {
 
             let n_rc_pets = rc_pets.len();
             let curr_pet = rc_pets.first().map(Rc::downgrade);
-            Ok(Team {
+            let mut team = Team {
                 stored_friends: pets.to_vec(),
                 friends: rc_pets,
                 max_size,
                 pet_count: n_rc_pets,
                 curr_pet,
                 ..Default::default()
-            })
+            };
+            // By default shop is closed when team created using new().
+            team.shop.state = ShopState::Closed;
+            Ok(team)
         }
     }
 
@@ -256,7 +260,7 @@ impl Team {
         self.curr_pet = self.friends.first().map(Rc::downgrade);
         self.fainted.clear();
         self.history = History::new();
-        self.triggers = VecDeque::from_iter(ALL_TRIGGERS_START_BATTLE);
+        self.triggers = VecDeque::from_iter([TRIGGER_START_BATTLE]);
         self.pet_count = self.stored_friends.len();
         self
     }
@@ -922,6 +926,16 @@ impl Team {
     /// }
     /// ```
     pub fn fight(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError> {
+        // Exit while any shop is open.
+        if self.shop.state == ShopState::Open || opponent.shop.state == ShopState::Open {
+            return Err(SAPTestError::InvalidTeamAction {
+                subject: "Shop Not Closed".to_string(),
+                reason:
+                    "Cannot fight while one or more teams has an open shop. Call shop.close_shop()"
+                        .to_string(),
+            });
+        }
+
         info!(target: "dev", "(\"{}\")\n{}", self.name, self);
         info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
 

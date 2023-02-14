@@ -45,8 +45,6 @@ pub struct Pet {
     pub effect: Vec<Effect>,
     /// Held pet [`Food`] item.
     pub item: Option<Food>,
-    /// Cost of pet.
-    pub cost: usize,
     /// Seed for pet RNG.
     /// * Used in damage calculation for items like [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
     pub seed: u64,
@@ -69,7 +67,6 @@ impl PartialEq for Pet {
             && self.effect == other.effect
             && self.item == other.item
             && self.pos == other.pos
-            && self.cost == other.cost
     }
 }
 
@@ -110,7 +107,6 @@ impl TryFrom<PetRecord> for Pet {
             effect,
             item: None,
             pos: None,
-            cost,
             seed: random(),
         })
     }
@@ -217,7 +213,6 @@ impl Pet {
             effect: effect.to_vec(),
             item: None,
             pos: None,
-            cost: 3,
             seed: random(),
         }
     }

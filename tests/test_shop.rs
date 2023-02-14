@@ -1,4 +1,4 @@
-use saptest::{shop::viewer::ShopItemViewer, Entity, Shop, Position};
+use saptest::{shop::viewer::ShopItemViewer, Entity, Position, Shop, Shopping, Team};
 
 #[test]
 fn test_shop() {
@@ -7,4 +7,9 @@ fn test_shop() {
     shop.freeze(&Position::First, &Entity::Food).unwrap();
 
     println!("{shop}")
+}
+
+#[test]
+fn test_team_shop() {
+    let mut team = Team::default();
 }

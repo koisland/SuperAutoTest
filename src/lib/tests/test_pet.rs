@@ -73,7 +73,6 @@ fn test_create_def_pet() {
             },],
             item: None,
             pos: None,
-            cost: 3,
             seed: 0
         }
     )
@@ -182,7 +181,6 @@ fn test_create_pet() {
             },],
             item: None,
             pos: None,
-            cost: 3,
             seed: 0
         }
     )
@@ -217,7 +215,6 @@ fn create_pet_token() {
             effect: vec![],
             item: None,
             pos: None,
-            cost: 0,
             seed: 0
         }
     );

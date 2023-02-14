@@ -120,6 +120,8 @@ pub enum Action {
     Gain(GainType),
     /// WIP: Get gold.
     Profit,
+    /// WIP: Free roll.
+    FreeRoll,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(SummonType),
     /// Do multiple `Action`s.

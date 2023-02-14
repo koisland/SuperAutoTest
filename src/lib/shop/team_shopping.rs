@@ -12,11 +12,12 @@ use crate::{
 };
 
 use super::{
-    store::ItemSlot,
+    store::{ItemSlot, ShopState},
     trigger::{
-        TRIGGER_ANY_PET_SOLD, TRIGGER_FOOD_BOUGHT, TRIGGER_PET_BOUGHT, TRIGGER_PET_SOLD,
-        TRIGGER_ROLL,
-    }, viewer::ShopViewer,
+        TRIGGER_ANY_PET_SOLD, TRIGGER_FOOD_BOUGHT, TRIGGER_ROLL, TRIGGER_SELF_PET_BOUGHT,
+        TRIGGER_SELF_PET_SOLD,
+    },
+    viewer::ShopViewer,
 };
 
 trait ShoppingHelpers {
@@ -31,7 +32,43 @@ trait ShoppingHelpers {
 
 /// Implements Super Auto Pets shop behavior.
 pub trait Shopping {
-    /// Buy an item from the shop and place it on the Team.
+    /// Buy a [`ShopItem`](crate::shop::store::ShopItem) from the [`Shop`](crate::Shop) and place it on the [`Team`](crate::Team).
+    /// # Examples
+    /// ---
+    /// Buying Pets
+    /// ```
+    /// use saptest::{Team, Shopping, Position, Entity};
+    ///
+    /// let mut team = Team::default();
+    /// team.set_shop_seed(Some(42))
+    ///     .open_shop().unwrap();
+    /// // Buy the 1st pet in the shop and put it on/in front of the 1st pet slot on the team.
+    /// let first_pet_purchase = team.buy(
+    ///     Position::First,
+    ///     Entity::Pet,
+    ///     Position::First
+    /// );
+    /// assert!(first_pet_purchase.is_ok())
+    /// ```
+    /// ---
+    /// Buying a random food.
+    /// ```
+    /// use saptest::{Pet, PetName, Team, Shopping, Position, Entity};
+    ///
+    /// let mut team = Team::new(
+    ///     &[Pet::try_from(PetName::Ant).unwrap()],
+    ///     5
+    /// ).unwrap();
+    /// team.set_shop_seed(Some(42))
+    ///     .open_shop().unwrap();
+    /// // Buy a random food in the shop and put it on/in front of the 1st pet slot on the team.
+    /// let first_random_item_purchase = team.buy(
+    ///     Position::Any(Condition::None),
+    ///     Entity::Food,
+    ///     Position::First
+    /// );
+    /// assert!(first_random_item_purchase.is_ok())
+    /// ```
     fn buy(
         &mut self,
         from: Position,
@@ -104,7 +141,6 @@ impl ShoppingHelpers for Team {
                 food_ability.assign_owner(Some(&pet));
                 self.apply_single_effect(pet, &food_ability, empty_team)?;
             }
-
         }
         Ok(())
     }
@@ -151,7 +187,7 @@ impl ShoppingHelpers for Team {
         };
 
         if let Some(pet) = purchased_pet {
-            let mut buy_trigger = TRIGGER_PET_BOUGHT;
+            let mut buy_trigger = TRIGGER_SELF_PET_BOUGHT;
             buy_trigger.set_affected(&pet);
             self.triggers.push_back(buy_trigger)
         }
@@ -174,12 +210,20 @@ impl Shopping for Team {
             .cloned()
             .collect_vec();
 
+        if selected_items.is_empty() {
+            return Err(SAPTestError::InvalidShopAction {
+                subject: "No Items Selected".to_string(),
+                reason: format!("No {item_type:?} items selected with {from:?} position."),
+            });
+        }
+
         // Check for sufficient funds.
         let total_cost = selected_items
             .iter()
             .fold(0, |total_cost, item| total_cost + item.cost);
         if total_cost > self.shop.coins {
-            return Err(SAPTestError::ShopError {
+            return Err(SAPTestError::InvalidShopAction {
+                subject: format!("Insufficient Coins (Buy {item_type:?})"),
                 reason: format!(
                     "Insufficient coins to purchase items {total_cost} > {}",
                     self.shop.coins
@@ -227,7 +271,7 @@ impl Shopping for Team {
                 // Add coins for sold pet.
                 self.shop.coins += pet.borrow().lvl;
 
-                let mut sell_trigger = TRIGGER_PET_SOLD;
+                let mut sell_trigger = TRIGGER_SELF_PET_SOLD;
                 let mut sell_any_trigger = TRIGGER_ANY_PET_SOLD;
                 sell_trigger.set_affected(&pet);
                 sell_any_trigger.set_affected(&pet);
@@ -235,7 +279,8 @@ impl Shopping for Team {
                 self.triggers.extend([sell_trigger, sell_any_trigger]);
             }
         } else {
-            return Err(SAPTestError::ShopError {
+            return Err(SAPTestError::InvalidShopAction {
+                subject: "No Sell-able Pet".to_string(),
                 reason: format!("No pet to sell at position: {pos:?}."),
             });
         }
@@ -264,6 +309,7 @@ impl Shopping for Team {
     }
 
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError> {
+        self.shop.state = ShopState::Open;
         // Restore team to previous state.
         self.restore();
         // Trigger start of turn.
@@ -273,6 +319,7 @@ impl Shopping for Team {
     }
 
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError> {
+        self.shop.state = ShopState::Closed;
         // Trigger end of turn.
         self.triggers.push_front(TRIGGER_END_TURN);
         // Clear any pets that fainted during shop phase.
@@ -284,7 +331,7 @@ impl Shopping for Team {
 #[cfg(test)]
 mod tests {
     use super::Shopping;
-    use crate::{battle::effect::Entity, Pet, PetName, Position, Team};
+    use crate::{battle::effect::Entity, shop::store::ShopState, Pet, PetName, Position, Team};
 
     #[test]
     fn test_team_shop_setup() {
@@ -330,6 +377,15 @@ mod tests {
     }
 
     #[test]
+    fn test_shop_() {
+        let mut team = Team::default();
+        team.set_shop_seed(Some(42)).open_shop().unwrap();
+
+        // Buy the 1st pet in the shop and put it on/in front of the 1st pet on the team.
+        let first_pet_purchase = team.buy(Position::First, Entity::Pet, Position::First);
+        assert!(first_pet_purchase.is_ok())
+    }
+    #[test]
     fn test_team_shop_sell() {
         let mut team = Team::new(
             &[
@@ -345,5 +401,25 @@ mod tests {
         team.sell(Position::First).unwrap();
         println!("{}", team.shop.coins);
         println!("{}", team);
+    }
+
+    #[test]
+    fn test_team_shop_state_battle() {
+        let mut team = Team::new(
+            &[
+                Pet::try_from(PetName::Beaver).unwrap(),
+                Pet::try_from(PetName::Mosquito).unwrap(),
+            ],
+            5,
+        )
+        .unwrap();
+        let mut opponent = team.clone();
+
+        // Cannot fight while shop is open.
+        team.shop.state = ShopState::Open;
+        assert!(team.fight(&mut opponent).is_err());
+
+        team.shop.state = ShopState::Closed;
+        assert!(team.fight(&mut opponent).is_ok())
     }
 }

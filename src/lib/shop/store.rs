@@ -3,7 +3,7 @@ use std::{
     fmt::Display,
     fmt::Write,
     ops::{Add, Range},
-    rc::Weak,
+    rc::{Rc, Weak},
 };
 
 use itertools::Itertools;
@@ -17,7 +17,7 @@ use crate::{
     foods::food::Food,
     pets::{names::PetName, pet::Pet},
     shop::viewer::ShopViewer,
-    Position, SAPDB,
+    Position, Team, SAPDB,
 };
 
 /// Sloth chance.
@@ -28,6 +28,15 @@ const MAX_SHOP_PETS: usize = 6;
 const MAX_SHOP_FOODS: usize = 4;
 const MIN_SHOP_TIER: usize = 1;
 const MAX_SHOP_TIER: usize = 6;
+
+/// State of shop.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ShopState {
+    /// Open shop.
+    Open,
+    /// Closed shop.
+    Closed,
+}
 
 /// State of item.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -85,6 +94,7 @@ impl Display for ShopItem {
 /// A Super Auto Pets shop.
 #[derive(Debug, Clone)]
 pub struct Shop {
+    pub(crate) state: ShopState,
     /// Current tier of shop.
     tier: usize,
     /// Seed.
@@ -97,9 +107,9 @@ pub struct Shop {
     pub(crate) foods: Vec<ShopItem>,
     /// Global permanent `Statistics` added to all `Pet`s.
     /// * Added via a `CannedFood`
-    perm_stats: Statistics,
+    pub(crate) perm_stats: Statistics,
     /// Temporary stats that are removed on shop opening.
-    temp_stats: Vec<(Weak<RefCell<Pet>>, Statistics)>,
+    pub(crate) temp_stats: Vec<(Weak<RefCell<Pet>>, Statistics)>,
     /// Free rolls.
     pub(crate) free_rolls: usize,
 }
@@ -107,6 +117,7 @@ pub struct Shop {
 impl Default for Shop {
     fn default() -> Self {
         Self {
+            state: ShopState::Open,
             seed: None,
             coins: DEFAULT_COIN_COUNT,
             tier: 1,
@@ -134,7 +145,7 @@ impl Display for Shop {
 }
 
 impl Shop {
-    /// Create a shop.
+    /// Create a `Shop`.
     /// # Examples
     /// ```
     /// use saptest::Shop;
@@ -157,8 +168,8 @@ impl Shop {
         Ok(default_shop)
     }
 
-    /// Restock shop with foods and pets.
-    /// * Frozen items are retained.
+    /// Restock `Shop` with [`ShopItem`](crate::shop::store::ShopItem)s.
+    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
     /// * Restocking doesn't cost gold.
     pub fn restock(&mut self) -> Result<&mut Self, SAPTestError> {
         self.fill_pets()?.fill_foods()?;
@@ -176,8 +187,8 @@ impl Shop {
         self.coins
     }
 
-    /// Roll the shop.
-    /// * Frozen items are retained.
+    /// Roll the `Shop`.
+    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
     /// * Fails if invalid funds to reroll.
     ///     * Each roll costs `1` coin.
     /// # Examples
@@ -185,29 +196,49 @@ impl Shop {
     /// Normal roll.
     /// ```
     /// use saptest::Shop;
+    ///
     /// let mut shop = Shop::default();
     /// assert!(shop.roll().is_ok());
     /// ```
-    /// 
     /// ---
-    /// Roll 5 times.
+    /// Roll and retain frozen items.
     /// ```
-    /// use saptest::{Shop, Entity, Position};
-    /// let mut shop = Shop::default();
-    /// shop.freeze(&Position::First, Entity::Pet).unwrap();
+    /// use saptest::{Shop, Entity, Position, ShopViewer, ShopItemViewer};
+    ///
+    /// // Freeze first pet.
+    /// let mut shop = Shop::new(1, Some(12)).unwrap();
+    /// let (pos, item_type) = (Position::First, Entity::Pet);
+    /// shop.freeze(&pos, &item_type).unwrap();
+    ///
+    /// // Check first item is frozen.
+    /// let found_items = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
+    /// let first_item_no_roll = found_items.first().cloned().unwrap().clone();
+    /// assert!(first_item_no_roll.is_frozen());
+    ///
+    /// // Roll the shop.
+    /// shop.roll().unwrap();
+    ///
+    /// // Check items again.
+    /// // First item was retained.
+    /// let found_items_rolled = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
+    /// let first_item_rolled = found_items_rolled.first().unwrap();
+    /// assert_eq!(&&first_item_no_roll, first_item_rolled);
     /// ```
     /// ---
     /// Roll 10 times. On 11th roll, run out of money.
     /// ```
     /// use saptest::Shop;
+    ///
     /// let mut shop = Shop::default();
     /// // Start with 10.
     /// assert_eq!(shop.coins(), 10);
-    /// // Roll your savings away. :/
+    ///
+    /// // Roll your savings away.
     /// for i in 0..10 {
     ///     shop.roll().unwrap();
     /// }
-    /// assert!(shop.roll().is_err())
+    /// assert!(shop.roll().is_err());
+    /// assert_eq!(shop.coins(), 0);
     /// ```
     pub fn roll(&mut self) -> Result<&mut Self, SAPTestError> {
         // Decrement coin count if possible.
@@ -216,7 +247,8 @@ impl Shop {
         } else if let Some(new_coins) = self.coins.checked_sub(1) {
             self.coins = new_coins;
         } else {
-            return Err(SAPTestError::ShopError {
+            return Err(SAPTestError::InvalidShopAction {
+                subject: "Insufficient Coins (Roll)".to_string(),
                 reason: "No coins to reroll".to_string(),
             });
         }
@@ -233,7 +265,7 @@ impl Shop {
     /// # Example
     /// ```
     /// use saptest::{Shop, Position, Entity, ShopViewer, ShopItemViewer};
-    /// 
+    ///
     /// let mut shop = Shop::new(1, None).unwrap();
     /// // Freeze the first pet in the shop.
     /// let (pos, item_type) = (Position::First, Entity::Pet);
@@ -241,8 +273,12 @@ impl Shop {
     /// // Check first pet.
     /// let found_pets = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
     /// assert!(found_pets.first().unwrap().is_frozen())
-    /// 
-    pub fn freeze(&mut self, pos: &Position, item_type: &Entity) -> Result<&mut Self, SAPTestError> {
+    ///
+    pub fn freeze(
+        &mut self,
+        pos: &Position,
+        item_type: &Entity,
+    ) -> Result<&mut Self, SAPTestError> {
         // Get indices of items that should be frozen.
         // Need sep block as as getter function returns immutable refs.
         let selected_idx: Vec<usize> = {
@@ -251,11 +287,18 @@ impl Shop {
                 Entity::Pet => self.pets.iter(),
                 Entity::Food => self.foods.iter(),
             };
-            items.enumerate().filter_map(|(i, item)| selected_items.contains(&item).then_some(i)).collect_vec()
+            items
+                .enumerate()
+                .filter_map(|(i, item)| selected_items.contains(&item).then_some(i))
+                .collect_vec()
         };
 
         // Then mutate items setting item state to frozen.
-        let items = if let Entity::Pet = item_type {&mut self.pets} else {&mut self.foods};
+        let items = if let Entity::Pet = item_type {
+            &mut self.pets
+        } else {
+            &mut self.foods
+        };
         for idx in selected_idx {
             if let Some(item) = items.get_mut(idx) {
                 item.state = if let ItemState::Normal = item.state {
@@ -319,13 +362,14 @@ impl Shop {
     /// // Now is tier 2.
     /// shop_default.set_tier(2);
     /// assert_eq!(shop_default.tier(), 2)
-    /// 
-    /// // 
+    ///
+    /// //
     /// ```
     pub fn set_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError> {
         if !(MIN_SHOP_TIER..=MAX_SHOP_TIER).contains(&tier) {
             return Err(
-                SAPTestError::ShopError {
+                SAPTestError::InvalidShopAction {
+                    subject: "Shop Tier".to_string(),
                     reason: format!("Tier provided ({tier}) is invalid. ({MIN_SHOP_TIER} <= tier <= {MAX_SHOP_TIER})")
                 }
             );
@@ -408,8 +452,8 @@ impl Shop {
 
         // Iterate through slots choose a random pet or sloth.
         for _ in 0..self.pet_slots() {
-            let pet = if rng.gen_bool(SLOTH_CHANCE) {
-                Pet::try_from(PetName::Sloth)?
+            let (cost, pet) = if rng.gen_bool(SLOTH_CHANCE) {
+                (3, Pet::try_from(PetName::Sloth)?)
             } else {
                 let record = possible_pets
                     .choose(&mut rng)
@@ -419,9 +463,8 @@ impl Shop {
                             "SQL ({sql}) with params ({params:?}) yielded no pet records."
                         ),
                     })?;
-                Pet::try_from(record.name.clone())?
+                (record.cost, Pet::try_from(record.name.clone())?)
             };
-            let cost = pet.cost;
             self.pets.push(ShopItem {
                 item: ItemSlot::Pet(pet),
                 state: ItemState::Normal,
@@ -457,5 +500,31 @@ impl Shop {
         }
 
         Ok(self)
+    }
+}
+
+mod tests {
+    #[test]
+    fn test_roll() {
+        use crate::{Entity, Position, Shop, ShopItemViewer, ShopViewer};
+        let mut shop = Shop::new(1, Some(12)).unwrap();
+        // Freeze first pet.
+        let (pos, item_type) = (Position::First, Entity::Pet);
+        shop.freeze(&pos, &item_type).unwrap();
+
+        // Check first item is frozen.
+        let found_items = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
+        let first_item_no_roll = found_items.first().cloned().unwrap().clone();
+        assert!(first_item_no_roll.is_frozen());
+
+        // Roll the shop.
+        shop.roll().unwrap();
+
+        // Check items again.
+        let found_items_rolled = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
+        let first_item_rolled = found_items_rolled.first().unwrap();
+
+        // First item was retained.
+        assert_eq!(&&first_item_no_roll, first_item_rolled)
     }
 }

@@ -23,10 +23,6 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
     [self_faint, any_faint, ahead_faint]
 }
 
-/// All start of battle triggers.
-/// * Currently start of turn triggers are included as `Shop`s have not been implemented.
-pub const ALL_TRIGGERS_START_BATTLE: [Outcome; 2] = [TRIGGER_START_TURN, TRIGGER_START_BATTLE];
-
 /// Start of battle trigger.
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     status: Status::StartOfBattle,
@@ -109,6 +105,17 @@ pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
 /// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     status: Status::Faint,
+    position: Position::OnSelf,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};
+
+/// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) levelsup.
+pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
+    status: Status::Levelup,
     position: Position::OnSelf,
     affected_pet: None,
     afflicting_pet: None,

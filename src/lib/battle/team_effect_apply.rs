@@ -599,6 +599,19 @@ impl EffectApplyHelpers for Team {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => effect_owner.borrow().stats * *stats,
                 };
+                // If effect is temporary, store stats to be removed from referenced pet on reopening shop.
+                if effect.temp {
+                    if effect.target == Target::Friend {
+                        self.shop
+                            .temp_stats
+                            .push((Rc::downgrade(&target_pet), added_stats));
+                    } else {
+                        opponent
+                            .shop
+                            .temp_stats
+                            .push((Rc::downgrade(&target_pet), added_stats));
+                    }
+                }
                 target_pet.borrow_mut().stats += added_stats;
                 info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())

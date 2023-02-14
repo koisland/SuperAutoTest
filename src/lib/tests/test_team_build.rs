@@ -148,9 +148,9 @@ fn test_team_push() {
 
     assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Dog);
 
-    // Two push triggers made + (Default: [StartBattle, StartTurn]).
-    assert_eq!(team.triggers.len(), 4);
-    let push_trigger_snake = team.triggers.get(2).unwrap();
+    // Two push triggers made + (Default: [StartBattle]).
+    assert_eq!(team.triggers.len(), 3);
+    let push_trigger_snake = team.triggers.get(1).unwrap();
     let push_trigger_dog = team.triggers.back().unwrap();
 
     // Get weak references to pets.

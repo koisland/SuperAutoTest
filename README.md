@@ -13,18 +13,33 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 ---
 
 ## Usage
+
+### Single Battle
 ```rust
-use saptest::{Pet, PetName, PetCombat, Food, FoodName, Team, Position};
+use saptest::{Pet, PetName, PetCombat, Food, FoodName};
 
 // Create pets.
-let pet = Pet::try_from(PetName::Ant).unwrap();
-let enemy_pet = Pet::try_from(PetName::Ant).unwrap();
+let mut pet = Pet::try_from(PetName::Ant).unwrap();
+let mut enemy_pet = Pet::try_from(PetName::Ant).unwrap();
 
-// Create a team.
-let mut team = Team::new(&vec![pet; 5], 5).unwrap();
-let mut enemy_team = Team::new(&vec![enemy_pet; 5], 5).unwrap();
+// Set item of an individual pet.
+pet.item = Some(Food::try_from(FoodName::Melon).unwrap());
 
-// Give food to pets.
+pet.fight(&mut enemy_pet)
+```
+
+### Team Battle
+```rust
+use saptest::{Pet, PetName, Food, FoodName, Team, Position};
+
+// Create a 5 pet team.
+let mut team = Team::new(
+  &vec![Pet::try_from(PetName::Ant).unwrap(); 5],
+  5
+).unwrap();
+let mut enemy_team = team.clone();
+
+// Give food to team pets.
 team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
 enemy_team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
 
@@ -32,6 +47,14 @@ enemy_team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
 team.fight(&mut enemy_team);
 ```
 
+### Shop
+```rust
+use saptest::{Pet, PetName, Food, FoodName, Team, Position};
+
+// Create an empty tier 1 team.
+let mut team = Team::default();
+
+```
 ---
 ## Benchmarks
 Benchmarks for `saptest` are located in `benches/battle_benchmarks.rs` and run using the [`criterion`](https://docs.rs/crate/criterion/latest) crate.
@@ -76,9 +99,11 @@ fn main() {
 ---
 ## TODO:
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
+* Add custom pack parser and reader.
 * Rework Statistics struct math operations to be more consistent.
 * Add toml config to select which version of the wiki page to use.
 * Reorganize Team impl.
+  * Move to new trait.
 * Add trait for randomly generating teams.
 * Add shops.
   * Consider using the Python package [sapai](https://github.com/manny405/sapai) if shop functionality is required.

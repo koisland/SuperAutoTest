@@ -5,12 +5,6 @@ use thiserror::Error;
 /// Error types.
 #[derive(Error, Debug)]
 pub enum SAPTestError {
-    #[error("Shop error")]
-    ShopError {
-        // Failure reason.
-        reason: String,
-    },
-
     /// Failure to serialize team.
     #[error("Failed to serialize/deserialize team.")]
     SerializeFailure(#[from] serde_json::Error),
@@ -60,6 +54,14 @@ pub enum SAPTestError {
         /// Subject of action.
         subject: String,
         /// Reason for action failure.
+        reason: String,
+    },
+
+    /// Shop error.
+    #[error("Invalid shop action: {subject:?} due to {reason:?}")]
+    InvalidShopAction {
+        subject: String,
+        /// Failure reason.
         reason: String,
     },
 

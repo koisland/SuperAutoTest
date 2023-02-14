@@ -37,6 +37,23 @@ pub enum TeamFightOutcome {
     None,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+/// Possible equality conditions to check.
+pub enum EqualityCondition {
+    /// Is same pet.
+    IsSelf,
+    /// Is this tier.
+    Tier(usize),
+    /// Has same name.
+    Name(PetName),
+    /// Is this level.
+    Level(usize),
+    /// Has this food.
+    Food(FoodName),
+    /// Has this trigger.
+    Trigger(Status),
+}
+
 /// Conditions to select [`Pet`]s by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Condition {
@@ -44,7 +61,7 @@ pub enum Condition {
     Healthiest,
     /// Choose the illest (lowest health) pet.
     Illest,
-    /// Choose the stronges (highest attack) pet.
+    /// Choose the strongest (highest attack) pet.
     Strongest,
     /// Choose the weakest (lowest attack) pet.
     Weakest,
@@ -60,6 +77,10 @@ pub enum Condition {
     Multiple(Vec<Condition>),
     /// Multiple conditions. All must be met to be included.
     MultipleAll(Vec<Condition>),
+    // /// Has the quality.
+    // Equal(EqualityCondition),
+    // /// Doesn't have this quality.
+    // NotEqual(EqualityCondition),
     /// Ignore self.
     NotSelf,
     /// Not a specific [`PetName`].

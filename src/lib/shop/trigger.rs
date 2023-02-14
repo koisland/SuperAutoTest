@@ -15,7 +15,7 @@ pub const TRIGGER_FOOD_BOUGHT: Outcome = Outcome {
 };
 
 /// Trigger when pet bought.
-pub const TRIGGER_PET_BOUGHT: Outcome = Outcome {
+pub const TRIGGER_SELF_PET_BOUGHT: Outcome = Outcome {
     status: Status::BuyPet,
     affected_pet: None,
     affected_team: Target::Friend,
@@ -37,7 +37,7 @@ pub const TRIGGER_ANY_PET_SOLD: Outcome = Outcome {
 };
 
 /// Trigger when pet sold.
-pub const TRIGGER_PET_SOLD: Outcome = Outcome {
+pub const TRIGGER_SELF_PET_SOLD: Outcome = Outcome {
     status: Status::Sell,
     affected_pet: None,
     affected_team: Target::Friend,
