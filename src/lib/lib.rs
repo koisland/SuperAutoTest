@@ -48,7 +48,7 @@ pub mod shop;
 
 #[doc(inline)]
 pub use crate::battle::{
-    effect::Effect,
+    effect::{Effect, Entity},
     state::{Outcome, Position},
     stats::Statistics,
     team::Team,
@@ -61,7 +61,7 @@ pub use crate::foods::{food::Food, names::FoodName};
 #[doc(inline)]
 pub use crate::pets::{combat::PetCombat, names::PetName, pet::Pet};
 #[doc(inline)]
-pub use crate::shop::store::Shop;
+pub use crate::shop::{store::Shop, team_shopping::Shopping, viewer::{ShopItemViewer, ShopViewer}};
 
 mod graph;
 mod regex_patterns;

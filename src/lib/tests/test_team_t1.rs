@@ -7,7 +7,7 @@ use crate::{
         test_frog_team, test_hummingbird_team, test_iguana_seahorse_team, test_mosq_team,
         test_moth_team,
     },
-    Shop,
+    Position, Shop, Shopping,
 };
 
 use super::common::test_beaver_team;
@@ -247,8 +247,10 @@ fn test_battle_iguana_seahorse_team() {
 #[test]
 fn test_shop_beaver_team() {
     let mut team = test_beaver_team();
-
-    let mut shop = Shop::new(&mut team, Some(1212)).unwrap();
-    shop.sell(0, &mut team).unwrap();
-    println!("{shop}")
+    team.set_shop_seed(Some(1212))
+        .open_shop()
+        .unwrap()
+        .sell(Position::First)
+        .unwrap();
+    println!("{}", team.shop)
 }

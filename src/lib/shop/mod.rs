@@ -2,7 +2,9 @@
 //!
 /// A Super Auto Pets shop.
 pub mod store;
+/// Shop for a [`Team`](crate::Team)
+pub mod team_shopping;
 /// Shop triggers.
 pub mod trigger;
-
-mod team_shopping;
+/// Allows viewing shop.
+pub mod viewer;

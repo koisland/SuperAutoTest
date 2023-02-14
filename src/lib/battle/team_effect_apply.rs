@@ -305,7 +305,7 @@ pub(crate) trait EffectApplyHelpers {
         &self,
         curr_pet: Option<Rc<RefCell<Pet>>>,
         target: Target,
-        pos: Position,
+        pos: &Position,
         trigger: Option<Outcome>,
         opponent: Option<&Team>,
     ) -> Result<TargetPets, SAPTestError>;
@@ -938,7 +938,7 @@ impl EffectApplyHelpers for Team {
         &self,
         curr_pet: Option<Rc<RefCell<Pet>>>,
         target: Target,
-        pos: Position,
+        pos: &Position,
         trigger: Option<Outcome>,
         opponent: Option<&Team>,
     ) -> Result<TargetPets, SAPTestError> {
@@ -1153,7 +1153,7 @@ impl EffectApplyHelpers for Team {
                     pets.extend(self.get_pets_by_pos(
                         curr_pet.clone(),
                         target,
-                        pos.clone(),
+                        pos,
                         trigger.clone(),
                         Some(opponent),
                     )?)
@@ -1199,7 +1199,7 @@ impl EffectApplyHelpers for Team {
                     pets.extend(team.get_pets_by_pos(
                         curr_pet.clone(),
                         target,
-                        Position::Relative(rel_pos),
+                        &Position::Relative(rel_pos),
                         None,
                         Some(opponent),
                     )?)
@@ -1227,7 +1227,7 @@ impl EffectApplyHelpers for Team {
         self.get_pets_by_pos(
             curr_pet,
             effect.target,
-            effect.position.clone(),
+            &effect.position,
             Some(trigger.clone()),
             Some(opponent),
         )

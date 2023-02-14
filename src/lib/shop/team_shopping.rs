@@ -1,110 +1,256 @@
-use std::fmt::Display;
-
 use itertools::Itertools;
-use rand::{
-    seq::{IteratorRandom, SliceRandom},
-    SeedableRng,
-};
-use rand_chacha::ChaCha12Rng;
 
 use crate::{
     battle::{
         effect::Entity,
-        state::{Condition, Target},
-        team_effect_apply::EffectApplyHelpers,
+        state::Target,
+        team_effect_apply::{EffectApplyHelpers, TeamEffects},
+        trigger::{TRIGGER_ANY_LEVELUP, TRIGGER_END_TURN, TRIGGER_START_TURN},
     },
     error::SAPTestError,
-    Position, Team, TeamEffects,
+    Food, Pet, Position, Team,
 };
 
 use super::{
-    store::{ItemSlot, ItemState, ShopItem},
-    trigger::TRIGGER_FOOD_BOUGHT,
+    store::ItemSlot,
+    trigger::{
+        TRIGGER_ANY_PET_SOLD, TRIGGER_FOOD_BOUGHT, TRIGGER_PET_BOUGHT, TRIGGER_PET_SOLD,
+        TRIGGER_ROLL,
+    }, viewer::ShopViewer,
 };
 
-trait Shopping {
+trait ShoppingHelpers {
+    fn buy_food_behavior(
+        &mut self,
+        food: Food,
+        to_pos: &Position,
+        empty_team: &mut Team,
+    ) -> Result<(), SAPTestError>;
+    fn buy_pet_behavior(&mut self, pet: Pet, to_pos: &Position) -> Result<(), SAPTestError>;
+}
+
+/// Implements Super Auto Pets shop behavior.
+pub trait Shopping {
+    /// Buy an item from the shop and place it on the Team.
     fn buy(
         &mut self,
         from: Position,
-        to: Position,
         item_type: Entity,
+        to: Position,
     ) -> Result<&mut Self, SAPTestError>;
+    /// Sell a [`Pet`](crate::Pet) on the [`Team`](crate::Team) for gold.
     fn sell(&mut self, pos: Position) -> Result<&mut Self, SAPTestError>;
+    /// Roll the shop restocking it with new items.
     fn roll(&mut self) -> Result<&mut Self, SAPTestError>;
+    /// Set the shop's seed.
     fn set_shop_seed(&mut self, seed: Option<u64>) -> &mut Self;
-    fn freeze(&mut self, pos: Position) -> Result<&mut Self, SAPTestError>;
+    /// Freeze an item in the Shop.
+    fn freeze(&mut self, pos: Position, item_type: Entity) -> Result<&mut Self, SAPTestError>;
+    /// Open a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
+    /// # Example
+    /// ```
+    /// use saptest::{Team, Shopping};
+    ///
+    /// let mut team = Team::default();
+    /// assert!(team.open_shop().is_ok());
+    /// ```
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError>;
+    /// Close a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
+    /// * This will create triggers for ending the turn.
+    /// * Allows battling.
+    /// # Example
+    /// ```
+    /// use saptest::{Team, Shopping};
+    ///
+    /// let mut team = Team::default();
+    /// team.open_shop().unwrap();
+    /// assert!(team.close_shop().is_ok();
+    /// ```
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError>;
-    fn get_shop_items_by_pos(&mut self, pos: Position, item: Entity) -> Vec<&mut ShopItem>;
-    fn get_shop_items_by_cond(&mut self, cond: Condition, item_type: Entity) -> Vec<&mut ShopItem>;
+}
+
+impl ShoppingHelpers for Team {
+    fn buy_food_behavior(
+        &mut self,
+        mut food: Food,
+        to_pos: &Position,
+        empty_team: &mut Team,
+    ) -> Result<(), SAPTestError> {
+        // Give food to a single pet.
+        if food.holdable {
+            let affected_pets =
+                self.get_pets_by_pos(self.first(), Target::Friend, to_pos, None, None)?;
+            let (_, target_pet) = affected_pets
+                .first()
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "No Item Target".to_string(),
+                    reason: "Holdable item must have a target".to_string(),
+                })?;
+            food.ability.assign_owner(Some(target_pet));
+            target_pet.borrow_mut().item = Some(food);
+
+            // Create trigger if food bought.
+            let mut trigger = TRIGGER_FOOD_BOUGHT;
+            trigger.set_affected(target_pet);
+            self.triggers.push_back(trigger)
+        } else {
+            let mut food_ability = food.ability.clone();
+            let target_pos =
+                Position::Multiple(vec![food_ability.position.clone(); food.n_targets]);
+            // For each pet found by the effect of food bought, apply its effect.
+            for (_, pet) in
+                self.get_pets_by_pos(self.first(), Target::Friend, &target_pos, None, None)?
+            {
+                food_ability.assign_owner(Some(&pet));
+                self.apply_single_effect(pet, &food_ability, empty_team)?;
+            }
+
+        }
+        Ok(())
+    }
+
+    fn buy_pet_behavior(&mut self, pet: Pet, to_pos: &Position) -> Result<(), SAPTestError> {
+        let affected_pets =
+            self.get_pets_by_pos(self.first(), Target::Friend, to_pos, None, None)?;
+
+        let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
+            // If affected pet same as purchased pet.
+            if affected_pet.borrow().name == pet.name {
+                // Get previous level.
+                let prev_lvl = affected_pet.borrow().lvl;
+
+                // Stack pet. Take max attack and health from pet.
+                let max_attack = affected_pet.borrow().stats.attack.max(pet.stats.attack);
+                let max_health = affected_pet.borrow().stats.health.max(pet.stats.health);
+
+                affected_pet.borrow_mut().stats.attack = max_attack;
+                affected_pet.borrow_mut().stats.health = max_health;
+                affected_pet.borrow_mut().add_experience(1)?;
+
+                // Pet leveled up. Add shop and team levelup triggers.
+                if affected_pet.borrow().lvl == prev_lvl + 1 {
+                    let mut levelup_trigger = TRIGGER_ANY_LEVELUP;
+                    levelup_trigger.set_affected(affected_pet);
+
+                    // If pet levels, add a pet (tier above current tier) to shop.
+                    self.shop.add_levelup_pet()?;
+
+                    self.triggers.push_back(levelup_trigger.clone());
+                }
+                Some(affected_pet.clone())
+            } else {
+                // Otherwise, add pet to position.
+                let pos = affected_pet.borrow().pos.unwrap_or(0);
+                self.add_pet(pet, pos, None)?;
+                self.nth(pos)
+            }
+        } else {
+            // No pets at all, just add at first position.
+            self.add_pet(pet, 0, None)?;
+            self.nth(0)
+        };
+
+        if let Some(pet) = purchased_pet {
+            let mut buy_trigger = TRIGGER_PET_BOUGHT;
+            buy_trigger.set_affected(&pet);
+            self.triggers.push_back(buy_trigger)
+        }
+
+        Ok(())
+    }
 }
 
 impl Shopping for Team {
     fn buy(
         &mut self,
         from: Position,
-        to: Position,
         item_type: Entity,
+        to: Position,
     ) -> Result<&mut Self, SAPTestError> {
-        let mut curr_coins = self.shop.coins;
-        let selected_items = self.get_shop_items_by_pos(from, item_type);
-        let mut purchased_items = vec![];
+        let selected_items = self
+            .shop
+            .get_shop_items_by_pos(&from, &item_type)?
+            .into_iter()
+            .cloned()
+            .collect_vec();
 
-        // Buy the item. Set to sold state. Clone item.
+        // Check for sufficient funds.
+        let total_cost = selected_items
+            .iter()
+            .fold(0, |total_cost, item| total_cost + item.cost);
+        if total_cost > self.shop.coins {
+            return Err(SAPTestError::ShopError {
+                reason: format!(
+                    "Insufficient coins to purchase items {total_cost} > {}",
+                    self.shop.coins
+                ),
+            });
+        }
+
+        // TODO: Not great. Need to find way to make Team effect apply take optional opponent.
+        // Creates new empty team each time an item is bought.
+        let mut empty_team = Team::default();
+
+        // Remove sold items.
+        match item_type {
+            Entity::Pet => self.shop.pets.retain(|pet| !selected_items.contains(pet)),
+            Entity::Food => self
+                .shop
+                .foods
+                .retain(|food| !selected_items.contains(food)),
+        }
+
+        // Buy the item and check if sufficient funds.
         for item in selected_items.into_iter() {
-            if let Some(new_coins) = curr_coins.checked_sub(item.cost) {
-                curr_coins = new_coins;
-                item.state = ItemState::Sold;
-                purchased_items.push(item.clone());
-            } else {
-                // Not enough to buy so re-add to shop.
-                return Err(SAPTestError::ShopError {
-                    reason: format!("Not enough coins ({}) to buy pet.", self.shop.coins),
-                });
-            }
+            // Decrement coins.
+            self.shop.coins -= item.cost;
+
+            match item.item {
+                ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, &to)?,
+                ItemSlot::Food(food) => self.buy_food_behavior(food, &to, &mut empty_team)?,
+            };
         }
 
-        let affected_pets = self.get_pets_by_pos(self.first(), Target::Friend, to, None, None)?;
-        for item in purchased_items.into_iter() {
-            if let ItemSlot::Food(food) = &item.item {
-                // Give food to a single pet.
-                if food.holdable {
-                    let (_, target_pet) =
-                        affected_pets
-                            .first()
-                            .ok_or(SAPTestError::InvalidTeamAction {
-                                subject: "No Item Target".to_string(),
-                                reason: "Holdable item must have a target".to_string(),
-                            })?;
-                    let mut new_food = food.clone();
-                    new_food.ability.assign_owner(Some(target_pet));
-                    target_pet.borrow_mut().item = Some(new_food);
-
-                    // Create trigger if food bought.
-                    let mut trigger = TRIGGER_FOOD_BOUGHT;
-                    trigger.set_affected(target_pet);
-                    self.triggers.push_back(trigger)
-                } else {
-                    for i in 0..food.n_targets {
-                        if let Some((_, target_pet)) = affected_pets.first() {
-                            // self.apply_single_effect(target_pet.clone(), &food.ability);
-                        } else {
-                            break;
-                        }
-                    }
-                }
-            } else if let ItemSlot::Pet(pet) = &item.item {
-            }
-        }
+        self.trigger_effects(&mut empty_team)?;
         Ok(self)
     }
 
     fn sell(&mut self, pos: Position) -> Result<&mut Self, SAPTestError> {
-        todo!()
+        let affected_pets = self.get_pets_by_pos(None, Target::Friend, &pos, None, None)?;
+
+        if !affected_pets.is_empty() {
+            // Remove pets.
+            self.friends
+                .retain(|pet| affected_pets.contains(&(Target::Friend, pet.clone())));
+
+            for (_, pet) in affected_pets {
+                // Add coins for sold pet.
+                self.shop.coins += pet.borrow().lvl;
+
+                let mut sell_trigger = TRIGGER_PET_SOLD;
+                let mut sell_any_trigger = TRIGGER_ANY_PET_SOLD;
+                sell_trigger.set_affected(&pet);
+                sell_any_trigger.set_affected(&pet);
+
+                self.triggers.extend([sell_trigger, sell_any_trigger]);
+            }
+        } else {
+            return Err(SAPTestError::ShopError {
+                reason: format!("No pet to sell at position: {pos:?}."),
+            });
+        }
+
+        // Trigger effects here.
+        let mut empty_team = Team::default();
+        self.trigger_effects(&mut empty_team)?;
+
+        Ok(self)
     }
 
     fn roll(&mut self) -> Result<&mut Self, SAPTestError> {
-        todo!()
+        self.shop.roll()?;
+        self.triggers.push_back(TRIGGER_ROLL);
+        Ok(self)
     }
 
     fn set_shop_seed(&mut self, seed: Option<u64>) -> &mut Self {
@@ -112,171 +258,92 @@ impl Shopping for Team {
         self
     }
 
-    fn freeze(&mut self, pos: Position) -> Result<&mut Self, SAPTestError> {
-        todo!()
+    fn freeze(&mut self, pos: Position, item_type: Entity) -> Result<&mut Self, SAPTestError> {
+        self.shop.freeze(&pos, &item_type)?;
+        Ok(self)
     }
 
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError> {
-        self.shop.setup()?;
+        // Restore team to previous state.
+        self.restore();
+        // Trigger start of turn.
+        self.triggers.push_front(TRIGGER_START_TURN);
+        self.shop.restock()?;
         Ok(self)
     }
 
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError> {
-        todo!()
-    }
-
-    fn get_shop_items_by_cond(&mut self, cond: Condition, item_type: Entity) -> Vec<&mut ShopItem> {
-        let mut found_foods = Vec::with_capacity(self.shop.foods.len());
-        let all_items = match item_type {
-            Entity::Pet => self.shop.pets.iter_mut(),
-            Entity::Food => self.shop.foods.iter_mut(),
-        };
-
-        match cond {
-            Condition::None => found_foods.extend(all_items),
-            Condition::Healthiest => {
-                if let Some(highest_tier_food) =
-                    all_items.max_by(|item_1, item_2| item_1.health().cmp(&item_2.health()))
-                {
-                    found_foods.push(highest_tier_food)
-                }
-            }
-            Condition::Illest => {
-                if let Some(lowest_tier_food) =
-                    all_items.min_by(|food_1, food_2| food_1.health().cmp(&food_2.health()))
-                {
-                    found_foods.push(lowest_tier_food)
-                }
-            }
-            Condition::Strongest => {
-                if let Some(highest_tier_food) =
-                    all_items.max_by(|item_1, item_2| item_1.attack().cmp(&item_2.attack()))
-                {
-                    found_foods.push(highest_tier_food)
-                }
-            }
-            Condition::Weakest => {
-                if let Some(lowest_tier_food) =
-                    all_items.min_by(|food_1, food_2| food_1.attack().cmp(&food_2.attack()))
-                {
-                    found_foods.push(lowest_tier_food)
-                }
-            }
-            Condition::HighestTier => {
-                if let Some(highest_tier_food) =
-                    all_items.max_by(|item_1, item_2| item_1.tier().cmp(&item_2.tier()))
-                {
-                    found_foods.push(highest_tier_food)
-                }
-            }
-            Condition::LowestTier => {
-                if let Some(lowest_tier_food) =
-                    all_items.min_by(|food_1, food_2| food_1.tier().cmp(&food_2.tier()))
-                {
-                    found_foods.push(lowest_tier_food)
-                }
-            }
-            Condition::TriggeredBy(trigger_status) => found_foods.extend(
-                all_items
-                    .filter_map(|item| {
-                        let item_triggers = item.triggers();
-                        (item_triggers.contains(&&trigger_status)).then_some(item)
-                    })
-                    .into_iter(),
-            ),
-            _ => unimplemented!(),
-        };
-        found_foods
-    }
-
-    fn get_shop_items_by_pos(&mut self, pos: Position, item: Entity) -> Vec<&mut ShopItem> {
-        let mut found_items = Vec::with_capacity(self.shop.pets.len());
-
-        match pos {
-            Position::Any(condition) => {
-                let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
-                let found_found_items = self
-                    .get_shop_items_by_cond(condition, item)
-                    .into_iter()
-                    .choose(&mut rng);
-                if let Some(any_item) = found_found_items {
-                    found_items.push(any_item)
-                }
-            }
-            Position::All(condition) => {
-                let found_found_items = self.get_shop_items_by_cond(condition, item);
-                found_items.extend(found_found_items)
-            }
-            Position::First => {
-                let item = if let Entity::Food = item {
-                    self.shop.foods.first_mut()
-                } else {
-                    self.shop.pets.first_mut()
-                };
-
-                if let Some(item) = item {
-                    found_items.push(item)
-                };
-            }
-            Position::Last => {
-                let item = if let Entity::Food = item {
-                    self.shop.foods.last_mut()
-                } else {
-                    self.shop.pets.last_mut()
-                };
-
-                if let Some(item) = item {
-                    found_items.push(item)
-                };
-            }
-            Position::Range(range_idx) => {
-                let end_idx = range_idx
-                    .into_iter()
-                    .filter_map(|idx| TryInto::<usize>::try_into(idx).ok())
-                    .max();
-                let found_found_items = if let Entity::Food = item {
-                    end_idx.map(|idx| self.shop.foods.get_mut(0..idx))
-                } else {
-                    end_idx.map(|idx| self.shop.pets.get_mut(0..idx))
-                };
-                if let Some(Some(found_found_items)) = found_found_items {
-                    found_items.extend(found_found_items)
-                }
-            }
-            Position::Relative(idx) => {
-                if let Ok(Some(item)) = idx
-                    .try_into()
-                    .map(|idx: usize| self.shop.foods.get_mut(idx))
-                {
-                    found_items.push(item)
-                }
-            }
-            _ => unimplemented!(),
-        };
-
-        found_items
+        // Trigger end of turn.
+        self.triggers.push_front(TRIGGER_END_TURN);
+        // Clear any pets that fainted during shop phase.
+        self.fainted.clear();
+        Ok(self)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::Shopping;
-    use crate::{
-        battle::{effect::Entity, state::Condition},
-        Position, Team,
-    };
+    use crate::{battle::effect::Entity, Pet, PetName, Position, Team};
 
     #[test]
-    fn test_team_shop() {
-        let mut team = Team::default();
+    fn test_team_shop_setup() {
+        let mut team = Team::new(
+            &[
+                Pet::try_from(PetName::Beaver).unwrap(),
+                Pet::try_from(PetName::Mosquito).unwrap(),
+            ],
+            5,
+        )
+        .unwrap();
 
-        println!("{}", team.shop);
-        team.set_shop_seed(Some(12)).open_shop().unwrap();
-        println!("{}", team.shop);
+        team.shop.set_tier(3).unwrap();
+        team.open_shop().unwrap();
 
-        let items = team.get_shop_items_by_pos(Position::All(Condition::None), Entity::Pet);
-        for item in items {
-            println!("{item}")
-        }
+        println!("{}", team.shop)
+    }
+    #[test]
+    fn test_team_shop_buy() {
+        let mut team = Team::new(
+            &[
+                Pet::try_from(PetName::Beaver).unwrap(),
+                Pet::try_from(PetName::Mosquito).unwrap(),
+            ],
+            5,
+        )
+        .unwrap();
+        let sep = "=".repeat(50);
+        println!("{}", team.shop);
+        team.set_shop_seed(Some(1212)).open_shop().unwrap();
+        println!("{sep}");
+        println!("{}", team.shop);
+        println!("{sep}");
+        println!("Coins: {}", team.shop.coins);
+        team.buy(Position::Relative(-1), Entity::Pet, Position::First)
+            .unwrap();
+        println!("{team}");
+        println!("Coins: {}", team.shop.coins);
+        team.buy(Position::First, Entity::Food, Position::First)
+            .unwrap();
+        println!("{team}");
+        println!("Coins: {}", team.shop.coins);
+    }
+
+    #[test]
+    fn test_team_shop_sell() {
+        let mut team = Team::new(
+            &[
+                Pet::try_from(PetName::Beaver).unwrap(),
+                Pet::try_from(PetName::Mosquito).unwrap(),
+            ],
+            5,
+        )
+        .unwrap();
+
+        println!("{}", team.shop.coins);
+        println!("{}", team);
+        team.sell(Position::First).unwrap();
+        println!("{}", team.shop.coins);
+        println!("{}", team);
     }
 }
