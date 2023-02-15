@@ -100,7 +100,6 @@ fn main() {
 ## TODO:
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
 * Add custom pack parser and reader.
-* Rework Statistics struct math operations to be more consistent.
 * Add toml config to select which version of the wiki page to use.
 * Reorganize Team impl.
   * Move to new trait.

@@ -19,7 +19,7 @@ use crate::{
 };
 
 use itertools::Itertools;
-use log::{error, info};
+use log::info;
 use rand::{
     seq::{IteratorRandom, SliceRandom},
     SeedableRng,
@@ -27,12 +27,14 @@ use rand::{
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
+use super::state::EqualityCondition;
+
 /// Pet doesn't store a reference to team so this was a workaround.
 type TargetPets = Vec<(Target, Rc<RefCell<Pet>>)>;
 const NONSPECIFIC_POSITIONS: [Position; 5] = [
     Position::None,
     Position::Any(Condition::None),
-    Position::Any(Condition::NotSelf),
+    Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
     Position::Relative(-1),
     Position::All(Condition::None),
 ];
@@ -381,7 +383,9 @@ impl EffectApplyHelpers for Team {
             SummonType::CustomPet(name, stat_types, lvl) => {
                 let mut stats = match stat_types {
                     StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => target_pet.borrow().stats * *stats,
+                    StatChangeType::SelfMultValue(stats) => {
+                        target_pet.borrow().stats.mult_perc(stats)
+                    }
                 };
                 Pet::new(
                     name.clone(),
@@ -493,7 +497,7 @@ impl EffectApplyHelpers for Team {
                 )),
                 CopyType::PercentStats(perc_stats_mult) => {
                     // Multiply the stats of a chosen pet by some multiplier
-                    let mut new_stats = pet_to_copy.borrow().stats * perc_stats_mult;
+                    let mut new_stats = pet_to_copy.borrow().stats.mult_perc(&perc_stats_mult);
                     new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
                     info!(
                         target: "dev", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
@@ -597,7 +601,9 @@ impl EffectApplyHelpers for Team {
             Action::Add(stat_change) => {
                 let added_stats = match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => effect_owner.borrow().stats * *stats,
+                    StatChangeType::SelfMultValue(stats) => {
+                        effect_owner.borrow().stats.mult_perc(stats)
+                    }
                 };
                 // If effect is temporary, store stats to be removed from referenced pet on reopening shop.
                 if effect.temp {
@@ -619,7 +625,9 @@ impl EffectApplyHelpers for Team {
             Action::Remove(stat_change) => {
                 let remove_stats = match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => effect_owner.borrow().stats * *stats,
+                    StatChangeType::SelfMultValue(stats) => {
+                        effect_owner.borrow().stats.mult_perc(stats)
+                    }
                 };
                 let mut atk_outcome = target_pet.borrow_mut().indirect_attack(&remove_stats);
 
@@ -832,7 +840,7 @@ impl EffectApplyHelpers for Team {
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Debuff(perc_stats) => {
-                let debuff_stats = target_pet.borrow().stats * *perc_stats;
+                let debuff_stats = target_pet.borrow().stats.mult_perc(perc_stats);
                 target_pet.borrow_mut().stats -= debuff_stats;
                 info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, target_pet.borrow(), perc_stats)
             }
@@ -897,6 +905,15 @@ impl EffectApplyHelpers for Team {
                 self.copy_effect(attr, targets, &target_pet)?;
 
                 target_ids.push(target_pet.borrow().id.clone())
+            }
+            Action::AddShopStats(stats) => {
+                self.shop.perm_stats += *stats;
+            }
+            Action::Profit => {
+                self.shop.coins += 1
+            }
+            Action::FreeRoll => {
+                self.shop.free_rolls += 1
             }
             Action::None => {}
             _ => unimplemented!("Action not implemented"),

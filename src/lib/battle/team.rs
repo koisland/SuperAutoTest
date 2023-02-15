@@ -27,6 +27,8 @@ use std::{
     rc::{Rc, Weak},
 };
 
+use super::state::EqualityCondition;
+
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {
@@ -427,6 +429,48 @@ impl Team {
             .collect_vec()
     }
 
+    /// Check pets that match an [`EqualityCondition`](crate::battle::state::EqualityCondition).
+    fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
+    where
+        T: IntoIterator<Item = Rc<RefCell<Pet>>>,
+    {
+        let all_pets = all_pets.into_iter();
+        match eq_cond {
+            EqualityCondition::IsSelf => all_pets
+                .filter(|pet| Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
+                .collect_vec(),
+            EqualityCondition::Tier(tier) => all_pets
+                .filter(|pet| pet.borrow().tier.eq(tier))
+                .collect_vec(),
+            EqualityCondition::Name(pet_name) => all_pets
+                .filter(|pet| pet.borrow().name.eq(pet_name))
+                .collect_vec(),
+            EqualityCondition::Level(lvl) => all_pets
+                .filter(|pet| pet.borrow().lvl.eq(lvl))
+                .collect_vec(),
+            EqualityCondition::Food(item_name) => all_pets
+                .filter(|pet| {
+                    // If item_name is None. Means check pet has no food.
+                    if item_name.is_none() {
+                        pet.borrow().item.is_none()
+                    } else {
+                        pet.borrow()
+                            .item
+                            .as_ref()
+                            .map_or(false, |food| food.name.eq(item_name.as_ref().unwrap()))
+                    }
+                })
+                .collect_vec(),
+            EqualityCondition::Trigger(trigger) => all_pets
+                .filter(|pet| {
+                    pet.borrow()
+                        .effect
+                        .iter()
+                        .any(|effect| effect.trigger.status == *trigger)
+                })
+                .collect_vec(),
+        }
+    }
     /// Get pets by a given [`Condition`].
     /// # Examples
     /// ```
@@ -510,41 +554,22 @@ impl Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::HasFood(item_name) => all_pets
-                    .filter(|pet| {
-                        // If item_name is None. Means check pet has no food.
-                        if item_name.is_none() {
-                            pet.borrow().item.is_none()
-                        } else {
-                            pet.borrow()
-                                .item
-                                .as_ref()
-                                .map_or(false, |food| food.name == *item_name.as_ref().unwrap())
-                        }
-                    })
-                    .collect_vec(),
-                Condition::TriggeredBy(trigger) => all_pets
-                    .filter(|pet| {
-                        pet.borrow()
-                            .effect
-                            .iter()
-                            .any(|effect| effect.trigger.status == *trigger)
-                    })
-                    .collect_vec(),
+                Condition::Equal(eq_cond) => self.check_eq_cond(all_pets, eq_cond),
+                Condition::NotEqual(eq_cond) => {
+                    let eqiv_pets = self.check_eq_cond(all_pets.clone(), eq_cond);
+                    all_pets
+                        .into_iter()
+                        .filter(|pet| !eqiv_pets.contains(pet))
+                        .collect_vec()
+                }
                 // Allow all if condition is None.
                 Condition::None => self.all(),
-                Condition::NotSelf => all_pets
-                    .filter(|pet| !Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
-                    .collect_vec(),
                 Condition::HighestTier => all_pets
                     .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
                 Condition::LowestTier => all_pets
                     .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                Condition::NotPetName(pet_name) => all_pets
-                    .filter(|pet| pet.borrow().name != *pet_name)
-                    .collect_vec(),
                 _ => unimplemented!("Condition not implemented."),
             }
         }

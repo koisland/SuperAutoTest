@@ -4,7 +4,7 @@ use crate::{
             Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
         },
         effect::{Effect, Entity},
-        state::{Condition, Position, Status, Target},
+        state::{Condition, EqualityCondition, Position, Status, Target},
         trigger::*,
     },
     db::record::PetRecord,
@@ -597,7 +597,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Conditional(
-                    ConditionType::ForEach(Target::Friend, Condition::TriggeredBy(Status::Faint)),
+                    ConditionType::ForEach(
+                        Target::Friend,
+                        Condition::Equal(EqualityCondition::Trigger(Status::Faint)),
+                    ),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
                 ),
                 uses: Some(record.n_triggers),
@@ -625,7 +628,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
-                position: Position::Any(Condition::HasFood(Some(FoodName::Strawberry))),
+                position: Position::Any(Condition::Equal(EqualityCondition::Food(Some(
+                    FoodName::Strawberry,
+                )))),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
@@ -696,7 +701,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                             ConditionType::ForEach(
                                 // Note: The reason it is enemy is because all actions act on the team being affected.
                                 Target::Enemy,
-                                Condition::HasFood(Some(FoodName::Strawberry))
+                                Condition::Equal(EqualityCondition::Food(Some(
+                                    FoodName::Strawberry
+                                )))
                             ),
                             Box::new(Action::Remove(StatChangeType::StaticValue(effect_stats))),
                         );
@@ -713,7 +720,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     entity: Entity::Pet,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
-                    position: Position::N(Condition::HasFood(Some(FoodName::Strawberry)), 2),
+                    position: Position::N(
+                        Condition::Equal(EqualityCondition::Food(Some(FoodName::Strawberry))),
+                        2,
+                    ),
                     action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
@@ -830,7 +840,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     Position::N(
                         Condition::MultipleAll(vec![
                             Condition::HighestTier,
-                            Condition::TriggeredBy(Status::Faint),
+                            Condition::Equal(EqualityCondition::Trigger(Status::Faint)),
                         ]),
                         1,
                     ),
@@ -920,7 +930,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
-                    position: Position::All(Condition::NotSelf),
+                    position: Position::All(Condition::NotEqual(EqualityCondition::IsSelf)),
                     action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                     uses: Some(record.n_triggers),
                 },
@@ -930,7 +940,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_HURT,
                     target: Target::Friend,
-                    position: Position::All(Condition::NotSelf),
+                    position: Position::All(Condition::NotEqual(EqualityCondition::IsSelf)),
                     action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                     uses: Some(record.n_triggers),
                 },
@@ -1065,7 +1075,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
-                position: Position::Any(Condition::HasFood(Some(FoodName::Strawberry))),
+                position: Position::Any(Condition::Equal(EqualityCondition::Food(Some(
+                    FoodName::Strawberry,
+                )))),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: Some(record.n_triggers),
             }],
@@ -1167,7 +1179,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_HURT,
                 target: Target::Friend,
-                position: Position::Any(Condition::NotSelf),
+                position: Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: None,
             }],
@@ -1187,7 +1199,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::Any(Condition::NotPetName(PetName::Alpaca)),
+                position: Position::Any(Condition::NotEqual(EqualityCondition::Name(
+                    PetName::Alpaca,
+                ))),
                 action: Action::Multiple(vec![Action::Experience; record.lvl]),
                 uses: None,
             }],
@@ -1311,8 +1325,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::Any(Condition::MultipleAll(vec![
-                    Condition::HasFood(None),
-                    Condition::NotSelf,
+                    Condition::Equal(EqualityCondition::Food(None)),
+                    Condition::NotEqual(EqualityCondition::IsSelf),
                 ])),
                 action: Action::Stegosaurus(effect_stats),
                 uses: Some(record.n_triggers),
@@ -1323,7 +1337,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
-                position: Position::N(Condition::HasFood(Some(FoodName::Strawberry)), record.lvl),
+                position: Position::N(
+                    Condition::Equal(EqualityCondition::Food(Some(FoodName::Strawberry))),
+                    record.lvl,
+                ),
                 action: Action::Gain(GainType::DefaultItem(FoodName::Coconut)),
                 uses: Some(record.n_triggers),
             }],

@@ -60,6 +60,7 @@ pub enum SAPTestError {
     /// Shop error.
     #[error("Invalid shop action: {subject:?} due to {reason:?}")]
     InvalidShopAction {
+        /// Subject of invalid shop action.
         subject: String,
         /// Failure reason.
         reason: String,

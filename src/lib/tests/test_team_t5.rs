@@ -344,7 +344,7 @@ fn test_battle_lion_highest_tier_team() {
 
     // Adds 50% of attack and health to original stats.
     assert_eq!(
-        lion_original_stats + (lion_original_stats * Statistics::new(50, 50).unwrap()),
+        lion_original_stats + (lion_original_stats.mult_perc(&Statistics::new(50, 50).unwrap())),
         team.first().unwrap().borrow().stats
     )
 }

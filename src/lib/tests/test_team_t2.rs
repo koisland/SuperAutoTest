@@ -328,11 +328,10 @@ fn test_battle_panda_team() {
     let mut enemy_team = test_mammoth_team();
 
     // Adds 50% of attack (1,0).
-    let add_stats = team.nth(1).unwrap().borrow().stats
-        * Statistics {
-            attack: 50,
-            health: 50,
-        };
+    let add_stats = team.nth(1).unwrap().borrow().stats.mult_perc(&Statistics {
+        attack: 50,
+        health: 50,
+    });
     assert_eq!(add_stats, Statistics::new(1, 2).unwrap());
     // Initial dog stats.
     let original_stats = team.first().unwrap().borrow().stats;

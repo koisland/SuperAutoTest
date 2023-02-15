@@ -118,6 +118,8 @@ pub enum Action {
     Invincible,
     /// Gain a `Food` item.
     Gain(GainType),
+    /// Add permanent stats to shop.
+    AddShopStats(Statistics),
     /// WIP: Get gold.
     Profit,
     /// WIP: Free roll.

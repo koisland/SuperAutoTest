@@ -6,7 +6,7 @@ use super::store::{ItemSlot, ItemState, ShopItem};
 use crate::{
     battle::{
         actions::{Action, StatChangeType},
-        state::{Condition, Status},
+        state::{Condition, EqualityCondition, Status},
     },
     error::SAPTestError,
     Entity, Position, Shop,
@@ -111,14 +111,64 @@ impl ShopViewer for Shop {
                     found_items.push(lowest_tier_item)
                 }
             }
-            Condition::TriggeredBy(trigger_status) => found_items.extend(
-                all_items
-                    .filter_map(|item| {
-                        let item_triggers = item.triggers();
-                        (item_triggers.contains(&trigger_status)).then_some(item)
+            Condition::Equal(eq_cond) => match eq_cond {
+                EqualityCondition::Tier(tier) => {
+                    found_items.extend(all_items.filter(|item| item.tier() == *tier))
+                }
+                EqualityCondition::Name(name) => match item_type {
+                    Entity::Pet => found_items.extend(all_items.filter(|item| {
+                        if let ItemSlot::Pet(pet) = &item.item {
+                            &pet.name == name
+                        } else {
+                            false
+                        }
+                    })),
+                    Entity::Food => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: "Invalid Equality Condition".to_string(),
+                            reason: format!(
+                                "Cannot use {eq_cond:?} to search for {item_type:?} items."
+                            ),
+                        })
+                    }
+                },
+                EqualityCondition::Food(food_name) => match item_type {
+                    Entity::Pet => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: "Invalid Equality Condition".to_string(),
+                            reason: format!(
+                                "Cannot use {eq_cond:?} to search for {item_type:?} items."
+                            ),
+                        })
+                    }
+                    Entity::Food => found_items.extend(all_items.filter(|item| {
+                        if let ItemSlot::Food(food) = &item.item {
+                            Some(&food.name) == food_name.as_ref()
+                        } else {
+                            false
+                        }
+                    })),
+                },
+                EqualityCondition::Trigger(trigger) => found_items.extend(
+                    all_items
+                        .filter_map(|item| {
+                            let item_triggers = item.triggers();
+                            (item_triggers.contains(&trigger)).then_some(item)
+                        })
+                        .into_iter(),
+                ),
+                _ => {
+                    return Err(SAPTestError::InvalidShopAction {
+                        subject: "Invalid Equality Condition".to_string(),
+                        reason: format!("Cannot use {eq_cond:?} to search for items."),
                     })
-                    .into_iter(),
-            ),
+                }
+            },
+            Condition::NotEqual(eq_cond) => {
+                let eq_items =
+                    self.get_shop_items_by_cond(&Condition::Equal(eq_cond.clone()), item_type)?;
+                found_items.extend(all_items.filter(|item| !eq_items.contains(item)))
+            }
             _ => {
                 return Err(SAPTestError::InvalidShopAction {
                     subject: "Shop Items by Condition".to_string(),

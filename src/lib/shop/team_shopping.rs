@@ -94,7 +94,7 @@ pub trait Shopping {
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError>;
     /// Close a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
     /// * This will create triggers for ending the turn.
-    /// * Allows battling.
+    /// * Enables [`Team`](crate::Team) fighting.
     /// # Example
     /// ```
     /// use saptest::{Team, Shopping};
@@ -376,15 +376,6 @@ mod tests {
         println!("Coins: {}", team.shop.coins);
     }
 
-    #[test]
-    fn test_shop_() {
-        let mut team = Team::default();
-        team.set_shop_seed(Some(42)).open_shop().unwrap();
-
-        // Buy the 1st pet in the shop and put it on/in front of the 1st pet on the team.
-        let first_pet_purchase = team.buy(Position::First, Entity::Pet, Position::First);
-        assert!(first_pet_purchase.is_ok())
-    }
     #[test]
     fn test_team_shop_sell() {
         let mut team = Team::new(

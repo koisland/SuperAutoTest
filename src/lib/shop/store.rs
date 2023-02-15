@@ -3,7 +3,7 @@ use std::{
     fmt::Display,
     fmt::Write,
     ops::{Add, Range},
-    rc::{Rc, Weak},
+    rc::Weak,
 };
 
 use itertools::Itertools;
@@ -17,7 +17,7 @@ use crate::{
     foods::food::Food,
     pets::{names::PetName, pet::Pet},
     shop::viewer::ShopViewer,
-    Position, Team, SAPDB,
+    Position, SAPDB,
 };
 
 /// Sloth chance.
@@ -134,11 +134,11 @@ impl Display for Shop {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "(Pets)")?;
         for pet_slot in self.pets.iter() {
-            writeln!(f, "{}", pet_slot)?;
+            writeln!(f, "{pet_slot}")?;
         }
         writeln!(f, "\n(Foods)")?;
         for food_slot in self.foods.iter() {
-            writeln!(f, "{}", food_slot)?;
+            writeln!(f, "{food_slot}")?;
         }
         Ok(())
     }

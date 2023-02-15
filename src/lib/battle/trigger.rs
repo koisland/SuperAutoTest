@@ -3,6 +3,8 @@ use crate::battle::{
     stats::Statistics,
 };
 
+use super::state::EqualityCondition;
+
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
 pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 2] {
     // Add triggers for enemy.
@@ -242,7 +244,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
 /// * Ignore self.
 pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     status: Status::BeforeAttack,
-    position: Position::Any(Condition::NotSelf),
+    position: Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,

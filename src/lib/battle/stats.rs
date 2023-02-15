@@ -52,6 +52,17 @@ impl Statistics {
         let health: isize = health.try_into().map_err(Into::into)?;
         Ok(Statistics { attack, health })
     }
+
+    /// Multiply stats by percentage values on rhs.
+    pub fn mult_perc(&self, rhs: &Self) -> Self {
+        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
+        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
+
+        Statistics {
+            attack: (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+        }
+    }
 }
 
 impl Add for Statistics {
@@ -80,12 +91,9 @@ impl Mul for Statistics {
     type Output = Statistics;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
-        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
-
         Statistics {
-            attack: (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
-            health: (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            attack: (self.attack * rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: (self.health * rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS),
         }
     }
 }
@@ -106,11 +114,8 @@ impl SubAssign for Statistics {
 
 impl MulAssign for Statistics {
     fn mul_assign(&mut self, rhs: Self) {
-        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
-        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
-
-        self.attack = (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
-        self.health = (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.attack = (self.attack * rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.health = (self.health * rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS);
     }
 }
 

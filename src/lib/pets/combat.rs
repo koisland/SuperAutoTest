@@ -219,7 +219,7 @@ impl PetCombat for Pet {
                 // Get stat modifiers from effects.
                 Action::Add(stat_change) | Action::Remove(stat_change) => match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats_mult) => self.stats * *stats_mult,
+                    StatChangeType::SelfMultValue(stats_mult) => self.stats.mult_perc(stats_mult),
                 },
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;

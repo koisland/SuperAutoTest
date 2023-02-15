@@ -49,7 +49,7 @@ pub enum EqualityCondition {
     /// Is this level.
     Level(usize),
     /// Has this food.
-    Food(FoodName),
+    Food(Option<FoodName>),
     /// Has this trigger.
     Trigger(Status),
 }
@@ -69,22 +69,14 @@ pub enum Condition {
     HighestTier,
     /// Lowest tier pet.
     LowestTier,
-    /// Choose all pets that have an item with a given [`FoodName`].
-    HasFood(Option<FoodName>),
-    /// Choose all pet that have an [`Effect`](crate::Effect) triggered by some [`Status`].
-    TriggeredBy(Status),
     /// Multiple conditions.
     Multiple(Vec<Condition>),
     /// Multiple conditions. All must be met to be included.
     MultipleAll(Vec<Condition>),
-    // /// Has the quality.
-    // Equal(EqualityCondition),
-    // /// Doesn't have this quality.
-    // NotEqual(EqualityCondition),
-    /// Ignore self.
-    NotSelf,
-    /// Not a specific [`PetName`].
-    NotPetName(PetName),
+    /// Has the quality.
+    Equal(EqualityCondition),
+    /// Doesn't have this quality.
+    NotEqual(EqualityCondition),
     /// No condition.
     None,
 }
