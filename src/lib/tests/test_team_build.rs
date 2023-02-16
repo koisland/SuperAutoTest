@@ -5,7 +5,6 @@ use itertools::Itertools;
 use crate::{
     battle::{
         state::{Status, TeamFightOutcome},
-        stats::Statistics,
         team::Team,
     },
     pets::{names::PetName, pet::Pet},
@@ -107,26 +106,6 @@ fn test_team_restore() {
 }
 
 #[test]
-fn test_team_swap() {
-    let mut team = Team::new(
-        &[
-            Pet::try_from(PetName::Snake).unwrap(),
-            Pet::try_from(PetName::Hippo).unwrap(),
-        ],
-        5,
-    )
-    .unwrap();
-
-    team.swap_pets(
-        &mut team.nth(0).unwrap().borrow_mut(),
-        &mut team.nth(1).unwrap().borrow_mut(),
-    );
-
-    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Hippo);
-    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake)
-}
-
-#[test]
 fn test_team_push() {
     let mut team = Team::new(
         &[
@@ -148,9 +127,9 @@ fn test_team_push() {
 
     assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Dog);
 
-    // Two push triggers made + (Default: [StartBattle]).
-    assert_eq!(team.triggers.len(), 3);
-    let push_trigger_snake = team.triggers.get(1).unwrap();
+    // Two push triggers made.
+    assert_eq!(team.triggers.len(), 2);
+    let push_trigger_snake = team.triggers.front().unwrap();
     let push_trigger_dog = team.triggers.back().unwrap();
 
     // Get weak references to pets.
@@ -170,79 +149,5 @@ fn test_team_push() {
     assert!(
         push_trigger_dog.status == Status::Pushed
             && push_trigger_dog.affected_pet.as_ref().unwrap().ptr_eq(&dog)
-    );
-}
-
-#[test]
-fn test_team_swap_stats() {
-    let team = Team::new(
-        &[
-            Pet::try_from(PetName::Snake).unwrap(),
-            Pet::try_from(PetName::Hippo).unwrap(),
-            Pet::try_from(PetName::Dog).unwrap(),
-        ],
-        5,
-    )
-    .unwrap();
-
-    assert_eq!(
-        team.nth(0).unwrap().borrow().stats,
-        Statistics {
-            attack: 6,
-            health: 6
-        }
-    );
-    assert_eq!(
-        team.nth(1).unwrap().borrow().stats,
-        Statistics {
-            attack: 4,
-            health: 5
-        }
-    );
-    team.swap_pet_stats(
-        &mut team.nth(0).unwrap().borrow_mut(),
-        &mut team.nth(1).unwrap().borrow_mut(),
-    );
-
-    assert_eq!(
-        team.nth(0).unwrap().borrow().stats,
-        Statistics {
-            attack: 4,
-            health: 5
-        }
-    );
-    assert_eq!(
-        team.nth(1).unwrap().borrow().stats,
-        Statistics {
-            attack: 6,
-            health: 6
-        }
-    );
-
-    assert_eq!(
-        team.nth(2).unwrap().borrow().stats,
-        Statistics {
-            attack: 3,
-            health: 4
-        }
-    );
-    team.swap_pet_stats(
-        &mut team.nth(1).unwrap().borrow_mut(),
-        &mut team.nth(2).unwrap().borrow_mut(),
-    );
-
-    assert_eq!(
-        team.nth(1).unwrap().borrow().stats,
-        Statistics {
-            attack: 3,
-            health: 4
-        }
-    );
-    assert_eq!(
-        team.nth(2).unwrap().borrow().stats,
-        Statistics {
-            attack: 6,
-            health: 6
-        }
     );
 }

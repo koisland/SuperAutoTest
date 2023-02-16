@@ -9,7 +9,7 @@ use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
 
-/// Super Auto Pets `SQLite` Database.
+/// A Super Auto Pets database.
 pub struct SapDB {
     /// Database file.
     pub file: String,

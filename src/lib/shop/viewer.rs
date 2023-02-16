@@ -1,24 +1,29 @@
 use itertools::Itertools;
-use rand::seq::IteratorRandom;
-use std::borrow::Borrow;
+use rand::{
+    random,
+    seq::{IteratorRandom, SliceRandom},
+    SeedableRng,
+};
+use rand_chacha::ChaCha12Rng;
 
 use super::store::{ItemSlot, ItemState, ShopItem};
 use crate::{
     battle::{
         actions::{Action, StatChangeType},
+        effect::EntityName,
         state::{Condition, EqualityCondition, Status},
     },
     error::SAPTestError,
     Entity, Position, Shop,
 };
 
-/// View shop items.
+/// Enables viewing [`ShopItem`]s and their state.
 pub trait ShopViewer {
     /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Condition`](crate::Condition).
     /// # Example
     /// ```
     /// use saptest::{Shop, ShopViewer, ShopItemViewer, Entity, Condition, Position};
-    ///     
+    ///
     /// let (cond, item_type) = (Condition::Healthiest, Entity::Pet);
     /// let shop = Shop::new(1, Some(42)).unwrap();
     ///
@@ -39,12 +44,12 @@ pub trait ShopViewer {
     /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Position`](crate::Position).
     /// # Example
     /// ```
-    /// use saptest::{Shop, ShopViewer, Entity, Position};
+    /// use saptest::{Shop, ShopViewer, Entity, Position, Condition};
     ///
-    /// let (pos, item_type) = (Position::All, Entity::Pet);
+    /// let (pos, item_type) = (Position::All(Condition::None), Entity::Pet);
     /// let shop = Shop::new(1, Some(42)).unwrap();
-    /// let found_items = shop.get_shop_items_by_pos(&pos, &item_type);
-    ///    
+    /// let found_items = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
+    ///
     /// // Three pets in tier 1 shop.
     /// assert_eq!(found_items.len(), 3)
     /// ```
@@ -53,9 +58,61 @@ pub trait ShopViewer {
         pos: &Position,
         item: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError>;
+
+    /// Get the number of foods in the shop.
+    fn len_foods(&self) -> usize;
+
+    /// Get the number of pets in the shop.
+    fn len_pets(&self) -> usize;
+
+    /// Get the number of food [`ShopItem`]s at the shop's current tier.
+    fn max_food_slots(&self) -> usize;
+
+    /// Get the number of available food [`ShopItem`]s based on the the number of current pets.
+    fn available_food_slots(&self) -> usize;
+
+    /// Get the number of pet [`ShopItem`]s at the shop's current tier.
+    fn max_pet_slots(&self) -> usize;
+
+    /// Adjust number of pet [`ShopItem`]s based on the the number of current pets.
+    fn available_pet_slots(&self) -> usize;
 }
 
 impl ShopViewer for Shop {
+    fn len_foods(&self) -> usize {
+        self.foods.len()
+    }
+
+    fn len_pets(&self) -> usize {
+        self.pets.len()
+    }
+
+    fn max_food_slots(&self) -> usize {
+        if self.tier() < 2 {
+            1
+        } else {
+            2
+        }
+    }
+
+    fn available_food_slots(&self) -> usize {
+        self.max_food_slots().saturating_sub(self.len_foods())
+    }
+
+    fn max_pet_slots(&self) -> usize {
+        if self.tier() < 3 {
+            3
+        } else if self.tier() < 5 {
+            4
+        } else {
+            5
+        }
+    }
+
+    fn available_pet_slots(&self) -> usize {
+        self.max_pet_slots().saturating_sub(self.len_pets())
+    }
+
     fn get_shop_items_by_cond(
         &self,
         cond: &Condition,
@@ -115,45 +172,14 @@ impl ShopViewer for Shop {
                 EqualityCondition::Tier(tier) => {
                     found_items.extend(all_items.filter(|item| item.tier() == *tier))
                 }
-                EqualityCondition::Name(name) => match item_type {
-                    Entity::Pet => found_items.extend(all_items.filter(|item| {
-                        if let ItemSlot::Pet(pet) = &item.item {
-                            &pet.name == name
-                        } else {
-                            false
-                        }
-                    })),
-                    Entity::Food => {
-                        return Err(SAPTestError::InvalidShopAction {
-                            subject: "Invalid Equality Condition".to_string(),
-                            reason: format!(
-                                "Cannot use {eq_cond:?} to search for {item_type:?} items."
-                            ),
-                        })
-                    }
-                },
-                EqualityCondition::Food(food_name) => match item_type {
-                    Entity::Pet => {
-                        return Err(SAPTestError::InvalidShopAction {
-                            subject: "Invalid Equality Condition".to_string(),
-                            reason: format!(
-                                "Cannot use {eq_cond:?} to search for {item_type:?} items."
-                            ),
-                        })
-                    }
-                    Entity::Food => found_items.extend(all_items.filter(|item| {
-                        if let ItemSlot::Food(food) = &item.item {
-                            Some(&food.name) == food_name.as_ref()
-                        } else {
-                            false
-                        }
-                    })),
-                },
+                EqualityCondition::Name(name) => {
+                    found_items.extend(all_items.filter(|item| &item.name() == name))
+                }
                 EqualityCondition::Trigger(trigger) => found_items.extend(
                     all_items
                         .filter_map(|item| {
                             let item_triggers = item.triggers();
-                            (item_triggers.contains(&trigger)).then_some(item)
+                            (item_triggers.contains(trigger)).then_some(item)
                         })
                         .into_iter(),
                 ),
@@ -187,9 +213,13 @@ impl ShopViewer for Shop {
         let mut found_items = vec![];
 
         match pos {
-            Position::N(condition, number_items) => {
-                let mut found_shop_items =
-                    self.get_shop_items_by_cond(condition, item)?.into_iter();
+            Position::N(condition, number_items, randomize) => {
+                let mut found_shop_items = self.get_shop_items_by_cond(condition, item)?;
+                if *randomize {
+                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
+                    found_shop_items.shuffle(&mut rng)
+                }
+                let mut found_shop_items = found_shop_items.into_iter();
                 for _ in 0..*number_items {
                     if let Some(item) = found_shop_items.next() {
                         found_items.push(item)
@@ -262,6 +292,7 @@ impl ShopViewer for Shop {
                     found_items.push(found_item)
                 }
             }
+            Position::None => {}
             _ => {
                 return Err(SAPTestError::InvalidShopAction {
                     subject: "Shop Items by Position".to_string(),
@@ -274,29 +305,37 @@ impl ShopViewer for Shop {
     }
 }
 
-/// View the state of a single shop item.
-pub trait ShopItemViewer: Borrow<ShopItem> {
-    /// Check if item in Shop is frozen.
+/// View attributes of a single [`ShopItem`].
+pub trait ShopItemViewer: std::borrow::Borrow<ShopItem> {
+    /// Get [`ShopItem`] name.
+    fn name(&self) -> EntityName;
+    /// Check if [`ShopItem`] in [`Shop`] is frozen.
     fn is_frozen(&self) -> bool;
-    /// Get health stat of ShopItem.
+    /// Get health stat of [`ShopItem`].
     fn health_stat(&self) -> Option<isize>;
-    /// Get attack stat of ShopItem.
+    /// Get attack stat of [`ShopItem`].
     fn attack_stat(&self) -> Option<isize>;
-    /// Get tier of ShopItem.
+    /// Get tier of [`ShopItem`].
     fn tier(&self) -> usize;
-    /// Get effect triggers of ShopItem.
-    fn triggers(&self) -> Vec<&Status>;
+    /// Get effect triggers of [`ShopItem`].
+    fn triggers(&self) -> Vec<Status>;
 }
 
-impl<I: Borrow<ShopItem>> ShopItemViewer for I {
+impl<I: std::borrow::Borrow<ShopItem>> ShopItemViewer for I {
+    fn name(&self) -> EntityName {
+        match &self.borrow().item {
+            ItemSlot::Pet(pet) => EntityName::Pet(pet.borrow().name.clone()),
+            ItemSlot::Food(food) => EntityName::Food(food.borrow().name.clone()),
+        }
+    }
     fn is_frozen(&self) -> bool {
         self.borrow().state == ItemState::Frozen
     }
     /// Get health stat of item.
     fn health_stat(&self) -> Option<isize> {
         match &self.borrow().item {
-            ItemSlot::Pet(pet) => Some(pet.stats.health),
-            ItemSlot::Food(food) => match food.ability.action {
+            ItemSlot::Pet(pet) => Some(pet.borrow().stats.health),
+            ItemSlot::Food(food) => match food.borrow().ability.action {
                 Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.health),
                 Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.health),
                 _ => None,
@@ -306,8 +345,8 @@ impl<I: Borrow<ShopItem>> ShopItemViewer for I {
     /// Get attack stat of item.
     fn attack_stat(&self) -> Option<isize> {
         match &self.borrow().item {
-            ItemSlot::Pet(pet) => Some(pet.stats.attack),
-            ItemSlot::Food(food) => match food.ability.action {
+            ItemSlot::Pet(pet) => Some(pet.borrow().stats.attack),
+            ItemSlot::Food(food) => match food.borrow().ability.action {
                 Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.attack),
                 Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.attack),
                 _ => None,
@@ -317,19 +356,20 @@ impl<I: Borrow<ShopItem>> ShopItemViewer for I {
     /// Get tier of item.
     fn tier(&self) -> usize {
         match &self.borrow().item {
-            ItemSlot::Pet(pet) => pet.tier,
-            ItemSlot::Food(food) => food.tier,
+            ItemSlot::Pet(pet) => pet.borrow().tier,
+            ItemSlot::Food(food) => food.borrow().tier,
         }
     }
     /// Get effect triggers of item.
-    fn triggers(&self) -> Vec<&Status> {
+    fn triggers(&self) -> Vec<Status> {
         match &self.borrow().item {
             ItemSlot::Pet(pet) => pet
+                .borrow()
                 .effect
                 .iter()
-                .map(|effect| &effect.trigger.status)
+                .map(|effect| effect.trigger.status.clone())
                 .collect_vec(),
-            ItemSlot::Food(food) => vec![&food.ability.trigger.status],
+            ItemSlot::Food(food) => vec![food.borrow().ability.trigger.status.clone()],
         }
     }
 }

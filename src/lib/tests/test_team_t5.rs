@@ -2,12 +2,15 @@ use itertools::Itertools;
 
 use crate::{
     battle::{
-        actions::{Action, GainType, StatChangeType},
+        actions::{Action, StatChangeType},
+        effect::EntityName,
         state::{Position, TeamFightOutcome},
         stats::Statistics,
+        trigger::TRIGGER_START_BATTLE,
     },
     foods::names::FoodName,
     pets::names::PetName,
+    shop::store::{ItemSlot, ItemState, ShopItem},
     tests::common::{
         count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_hyena_team,
         test_lion_highest_tier_team, test_lion_lowest_tier_team, test_lionfish_team,
@@ -15,10 +18,8 @@ use crate::{
         test_skunk_team, test_swordfish_team, test_triceratops_team, test_turkey_team,
         test_vulture_team,
     },
-    Food, TeamEffects,
+    Entity, Food, Team, TeamEffects, TeamShopping,
 };
-
-// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_croc_team() {
@@ -71,30 +72,58 @@ fn test_battle_rhino_team() {
 }
 
 #[test]
-fn test_battle_scorpion_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+fn test_shop_scorpion_team() {
+    let mut team = Team::default();
+    team.open_shop().unwrap();
+    // Clear pets manually.
+    team.shop.pets.clear();
 
+    // No pets on team.
+    assert!(team.first().is_none());
+    // Add a scorpion to the shop manually.
+    team.shop
+        .add_item(ShopItem {
+            item: ItemSlot::new(EntityName::Pet(PetName::Scorpion)).unwrap(),
+            state: ItemState::Normal,
+            cost: 3,
+        })
+        .unwrap();
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+    // Scorpion summoned and gains peanuts after purchase.
+    let scorpion = team.first().unwrap();
+    assert_eq!(
+        scorpion.borrow().item.as_ref().unwrap().name,
+        FoodName::Peanut
+    );
+}
+
+#[test]
+fn test_battle_scorpion_team() {
     let mut team = test_scorpion_team();
     let mut enemy_team = test_skunk_team();
-    // At start of turn, scorpion doesn't have peanuts. Then gains it.
-    assert_eq!(team.first().unwrap().borrow().item, None);
-    let outcome = team.fight(&mut enemy_team).unwrap();
 
-    // Win after single turn due to peanuts.
-    assert_eq!(outcome, TeamFightOutcome::Win);
-
-    // Scropion gained peanuts.
-    let (_, _, action, _) = &team
-        .history
-        .effect_graph
-        .raw_edges()
-        .first()
-        .unwrap()
-        .weight;
-    assert_eq!(
-        action,
-        &Action::Gain(GainType::DefaultItem(FoodName::Peanut))
+    // Replace peanut with mushroom.
+    team.set_item(
+        Position::First,
+        Some(Food::try_from(FoodName::Mushroom).unwrap()),
     )
+    .unwrap();
+
+    // Fight and kill mushroomed scorpion.
+    team.fight(&mut enemy_team).unwrap();
+
+    // Gets peanuts.
+    let summoned_scorpion = team.first().unwrap();
+    assert_eq!(
+        summoned_scorpion.borrow().item.as_ref().unwrap().name,
+        FoodName::Peanut
+    );
+
+    // Which enables a draw.
+    let outcome = team.fight(&mut enemy_team).unwrap();
+    assert_eq!(outcome, TeamFightOutcome::Draw);
 }
 
 #[test]
@@ -173,11 +202,11 @@ fn test_battle_turkey_team() {
 #[test]
 fn test_battle_hyena_team() {
     // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
+    let hyena_pos = Position::First;
     let mut team = test_hyena_team();
     let mut enemy_team = test_cricket_horse_team();
-    team.set_seed(20);
-    enemy_team.set_seed(20);
+    team.set_seed(Some(20));
+    enemy_team.set_seed(Some(20));
 
     // Original positions
     assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Gorilla);
@@ -194,6 +223,7 @@ fn test_battle_hyena_team() {
         .map(|pet| pet.borrow().stats)
         .collect_vec();
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // At lvl. 1 hyena swaps stats of all pets.
@@ -219,7 +249,8 @@ fn test_battle_hyena_team() {
     enemy_team.restore();
 
     // Level up hyena.
-    team.set_level(Position::First, 2).unwrap();
+    team.set_level(&hyena_pos, 2).unwrap();
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hyena at lvl. 2 swaps positions of pets.
@@ -231,7 +262,8 @@ fn test_battle_hyena_team() {
     enemy_team.restore();
 
     // Level up hyena.
-    team.set_level(Position::First, 3).unwrap();
+    team.set_level(&hyena_pos, 3).unwrap();
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hyena at lvl. 3 swaps positions and stats of pets.
@@ -316,6 +348,7 @@ fn test_battle_lion_lowest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Stats are unchanged.
@@ -340,6 +373,7 @@ fn test_battle_lion_highest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Adds 50% of attack and health to original stats.
@@ -363,6 +397,7 @@ fn test_battle_swordfish_team() {
     assert!(swordfish.borrow().stats.health == 25);
 
     // Activate start of battle effect.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Both swordfish and enemy eagle are hit and take 25 dmg.
@@ -396,7 +431,7 @@ fn test_battle_vulture_team() {
 
     let mut team = test_vulture_team();
     let mut enemy_team = test_cricket_horse_team();
-    enemy_team.set_seed(25);
+    enemy_team.set_seed(Some(25));
 
     // Three attack phases to reach two fainted pets.
     team.fight(&mut enemy_team).unwrap();

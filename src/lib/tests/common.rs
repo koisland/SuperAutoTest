@@ -195,7 +195,6 @@ pub fn test_dove_team() -> Team {
         &[
             Pet::try_from(PetName::Dove).unwrap(),
             strawberry_ant.clone(),
-            strawberry_ant.clone(),
             strawberry_ant,
         ],
         5,
@@ -634,14 +633,13 @@ pub fn test_rhino_team() -> Team {
 }
 
 pub fn test_scorpion_team() -> Team {
-    Team::new(
-        &[
-            Pet::try_from(PetName::Scorpion).unwrap(),
-            Pet::try_from(PetName::Scorpion).unwrap(),
-        ],
-        5,
+    let mut team = Team::new(&[Pet::try_from(PetName::Scorpion).unwrap()], 5).unwrap();
+    team.set_item(
+        Position::First,
+        Some(Food::try_from(FoodName::Peanut).unwrap()),
     )
-    .unwrap()
+    .unwrap();
+    team
 }
 
 pub fn test_shark_team() -> Team {
@@ -982,4 +980,69 @@ pub fn test_beaver_team() -> Team {
         5,
     )
     .unwrap()
+}
+
+pub fn test_duck_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Duck).unwrap()], 5).unwrap()
+}
+
+pub fn test_fish_team() -> Team {
+    let mut fish = Pet::try_from(PetName::Fish).unwrap();
+    fish.add_experience(1).unwrap();
+    Team::new(
+        &[
+            fish,
+            Pet::try_from(PetName::Duck).unwrap(),
+            Pet::try_from(PetName::Duck).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_pig_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Pig).unwrap()], 5).unwrap()
+}
+
+pub fn test_chinchilla_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Chinchilla).unwrap()], 5).unwrap()
+}
+
+pub fn test_marmoset_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Marmoset).unwrap()], 5).unwrap()
+}
+
+pub fn test_beetle_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Beetle).unwrap()], 5).unwrap()
+}
+
+pub fn test_bluebird_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Bluebird).unwrap(),
+            Pet::try_from(PetName::Bluebird).unwrap(),
+            Pet::try_from(PetName::Bluebird).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_ladybug_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Ladybug).unwrap(),
+            Pet::try_from(PetName::Ladybug).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_cockroach_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Cockroach).unwrap()], 5).unwrap()
+}
+
+pub fn test_duckling_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Duckling).unwrap()], 5).unwrap()
 }

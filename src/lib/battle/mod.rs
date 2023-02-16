@@ -1,4 +1,4 @@
-//! Battle logic for a [`Team`](crate::battle::team::Team).
+//! [`Team`](crate::battle::team::Team) battle and effect logic..
 
 /// [`Effect`](crate::Effect) actions and their possible types.
 pub mod actions;

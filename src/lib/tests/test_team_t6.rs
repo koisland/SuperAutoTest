@@ -2,6 +2,7 @@ use crate::{
     battle::{
         state::{Position, Status, TeamFightOutcome},
         stats::Statistics,
+        trigger::TRIGGER_START_BATTLE,
     },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
@@ -13,7 +14,7 @@ use crate::{
         test_tapir_team, test_tiger_team, test_velociraptor_team, test_walrus_team,
         test_white_tiger_team,
     },
-    TeamEffects,
+    Pet, TeamEffects,
 };
 
 #[test]
@@ -224,6 +225,10 @@ fn test_battle_tiger_team() {
 
     let mut team = test_tiger_team();
     let mut enemy_team = test_scorpion_team();
+    // Add extra scorpion.
+    enemy_team
+        .add_pet(Pet::try_from(PetName::Scorpion).unwrap(), 1, None)
+        .unwrap();
 
     {
         // Team of leopard and tiger.
@@ -296,7 +301,7 @@ fn test_battle_tapir_team() {
     team.restore();
 
     // Level tapir to lvl 2.
-    team.set_level(Position::First, 2).unwrap();
+    team.set_level(&Position::First, 2).unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -310,7 +315,7 @@ fn test_battle_walrus_team() {
     // log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
 
     let mut team = test_walrus_team();
-    team.set_seed(25);
+    team.set_seed(Some(25));
     let mut enemy_team = test_gorilla_team();
 
     team.fight(&mut enemy_team).unwrap();
@@ -329,6 +334,7 @@ fn test_battle_white_tiger_team() {
     let mut team = test_white_tiger_team();
     let mut enemy_team = test_gorilla_team();
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Deer behind gets 3 exp leveling to 2.
@@ -342,7 +348,7 @@ fn test_battle_octopus_team() {
 
     let mut team = test_octopus_team();
     let mut enemy_team = test_cricket_horse_team();
-    enemy_team.set_seed(25);
+    enemy_team.set_seed(Some(25));
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -355,7 +361,7 @@ fn test_battle_octopus_team() {
 #[test]
 fn test_battle_orca_team() {
     let mut team = test_orca_team();
-    team.set_seed(25);
+    team.set_seed(Some(25));
     let mut enemy_team = test_gorilla_team();
 
     team.fight(&mut enemy_team).unwrap();
@@ -433,7 +439,7 @@ fn test_battle_sabertooth_team() {
 #[test]
 fn test_battle_spinosaurus_team() {
     let mut team = test_spinosaurus_team();
-    team.set_seed(52);
+    team.set_seed(Some(52));
     let mut enemy_team = test_piranha_team();
 
     // Dog at pos 1 to get buff is (3,4).
@@ -463,9 +469,10 @@ fn test_battle_stegosaurus_team() {
     );
 
     // Current turn is 1 so stego should give (1/1 * 1) = (1/1)
-    assert!(team.history.curr_turn == 0);
+    assert!(team.history.curr_turn == 1);
 
     // Activate start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     assert_eq!(
@@ -480,6 +487,7 @@ fn test_battle_stegosaurus_team() {
     team.history.curr_turn += 2;
 
     // Re-activate start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     assert_eq!(
@@ -491,6 +499,7 @@ fn test_battle_stegosaurus_team() {
 #[test]
 fn test_battle_velociraptor_team() {
     let mut team = test_velociraptor_team();
+    team.set_seed(Some(12));
     let mut enemy_team = test_gorilla_team();
 
     // Cricket at pos 1 has strawberry.
@@ -499,6 +508,7 @@ fn test_battle_velociraptor_team() {
         FoodName::Strawberry
     );
     // Trigger start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Cricket at pos 1 now has coconut.

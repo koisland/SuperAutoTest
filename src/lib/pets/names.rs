@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::SAPTestError;
 
-/// Possible names for [`Pet`](crate::pets::pet::Pet)s.
+/// Names for [`Pet`](crate::pets::pet::Pet)s.
 #[allow(missing_docs)]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum PetName {
@@ -74,6 +74,7 @@ pub enum PetName {
     Bus,
     Chick,
     ZombieFly,
+    LoyalChinchilla,
     Beetle,
     Bluebird,
     Chinchilla,
@@ -139,6 +140,8 @@ pub enum PetName {
     Spinosaurus,
     Stegosaurus,
     Velociraptor,
+    // No name.
+    None,
     /// A custom [`PetName`].
     Custom(String),
 }
@@ -279,6 +282,8 @@ impl FromStr for PetName {
             "Spinosaurus" => Ok(PetName::Spinosaurus),
             "Stegosaurus" => Ok(PetName::Stegosaurus),
             "Velociraptor" => Ok(PetName::Velociraptor),
+            "Loyal Chinchilla" => Ok(PetName::LoyalChinchilla),
+            "None" => Ok(PetName::None),
             _ => Ok(PetName::Custom(s.to_string())),
         }
     }
@@ -418,6 +423,8 @@ impl Display for PetName {
             PetName::Spinosaurus => write!(f, "Spinosaurus"),
             PetName::Stegosaurus => write!(f, "Stegosaurus"),
             PetName::Velociraptor => write!(f, "Velociraptor"),
+            PetName::LoyalChinchilla => write!(f, "Loyal Chinchilla"),
+            PetName::None => write!(f, "None"),
             PetName::Custom(name) => write!(f, "{name}"),
         }
     }

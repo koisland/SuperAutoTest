@@ -7,7 +7,7 @@ use crate::{
         state::{Position, Target, TeamFightOutcome},
         stats::Statistics,
         team_effect_apply::TeamEffects,
-        trigger::{TRIGGER_SELF_FAINT, TRIGGER_START_TURN},
+        trigger::*,
     },
     foods::names::FoodName,
     pets::names::PetName,
@@ -18,7 +18,7 @@ use crate::{
         test_mosq_team, test_ox_team, test_parrot_team, test_pelican_team, test_porcupine_team,
         test_rooster_team, test_skunk_team, test_snake_team, test_turtle_team, test_whale_team,
     },
-    Effect, Pet,
+    Effect, Pet, TeamShopping,
 };
 
 // use crate::LOG_CONFIG;
@@ -88,19 +88,16 @@ fn test_battle_hippo_team() {
 }
 
 #[test]
-fn test_battle_parrot_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
+fn test_shop_parrot_team() {
     let mut team = test_parrot_team();
-    let mut enemy_team = test_ant_team();
 
-    // Before start of turn, is def parrot effect.
+    // Before end of turn, is def parrot effect.
     let parrot = team.nth(1).unwrap();
     assert_eq!(
         vec![Effect {
             owner: Some(Rc::downgrade(&parrot)),
             entity: Entity::Pet,
-            trigger: TRIGGER_START_TURN.clone().set_affected(&parrot).to_owned(),
+            trigger: TRIGGER_END_TURN.clone().set_affected(&parrot).to_owned(),
             target: Target::Friend,
             position: Position::OnSelf,
             action: Action::Copy(
@@ -115,7 +112,9 @@ fn test_battle_parrot_team() {
     );
     // Cricket is level 2.
     assert_eq!(team.first().unwrap().borrow().lvl, 2);
-    team.fight(&mut enemy_team).unwrap();
+
+    // Open and then close shop. Creates end of turn trigger.
+    team.open_shop().unwrap().close_shop().unwrap();
 
     // After the parrot's effects is a level one cricket.
     // Update id and affected pet to match.
@@ -178,7 +177,7 @@ fn test_battle_rooster_lvl_2_team() {
     let mut team = test_rooster_team();
     let mut enemy_team = test_rooster_team();
     {
-        team.set_level(Position::First, 2).unwrap();
+        team.set_level(&Position::First, 2).unwrap();
         let rooster = team.first().unwrap();
         // Level 2 now. Will spawn 2 chicks.
         assert!(
@@ -242,6 +241,8 @@ fn test_battle_skunk_team() {
     );
 
     // Apply start of battle effects. No fighting.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
+    enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
     enemy_team.trigger_effects(&mut team).unwrap();
 
@@ -432,6 +433,7 @@ fn test_battle_lynx_team() {
     );
 
     // Retrigger start of battle effects
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Hippo takes 4 dmg.
@@ -452,6 +454,8 @@ fn test_battle_porcupine_team() {
     enemy_team.first().unwrap().borrow_mut().stats.health += 8;
 
     // Trigger start of battle effects. Then clear fainted pets.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
+    enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
     enemy_team.trigger_effects(&mut team).unwrap();
     team.trigger_effects(&mut enemy_team).unwrap();
     enemy_team.clear_team();
@@ -483,6 +487,7 @@ fn test_battle_caterpillar_team() {
 
     // Trigger start of battle effects.
     // Copy does not trigger yet.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     let butterfly = team.first().unwrap();
@@ -506,7 +511,7 @@ fn test_battle_sniped_caterpillar_team() {
     let mut enemy_team = test_mosq_team();
     enemy_team.friends.remove(2);
     enemy_team.friends.remove(1);
-    team.set_seed(42);
+    team.set_seed(Some(42));
 
     let outcome = team.fight(&mut enemy_team).unwrap();
 
@@ -546,7 +551,7 @@ fn test_battle_donkey_team() {
 
     let mut team = test_donkey_team();
     let mut enemy_team = test_snake_team();
-    team.set_seed(2);
+    team.set_seed(Some(2));
 
     assert_eq!(enemy_team.nth(1).unwrap().borrow().name, PetName::Snake);
 
@@ -572,6 +577,7 @@ fn test_battle_eel_team() {
 
     let eel_stats = team.first().unwrap().borrow().stats;
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Eel at lvl.1 gains 50% of original health.
@@ -601,6 +607,7 @@ fn test_battle_hawk_team() {
         );
     }
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     {
@@ -632,6 +639,7 @@ fn test_battle_pelican_team() {
         assert_eq!(ant_item.as_ref().unwrap().name, FoodName::Strawberry)
     }
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Pelican at lvl.1 give strawberry ant (2,1)

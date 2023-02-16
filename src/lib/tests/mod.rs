@@ -5,6 +5,12 @@ mod test_pet;
 mod test_food;
 
 #[cfg(test)]
+mod test_shop;
+
+#[cfg(test)]
+mod test_team_shop;
+
+#[cfg(test)]
 mod test_team_build;
 
 #[cfg(test)]

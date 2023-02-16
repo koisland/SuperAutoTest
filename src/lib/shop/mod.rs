@@ -1,4 +1,4 @@
-//! Logic for creating and using a Super Auto Pets shop on a Team.
+//! [`Shop`](crate::Shop)s logic for Super Auto Pet [`Team`](crate::Team)s.
 //!
 /// A Super Auto Pets shop.
 pub mod store;

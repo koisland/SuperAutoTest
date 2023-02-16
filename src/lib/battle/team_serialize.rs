@@ -32,6 +32,7 @@ impl FromStr for Team {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut new_team: Team = serde_json::from_str(s)?;
         new_team.reset_pet_references(None);
+        new_team.shop.restock()?;
         Ok(new_team)
     }
 }

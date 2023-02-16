@@ -15,7 +15,7 @@ fn bench_blowfish_rally(c: &mut Criterion) {
             blowfish,
         ];
         let mut team = Team::new(&pets, 5).unwrap();
-        team.set_seed(50);
+        team.set_seed(Some(50));
         team
     });
     let mut enemy_team = black_box(team.clone());
@@ -39,7 +39,7 @@ fn bench_sapai(c: &mut Criterion) {
             Pet::try_from(PetName::Tiger).unwrap(),
         ];
         let mut team = Team::new(&pets, 5).unwrap();
-        team.set_seed(50);
+        team.set_seed(Some(50));
         team
     });
     let mut enemy_team = black_box({
@@ -48,7 +48,7 @@ fn bench_sapai(c: &mut Criterion) {
             Pet::try_from(PetName::Tiger).unwrap(),
         ];
         let mut team = Team::new(&pets, 5).unwrap();
-        team.set_seed(50);
+        team.set_seed(Some(50));
         team
     });
     c.bench_function("sapai_example", |b| {

@@ -4,8 +4,19 @@ use crate::{
 };
 
 /// Trigger when food bought.
-pub const TRIGGER_FOOD_BOUGHT: Outcome = Outcome {
+pub const TRIGGER_ANY_FOOD_BOUGHT: Outcome = Outcome {
     status: Status::BuyFood,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::Any(Condition::None),
+    stat_diff: None,
+};
+
+/// Trigger when food bought.
+pub const TRIGGER_SELF_FOOD_EATEN: Outcome = Outcome {
+    status: Status::AteFood,
     affected_pet: None,
     affected_team: Target::Friend,
     afflicting_pet: None,

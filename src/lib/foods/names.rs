@@ -6,7 +6,7 @@ use crate::error::SAPTestError;
 
 #[allow(missing_docs)]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
-/// Possible names for [`Food`](crate::Food)s
+/// Names for [`Food`](crate::Food)s
 pub enum FoodName {
     Apple,
     Bacon,
@@ -51,6 +51,7 @@ pub enum FoodName {
     Steak,
     Weak,
     SleepingPill,
+    None,
     Custom(String),
 }
 
@@ -109,6 +110,7 @@ impl FromStr for FoodName {
             "Popcorns" => Ok(FoodName::Popcorns),
             "Milk" => Ok(FoodName::Milk),
             "Sleeping Pill" => Ok(FoodName::SleepingPill),
+            "None" => Ok(FoodName::None),
             _ => Ok(FoodName::Custom(s.to_string())),
         }
     }
@@ -161,6 +163,7 @@ impl std::fmt::Display for FoodName {
             FoodName::Popcorns => write!(f, "Popcorns"),
             FoodName::Milk => write!(f, "Milk"),
             FoodName::SleepingPill => write!(f, "Sleeping Pill"),
+            FoodName::None => write!(f, "None"),
             FoodName::Custom(name) => write!(f, "{name}"),
         }
     }

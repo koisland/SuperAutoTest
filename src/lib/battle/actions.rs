@@ -6,7 +6,7 @@ use crate::{
     },
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
-    PetName,
+    Entity, PetName,
 };
 use serde::{Deserialize, Serialize};
 
@@ -52,7 +52,7 @@ pub enum SummonType {
     SelfPet(Statistics),
 }
 
-/// Types of item gains for Action::Gain.
+/// Types of item gains for [`Action::Gain`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum GainType {
     /// Gain the item of the pet owning the effect of this action.
@@ -120,9 +120,15 @@ pub enum Action {
     Gain(GainType),
     /// Add permanent stats to shop.
     AddShopStats(Statistics),
-    /// WIP: Get gold.
+    /// Add a shop food.
+    AddShopFood(GainType),
+    /// Add a shop pet.
+    AddShopPet(SummonType),
+    /// Clear shop items.
+    ClearShop(Entity),
+    /// Get gold.
     Profit,
-    /// WIP: Free roll.
+    /// Free roll.
     FreeRoll,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(SummonType),
@@ -140,6 +146,8 @@ pub enum Action {
     Stegosaurus(Statistics),
     /// Hardcoded tapir ability.
     Tapir,
+    /// Hardcoded cockroach ability.
+    Cockroach,
     /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.

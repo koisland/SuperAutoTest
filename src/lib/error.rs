@@ -1,4 +1,4 @@
-//! Error types for library.
+//! Error types.
 
 use thiserror::Error;
 

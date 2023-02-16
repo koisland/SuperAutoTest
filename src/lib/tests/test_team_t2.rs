@@ -1,5 +1,8 @@
 use crate::{
-    battle::state::{Position, TeamFightOutcome},
+    battle::{
+        state::{Position, TeamFightOutcome},
+        trigger::TRIGGER_START_BATTLE,
+    },
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
@@ -241,7 +244,7 @@ fn test_battle_atlantic_puffin_team() {
     // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
     let mut team = test_atlantic_puffin_team();
     let mut enemy_team = test_mammoth_team();
-    enemy_team.set_seed(0);
+    enemy_team.set_seed(Some(0));
 
     // Dog at 4th position is 4.
     assert_eq!(enemy_team.nth(4).unwrap().borrow().stats.health, 4);
@@ -260,6 +263,7 @@ fn test_battle_atlantic_puffin_team() {
         2
     );
     // Activate start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
     // Dog took 4 damage from puffin. 2 dmg x 2 strawberries.
     let dog_health = enemy_team
@@ -277,6 +281,7 @@ fn test_battle_atlantic_puffin_team() {
 fn test_battle_dove_team() {
     // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
     let mut team = test_dove_team();
+    team.set_seed(Some(11));
     let mut enemy_team = test_mammoth_team();
 
     team.fight(&mut enemy_team).unwrap();
@@ -336,6 +341,7 @@ fn test_battle_panda_team() {
     // Initial dog stats.
     let original_stats = team.first().unwrap().borrow().stats;
 
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     assert_eq!(
@@ -363,6 +369,7 @@ fn test_battle_pug_team() {
         Statistics::new(3, 2).unwrap()
     );
     // Activate start of battle effect of pug.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Ant levels up.
@@ -449,6 +456,7 @@ fn test_battle_wombat_team() {
     let mammoth_effect = enemy_team.first().unwrap().borrow().get_effect(1).unwrap();
 
     // Activate start of battle.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Wombat gains mammoth's effect.

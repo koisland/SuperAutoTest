@@ -1,4 +1,4 @@
-use rand::{Rng, SeedableRng};
+use rand::{random, Rng, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 
 use crate::{
@@ -228,7 +228,7 @@ impl PetCombat for Pet {
                     mod_stats
                 }
                 Action::Critical(prob) => {
-                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
+                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
                     let prob = *prob.clamp(&0, &100) as f64;
                     // Deal double damage if probabilty yields true.
                     let dmg = if rng.gen_bool(prob) {

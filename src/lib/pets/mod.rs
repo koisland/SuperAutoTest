@@ -1,4 +1,4 @@
-//! Names and logic for [`Pet`](crate::Pet).
+//! [`Pet`](crate::Pet) names and logic.
 
 /// Combat for individual [`Pet`](crate::Pet)s.
 pub mod combat;

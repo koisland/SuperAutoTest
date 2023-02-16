@@ -148,7 +148,7 @@ impl Statistics {
     /// let gorilla_stats = Statistics::new(6, 9).unwrap();
     ///
     /// // For crab, copy 50% of health. `Mul` impl always treats values as percentages.
-    /// let mut copy_crab_stats = gorilla_stats * Statistics::new(0, 50).unwrap();
+    /// let mut copy_crab_stats = gorilla_stats.mult_perc(&Statistics::new(0, 50).unwrap());
     /// assert_eq!(copy_crab_stats, Statistics::new(0, 5).unwrap());
     ///
     /// // If any field is less less than 1 (attack), use the provided stats instead.

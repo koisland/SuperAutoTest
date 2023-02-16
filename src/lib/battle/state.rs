@@ -6,7 +6,10 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::{battle::stats::Statistics, foods::names::FoodName, pets::pet::Pet, PetName};
+use crate::{
+    battle::{effect::EntityName, stats::Statistics},
+    pets::pet::Pet,
+};
 
 /// The outcome of a [`Team`](crate::battle::team::Team) fight.
 ///
@@ -45,11 +48,9 @@ pub enum EqualityCondition {
     /// Is this tier.
     Tier(usize),
     /// Has same name.
-    Name(PetName),
+    Name(EntityName),
     /// Is this level.
     Level(usize),
-    /// Has this food.
-    Food(Option<FoodName>),
     /// Has this trigger.
     Trigger(Status),
 }
@@ -84,8 +85,9 @@ pub enum Condition {
 /// Positions to select pets by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Position {
-    ///Some number of [`Pet`]s based on a given [`Condition`].
-    N(Condition, usize),
+    /// Some number of [`Pet`]s based on a given [`Condition`].
+    /// * 3rd argument will shuffle any found pets.
+    N(Condition, usize, bool),
     /// Any [`Pet`] that matches a given [`Condition`].
     Any(Condition),
     /// All [`Pet`]s that match a given [`Condition`].
@@ -276,6 +278,8 @@ pub enum Status {
     Levelup,
     /// Food bought.
     BuyFood,
+    /// Food eaten.
+    AteFood,
     /// Pet bought.
     BuyPet,
     /// Pet sold.

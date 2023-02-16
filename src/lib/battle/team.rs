@@ -12,7 +12,7 @@ use crate::{
         pet::{assign_effect_owner, Pet},
     },
     shop::store::ShopState,
-    Food, Shop,
+    Food, FoodName, Shop,
 };
 
 use itertools::Itertools;
@@ -27,13 +27,13 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use super::state::EqualityCondition;
+use super::{effect::EntityName, state::EqualityCondition};
 
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {
     /// Seed used to reproduce the outcome of events.
-    pub seed: u64,
+    pub seed: Option<u64>,
     /// Name of the team.
     pub name: String,
     /// Pets on the team.
@@ -49,24 +49,25 @@ pub struct Team {
     pub triggers: VecDeque<Outcome>,
     /// Effect history of a team.
     #[serde(skip)]
-    pub history: History,
+    pub(crate) history: History,
     /// Pet shop.
     #[serde(skip)]
     pub(crate) shop: Shop,
     /// Current pet.
     #[serde(skip)]
-    pub(super) curr_pet: Option<Weak<RefCell<Pet>>>,
+    pub(crate) curr_pet: Option<Weak<RefCell<Pet>>>,
     /// Clone of pets used for restoring team.
-    pub(super) stored_friends: Vec<Pet>,
+    pub(crate) stored_friends: Vec<Pet>,
     /// Count of all pets summoned on team.
-    pub(super) pet_count: usize,
+    pub(crate) pet_count: usize,
 }
 
 impl Default for Team {
     fn default() -> Self {
         let seed = random();
         let mut shop = Shop::default();
-        shop.set_seed(Some(seed));
+        // Random shop by default.
+        shop.seed = None;
 
         Self {
             // TODO: Replace with auto generated names.
@@ -75,7 +76,7 @@ impl Default for Team {
             stored_friends: Default::default(),
             fainted: Default::default(),
             max_size: 5,
-            triggers: VecDeque::from_iter([TRIGGER_START_BATTLE]),
+            triggers: VecDeque::new(),
             shop,
             history: History::new(),
             pet_count: Default::default(),
@@ -130,7 +131,7 @@ impl PartialEq for Team {
 }
 
 impl Team {
-    /// Create a new team of pets of a given size.
+    /// Create a new team of [`Pet`]s of a given size.
     /// # Examples
     /// ---
     /// Standard 5-pet team.
@@ -244,25 +245,23 @@ impl Team {
         rc_pets
     }
 
-    /// Restore a team to its initial state.
+    /// Restore a team to its initial state prior to a battle.
     /// # Example
-    /// ```
+    /// ```rust no run
     /// use saptest::{Pet, PetName, Team, TeamEffects};
     ///
     /// let mut default_team = Team::default();
     /// default_team
     ///     .add_pet(Pet::try_from(PetName::Dog).unwrap(), 0, None).unwrap()
     ///     .restore();
-    ///
-    /// assert_eq!(default_team, Team::default());
     /// ```
     pub fn restore(&mut self) -> &mut Self {
         self.friends = Team::create_rc_pets(&self.stored_friends);
         // Set current pet to first in line.
         self.curr_pet = self.friends.first().map(Rc::downgrade);
         self.fainted.clear();
-        self.history = History::new();
-        self.triggers = VecDeque::from_iter([TRIGGER_START_BATTLE]);
+        // Set current battle phase to 1.
+        self.history.curr_phase = 1;
         self.pet_count = self.stored_friends.len();
         self
     }
@@ -306,14 +305,15 @@ impl Team {
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
     /// # Examples
     ///  ```
-    /// use saptest::{Pet, PetName, Team, TeamEffects};
+    /// use saptest::{Pet, PetName, Team, TeamEffects, battle::trigger::TRIGGER_START_BATTLE};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&[mosquito.clone(), mosquito.clone()], 5).unwrap();
     /// let mut enemy_team = team.clone();
     ///
     /// // Set seed for enemy_team and trigger StartBattle effects.
-    /// enemy_team.set_seed(0);
+    /// enemy_team.set_seed(Some(0));
+    /// team.triggers.push_front(TRIGGER_START_BATTLE);
     /// team.trigger_effects(&mut enemy_team);
     ///
     /// // Mosquitoes always hit second pet with seed set to 0.
@@ -321,8 +321,9 @@ impl Team {
     ///     enemy_team.friends.get(1).map_or(false, |pet| pet.borrow().stats.health == 0),
     /// )
     /// ```
-    pub fn set_seed(&mut self, seed: u64) {
+    pub fn set_seed(&mut self, seed: Option<u64>) {
         self.seed = seed;
+
         for pet in self.friends.iter().chain(self.fainted.iter()) {
             pet.borrow_mut().seed = seed
         }
@@ -377,6 +378,7 @@ impl Team {
         }
         Ok(self)
     }
+
     /// Set level of a team member.
     /// # Example
     /// ```
@@ -386,16 +388,16 @@ impl Team {
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
     ///     5
     /// ).unwrap();
-    /// team.set_level(Position::First, 2).unwrap();
+    /// team.set_level(&Position::First, 2).unwrap();
     ///
     /// let dog = team.first().unwrap();
     /// assert_eq!(dog.borrow().get_level(), 2);
     /// ```
-    pub fn set_level(&mut self, pos: Position, lvl: usize) -> Result<&mut Self, SAPTestError> {
+    pub fn set_level(&mut self, pos: &Position, lvl: usize) -> Result<&mut Self, SAPTestError> {
         // Create a temporary effect to grab all desired pets to give items to.
         let null_effect = Effect {
             target: Target::Friend,
-            position: pos,
+            position: pos.clone(),
             owner: self.curr_pet.clone(),
             ..Default::default()
         };
@@ -403,10 +405,19 @@ impl Team {
 
         for (_, pet) in affected_pets.iter() {
             pet.borrow_mut().set_level(lvl)?;
+
+            let mut levelup_trigger = TRIGGER_SELF_LEVELUP;
+            let mut levelup_any_trigger = TRIGGER_ANY_LEVELUP;
+            levelup_trigger.set_affected(pet);
+            levelup_any_trigger.set_affected(pet);
+
+            self.triggers.extend([levelup_trigger, levelup_any_trigger]);
+
             for effect in pet.borrow_mut().effect.iter_mut() {
                 effect.assign_owner(Some(pet));
             }
         }
+
         Ok(self)
     }
 
@@ -440,26 +451,26 @@ impl Team {
                 .filter(|pet| Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
                 .collect_vec(),
             EqualityCondition::Tier(tier) => all_pets
-                .filter(|pet| pet.borrow().tier.eq(tier))
+                .filter(|pet| pet.borrow().tier == *tier)
                 .collect_vec(),
-            EqualityCondition::Name(pet_name) => all_pets
-                .filter(|pet| pet.borrow().name.eq(pet_name))
+            EqualityCondition::Name(name) => all_pets
+                .filter(|pet| match name {
+                    EntityName::Pet(pet_name) => &pet.borrow().name == pet_name,
+                    EntityName::Food(item_name) => {
+                        // If item_name is None. Means check pet has no food.
+                        if item_name == &FoodName::None {
+                            pet.borrow().item.is_none()
+                        } else {
+                            pet.borrow()
+                                .item
+                                .as_ref()
+                                .map_or(false, |food| &food.name == item_name)
+                        }
+                    }
+                })
                 .collect_vec(),
             EqualityCondition::Level(lvl) => all_pets
                 .filter(|pet| pet.borrow().lvl.eq(lvl))
-                .collect_vec(),
-            EqualityCondition::Food(item_name) => all_pets
-                .filter(|pet| {
-                    // If item_name is None. Means check pet has no food.
-                    if item_name.is_none() {
-                        pet.borrow().item.is_none()
-                    } else {
-                        pet.borrow()
-                            .item
-                            .as_ref()
-                            .map_or(false, |food| food.name.eq(item_name.as_ref().unwrap()))
-                    }
-                })
                 .collect_vec(),
             EqualityCondition::Trigger(trigger) => all_pets
                 .filter(|pet| {
@@ -473,8 +484,13 @@ impl Team {
     }
     /// Get pets by a given [`Condition`].
     /// # Examples
+    /// ---
+    /// Pets with a [`StartOfBattle`](crate::battle::state::Status::StartOfBattle) [`Effect`](crate::Effect) trigger.
     /// ```
-    /// use saptest::{Pet, PetName, Team, battle::state::{Condition, Status}};
+    /// use saptest::{
+    ///     Pet, PetName, Team, Condition,
+    ///     battle::state::{Status, EqualityCondition}
+    /// };
     ///
     /// let pets = [
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -482,13 +498,41 @@ impl Team {
     ///     Pet::try_from(PetName::Mosquito).unwrap()
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
+    /// // Get pets with a start of battle effect trigger.
     /// let matching_pets = team.get_pets_by_cond(
-    ///     &Condition::TriggeredBy(Status::StartOfBattle)
+    ///     &Condition::Equal(EqualityCondition::Trigger(Status::StartOfBattle))
     /// );
     /// assert_eq!(
     ///     matching_pets.len(),
     ///     2
     /// );
+    /// ```
+    /// ---
+    /// Pets with [`Honey`](crate::FoodName::Honey) as [`Food`](crate::Food).
+    /// ```
+    /// use saptest::{
+    ///     Pet, PetName, Food, FoodName, Team, Condition, EntityName, Position,
+    ///     battle::state::{Status, EqualityCondition}
+    /// };
+    /// let pets = [
+    ///     Pet::try_from(PetName::Gorilla).unwrap(),
+    ///     Pet::try_from(PetName::Leopard).unwrap(),
+    ///     Pet::try_from(PetName::Mosquito).unwrap()
+    /// ];
+    /// let mut team = Team::new(&pets, 5).unwrap();
+    /// // Give two random pets honey.
+    /// team.set_item(
+    ///     Position::N(Condition::None, 2, true),
+    ///     Some(Food::try_from(FoodName::Honey).unwrap())
+    /// );
+    /// let matching_pets = team.get_pets_by_cond(
+    ///     &Condition::Equal(
+    ///         EqualityCondition::Name(
+    ///             EntityName::Food(FoodName::Honey)
+    ///         )
+    ///    )
+    /// );
+    /// assert_eq!(matching_pets.len(), 2);
     /// ```
     pub fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
         if let Condition::Multiple(conditions) = cond {
@@ -573,60 +617,6 @@ impl Team {
                 _ => unimplemented!("Condition not implemented."),
             }
         }
-    }
-
-    /// Swap a pets position with another on the team.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let pets = [
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    /// ];
-    /// let mut team = Team::new(&pets, 5).unwrap();
-    /// team.swap_pets(
-    ///     &mut team.nth(0).unwrap().borrow_mut(),
-    ///     &mut team.nth(1).unwrap().borrow_mut()
-    /// );
-    /// assert!(
-    ///     team.nth(0).unwrap().borrow().name == PetName::Leopard &&
-    ///     team.nth(1).unwrap().borrow().name == PetName::Gorilla
-    /// )
-    /// ```
-    pub fn swap_pets(&mut self, pet_1: &mut Pet, pet_2: &mut Pet) -> &mut Self {
-        std::mem::swap(pet_1, pet_2);
-        // Additionally, swap the team related fields.
-        std::mem::swap(&mut pet_1.pos, &mut pet_2.pos);
-        std::mem::swap(&mut pet_1.seed, &mut pet_2.seed);
-        self
-    }
-
-    /// Swap a pets stats with another on the team.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team, Statistics};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    /// ], 5).unwrap();
-    /// let gorilla = team.nth(0).unwrap();
-    /// let leopard = team.nth(1).unwrap();
-    /// assert!(
-    ///     gorilla.borrow().stats == Statistics::new(6, 9).unwrap() &&
-    ///     leopard.borrow().stats == Statistics::new(10, 4).unwrap()
-    /// );
-    ///
-    /// team.swap_pet_stats(&mut gorilla.borrow_mut(), &mut leopard.borrow_mut());
-    /// assert!(
-    ///     gorilla.borrow().stats == Statistics::new(10, 4).unwrap() &&
-    ///     leopard.borrow().stats == Statistics::new(6, 9).unwrap()
-    /// )
-    /// ```
-    pub fn swap_pet_stats(&self, pet_1: &mut Pet, pet_2: &mut Pet) -> &Self {
-        std::mem::swap(&mut pet_1.stats, &mut pet_2.stats);
-        self
     }
 
     /// Push a pet to another position on the team.
@@ -772,7 +762,7 @@ impl Team {
     ///     Pet::try_from(PetName::Dog).unwrap(),
     ///     Pet::try_from(PetName::Cat).unwrap(),
     /// ], 5).unwrap();
-    /// team.set_seed(0);
+    /// team.set_seed(Some(0));
     ///
     /// assert_eq!(
     ///     team.any().unwrap().borrow().name,
@@ -781,7 +771,7 @@ impl Team {
     /// ```
     #[allow(dead_code)]
     pub fn any(&self) -> Option<Rc<RefCell<Pet>>> {
-        let mut rng = ChaCha12Rng::seed_from_u64(self.seed);
+        let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
         self.all().into_iter().choose(&mut rng)
     }
 
@@ -968,6 +958,13 @@ impl Team {
         self.clear_team();
         opponent.clear_team();
 
+        // If current phase is 1, add start battle triggers.
+        if self.history.curr_phase == 1 {
+            self.triggers.push_front(TRIGGER_START_BATTLE)
+        }
+        if opponent.history.curr_phase == 1 {
+            opponent.triggers.push_front(TRIGGER_START_BATTLE)
+        }
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
             self.trigger_effects(opponent)?;
             opponent.trigger_effects(self)?;
@@ -976,13 +973,13 @@ impl Team {
         self.clear_team();
         opponent.clear_team();
 
-        // If current phase is 0, add before first battle triggers.
+        // If current phase is 1, add before first battle triggers.
         // Used for butterfly.
-        if self.history.curr_phase == 0 {
-            self.triggers.push_back(TRIGGER_BEFORE_FIRST_BATTLE)
+        if self.history.curr_phase == 1 {
+            self.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
         }
-        if opponent.history.curr_phase == 0 {
-            opponent.triggers.push_back(TRIGGER_BEFORE_FIRST_BATTLE)
+        if opponent.history.curr_phase == 1 {
+            opponent.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
         }
 
         // Increment battle phase counter.
@@ -1091,6 +1088,8 @@ impl Team {
                 self.history.prev_node = self.history.curr_node;
                 self.history.curr_node =
                     Some(self.history.effect_graph.add_node(TRIGGER_END_BATTLE));
+                // On outcome, increase turn count.
+                self.history.curr_turn += 1;
 
                 if self.friends.is_empty() && opponent.friends.is_empty() {
                     info!(target: "dev", "Draw!");

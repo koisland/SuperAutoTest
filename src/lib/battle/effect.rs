@@ -3,7 +3,7 @@ use crate::{
         actions::Action,
         state::{Outcome, Position, Target},
     },
-    Pet,
+    FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,14 +12,23 @@ use std::{
     rc::{Rc, Weak},
 };
 
-/// Owner of [`Effect`].
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+/// A Super Auto Pets entity.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Entity {
     #[default]
     /// A [`Pet`](crate::pets::pet::Pet).
     Pet,
     /// A [`Food`](crate::foods::food::Food).
     Food,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+/// [`Entity`] names.
+pub enum EntityName {
+    /// Pet name.
+    Pet(PetName),
+    /// Food name.
+    Food(FoodName),
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.

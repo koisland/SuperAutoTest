@@ -2,6 +2,7 @@ use crate::{
     battle::{
         state::{Status, TeamFightOutcome},
         stats::Statistics,
+        trigger::TRIGGER_START_BATTLE,
     },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
@@ -386,12 +387,13 @@ fn test_battle_toad_team() {
     let mut enemy_team = test_cricket_horse_team();
 
     // Seed ensures that target always cricket at pos 1.
-    enemy_team.set_seed(2);
+    enemy_team.set_seed(Some(2));
     assert_eq!(
         enemy_team.nth(1).unwrap().borrow().stats,
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Cricket hit by mosquito and takes 1 dmg
@@ -428,6 +430,7 @@ fn test_battle_woodpecker_team() {
         Statistics::new(1, 2).unwrap()
     );
     // Trigger start of battle effects.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
 
     // Two crickets at front on enemy team die.
@@ -457,6 +460,7 @@ fn test_battle_woodpecker_self_hurt_team() {
     );
 
     // Trigger start of battle effects and clear dead pets.
+    team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(&mut enemy_team).unwrap();
     team.clear_team();
 
