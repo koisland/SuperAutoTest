@@ -13,7 +13,7 @@ use rand::{
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
-use super::team_effect_apply::EffectApplyHelpers;
+use super::effects::EffectApplyHelpers;
 
 /// [`Target`] team and reference to [`Pet`].
 /// * Pet itself doesn't store a reference to [`Team`] so this was a workaround.

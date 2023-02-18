@@ -16,8 +16,8 @@ use crate::{
         viewer::ShopViewer,
     },
     teams::{
-        team_effect_apply::{EffectApplyHelpers, TeamEffects},
-        team_viewer::TeamViewer,
+        effects::{EffectApplyHelpers, TeamEffects},
+        viewer::TeamViewer,
     },
     Food, Pet, Position, Shop, Team,
 };

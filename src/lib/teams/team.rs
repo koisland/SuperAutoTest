@@ -8,7 +8,7 @@ use crate::{
     graph::effect_graph::History,
     pets::pet::{assign_effect_owner, Pet},
     shop::store::ShopState,
-    teams::{team_effect_apply::TeamEffects, team_viewer::TeamViewer},
+    teams::{effects::TeamEffects, viewer::TeamViewer},
     Food, PetCombat, Shop,
 };
 
@@ -67,7 +67,7 @@ pub struct Team {
     pub max_size: usize,
     /// Stored triggers used to invoke effects.
     ///
-    /// Calling [`trigger_effects`](super::team_effect_apply::TeamEffects::trigger_effects) will exhaust all stored triggers.
+    /// Calling [`trigger_effects`](super::effects::TeamEffects::trigger_effects) will exhaust all stored triggers.
     /// * As a result, this will always be empty unless mutated.
     pub triggers: VecDeque<Outcome>,
     /// Effect history of a team.

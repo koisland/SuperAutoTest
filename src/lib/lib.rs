@@ -136,7 +136,7 @@ pub use crate::effects::{
     stats::Statistics,
 };
 #[doc(inline)]
-pub use crate::teams::{team::Team, team_effect_apply::TeamEffects, team_viewer::TeamViewer};
+pub use crate::teams::{effects::TeamEffects, team::Team, viewer::TeamViewer};
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]

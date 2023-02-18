@@ -17,7 +17,7 @@ use crate::{
     shop::store::ShopState,
     teams::{
         team::Team,
-        team_viewer::{TargetPets, TeamViewer},
+        viewer::{TargetPets, TeamViewer},
     },
     Food, Pet, PetCombat, SAPDB,
 };

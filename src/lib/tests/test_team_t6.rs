@@ -6,7 +6,7 @@ use crate::{
     },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
-    teams::{team::TeamFightOutcome, team_viewer::TeamViewer},
+    teams::{team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_alpaca_team, test_boar_team, test_cricket_horse_team, test_fly_team,
         test_gorilla_team, test_leopard_team, test_mammoth_team, test_octopus_team, test_orca_team,

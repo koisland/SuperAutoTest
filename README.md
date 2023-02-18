@@ -74,7 +74,7 @@ use saptest::{
     Pet, PetName, PetCombat,
     Food, FoodName,
     Entity, Position, Effect, Statistics,
-    battle::{
+    effects::{
         trigger::TRIGGER_START_BATTLE,
         actions::GainType,
         state::Target,

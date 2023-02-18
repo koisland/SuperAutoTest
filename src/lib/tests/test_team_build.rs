@@ -7,7 +7,7 @@ use crate::{
     pets::{names::PetName, pet::Pet},
     teams::{
         team::{Team, TeamFightOutcome},
-        team_viewer::TeamViewer,
+        viewer::TeamViewer,
     },
 };
 
