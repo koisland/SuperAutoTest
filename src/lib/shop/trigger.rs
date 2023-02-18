@@ -1,5 +1,5 @@
 use crate::{
-    battle::state::{Condition, Outcome, Status, Target},
+    effects::state::{Condition, Outcome, Status, Target},
     Position,
 };
 

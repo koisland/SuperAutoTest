@@ -1,9 +1,6 @@
 use crate::{
-    battle::{
-        state::{Status, TeamFightOutcome},
-        stats::Statistics,
-        trigger::TRIGGER_START_BATTLE,
-    },
+    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
+    effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     tests::common::{

@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::{
-    battle::{effect::Effect, stats::Statistics},
     db::record::PetRecord,
+    effects::{effect::Effect, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
@@ -48,6 +48,8 @@ pub struct Pet {
     /// Seed for pet RNG.
     /// * Used in damage calculation for items like [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
     pub seed: Option<u64>,
+    /// Cost of food.
+    pub cost: usize,
     /// Level of pet.
     pub(crate) lvl: usize,
     /// Experience of pet.
@@ -67,6 +69,7 @@ impl PartialEq for Pet {
             && self.effect == other.effect
             && self.item == other.item
             && self.pos == other.pos
+            && self.cost == other.cost
     }
 }
 
@@ -101,6 +104,7 @@ impl TryFrom<PetRecord> for Pet {
         let pet_stats = Statistics::new(record.attack, record.health)?;
         let (tier, lvl) = (record.tier, record.lvl);
         let pet_name = record.name.clone();
+        let cost = record.cost;
         let effect: Vec<Effect> = record.try_into()?;
 
         Ok(Pet {
@@ -113,6 +117,7 @@ impl TryFrom<PetRecord> for Pet {
             effect,
             item: None,
             pos: None,
+            cost,
             seed: random(),
         })
     }
@@ -182,7 +187,7 @@ impl Pet {
     /// # Example
     /// ```rust
     /// use saptest::{
-    ///     battle::{
+    ///     effects::{
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
     ///         actions::{Action, GainType},
@@ -219,6 +224,7 @@ impl Pet {
             effect: effect.to_vec(),
             item: None,
             pos: None,
+            cost: 3,
             seed: random(),
         }
     }
@@ -226,7 +232,7 @@ impl Pet {
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
-    /// use saptest::{Pet, PetName, Statistics, battle::actions::{Action, StatChangeType}};
+    /// use saptest::{Pet, PetName, Statistics, effects::actions::{Action, StatChangeType}};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///

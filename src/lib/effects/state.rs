@@ -7,40 +7,13 @@ use std::{
 };
 
 use crate::{
-    battle::{effect::EntityName, stats::Statistics},
+    effects::{effect::EntityName, stats::Statistics},
     pets::pet::Pet,
 };
 
-/// The outcome of a [`Team`](crate::battle::team::Team) fight.
-///
-/// # Examples
-/// This can be used as an exit condition in a fight.
-/// ```rust
-/// use saptest::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
-///
-/// let pet = Pet::try_from(PetName::Blowfish).unwrap();
-/// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
-/// let mut enemy_team = Team::clone(&team);
-///
-/// // Continue fighting while the winner of a fight is None.
-/// let mut winner = team.fight(&mut enemy_team).unwrap();
-/// while let TeamFightOutcome::None = winner {
-///     winner = team.fight(&mut enemy_team).unwrap();
-/// }
-/// ```
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum TeamFightOutcome {
-    /// Outcome of fight is a win.
-    Win,
-    /// Outcome of fight is a loss.
-    Loss,
-    /// Outcome of fight is a draw.
-    Draw,
-    /// No outcome for fight.
-    None,
-}
+use super::actions::Action;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Possible equality conditions to check.
 pub enum EqualityCondition {
     /// Is same pet.
@@ -51,12 +24,14 @@ pub enum EqualityCondition {
     Name(EntityName),
     /// Is this level.
     Level(usize),
-    /// Has this trigger.
+    /// Has this [`Action`].
+    Action(Box<Action>),
+    /// Triggered by this [`Status`].
     Trigger(Status),
 }
 
 /// Conditions to select [`Pet`]s by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Condition {
     /// Choose the healthiest (highest health) pet.
     Healthiest,
@@ -83,7 +58,7 @@ pub enum Condition {
 }
 
 /// Positions to select pets by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Position {
     /// Some number of [`Pet`]s based on a given [`Condition`].
     /// * 3rd argument will shuffle any found pets.
@@ -200,7 +175,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mut faint_trigger = TRIGGER_SELF_FAINT.clone();
@@ -219,7 +194,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mosquito = Rc::new(RefCell::new(Pet::try_from(PetName::Mosquito).unwrap()));
@@ -238,7 +213,7 @@ impl Outcome {
     /// Get the affected pet of a trigger.
     /// # Example
     /// ```
-    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::effects::trigger::TRIGGER_START_BATTLE;
     /// // No single affected pet as affects every pet.
     /// assert!(TRIGGER_START_BATTLE.get_affected().is_none())
     /// ```
@@ -249,7 +224,7 @@ impl Outcome {
     /// Get the afflicting pet of a trigger.
     /// # Example
     /// ```
-    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::effects::trigger::TRIGGER_START_BATTLE;
     /// // No single afflicting pet as no pet causes the start of battle.
     /// assert!(TRIGGER_START_BATTLE.get_afflicting().is_none())
     /// ```

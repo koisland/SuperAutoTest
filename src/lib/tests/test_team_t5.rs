@@ -1,16 +1,16 @@
 use itertools::Itertools;
 
 use crate::{
-    battle::{
+    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
+    effects::{
         actions::{Action, StatChangeType},
-        effect::EntityName,
-        state::{Position, TeamFightOutcome},
+        state::Position,
         stats::Statistics,
         trigger::TRIGGER_START_BATTLE,
     },
     foods::names::FoodName,
     pets::names::PetName,
-    shop::store::{ItemSlot, ItemState, ShopItem},
+    shop::store::ShopItem,
     tests::common::{
         count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_hyena_team,
         test_lion_highest_tier_team, test_lion_lowest_tier_team, test_lionfish_team,
@@ -18,7 +18,7 @@ use crate::{
         test_skunk_team, test_swordfish_team, test_triceratops_team, test_turkey_team,
         test_vulture_team,
     },
-    Entity, Food, Team, TeamEffects, TeamShopping,
+    Entity, Food, Pet, Team, TeamEffects, TeamShopping,
 };
 
 #[test]
@@ -80,11 +80,7 @@ fn test_shop_scorpion_team() {
     assert!(team.first().is_none());
     // Add a scorpion to the shop manually.
     team.shop
-        .add_item(ShopItem {
-            item: ItemSlot::new(EntityName::Pet(PetName::Scorpion)).unwrap(),
-            state: ItemState::Normal,
-            cost: 3,
-        })
+        .add_item(ShopItem::new(Pet::try_from(PetName::Scorpion).unwrap()))
         .unwrap();
 
     team.buy(&Position::First, &Entity::Pet, &Position::First)

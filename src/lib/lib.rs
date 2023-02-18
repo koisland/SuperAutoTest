@@ -28,8 +28,9 @@
 //! Add shop functionality to a [`Team`] and roll, freeze, buy/sell pets and foods.
 //! ```
 //! use saptest::{
-//!     Shop, ShopItem, TeamShopping, Team,
-//!     Position, Entity, EntityName, FoodName
+//!     Entity, EntityName, Food, FoodName,
+//!     Shop, ShopItem, TeamShopping,
+//!     Team, TeamViewer, Position,
 //! };
 //!
 //! // All teams are constructed with a shop at tier 1.
@@ -47,9 +48,8 @@
 //! // Shops can be built separately and can replace a team's shop.
 //! let mut tier_5_shop = Shop::new(3, Some(42)).unwrap();
 //! let weakness = ShopItem::new(
-//!     EntityName::Food(FoodName::Weak),
-//!     5
-//! ).unwrap();
+//!     Food::try_from(FoodName::Weak).unwrap()
+//! );
 //! tier_5_shop.add_item(weakness).unwrap();
 //! team.replace_shop(tier_5_shop).unwrap();
 //! ```
@@ -61,7 +61,7 @@
 //!     Pet, PetName, PetCombat,
 //!     Food, FoodName,
 //!     Entity, Position, Effect, Statistics,
-//!     battle::{
+//!     effects::{
 //!         trigger::TRIGGER_START_BATTLE,
 //!         actions::GainType,
 //!         state::Target,
@@ -122,6 +122,7 @@ use std::fs::read_to_string;
 
 pub mod battle;
 pub mod db;
+pub mod effects;
 pub mod error;
 pub mod foods;
 pub mod logging;
@@ -129,12 +130,11 @@ pub mod pets;
 pub mod shop;
 
 #[doc(inline)]
-pub use crate::battle::{
+pub use crate::battle::{team::Team, team_effect_apply::TeamEffects, team_viewer::TeamViewer};
+pub use crate::effects::{
     effect::{Effect, Entity, EntityName},
     state::{Condition, Position},
     stats::Statistics,
-    team::Team,
-    team_effect_apply::TeamEffects,
 };
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};

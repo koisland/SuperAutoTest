@@ -1,4 +1,4 @@
-use saptest::{battle::state::TeamFightOutcome, Pet, PetName, Team};
+use saptest::{battle::team::TeamFightOutcome, Pet, PetName, Team};
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 

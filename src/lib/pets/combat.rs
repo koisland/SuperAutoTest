@@ -2,7 +2,7 @@ use rand::{random, Rng, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 
 use crate::{
-    battle::{
+    effects::{
         actions::{Action, StatChangeType},
         effect::Modify,
         state::{Outcome, Position},
@@ -78,7 +78,7 @@ pub trait PetCombat {
     /// Get triggers for both pets when health is altered.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, PetCombat, battle::trigger::TRIGGER_SELF_UNHURT};
+    /// use saptest::{Pet, PetName, PetCombat, effects::trigger::TRIGGER_SELF_UNHURT};
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// // New health is identical.
     /// let outcome = ant_1.get_outcome(1);

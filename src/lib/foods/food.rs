@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    battle::effect::Effect, db::record::FoodRecord, error::SAPTestError, foods::names::FoodName,
+    db::record::FoodRecord, effects::effect::Effect, error::SAPTestError, foods::names::FoodName,
     SAPDB,
 };
 

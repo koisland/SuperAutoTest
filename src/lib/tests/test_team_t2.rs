@@ -1,8 +1,6 @@
 use crate::{
-    battle::{
-        state::{Position, TeamFightOutcome},
-        trigger::TRIGGER_START_BATTLE,
-    },
+    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
+    effects::{state::Position, trigger::TRIGGER_START_BATTLE},
     pets::names::PetName,
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,

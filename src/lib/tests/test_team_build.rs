@@ -4,9 +4,10 @@ use itertools::Itertools;
 
 use crate::{
     battle::{
-        state::{Status, TeamFightOutcome},
-        team::Team,
+        team::{Team, TeamFightOutcome},
+        team_viewer::TeamViewer,
     },
+    effects::state::Status,
     pets::{names::PetName, pet::Pet},
 };
 

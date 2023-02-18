@@ -1,24 +1,20 @@
 use crate::{
-    battle::{
+    battle::{team_effect_apply::TeamEffects, team_viewer::TeamViewer},
+    effects::{
         effect::Effect,
-        state::{Condition, Outcome, Position, Status, Target, TeamFightOutcome},
-        team_effect_apply::{EffectApplyHelpers, TeamEffects},
+        state::{Outcome, Position, Status, Target},
         trigger::*,
     },
     error::SAPTestError,
     graph::effect_graph::History,
-    pets::{
-        combat::PetCombat,
-        pet::{assign_effect_owner, Pet},
-    },
+    pets::pet::{assign_effect_owner, Pet},
     shop::store::ShopState,
-    Food, FoodName, Shop,
+    Food, PetCombat, Shop,
 };
 
 use itertools::Itertools;
 use log::info;
-use rand::{random, seq::IteratorRandom, SeedableRng};
-use rand_chacha::ChaCha12Rng;
+use rand::random;
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
@@ -27,7 +23,34 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use super::{effect::EntityName, state::EqualityCondition};
+/// The outcome of a [`Team`](crate::battle::team::Team) fight.
+///
+/// # Examples
+/// This can be used as an exit condition in a fight.
+/// ```rust
+/// use saptest::{Team, Pet, PetName, Statistics, battle::team::TeamFightOutcome};
+///
+/// let pet = Pet::try_from(PetName::Blowfish).unwrap();
+/// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
+/// let mut enemy_team = Team::clone(&team);
+///
+/// // Continue fighting while the winner of a fight is None.
+/// let mut winner = team.fight(&mut enemy_team).unwrap();
+/// while let TeamFightOutcome::None = winner {
+///     winner = team.fight(&mut enemy_team).unwrap();
+/// }
+/// ```
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+pub enum TeamFightOutcome {
+    /// Outcome of fight is a win.
+    Win,
+    /// Outcome of fight is a loss.
+    Loss,
+    /// Outcome of fight is a draw.
+    Draw,
+    /// No outcome for fight.
+    None,
+}
 
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
@@ -269,7 +292,7 @@ impl Team {
     /// Clear team of empty slots and/or fainted pets and reset indices.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName, Team, TeamEffects};
+    /// use saptest::{Pet, PetName, Team, TeamViewer, TeamEffects};
     ///
     /// let mut default_team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -305,7 +328,7 @@ impl Team {
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
     /// # Examples
     ///  ```
-    /// use saptest::{Pet, PetName, Team, TeamEffects, battle::trigger::TRIGGER_START_BATTLE};
+    /// use saptest::{Pet, PetName, Team, TeamEffects, effects::trigger::TRIGGER_START_BATTLE};
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&[mosquito.clone(), mosquito.clone()], 5).unwrap();
@@ -335,7 +358,10 @@ impl Team {
     /// Assign an item to a team member.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    /// use saptest::{
+    ///     Pet, PetName, Food, FoodName,
+    ///     Team, TeamViewer, effects::state::Position
+    /// };
     ///
     /// let mut team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -382,7 +408,9 @@ impl Team {
     /// Set level of a team member.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Food, FoodName, Team, battle::state::Position};
+    /// use saptest::{
+    ///     Pet, PetName, Food, FoodName,
+    ///     Team, TeamViewer, effects::state::Position};
     ///
     /// let mut team = Team::new(
     ///     &[Pet::try_from(PetName::Dog).unwrap()],
@@ -421,210 +449,12 @@ impl Team {
         Ok(self)
     }
 
-    /// Get all pet effects on the team.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let team = Team::new(
-    ///     &[Pet::try_from(PetName::Dog).unwrap()],
-    ///     5
-    /// ).unwrap();
-    ///
-    /// assert_eq!(team.get_effects().len(), 1);
-    /// ```
-    pub fn get_effects(&self) -> Vec<Vec<Effect>> {
-        self.friends
-            .iter()
-            .map(|pet| pet.borrow().effect.clone())
-            .collect_vec()
-    }
-
-    /// Check pets that match an [`EqualityCondition`](crate::battle::state::EqualityCondition).
-    fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
-    where
-        T: IntoIterator<Item = Rc<RefCell<Pet>>>,
-    {
-        let all_pets = all_pets.into_iter();
-        match eq_cond {
-            EqualityCondition::IsSelf => all_pets
-                .filter(|pet| Rc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
-                .collect_vec(),
-            EqualityCondition::Tier(tier) => all_pets
-                .filter(|pet| pet.borrow().tier == *tier)
-                .collect_vec(),
-            EqualityCondition::Name(name) => all_pets
-                .filter(|pet| match name {
-                    EntityName::Pet(pet_name) => &pet.borrow().name == pet_name,
-                    EntityName::Food(item_name) => {
-                        // If item_name is None. Means check pet has no food.
-                        if item_name == &FoodName::None {
-                            pet.borrow().item.is_none()
-                        } else {
-                            pet.borrow()
-                                .item
-                                .as_ref()
-                                .map_or(false, |food| &food.name == item_name)
-                        }
-                    }
-                })
-                .collect_vec(),
-            EqualityCondition::Level(lvl) => all_pets
-                .filter(|pet| pet.borrow().lvl.eq(lvl))
-                .collect_vec(),
-            EqualityCondition::Trigger(trigger) => all_pets
-                .filter(|pet| {
-                    pet.borrow()
-                        .effect
-                        .iter()
-                        .any(|effect| effect.trigger.status == *trigger)
-                })
-                .collect_vec(),
-        }
-    }
-    /// Get pets by a given [`Condition`].
-    /// # Examples
-    /// ---
-    /// Pets with a [`StartOfBattle`](crate::battle::state::Status::StartOfBattle) [`Effect`](crate::Effect) trigger.
-    /// ```
-    /// use saptest::{
-    ///     Pet, PetName, Team, Condition,
-    ///     battle::state::{Status, EqualityCondition}
-    /// };
-    ///
-    /// let pets = [
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Mosquito).unwrap()
-    /// ];
-    /// let mut team = Team::new(&pets, 5).unwrap();
-    /// // Get pets with a start of battle effect trigger.
-    /// let matching_pets = team.get_pets_by_cond(
-    ///     &Condition::Equal(EqualityCondition::Trigger(Status::StartOfBattle))
-    /// );
-    /// assert_eq!(
-    ///     matching_pets.len(),
-    ///     2
-    /// );
-    /// ```
-    /// ---
-    /// Pets with [`Honey`](crate::FoodName::Honey) as [`Food`](crate::Food).
-    /// ```
-    /// use saptest::{
-    ///     Pet, PetName, Food, FoodName, Team, Condition, EntityName, Position,
-    ///     battle::state::{Status, EqualityCondition}
-    /// };
-    /// let pets = [
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Mosquito).unwrap()
-    /// ];
-    /// let mut team = Team::new(&pets, 5).unwrap();
-    /// // Give two random pets honey.
-    /// team.set_item(
-    ///     Position::N(Condition::None, 2, true),
-    ///     Some(Food::try_from(FoodName::Honey).unwrap())
-    /// );
-    /// let matching_pets = team.get_pets_by_cond(
-    ///     &Condition::Equal(
-    ///         EqualityCondition::Name(
-    ///             EntityName::Food(FoodName::Honey)
-    ///         )
-    ///    )
-    /// );
-    /// assert_eq!(matching_pets.len(), 2);
-    /// ```
-    pub fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
-        if let Condition::Multiple(conditions) = cond {
-            conditions
-                .iter()
-                .flat_map(|condition| self.get_pets_by_cond(condition))
-                .collect()
-        } else if let Condition::MultipleAll(conditions) = cond {
-            let mut matching_pets = vec![];
-            let all_matches = conditions
-                .iter()
-                .map(|cond| self.get_pets_by_cond(cond))
-                .collect_vec();
-            // Take smallest set of matches.
-            if let Some(mut first_matching_pets) = all_matches
-                .iter()
-                .min_by(|matches_1, matches_2| matches_1.len().cmp(&matches_2.len()))
-                .cloned()
-            {
-                // Remove any pets not within.
-                for matches in all_matches.iter() {
-                    first_matching_pets.retain(|pet| matches.contains(pet))
-                }
-                matching_pets.extend(first_matching_pets.iter().cloned())
-            }
-            matching_pets
-        } else {
-            let all_pets = self.all().into_iter();
-            match cond {
-                Condition::Healthiest => all_pets
-                    .max_by(|pet_1, pet_2| {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .health
-                            .cmp(&pet_2.borrow().stats.health)
-                    })
-                    .map_or(vec![], |found| vec![found]),
-                Condition::Illest => all_pets
-                    .min_by(|pet_1, pet_2| {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .health
-                            .cmp(&pet_2.borrow().stats.health)
-                    })
-                    .map_or(vec![], |found| vec![found]),
-                Condition::Strongest => all_pets
-                    .max_by(|pet_1, pet_2| {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .attack
-                            .cmp(&pet_2.borrow().stats.attack)
-                    })
-                    .map_or(vec![], |found| vec![found]),
-                Condition::Weakest => all_pets
-                    .min_by(|pet_1, pet_2| {
-                        pet_1
-                            .borrow()
-                            .stats
-                            .attack
-                            .cmp(&pet_2.borrow().stats.attack)
-                    })
-                    .map_or(vec![], |found| vec![found]),
-                Condition::Equal(eq_cond) => self.check_eq_cond(all_pets, eq_cond),
-                Condition::NotEqual(eq_cond) => {
-                    let eqiv_pets = self.check_eq_cond(all_pets.clone(), eq_cond);
-                    all_pets
-                        .into_iter()
-                        .filter(|pet| !eqiv_pets.contains(pet))
-                        .collect_vec()
-                }
-                // Allow all if condition is None.
-                Condition::None => self.all(),
-                Condition::HighestTier => all_pets
-                    .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
-                    .map_or(vec![], |found| vec![found]),
-                Condition::LowestTier => all_pets
-                    .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
-                    .map_or(vec![], |found| vec![found]),
-                _ => unimplemented!("Condition not implemented."),
-            }
-        }
-    }
-
     /// Push a pet to another position on the team.
     /// * `by` is relative to current position.
     /// * An `opponent` can be provided optionally to update their `triggers`.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName, Team, Statistics};
+    /// use saptest::{Pet, PetName, Team, TeamViewer, Statistics};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Gorilla).unwrap(),
@@ -680,131 +510,6 @@ impl Team {
         Ok(self)
     }
 
-    /// Get a pet at the specified index.
-    /// * Fainted pets are ignored.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    /// ], 5).unwrap();
-    ///
-    /// assert_eq!(
-    ///     team.nth(1).unwrap().borrow().name,
-    ///     PetName::Leopard
-    /// )
-    /// ```
-    pub fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .get(idx)
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
-    }
-
-    /// Get the first pet on team.
-    /// * Fainted pets are ignored.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    /// ], 5).unwrap();
-    ///
-    /// assert_eq!(
-    ///     team.first().unwrap().borrow().name,
-    ///     PetName::Gorilla
-    /// )
-    /// ```
-    pub fn first(&self) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .first()
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
-    }
-
-    /// Get the first pet on team.
-    /// * Fainted pets are ignored.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    /// ], 5).unwrap();
-    ///
-    /// assert_eq!(
-    ///     team.last().unwrap().borrow().name,
-    ///     PetName::Cat
-    /// )
-    /// ```
-    pub fn last(&self) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .last()
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
-    }
-
-    /// Get a random available pet.
-    /// * Fainted pets and/or empty slots are ignored.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Dog).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    /// ], 5).unwrap();
-    /// team.set_seed(Some(0));
-    ///
-    /// assert_eq!(
-    ///     team.any().unwrap().borrow().name,
-    ///     PetName::Cat
-    /// )
-    /// ```
-    #[allow(dead_code)]
-    pub fn any(&self) -> Option<Rc<RefCell<Pet>>> {
-        let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-        self.all().into_iter().choose(&mut rng)
-    }
-
-    /// Get all available pets.
-    /// * Fainted pets and/or empty slots are ignored.
-    /// # Examples
-    /// ```
-    /// use saptest::{Pet, PetName, Team};
-    ///
-    /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap()
-    /// ], 5).unwrap();
-    ///
-    /// assert_eq!(
-    ///     team.all().len(),
-    ///     3
-    /// )
-    /// ```
-    pub fn all(&self) -> Vec<Rc<RefCell<Pet>>> {
-        self.friends
-            .iter()
-            .filter_map(|pet| {
-                if pet.borrow().stats.health != 0 {
-                    Some(pet.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec()
-    }
-
     pub(super) fn set_indices(&self) -> &Self {
         for (i, friend) in self.friends.iter().enumerate() {
             if let Ok(mut unborrowed_pet) = friend.try_borrow_mut() {
@@ -819,7 +524,7 @@ impl Team {
     ///
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName, Team};
+    /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
     ///     Pet::try_from(PetName::Cat).unwrap(),
@@ -902,7 +607,7 @@ impl Team {
     /// ---
     /// To complete the battle.
     /// ```rust
-    /// use saptest::{Team, Pet, PetName, battle::state::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, battle::team::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
@@ -923,7 +628,7 @@ impl Team {
     /// ---
     /// To complete `n` turns.
     /// ```rust
-    /// use saptest::{Team, Pet, PetName, battle::state::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, battle::team::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],

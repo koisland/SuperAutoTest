@@ -1,10 +1,13 @@
 use crate::{
     battle::{
+        team::{Team, TeamFightOutcome},
+        team_viewer::TeamViewer,
+    },
+    effects::{
         actions::{Action, GainType, StatChangeType},
         effect::Entity,
-        state::{Position, Target, TeamFightOutcome},
+        state::{Position, Target},
         stats::Statistics,
-        team::Team,
         trigger::{TRIGGER_NONE, TRIGGER_START_BATTLE},
     },
     foods::{food::Food, names::FoodName},

@@ -1,6 +1,7 @@
 use crate::{
-    battle::{
-        state::{Position, Status, TeamFightOutcome},
+    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
+    effects::{
+        state::{Position, Status},
         stats::Statistics,
         trigger::TRIGGER_START_BATTLE,
     },

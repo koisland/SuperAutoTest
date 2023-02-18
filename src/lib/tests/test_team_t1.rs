@@ -1,21 +1,16 @@
 use crate::{
-    battle::{
-        effect::EntityName, state::TeamFightOutcome, stats::Statistics,
-        team_effect_apply::TeamEffects, trigger::TRIGGER_START_BATTLE,
-    },
+    battle::{team::TeamFightOutcome, team_effect_apply::TeamEffects, team_viewer::TeamViewer},
+    effects::{effect::EntityName, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::names::FoodName,
     pets::names::PetName,
     tests::common::{
-        count_pets, test_ant_team, test_beetle_team, test_chinchilla_team, test_cockroach_team,
-        test_cricket_horse_team, test_frilled_dragon_team, test_frog_team, test_hummingbird_team,
-        test_iguana_seahorse_team, test_mosq_team, test_moth_team,
+        count_pets, test_ant_team, test_beaver_team, test_beetle_team, test_bluebird_team,
+        test_chinchilla_team, test_cockroach_team, test_cricket_horse_team, test_duck_team,
+        test_duckling_team, test_fish_team, test_frilled_dragon_team, test_frog_team,
+        test_hummingbird_team, test_iguana_seahorse_team, test_ladybug_team, test_marmoset_team,
+        test_mosq_team, test_moth_team, test_pig_team,
     },
     Condition, Entity, Position, ShopItemViewer, ShopViewer, TeamShopping,
-};
-
-use super::common::{
-    test_beaver_team, test_bluebird_team, test_duck_team, test_duckling_team, test_fish_team,
-    test_ladybug_team, test_marmoset_team, test_pig_team,
 };
 
 #[test]

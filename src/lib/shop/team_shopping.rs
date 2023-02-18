@@ -1,12 +1,16 @@
 use std::{cell::RefCell, rc::Rc};
 
 use itertools::Itertools;
+use log::info;
 
 use crate::{
     battle::{
+        team_effect_apply::{EffectApplyHelpers, TeamEffects},
+        team_viewer::TeamViewer,
+    },
+    effects::{
         effect::Entity,
         state::{Status, Target},
-        team_effect_apply::{EffectApplyHelpers, TeamEffects},
         trigger::*,
     },
     error::SAPTestError,
@@ -84,7 +88,7 @@ pub trait TeamShopping {
     /// Sell a [`Pet`](crate::Pet) on the [`Team`](crate::Team) for gold.
     /// # Example
     /// ```
-    /// use saptest::{Team, TeamShopping, Pet, PetName, Position};
+    /// use saptest::{Team, TeamViewer, TeamShopping, Pet, PetName, Position};
     ///
     /// let mut team = Team::new(
     ///     &[Pet::try_from(PetName::Ant).unwrap()],
@@ -219,7 +223,8 @@ pub trait TeamShopping {
     /// ```
     /// use saptest::{
     ///     Shop, ShopItem, ShopViewer,
-    ///     TeamShopping, Team, EntityName, FoodName,
+    ///     TeamShopping, Team,
+    ///     EntityName, Food, FoodName,
     /// };
     ///
     /// // Create default team and empty shop.
@@ -232,7 +237,7 @@ pub trait TeamShopping {
     ///
     /// // Create a custom shop.
     /// let mut custom_shop = Shop::new(5, Some(12)).unwrap();
-    /// let coconut = ShopItem::new(EntityName::Food(FoodName::Coconut), 5).unwrap();
+    /// let coconut = ShopItem::new(Food::try_from(FoodName::Coconut).unwrap());
     /// custom_shop.add_item(coconut).unwrap();
     /// assert!(
     ///     custom_shop.pets.len() == 4 &&
@@ -285,7 +290,7 @@ impl TeamShoppingHelpers for Team {
         // Give food to a single pet.
         if food.borrow().holdable {
             let affected_pets =
-                self.get_pets_by_pos(self.first(), Target::Friend, to_pos, None, None)?;
+                self.get_pets_by_pos(self.first(), &Target::Friend, to_pos, None, None)?;
             let (_, target_pet) = affected_pets
                 .first()
                 .ok_or(SAPTestError::InvalidTeamAction {
@@ -304,7 +309,7 @@ impl TeamShoppingHelpers for Team {
             let target_pos =
                 Position::Multiple(vec![food_ability.position.clone(); food.borrow().n_targets]);
             let affected_pets =
-                self.get_pets_by_pos(self.first(), Target::Friend, &target_pos, None, None)?;
+                self.get_pets_by_pos(self.first(), &Target::Friend, &target_pos, None, None)?;
             // For each pet found by the effect of food bought, apply its effect.
             for (_, pet) in affected_pets {
                 food_ability.assign_owner(Some(&pet));
@@ -326,7 +331,7 @@ impl TeamShoppingHelpers for Team {
         empty_team: &mut Team,
     ) -> Result<(), SAPTestError> {
         let affected_pets =
-            self.get_pets_by_pos(self.first(), Target::Friend, to_pos, None, None)?;
+            self.get_pets_by_pos(self.first(), &Target::Friend, to_pos, None, None)?;
 
         let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
             // If affected pet same as purchased pet.
@@ -359,7 +364,9 @@ impl TeamShoppingHelpers for Team {
                     prev_lvl += 1;
 
                     // If pet levels, add a pet (tier above current tier) to shop.
-                    self.shop.add_levelup_pet()?;
+                    if self.shop.add_levelup_pet().is_err() {
+                        info!(target: "run", "Maximum pet capacity reached. No levelup pet added.")
+                    };
 
                     // Add triggers for effects that trigger on any levelup.
                     let mut levelup_any_trigger = TRIGGER_ANY_LEVELUP;
@@ -477,7 +484,7 @@ impl TeamShopping for Team {
             });
         }
 
-        let affected_pets = self.get_pets_by_pos(self.first(), Target::Friend, pos, None, None)?;
+        let affected_pets = self.get_pets_by_pos(self.first(), &Target::Friend, pos, None, None)?;
 
         if !affected_pets.is_empty() {
             for (_, pet) in affected_pets {

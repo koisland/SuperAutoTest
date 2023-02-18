@@ -1,22 +1,25 @@
 use crate::{
     battle::{
+        team::Team,
+        team_viewer::{TargetPets, TeamViewer},
+    },
+    db::record::PetRecord,
+    effects::{
         actions::{
             Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
         },
         effect::{Effect, Entity, Modify},
-        state::{Condition, Outcome, Position, Status, Target},
+        state::{Condition, EqualityCondition, Outcome, Position, Status, Target},
         stats::Statistics,
-        team::Team,
         trigger::*,
     },
-    db::record::PetRecord,
     error::SAPTestError,
     pets::{
         names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
-    shop::store::{ItemSlot, ShopState},
-    Food, Pet, PetCombat, ShopViewer, SAPDB,
+    shop::store::ShopState,
+    Food, Pet, PetCombat, SAPDB,
 };
 
 use itertools::Itertools;
@@ -29,10 +32,6 @@ use rand::{
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
-use super::state::EqualityCondition;
-
-/// Pet doesn't store a reference to team so this was a workaround.
-type TargetPets = Vec<(Target, Rc<RefCell<Pet>>)>;
 const NONSPECIFIC_POSITIONS: [Position; 5] = [
     Position::None,
     Position::Any(Condition::None),
@@ -49,7 +48,11 @@ pub trait TeamEffects {
     /// Apply [`Pet`](crate::pets::pet::Pet) [`Effect`]s based on a team's stored [`Outcome`] triggers.
     /// # Example
     /// ```rust
-    /// use saptest::{TeamEffects, Team, Pet, PetName, battle::trigger::TRIGGER_START_BATTLE};
+    /// use saptest::{
+    ///     TeamEffects, Team, TeamViewer,
+    ///     Pet, PetName,
+    ///     effects::trigger::TRIGGER_START_BATTLE
+    /// };
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
@@ -69,7 +72,11 @@ pub trait TeamEffects {
     /// * Effects and triggers should contain a Weak reference to the owning/affecting pet.
     /// # Examples
     /// ```rust
-    /// use saptest::{TeamEffects, Team, Pet, PetName, Statistics, battle::{state::Status, trigger::*}};
+    /// use saptest::{
+    ///     TeamEffects, Team, TeamViewer,
+    ///     Pet, PetName,
+    ///     Statistics, effects::{state::Status, trigger::*}
+    /// };
     /// // Get mosquito effect.
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// // Get effect with no reference.
@@ -336,21 +343,6 @@ pub(crate) trait EffectApplyHelpers {
         effect: &Effect,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError>;
-    fn get_pets_by_pos(
-        &self,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
-        target: Target,
-        pos: &Position,
-        trigger: Option<Outcome>,
-        opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError>;
-    /// Get pets by Outcome trigger and a Position.
-    fn get_pets_by_effect(
-        &self,
-        trigger: &Outcome,
-        effect: &Effect,
-        opponent: &Team,
-    ) -> Result<TargetPets, SAPTestError>;
     fn copy_effect(
         &self,
         attr_to_copy: &CopyType,
@@ -996,338 +988,5 @@ impl EffectApplyHelpers for Team {
             Target::Friend,
             adj_idx.clamp(0, self.max_size.try_into()?).try_into()?,
         ))
-    }
-
-    fn get_pets_by_pos(
-        &self,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
-        target: Target,
-        pos: &Position,
-        trigger: Option<Outcome>,
-        opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError> {
-        let mut pets = vec![];
-
-        let opponent = match &target {
-            // Set opponent to be self as target opponent will never be used.
-            Target::Friend | Target::Shop => self,
-            Target::Enemy | Target::Either => {
-                let Some(enemy_team) = opponent else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "No Enemy Team Provided".to_string(),
-                        reason: format!("Enemy team is required for finding pets by target {:?}", &target)
-                    })
-                };
-                enemy_team
-            }
-            _ => unimplemented!(),
-        };
-
-        match (target, &pos) {
-            (Target::Friend | Target::Enemy, Position::Any(condition)) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
-                if let Some(random_pet) = team
-                    .get_pets_by_cond(condition)
-                    .into_iter()
-                    .choose(&mut rng)
-                {
-                    pets.push((target, random_pet))
-                }
-            }
-            (Target::Either, Position::Any(condition)) => {
-                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                let self_pets = self.get_pets_by_cond(condition);
-                let opponent_pets = opponent.get_pets_by_cond(condition);
-                if let Some(random_pet) = vec![Target::Friend; self_pets.len()]
-                    .into_iter()
-                    .zip_eq(self_pets)
-                    .chain(
-                        vec![Target::Enemy; opponent_pets.len()]
-                            .into_iter()
-                            .zip_eq(opponent_pets),
-                    )
-                    .choose(&mut rng)
-                {
-                    pets.push(random_pet)
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::All(condition)) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                for pet in team.get_pets_by_cond(condition) {
-                    pets.push((target, pet))
-                }
-            }
-            (Target::Either, Position::All(condition)) => {
-                for (target_team, team) in [(Target::Friend, self), (Target::Enemy, opponent)] {
-                    for pet in team.get_pets_by_cond(condition) {
-                        pets.push((target_team, pet))
-                    }
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::Opposite) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                if let Some(Some(pos)) = &curr_pet.map(|pet| pet.borrow().pos) {
-                    if let Some(opposite_pet) = team.nth(*pos) {
-                        pets.push((target, opposite_pet))
-                    }
-                }
-            }
-            (_, Position::OnSelf) => {
-                if let Some(self_pet) = &curr_pet {
-                    pets.push((target, self_pet.clone()))
-                }
-            }
-            (_, Position::TriggerAffected) => {
-                let Some(trigger) = trigger else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "No Trigger Provided".to_string(),
-                        reason: format!("Trigger required for finding pets by {:?}", pos.clone())
-                    })
-                };
-                if let Some(Some(affected_pet)) = trigger
-                    .affected_pet
-                    .as_ref()
-                    .map(|pet_ref| pet_ref.upgrade())
-                {
-                    pets.push((trigger.affected_team, affected_pet))
-                }
-            }
-            (_, Position::TriggerAfflicting) => {
-                let Some(trigger) = trigger else {
-                    let pos = pos.clone();
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "No Trigger Provided".to_string(),
-                        reason: format!("Trigger required for finding pets by {pos:?}")
-                    })
-                };
-                if let Some(Some(afflicting_pet)) = trigger
-                    .afflicting_pet
-                    .as_ref()
-                    .map(|pet_ref| pet_ref.upgrade())
-                {
-                    pets.push((trigger.affected_team, afflicting_pet))
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                if let Some(Some(effect_pet_idx)) = &curr_pet.as_ref().map(|pet| pet.borrow().pos) {
-                    let (target_team, adj_idx) = team
-                        ._cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
-                        .unwrap();
-                    // Pet can only be on same team.
-                    if target_team == Target::Friend {
-                        if let Some(rel_pet) = team.friends.get(adj_idx) {
-                            pets.push((target, rel_pet.clone()))
-                        }
-                    }
-                }
-            }
-            (Target::Either, Position::Relative(rel_pos)) => {
-                if let Some(Some(effect_pet_idx)) = &curr_pet.as_ref().map(|pet| pet.borrow().pos) {
-                    let (target_team, adj_idx) = self
-                        ._cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
-                        .unwrap();
-                    let team = if target_team == Target::Friend {
-                        self
-                    } else {
-                        opponent
-                    };
-                    if let Some(rel_pet) = team.friends.get(adj_idx) {
-                        pets.push((target_team, rel_pet.clone()))
-                    }
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::Range(effect_range)) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                for idx in effect_range.clone() {
-                    if let Some(Some(effect_pet_idx)) =
-                        curr_pet.as_ref().map(|pet| pet.borrow().pos)
-                    {
-                        let (target_team, adj_idx) =
-                            team._cvt_rel_idx_to_adj_idx(effect_pet_idx, idx).unwrap();
-                        if target_team == Target::Friend {
-                            if let Some(rel_pet) = team.friends.get(adj_idx) {
-                                pets.push((target_team, rel_pet.clone()))
-                            }
-                        }
-                    }
-                }
-            }
-            (Target::Either, Position::Range(effect_range)) => {
-                for idx in effect_range.clone() {
-                    if let Some(Some(effect_pet_idx)) =
-                        &curr_pet.as_ref().map(|pet| pet.borrow().pos)
-                    {
-                        let (target_team, adj_idx) =
-                            self._cvt_rel_idx_to_adj_idx(*effect_pet_idx, idx).unwrap();
-                        let team = if target_team == Target::Friend {
-                            self
-                        } else {
-                            opponent
-                        };
-                        if let Some(rel_pet) = team.friends.get(adj_idx) {
-                            pets.push((target_team, rel_pet.clone()))
-                        }
-                    }
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::First) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                if let Some(first_pet) = team.all().first() {
-                    pets.push((target, first_pet.clone()))
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::Last) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                if let Some(last_pet) = team.all().last() {
-                    pets.push((target, last_pet.clone()))
-                }
-            }
-            (_, Position::Multiple(positions)) => {
-                for pos in positions {
-                    pets.extend(self.get_pets_by_pos(
-                        curr_pet.clone(),
-                        target,
-                        pos,
-                        trigger.clone(),
-                        Some(opponent),
-                    )?)
-                }
-            }
-            (Target::Either, Position::N(condition, num_pets, randomize)) => {
-                let mut self_pets = self.get_pets_by_cond(condition);
-                let mut opponent_pets = opponent.get_pets_by_cond(condition);
-
-                if *randomize {
-                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                    self_pets.shuffle(&mut rng);
-                    opponent_pets.shuffle(&mut rng);
-                }
-
-                let (mut self_pets, mut opponent_pets) =
-                    (self_pets.into_iter(), opponent_pets.into_iter());
-
-                // Get n values of indices.
-                for n in 0..*num_pets {
-                    // Alternate between teams.
-                    if n % 2 == 0 {
-                        if let Some(pet) = self_pets.next() {
-                            pets.push((Target::Friend, pet))
-                        }
-                    } else if let Some(pet) = opponent_pets.next() {
-                        pets.push((Target::Enemy, pet))
-                    }
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::N(condition, n, randomize)) => {
-                let team = if target == Target::Friend {
-                    self
-                } else {
-                    opponent
-                };
-                let mut found_pets = team.get_pets_by_cond(condition);
-                if *randomize {
-                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                    found_pets.shuffle(&mut rng);
-                }
-                let mut found_pets = found_pets.into_iter();
-
-                // Get n values of indices.
-                for _ in 0..*n {
-                    if let Some(pet) = found_pets.next() {
-                        pets.push((target, pet))
-                    }
-                }
-            }
-            (Target::Friend | Target::Enemy, Position::Adjacent) => {
-                let friends = if target == Target::Friend {
-                    &self.friends
-                } else {
-                    &opponent.friends
-                };
-                let Some(Some(pos)) = curr_pet.map(|pet| pet.borrow().pos) else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "No Pet Position Idx".to_string(),
-                        reason: format!("Pet position required for finding pets by {pos:?}")
-                    })
-                };
-                // Get pet ahead and behind.
-                if let Some(Some(prev_pet)) = pos.checked_sub(1).map(|idx| {
-                    friends
-                        .iter()
-                        .find(|friend| friend.borrow().pos == Some(idx))
-                }) {
-                    pets.push((target, prev_pet.clone()))
-                };
-                if let Some(ahead_pet) = friends
-                    .iter()
-                    .find(|friend| friend.borrow().pos == Some(pos + 1))
-                {
-                    pets.push((target, ahead_pet.clone()))
-                }
-            }
-            (Target::Shop, pos) => {
-                let items = self.shop.get_shop_items_by_pos(pos, &Entity::Pet)?;
-                for item in items {
-                    if let ItemSlot::Pet(shop_pet) = &item.item {
-                        pets.push((target, shop_pet.clone()))
-                    }
-                }
-            }
-            _ => unimplemented!(),
-        }
-
-        Ok(pets)
-    }
-
-    fn get_pets_by_effect(
-        &self,
-        trigger: &Outcome,
-        effect: &Effect,
-        opponent: &Team,
-    ) -> Result<TargetPets, SAPTestError> {
-        let curr_pet = if let Some(effect_pet) = &effect.owner {
-            effect_pet.upgrade()
-        } else {
-            // Otherwise, use first pet on team.
-            self.first()
-        };
-
-        self.get_pets_by_pos(
-            curr_pet,
-            effect.target,
-            &effect.position,
-            Some(trigger.clone()),
-            Some(opponent),
-        )
     }
 }

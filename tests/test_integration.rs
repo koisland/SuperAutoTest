@@ -1,11 +1,13 @@
 use saptest::{
-    battle::{
+    battle::team::TeamFightOutcome,
+    effects::{
         actions::{Action, GainType, StatChangeType},
         effect::Entity,
-        state::{Position, Status, Target, TeamFightOutcome},
+        state::{Position, Status, Target},
         trigger::*,
     },
-    Effect, Food, FoodName, Pet, PetName, Statistics, Team, TeamEffects, SAPDB,
+    Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
+    TeamShopping, SAPDB,
 };
 use std::{str::FromStr, thread};
 
@@ -124,6 +126,36 @@ fn test_create_team() {
 }
 
 #[test]
+fn test_custom_shop() {
+    let mut team = Team::default();
+    let mut tier_5_shop = Shop::new(3, Some(42)).unwrap();
+    let new_shop_item = ShopItem::new(Food::try_from(FoodName::Coconut).unwrap());
+    tier_5_shop.add_item(new_shop_item).unwrap();
+    assert!(team.replace_shop(tier_5_shop).is_ok());
+}
+
+#[test]
+fn test_team_shop() {
+    // All teams are constructed with a shop at tier 1.
+    let mut team = Team::default();
+
+    // All shop functionality is supported.
+    team.set_shop_seed(Some(1212))
+        .open_shop()
+        .unwrap()
+        .buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap()
+        .sell(&Position::First)
+        .unwrap()
+        .freeze_shop(Position::Last, Entity::Pet)
+        .unwrap()
+        .roll_shop()
+        .unwrap()
+        .close_shop()
+        .unwrap();
+}
+
+#[test]
 fn test_multithreaded_team_battle() {
     let n_threads = 12;
     let mut children = vec![];
@@ -231,7 +263,7 @@ fn test_serialize_pet() {
     pet.seed = Some(20);
 
     let json_pet = serde_json::to_string(&pet).unwrap();
-    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":1},"effect":[{"entity":"Pet","trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"StaticValue":{"attack":2,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":null}"#;
+    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":1},"effect":[{"entity":"Pet","trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"StaticValue":{"attack":2,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null}"#;
     assert_eq!(json_pet, exp_json);
 
     // Restore pet from json string.
@@ -255,7 +287,7 @@ fn test_serialize_team() {
     team.set_seed(Some(20));
 
     let json_team: String = (&team).try_into().unwrap();
-    let exp_json = r#"{"seed":20,"name":"","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":3}],"fainted":[],"max_size":5,"triggers":[],"stored_friends":[{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"lvl":1,"exp":0,"pos":null}],"pet_count":4}"#;
+    let exp_json = r#"{"seed":20,"name":"","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"fainted":[],"max_size":5,"triggers":[],"stored_friends":[{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null}],"pet_count":4}"#;
     assert_eq!(exp_json, json_team);
 
     let new_team = Team::from_str(&json_team).unwrap();

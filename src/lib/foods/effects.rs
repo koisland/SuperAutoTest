@@ -1,12 +1,12 @@
 use crate::{
-    battle::{
+    db::record::FoodRecord,
+    effects::{
         actions::{Action, StatChangeType, SummonType},
         effect::{Effect, Entity},
         state::{Condition, Position, Target},
         stats::Statistics,
         trigger::*,
     },
-    db::record::FoodRecord,
     error::SAPTestError,
     foods::names::FoodName,
     pets::{

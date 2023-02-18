@@ -11,11 +11,8 @@ use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
 
 use crate::{
-    battle::{
-        effect::{Entity, EntityName},
-        stats::Statistics,
-    },
     db::utils::setup_param_query,
+    effects::{effect::Entity, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
     pets::{names::PetName, pet::Pet},
@@ -59,22 +56,7 @@ pub(crate) enum ItemSlot {
     /// A shop food.
     Food(Rc<RefCell<Food>>),
 }
-impl ItemSlot {
-    /// Create an item slot from a name.
-    /// * This will create the default item.
-    pub(crate) fn new(name: EntityName) -> Result<ItemSlot, SAPTestError> {
-        match name {
-            EntityName::Pet(pet_name) => {
-                let pet = Rc::new(RefCell::new(Pet::try_from(pet_name)?));
-                Ok(ItemSlot::Pet(pet))
-            }
-            EntityName::Food(food_name) => {
-                let food = Rc::new(RefCell::new(Food::try_from(food_name)?));
-                Ok(ItemSlot::Food(food))
-            }
-        }
-    }
-}
+
 /// A [`Shop`] item.
 #[derive(Debug, Clone, PartialEq)]
 pub struct ShopItem {
@@ -92,22 +74,40 @@ impl ShopItem {
     /// ---
     /// Create a [`Coconut`](crate::FoodName::Coconut) that costs `5` gold in a [`Shop`].
     /// ```
-    /// use saptest::{Shop, ShopItem, EntityName, FoodName};
+    /// use saptest::{Shop, ShopItem, ShopItemViewer, EntityName, Food, FoodName};
     ///
     /// let new_shop_item = ShopItem::new(
-    ///     EntityName::Food(FoodName::Coconut),
-    ///     5
+    ///     Food::try_from(FoodName::Coconut).unwrap(),
     /// );
-    /// assert!(new_shop_item.is_ok());
+    /// assert!(new_shop_item.name() == EntityName::Food(FoodName::Coconut));
     /// ```
-    pub fn new(name: EntityName, cost: usize) -> Result<Self, SAPTestError> {
-        Ok(ShopItem {
-            item: ItemSlot::new(name)?,
-            state: ItemState::Normal,
-            cost,
-        })
+    pub fn new<I: Into<ShopItem>>(item: I) -> Self {
+        item.into()
     }
 }
+
+impl From<Food> for ShopItem {
+    fn from(value: Food) -> Self {
+        let cost = value.cost;
+        ShopItem {
+            item: ItemSlot::Food(Rc::new(RefCell::new(value))),
+            state: ItemState::Normal,
+            cost,
+        }
+    }
+}
+
+impl From<Pet> for ShopItem {
+    fn from(value: Pet) -> Self {
+        let cost = value.cost;
+        ShopItem {
+            item: ItemSlot::Pet(Rc::new(RefCell::new(value))),
+            state: ItemState::Normal,
+            cost,
+        }
+    }
+}
+
 /// Sum the cost of shop items.
 impl Add for &ShopItem {
     type Output = usize;
@@ -241,28 +241,31 @@ impl Shop {
     /// ---
     /// Add a food to the shop.
     /// ```
-    /// use saptest::{Shop, ShopItem, EntityName, PetName};
+    /// use saptest::{Shop, ShopItem, EntityName, Pet, PetName};
+    ///
     /// let mut shop = Shop::default();
-    /// let pet = ShopItem::new(EntityName::Pet(PetName::Ant), 3).unwrap();
+    /// let pet = ShopItem::new(Pet::try_from(PetName::Ant).unwrap());
     /// assert!(shop.add_item(pet).is_ok());
     /// ```
     /// ---
     /// Add a pet to the shop.
     /// ```
-    /// use saptest::{Shop, ShopItem, EntityName, FoodName};
+    /// use saptest::{Shop, ShopItem, EntityName, Food, FoodName};
+    ///
     /// let mut shop = Shop::default();
-    /// let food = ShopItem::new(EntityName::Food(FoodName::Coconut), 5).unwrap();
+    /// let food = ShopItem::new(Food::try_from(FoodName::Coconut).unwrap());
     /// assert!(shop.add_item(food).is_ok());
     /// ```
     /// ---
     /// Override the rightmost pet with a food.
     /// ```
-    /// use saptest::{Shop, ShopItem, ShopViewer, EntityName, FoodName};
+    /// use saptest::{Shop, ShopItem, ShopViewer, EntityName, Food, FoodName};
+    ///
     /// let mut shop = Shop::new(5, Some(12)).unwrap();
     /// assert_eq!(shop.len_foods(), 2);
     /// assert_eq!(shop.len_pets(), 5);
     ///
-    /// let food = ShopItem::new(EntityName::Food(FoodName::Coconut), 5).unwrap();
+    /// let food = ShopItem::new(Food::try_from(FoodName::Coconut).unwrap());
     /// shop.add_item(food);
     /// assert_eq!(shop.len_foods(), 3);
     /// assert_eq!(shop.len_pets(), 4);
@@ -284,8 +287,8 @@ impl Shop {
                 }
             }
             ItemSlot::Food(_) => {
-                // No pet slots available so we remove the rightmost pet.
-                if self.available_pet_slots() == 0 {
+                // Open pet slots available so we remove the rightmost pet.
+                if self.available_pet_slots() != self.max_pet_slots() {
                     self.pets.pop();
                 }
                 // Foods cannot exceed total shop length.
@@ -440,14 +443,8 @@ impl Shop {
         )?;
 
         if let Some(added_pet) = records.first().cloned() {
-            let cost = added_pet.cost;
             let pet: Pet = added_pet.try_into()?;
-            let rc_pet = Rc::new(RefCell::new(pet));
-            self.pets.push(ShopItem {
-                item: ItemSlot::Pet(rc_pet),
-                state: ItemState::Normal,
-                cost,
-            });
+            self.add_item(pet.into())?;
         }
         Ok(self)
     }

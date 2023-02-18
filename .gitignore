@@ -4,3 +4,4 @@
 /log
 *.db
 *.profraw
+*.html

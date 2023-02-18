@@ -1,4 +1,4 @@
-use crate::battle::{
+use crate::effects::{
     state::{Condition, Outcome, Position, Status, Target},
     stats::Statistics,
 };

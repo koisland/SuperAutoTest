@@ -107,7 +107,7 @@ pet.attack(&mut custom_pet);
 ```
 
 ### Logging
-Enable logging with [`log4rs`] with `build_log_config` to view battle logic.
+Enable logging with `log4rs` with `build_log_config` to view battle logic.
 ```rust
 use saptest::logging::build_log_config;
 

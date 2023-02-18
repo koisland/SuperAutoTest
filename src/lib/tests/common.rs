@@ -1,10 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::{
-    battle::{state::Position, stats::Statistics, team::Team},
-    foods::{food::Food, names::FoodName},
-    pets::{names::PetName, pet::Pet},
-};
+use crate::{Food, FoodName, Pet, PetName, Position, Statistics, Team};
 
 pub fn count_pets(friends: &[Rc<RefCell<Pet>>], pet_name: PetName) -> usize {
     friends

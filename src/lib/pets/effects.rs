@@ -1,5 +1,6 @@
 use crate::{
-    battle::{
+    db::record::PetRecord,
+    effects::{
         actions::{
             Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
         },
@@ -7,7 +8,6 @@ use crate::{
         state::{Condition, EqualityCondition, Position, Status, Target},
         trigger::*,
     },
-    db::record::PetRecord,
     error::SAPTestError,
     foods::{food::Food, names::FoodName},
     shop::trigger::*,
@@ -319,7 +319,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     target: Target::Friend,
                     position: Position::OnSelf,
                     action: Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets where lvl = ? and tier = 3 and pack = 'Turtle'"
+                        "SELECT * FROM pets WHERE lvl = ? AND tier = 3 AND pack = 'Turtle'"
                             .to_string(),
                         vec![record.lvl.to_string()],
                         None,
@@ -864,7 +864,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     target: Target::Friend,
                     position: Position::OnSelf,
                     action: Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets where tier = ? and pack = 'Star' and lvl = ?"
+                        "SELECT * FROM pets WHERE tier = ? AND pack = 'Star' AND lvl = ?"
                             .to_string(),
                         vec![(record.tier - 1).to_string(), record.lvl.to_string()],
                         None,
@@ -1101,8 +1101,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: Some(1),
             }],
             PetName::Anteater => {
-                let lvl_ant = Pet::new(PetName::Ant, None, None, record.lvl)?;
-
                 vec![Effect {
                     owner: None,
                     entity: Entity::Pet,
@@ -1112,7 +1110,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     position: Position::OnSelf,
                     action: Action::Multiple(vec![
                         Action::Summon(SummonType::StoredPet(Box::new(
-                            lvl_ant
+                            Pet::new(PetName::Ant, None, None, record.lvl)?
                         )));
                         2
                     ]),
@@ -1190,7 +1188,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         second_effect.action = Action::Shuffle(RandomizeType::Positions);
                         vec![first_effect, second_effect]
                     }
-                    _ => panic!("Invalid level."),
+                    _ => {
+                        return Err(SAPTestError::QueryFailure {
+                            subject: "Invalid Pet Level".to_string(),
+                            reason: format!("PetRecord for {} has an invalid level.", record.name),
+                        })
+                    }
                 }
             }
             PetName::Lionfish => vec![Effect {
@@ -1211,7 +1214,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets where tier = ? and pack = 'Puppy' and lvl = ?".to_string(),
+                    "SELECT * FROM pets WHERE tier = ? AND pack = 'Puppy' AND lvl = ?".to_string(),
                     vec![6.to_string(), record.lvl.to_string()],
                     None,
                 )),
@@ -1337,7 +1340,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Multiple(vec![
                     Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets where effect_trigger = ? and lvl = ?".to_string(),
+                        "SELECT * FROM pets WHERE effect_trigger = ? AND lvl = ?".to_string(),
                         vec!["Faint".to_string(), 1.to_string()],
                         None
                     ));
@@ -1385,7 +1388,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets where lvl = ? and tier = ? and name != ?".to_string(),
+                    "SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ?".to_string(),
                     vec![1.to_string(), 1.to_string(), "Sloth".to_string()],
                     Some(effect_stats),
                 )),

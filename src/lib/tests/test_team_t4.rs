@@ -1,12 +1,12 @@
 use std::rc::Rc;
 
 use crate::{
-    battle::{
+    battle::{team::TeamFightOutcome, team_effect_apply::TeamEffects, team_viewer::TeamViewer},
+    effects::{
         actions::{Action, CopyType, SummonType},
         effect::Entity,
-        state::{Position, Target, TeamFightOutcome},
+        state::{Position, Target},
         stats::Statistics,
-        team_effect_apply::TeamEffects,
         trigger::*,
     },
     foods::names::FoodName,

@@ -1,5 +1,5 @@
 use crate::{
-    battle::{
+    effects::{
         actions::Action,
         state::{Outcome, Position, Target},
     },
@@ -72,7 +72,7 @@ impl Effect {
     /// ```rust
     /// use saptest::{
     ///     Effect, Statistics,
-    ///     battle::{
+    ///     effects::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
     ///         state::{Position, Target, Condition, Outcome},
@@ -161,7 +161,7 @@ pub trait Modify {
     /// Add `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();
@@ -175,7 +175,7 @@ pub trait Modify {
     /// Remove `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();

@@ -1,5 +1,5 @@
 use crate::{
-    battle::{
+    effects::{
         actions::{Action, StatChangeType},
         effect::Entity,
         state::{Condition, Position, Target},
@@ -61,6 +61,7 @@ fn test_create_def_pet() {
             },
             lvl: 1,
             exp: 0,
+            cost: 3,
             effect: vec![Effect {
                 owner: None,
                 entity: Entity::Pet,
@@ -169,6 +170,7 @@ fn test_create_pet() {
             },
             lvl: 1,
             exp: 0,
+            cost: 3,
             effect: vec![Effect {
                 owner: None,
                 entity: Entity::Pet,
@@ -212,6 +214,7 @@ fn create_pet_token() {
             },
             lvl: 1,
             exp: 0,
+            cost: 0,
             effect: vec![],
             item: None,
             pos: None,
