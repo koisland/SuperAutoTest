@@ -3,12 +3,12 @@ use std::rc::Rc;
 use itertools::Itertools;
 
 use crate::{
-    battle::{
+    effects::state::Status,
+    pets::{names::PetName, pet::Pet},
+    teams::{
         team::{Team, TeamFightOutcome},
         team_viewer::TeamViewer,
     },
-    effects::state::Status,
-    pets::{names::PetName, pet::Pet},
 };
 
 use super::common::test_ant_team;

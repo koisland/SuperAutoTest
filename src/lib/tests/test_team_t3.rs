@@ -1,8 +1,8 @@
 use crate::{
-    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
     effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
+    teams::{team::TeamFightOutcome, team_viewer::TeamViewer},
     tests::common::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
         test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_clownfish_team,

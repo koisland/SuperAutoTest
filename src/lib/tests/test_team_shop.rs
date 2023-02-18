@@ -1,7 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    battle::team_viewer::TeamViewer, shop::store::ShopState, Condition, Entity, Pet, PetName,
+    shop::store::ShopState, teams::team_viewer::TeamViewer, Condition, Entity, Pet, PetName,
     Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
 };
 

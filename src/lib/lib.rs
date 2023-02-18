@@ -94,7 +94,7 @@
 //! ```
 //!
 //! ### Logging
-//! Enable logging with [`log4rs`] with [`build_log_config`](crate::logging::build_log_config) to view battle logic and more.
+//! Enable logging with [`log4rs`](https://docs.rs/log4rs/latest/log4rs/) with [`build_log_config`](crate::logging::build_log_config) to view battle logic and more.
 //! ```
 //! use saptest::logging::build_log_config;
 //!
@@ -120,7 +120,6 @@ extern crate lazy_regex;
 use lazy_static::lazy_static;
 use std::fs::read_to_string;
 
-pub mod battle;
 pub mod db;
 pub mod effects;
 pub mod error;
@@ -128,14 +127,16 @@ pub mod foods;
 pub mod logging;
 pub mod pets;
 pub mod shop;
+pub mod teams;
 
 #[doc(inline)]
-pub use crate::battle::{team::Team, team_effect_apply::TeamEffects, team_viewer::TeamViewer};
 pub use crate::effects::{
     effect::{Effect, Entity, EntityName},
     state::{Condition, Position},
     stats::Statistics,
 };
+#[doc(inline)]
+pub use crate::teams::{team::Team, team_effect_apply::TeamEffects, team_viewer::TeamViewer};
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]

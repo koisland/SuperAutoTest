@@ -1,8 +1,4 @@
 use crate::{
-    battle::{
-        team::Team,
-        team_viewer::{TargetPets, TeamViewer},
-    },
     db::record::PetRecord,
     effects::{
         actions::{
@@ -19,6 +15,10 @@ use crate::{
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
     shop::store::ShopState,
+    teams::{
+        team::Team,
+        team_viewer::{TargetPets, TeamViewer},
+    },
     Food, Pet, PetCombat, SAPDB,
 };
 

@@ -73,13 +73,13 @@ pub enum Position {
     TriggerAffected,
     /// Pet causing in [`Outcome`] trigger.
     TriggerAfflicting,
-    /// First pet on [`Team`](crate::battle::team::Team).
+    /// First pet on [`Team`](crate::teams::team::Team).
     First,
-    /// Last pet on [`Team`](crate::battle::team::Team).
+    /// Last pet on [`Team`](crate::teams::team::Team).
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
-    /// A specified range on a [`Team`](crate::battle::team::Team).
+    /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].
     Relative(isize),

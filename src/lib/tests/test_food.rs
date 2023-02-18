@@ -1,8 +1,4 @@
 use crate::{
-    battle::{
-        team::{Team, TeamFightOutcome},
-        team_viewer::TeamViewer,
-    },
     effects::{
         actions::{Action, GainType, StatChangeType},
         effect::Entity,
@@ -12,6 +8,10 @@ use crate::{
     },
     foods::{food::Food, names::FoodName},
     pets::{combat::PetCombat, names::PetName, pet::Pet},
+    teams::{
+        team::{Team, TeamFightOutcome},
+        team_viewer::TeamViewer,
+    },
     tests::common::test_ant_team,
     Effect,
 };

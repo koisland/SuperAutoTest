@@ -1,7 +1,6 @@
 use std::rc::Rc;
 
 use crate::{
-    battle::{team::TeamFightOutcome, team_effect_apply::TeamEffects, team_viewer::TeamViewer},
     effects::{
         actions::{Action, CopyType, SummonType},
         effect::Entity,
@@ -11,6 +10,7 @@ use crate::{
     },
     foods::names::FoodName,
     pets::names::PetName,
+    teams::{team::TeamFightOutcome, team_effect_apply::TeamEffects, team_viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_caterpillar_team,
         test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,

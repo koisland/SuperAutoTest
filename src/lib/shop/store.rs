@@ -494,8 +494,6 @@ impl Shop {
     /// // Now is tier 2.
     /// shop_default.set_tier(2);
     /// assert_eq!(shop_default.tier(), 2);
-    ///
-    /// //
     /// ```
     pub fn set_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError> {
         Shop::is_valid_shop_tier(tier)?;

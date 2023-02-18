@@ -1,5 +1,4 @@
 use crate::{
-    battle::{team_effect_apply::TeamEffects, team_viewer::TeamViewer},
     effects::{
         effect::Effect,
         state::{Outcome, Position, Status, Target},
@@ -9,6 +8,7 @@ use crate::{
     graph::effect_graph::History,
     pets::pet::{assign_effect_owner, Pet},
     shop::store::ShopState,
+    teams::{team_effect_apply::TeamEffects, team_viewer::TeamViewer},
     Food, PetCombat, Shop,
 };
 
@@ -23,12 +23,12 @@ use std::{
     rc::{Rc, Weak},
 };
 
-/// The outcome of a [`Team`](crate::battle::team::Team) fight.
+/// The outcome of a [`Team`](crate::teams::team::Team) fight.
 ///
 /// # Examples
 /// This can be used as an exit condition in a fight.
 /// ```rust
-/// use saptest::{Team, Pet, PetName, Statistics, battle::team::TeamFightOutcome};
+/// use saptest::{Team, Pet, PetName, Statistics, teams::team::TeamFightOutcome};
 ///
 /// let pet = Pet::try_from(PetName::Blowfish).unwrap();
 /// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
@@ -607,7 +607,7 @@ impl Team {
     /// ---
     /// To complete the battle.
     /// ```rust
-    /// use saptest::{Team, Pet, PetName, battle::team::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, teams::team::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
@@ -628,7 +628,7 @@ impl Team {
     /// ---
     /// To complete `n` turns.
     /// ```rust
-    /// use saptest::{Team, Pet, PetName, battle::team::TeamFightOutcome};
+    /// use saptest::{Team, Pet, PetName, teams::team::TeamFightOutcome};
     ///
     /// let mut team = Team::new(
     ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],

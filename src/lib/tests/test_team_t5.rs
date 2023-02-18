@@ -1,7 +1,6 @@
 use itertools::Itertools;
 
 use crate::{
-    battle::{team::TeamFightOutcome, team_viewer::TeamViewer},
     effects::{
         actions::{Action, StatChangeType},
         state::Position,
@@ -11,6 +10,7 @@ use crate::{
     foods::names::FoodName,
     pets::names::PetName,
     shop::store::ShopItem,
+    teams::{team::TeamFightOutcome, team_viewer::TeamViewer},
     tests::common::{
         count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_hyena_team,
         test_lion_highest_tier_team, test_lion_lowest_tier_team, test_lionfish_team,

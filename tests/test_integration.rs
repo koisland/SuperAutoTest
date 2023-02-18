@@ -1,11 +1,11 @@
 use saptest::{
-    battle::team::TeamFightOutcome,
     effects::{
         actions::{Action, GainType, StatChangeType},
         effect::Entity,
         state::{Position, Status, Target},
         trigger::*,
     },
+    teams::team::TeamFightOutcome,
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, SAPDB,
 };

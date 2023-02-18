@@ -4,10 +4,6 @@ use itertools::Itertools;
 use log::info;
 
 use crate::{
-    battle::{
-        team_effect_apply::{EffectApplyHelpers, TeamEffects},
-        team_viewer::TeamViewer,
-    },
     effects::{
         effect::Entity,
         state::{Status, Target},
@@ -18,6 +14,10 @@ use crate::{
         store::{ItemSlot, ShopState, DEFAULT_COIN_COUNT},
         trigger::*,
         viewer::ShopViewer,
+    },
+    teams::{
+        team_effect_apply::{EffectApplyHelpers, TeamEffects},
+        team_viewer::TeamViewer,
     },
     Food, Pet, Position, Shop, Team,
 };

@@ -1,4 +1,4 @@
-//! [`Team`](crate::battle::team::Team) battle and effect logic..
+//! [`Team`](crate::teams::team::Team) battle and effect logic..
 
 /// [`Team`](crate::Team) of [`Pet`](crate::Pet)s.
 pub mod team;

@@ -15,13 +15,13 @@
 //!     ```
 //!
 //! ### Configuration
-//! To modify [`SAPDB`](crate::SAPDB) behavior, create a `.saptest.toml`.
+//! To modify [`SapDB`](struct@crate::SapDB) behavior, create a `.saptest.toml`.
 //! * Specific page version to query.
 //!     * All pages on the Fandom wiki are version controlled and have an associated id.
-//!         * ex. `https://superautopets.fandom.com/wiki/Pets?oldid=4883`
+//!         * ex. <https://superautopets.fandom.com/wiki/Pets?oldid=4883>
 //!     * In the case that a page is altered with incorrect information, this can be used to find a valid version.
 //!     * Leaving this blank will default to the latest version.
-//!         * ex. https://superautopets.fandom.com/wiki/Pets
+//!         * ex. <https://superautopets.fandom.com/wiki/Pets>
 //! * Toggle recurring updates on startup.
 //!     * By default, the database is updated on startup.
 //! * Database filename.
