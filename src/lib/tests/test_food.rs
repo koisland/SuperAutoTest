@@ -391,8 +391,6 @@ fn test_attack_chili() {
 
 #[test]
 fn test_battle_honey_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_ant_team();
     let mut enemy_team = test_ant_team();
 
@@ -415,8 +413,6 @@ fn test_battle_honey_team() {
 
 #[test]
 fn test_battle_mushroom_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_ant_team();
     let mut enemy_team = test_ant_team();
 

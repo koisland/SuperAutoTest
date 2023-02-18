@@ -110,7 +110,7 @@ pub trait TeamEffects {
 
 impl TeamEffects for Team {
     fn trigger_effects(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
-        info!(target: "dev", "(\"{}\")\nTriggers:\n{}", self.name, self.triggers.iter().join("\n"));
+        info!(target: "run", "(\"{}\")\nTriggers:\n{}", self.name, self.triggers.iter().join("\n"));
 
         // Continue iterating until all triggers consumed.
         while let Some(trigger) = self.triggers.pop_front() {
@@ -484,7 +484,7 @@ impl EffectApplyHelpers for Team {
 
         // Kill the original pet.
         chosen_pet.borrow_mut().stats.health = 0;
-        info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, chosen_pet.borrow());
+        info!(target: "run", "(\"{}\")\nKilled pet {}.", self.name, chosen_pet.borrow());
 
         // Add death triggers.
         let mut self_faint_triggers = get_self_faint_triggers(&None);
@@ -512,8 +512,8 @@ impl EffectApplyHelpers for Team {
             uses: Some(1),
             temp: true,
         }];
-        info!(target: "dev", "(\"{}\")\nEvolving {}.", self.name, leveled_pet);
-        info!(target: "dev", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", self.name, target_pet.borrow());
+        info!(target: "run", "(\"{}\")\nEvolving {}.", self.name, leveled_pet);
+        info!(target: "run", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", self.name, target_pet.borrow());
         Ok(())
     }
 
@@ -534,7 +534,7 @@ impl EffectApplyHelpers for Team {
                     let mut new_stats = pet_to_copy.borrow().stats.mult_perc(&perc_stats_mult);
                     new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
                     info!(
-                        target: "dev", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
+                        target: "run", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
                         self.name,
                         perc_stats_mult.attack,
                         perc_stats_mult.health,
@@ -573,7 +573,7 @@ impl EffectApplyHelpers for Team {
                 receiving_pet.borrow_mut().stats = new_stats;
 
                 info!(
-                    target: "dev", "(\"{}\")\nSet stats for {} to {}.",
+                    target: "run", "(\"{}\")\nSet stats for {} to {}.",
                     self.name,
                     receiving_pet.borrow(),
                     receiving_pet.borrow().stats
@@ -586,7 +586,7 @@ impl EffectApplyHelpers for Team {
                 receiving_pet.borrow_mut().effect = effects;
 
                 info!(
-                    target: "dev", "(\"{}\")\nSet effect for {} to {:?}.",
+                    target: "run", "(\"{}\")\nSet effect for {} to {:?}.",
                     self.name,
                     receiving_pet.borrow(),
                     receiving_pet.borrow().effect
@@ -599,7 +599,7 @@ impl EffectApplyHelpers for Team {
 
                     receiving_pet.borrow_mut().item = Some(*food);
                     info!(
-                        target: "dev", "(\"{}\")\nCopyied item for {} to {:?}.",
+                        target: "run", "(\"{}\")\nCopyied item for {} to {:?}.",
                         self.name,
                         receiving_pet.borrow(),
                         receiving_pet.borrow().item
@@ -650,7 +650,7 @@ impl EffectApplyHelpers for Team {
                     ));
                 }
                 target_pet.borrow_mut().stats += added_stats;
-                info!(target: "dev", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, target_pet.borrow());
+                info!(target: "run", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Remove(stat_change) => {
@@ -672,7 +672,7 @@ impl EffectApplyHelpers for Team {
                     trigger.afflicting_pet = effect.owner.clone();
                 }
                 // Collect triggers for both teams.
-                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, target_pet.borrow());
+                info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, target_pet.borrow());
                 self.triggers.extend(atk_outcome.friends);
                 opponent.triggers.extend(atk_outcome.opponents);
 
@@ -684,7 +684,7 @@ impl EffectApplyHelpers for Team {
                 let num_fainted = opponent.fainted.len() + 1;
                 // If num fainted pets is even, do damage.
                 if num_fainted % 2 == 0 {
-                    info!(target: "dev", "(\"{}\")\nTwo pets fainted.", self.name);
+                    info!(target: "run", "(\"{}\")\nTwo pets fainted.", self.name);
                     let mut remove_effect = effect.clone();
                     remove_effect.action = Action::Remove(StatChangeType::StaticValue(*stats));
                     self.apply_single_effect(target_pet, &remove_effect, opponent)?;
@@ -699,11 +699,11 @@ impl EffectApplyHelpers for Team {
                 };
 
                 if food.is_none() {
-                    info!(target: "dev", "(\"{}\")\nRemoved food from {}.", self.name, target_pet.borrow());
+                    info!(target: "run", "(\"{}\")\nRemoved food from {}.", self.name, target_pet.borrow());
                     target_pet.borrow_mut().item = None;
                     target_ids.push(target_pet.borrow().id.clone())
                 } else if let Some(mut food) = food {
-                    info!(target: "dev", "(\"{}\")\nGave {} to {}.", self.name, food, target_pet.borrow());
+                    info!(target: "run", "(\"{}\")\nGave {} to {}.", self.name, food, target_pet.borrow());
                     food.ability.assign_owner(Some(&target_pet));
                     target_pet.borrow_mut().item = Some(food);
                     target_ids.push(target_pet.borrow().id.clone())
@@ -712,11 +712,11 @@ impl EffectApplyHelpers for Team {
             Action::Experience => {
                 let prev_target_lvl = target_pet.borrow().lvl;
                 target_pet.borrow_mut().add_experience(1)?;
-                info!(target: "dev", "(\"{}\")\nGave experience point to {}.", self.name, target_pet.borrow());
+                info!(target: "run", "(\"{}\")\nGave experience point to {}.", self.name, target_pet.borrow());
 
                 // Target leveled up. Create trigger.
                 let pet_leveled_up = if target_pet.borrow().lvl != prev_target_lvl {
-                    info!(target: "dev", "(\"{}\")\nPet {} leveled up.", self.name, target_pet.borrow());
+                    info!(target: "run", "(\"{}\")\nPet {} leveled up.", self.name, target_pet.borrow());
                     let mut lvl_trigger = TRIGGER_ANY_LEVELUP;
                     lvl_trigger.affected_pet = Some(Rc::downgrade(&target_pet));
                     Some(lvl_trigger)
@@ -742,7 +742,7 @@ impl EffectApplyHelpers for Team {
                     _ => unimplemented!("Position not implemented for push."),
                 };
                 if let Some(position) = target_pet.borrow().pos {
-                    info!(target: "dev", "(\"{}\")\nPushed pet at position {} by {}.", self.name, position, pos_change);
+                    info!(target: "run", "(\"{}\")\nPushed pet at position {} by {}.", self.name, position, pos_change);
                     self.push_pet(position, pos_change, Some(opponent))?;
                 }
             }
@@ -753,7 +753,7 @@ impl EffectApplyHelpers for Team {
 
                     if (0..self.friends.len()).contains(&target_idx) {
                         self.friends.remove(target_idx);
-                        info!(target: "dev", "(\"{}\")\nTransformed pet at position {} to {}.", self.name, target_idx, &transformed_pet);
+                        info!(target: "run", "(\"{}\")\nTransformed pet at position {} to {}.", self.name, target_idx, &transformed_pet);
                         let rc_transformed_pet = Rc::new(RefCell::new(transformed_pet));
 
                         for effect in rc_transformed_pet.borrow_mut().effect.iter_mut() {
@@ -819,7 +819,7 @@ impl EffectApplyHelpers for Team {
             }
             Action::Kill => {
                 target_pet.borrow_mut().stats.health = 0;
-                info!(target: "dev", "(\"{}\")\nKilled pet {}.", self.name, target_pet.borrow());
+                info!(target: "run", "(\"{}\")\nKilled pet {}.", self.name, target_pet.borrow());
 
                 let mut self_faint_triggers = get_self_faint_triggers(&None);
                 let mut enemy_faint_triggers = get_self_enemy_faint_triggers(&None);
@@ -867,13 +867,13 @@ impl EffectApplyHelpers for Team {
                 self.triggers.extend(atk_outcome.friends);
                 opponent.triggers.extend(atk_outcome.opponents);
 
-                info!(target: "dev", "(\"{}\")\nRemoved {} health from {}.", self.name, tier_spec_stats.attack, target_pet.borrow());
+                info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, tier_spec_stats.attack, target_pet.borrow());
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Debuff(perc_stats) => {
                 let debuff_stats = target_pet.borrow().stats.mult_perc(perc_stats);
                 target_pet.borrow_mut().stats -= debuff_stats;
-                info!(target: "dev", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, target_pet.borrow(), perc_stats)
+                info!(target: "run", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, target_pet.borrow(), perc_stats)
             }
             Action::Tapir => {
                 let mut rng =

@@ -1,7 +1,6 @@
 //! A testing framework for the game [Super Auto Pets](https://teamwoodgames.com/).
 //!
 //! Game information is scraped and parsed from the [Super Auto Pets Fandom Wiki](https://superautopets.fandom.com/f) before being stored in a [SQLite](https://www.sqlite.org/index.html) database.
-//! * Read more under the [`db`](crate::db) module.
 //!
 //! ### Teams
 //! Build a [`Team`] and simulate battles between them.
@@ -93,6 +92,25 @@
 //! // Note: Effects don't activate here.
 //! pet.attack(&mut custom_pet);
 //! ```
+//!
+//! ### Logging
+//! Enable logging with [`log4rs`] with [`build_log_config`](crate::logging::build_log_config) to view battle logic and more.
+//! ```
+//! use saptest::logging::build_log_config;
+//!
+//! let config = build_log_config();
+//! log4rs::init_config(config).unwrap();
+//!
+//! // Code below.
+//! ```
+//!
+//! ### Config
+//! To configure the global [`SapDB`]'s startup, create a `.saptest.toml` file in the root of your project.
+//! * Specify page version for pets, foods, and tokens to query.
+//! * Toggle recurring updates on startup.
+//! * Set database filename.
+//!
+//! Read more under the [`db`](crate::db) module.
 
 #![warn(missing_docs)]
 
@@ -100,23 +118,26 @@
 extern crate lazy_regex;
 
 use lazy_static::lazy_static;
-use std::sync::Arc;
+use std::fs::read_to_string;
 
 pub mod battle;
 pub mod db;
 pub mod error;
 pub mod foods;
+pub mod logging;
 pub mod pets;
 pub mod shop;
 
 #[doc(inline)]
 pub use crate::battle::{
     effect::{Effect, Entity, EntityName},
-    state::{Condition, Outcome, Position},
+    state::{Condition, Position},
     stats::Statistics,
     team::Team,
     team_effect_apply::TeamEffects,
 };
+
+use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]
 pub use crate::db::setup::SapDB;
 #[doc(inline)]
@@ -130,20 +151,26 @@ pub use crate::shop::{
     viewer::{ShopItemViewer, ShopViewer},
 };
 
+mod config;
 mod graph;
 mod regex_patterns;
-mod wiki_scraper;
-
 #[cfg(test)]
 mod tests;
+mod wiki_scraper;
 
-const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
-const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
-const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
 const DB_FNAME: &str = "./sap.db";
 
 lazy_static! {
     #[doc(hidden)]
+    static ref CONFIG: LibConfig = read_to_string(CONFIG_PATH)
+        .map_or_else(
+            |_| DEFAULT_CONFIG,
+            |toml_str| toml::from_str(&toml_str).unwrap()
+        );
+
+    #[doc(hidden)]
     /// Global pooled database.
-    pub static ref SAPDB: Arc<SapDB> = Arc::new(SapDB::new(crate::DB_FNAME).unwrap());
+    pub static ref SAPDB: SapDB = SapDB::new(
+        CONFIG.database.filename.as_ref().unwrap_or(&DB_FNAME.to_owned())
+    ).unwrap();
 }

@@ -106,6 +106,32 @@ let mut custom_pet = Pet::custom(
 pet.attack(&mut custom_pet);
 ```
 
+### Logging
+Enable logging with [`log4rs`] with `build_log_config` to view battle logic.
+```rust
+use saptest::logging::build_log_config;
+
+let config = build_log_config();
+log4rs::init_config(config).unwrap();
+
+// Code below.
+...
+```
+
+### Config
+To configure the global `SapDB`'s startup, create a `.saptest.toml` file in the root of your project.
+* Specify page versions for pets, foods, and tokens to query.
+* Toggle recurring updates on startup.
+* Set database filename.
+
+```toml
+[database]
+# https://superautopets.fandom.com/wiki/Pets?oldid=4883
+pets_version = 4883
+filename = "./sap.db"
+update_on_startup = false
+```
+
 ---
 
 ## Benchmarks
@@ -136,23 +162,9 @@ python setup.py install
 
 ---
 
-## Troubleshooting
-To enable verbose logging to troubleshoot issues, enable `log4rs` and use the main log config file.
-```rust
-
-fn main() {
-  log4rs::init_file("config/log_config.yaml", Default::default()).unwrap();
-
-  // Code here.
-  ...
-}
-```
-
----
 ## TODO:
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
 * Add custom pack parser and reader.
-* Add toml config to select which version of the wiki page to use.
 * Reorganize Team impl.
   * Move to new trait.
 * Add trait for randomly generating teams.

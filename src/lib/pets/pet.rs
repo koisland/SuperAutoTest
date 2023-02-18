@@ -186,9 +186,9 @@ impl Pet {
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
     ///         actions::{Action, GainType},
-    ///         state::{Position, Status, Target},
+    ///         state::{Position, Status, Target, Outcome},
     ///     },
-    ///     Effect, Food, FoodName, Outcome, Pet, Statistics,
+    ///     Effect, Food, FoodName, Pet, Statistics,
     /// };
     /// let custom_pet = Pet::custom(
     ///     "MelonBear", Some("id_custom_pet_1".to_string()),

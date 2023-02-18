@@ -1,0 +1,17 @@
+# Fandom page id can be found by:
+# 1. Navigating to the page.
+# 2. Clicking on the page's "History" tab.
+# 3. Hovering over the "prev" link.
+
+[database]
+# https://superautopets.fandom.com/wiki/Pets
+# pets_version = ?
+
+# https://superautopets.fandom.com/wiki/Food
+# foods_version = ?
+
+# https://superautopets.fandom.com/wiki/Tokens
+# tokens_version = ?
+
+filename = "./sap.db"
+update_on_startup = true

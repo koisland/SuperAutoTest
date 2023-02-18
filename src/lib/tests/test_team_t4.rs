@@ -25,8 +25,6 @@ use crate::{
 
 #[test]
 fn test_battle_deer_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_deer_team();
     let mut enemy_team = test_ox_team();
 
@@ -49,8 +47,6 @@ fn test_battle_deer_team() {
 
 #[test]
 fn test_battle_hippo_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_hippo_team();
     let mut enemy_team = test_ant_team();
 
@@ -140,8 +136,6 @@ fn test_shop_parrot_team() {
 
 #[test]
 fn test_battle_rooster_lvl_1_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_rooster_team();
     let mut enemy_team = test_rooster_team();
     {
@@ -172,8 +166,6 @@ fn test_battle_rooster_lvl_1_team() {
 
 #[test]
 fn test_battle_rooster_lvl_2_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_rooster_team();
     let mut enemy_team = test_rooster_team();
     {
@@ -216,8 +208,6 @@ fn test_battle_rooster_lvl_2_team() {
 
 #[test]
 fn test_battle_skunk_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_skunk_team();
     let mut enemy_team = test_skunk_team();
 
@@ -265,8 +255,6 @@ fn test_battle_skunk_team() {
 
 #[test]
 fn test_battle_turtle_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_turtle_team();
     let mut enemy_team = test_turtle_team();
 
@@ -286,8 +274,6 @@ fn test_battle_turtle_team() {
 
 #[test]
 fn test_battle_whale_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_whale_team();
     let mut enemy_team = test_hippo_team();
 
@@ -313,8 +299,6 @@ fn test_battle_whale_team() {
 
 #[test]
 fn test_battle_armadillo_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_armadillo_team();
     let mut enemy_team = test_hippo_team();
 
@@ -333,8 +317,6 @@ fn test_battle_armadillo_team() {
 
 #[test]
 fn test_battle_doberman_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_doberman_team();
     let mut enemy_team = test_hippo_team();
 
@@ -370,8 +352,6 @@ fn test_battle_doberman_team() {
 
 #[test]
 fn test_battle_doberman_highest_tier_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_doberman_highest_tier_team();
     let mut enemy_team = test_hippo_team();
 
@@ -403,8 +383,6 @@ fn test_battle_doberman_highest_tier_team() {
 
 #[test]
 fn test_battle_lynx_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_lynx_team();
     let mut enemy_team = test_hippo_team();
 
@@ -445,8 +423,6 @@ fn test_battle_lynx_team() {
 
 #[test]
 fn test_battle_porcupine_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_porcupine_team();
     let mut enemy_team = test_mosq_team();
 
@@ -477,8 +453,6 @@ fn test_battle_porcupine_team() {
 
 #[test]
 fn test_battle_caterpillar_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_caterpillar_team();
     let mut enemy_team = test_hippo_team();
     let caterpillar = team.first().unwrap();
@@ -505,8 +479,6 @@ fn test_battle_caterpillar_team() {
 
 #[test]
 fn test_battle_sniped_caterpillar_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_caterpillar_team();
     let mut enemy_team = test_mosq_team();
     enemy_team.friends.remove(2);
@@ -524,8 +496,6 @@ fn test_battle_sniped_caterpillar_team() {
 
 #[test]
 fn test_battle_anteater_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_anteater_team();
     let mut enemy_team = test_hippo_team();
 
@@ -547,8 +517,6 @@ fn test_battle_anteater_team() {
 
 #[test]
 fn test_battle_donkey_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_donkey_team();
     let mut enemy_team = test_snake_team();
     team.set_seed(Some(2));
@@ -570,8 +538,6 @@ fn test_battle_donkey_team() {
 
 #[test]
 fn test_battle_eel_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_eel_team();
     let mut enemy_team = test_hippo_team();
 
@@ -589,8 +555,6 @@ fn test_battle_eel_team() {
 
 #[test]
 fn test_battle_hawk_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_hawk_team();
     let mut enemy_team = test_gorilla_team();
 
@@ -625,8 +589,6 @@ fn test_battle_hawk_team() {
 
 #[test]
 fn test_battle_pelican_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_pelican_team();
     let mut enemy_team = test_hippo_team();
 

@@ -1,6 +1,6 @@
 use crate::{
-    battle::state::{Condition, Status, Target},
-    Outcome, Position,
+    battle::state::{Condition, Outcome, Status, Target},
+    Position,
 };
 
 /// Trigger when food bought.

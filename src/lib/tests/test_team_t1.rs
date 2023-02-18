@@ -20,8 +20,6 @@ use super::common::{
 
 #[test]
 fn test_battle_ant_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_ant_team();
     let mut enemy_team = test_ant_team();
 
@@ -44,7 +42,6 @@ fn test_battle_ant_team() {
 
 #[test]
 fn test_battle_cricket_horse_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
     let mut team = test_cricket_horse_team();
     let mut enemy_team = test_cricket_horse_team();
 
@@ -106,8 +103,6 @@ fn test_battle_mosquito_team() {
 
 #[test]
 fn test_battle_frilled_dragon_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_frilled_dragon_team();
     let mut enemy_team = test_ant_team();
 
@@ -134,8 +129,6 @@ fn test_battle_frilled_dragon_team() {
 
 #[test]
 fn test_battle_frog_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_frog_team();
     let mut enemy_team = test_ant_team();
 
@@ -172,8 +165,6 @@ fn test_battle_frog_team() {
 
 #[test]
 fn test_battle_moth_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_moth_team();
     let mut enemy_team = test_ant_team();
 
@@ -198,8 +189,6 @@ fn test_battle_moth_team() {
 
 #[test]
 fn test_battle_hummingbird_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_hummingbird_team();
     let mut enemy_team = test_ant_team();
 
@@ -234,8 +223,6 @@ fn test_battle_hummingbird_team() {
 
 #[test]
 fn test_battle_iguana_seahorse_team() {
-    // log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
-
     let mut team = test_iguana_seahorse_team();
     let mut enemy_team = test_cricket_horse_team();
 

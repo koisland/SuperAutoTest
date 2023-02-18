@@ -183,3 +183,74 @@ impl Statistics {
         self
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::Statistics;
+
+    #[test]
+    fn test_stats_fmt() {
+        let stats = Statistics {
+            attack: 50,
+            health: 50,
+        };
+        assert_eq!(format!("Max stats: {stats}"), "Max stats: (50, 50)");
+    }
+
+    #[test]
+    fn test_stats_add() {
+        let mut s1 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let sum = Statistics {
+            attack: 2,
+            health: 2,
+        };
+        assert_eq!(sum, s1 + s2);
+        s1 += s2;
+        assert_eq!(sum, s1)
+    }
+
+    #[test]
+    fn test_stats_sub() {
+        let mut s1 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let diff = Statistics {
+            attack: 0,
+            health: 0,
+        };
+        assert_eq!(diff, s1 - s2);
+        s1 -= s2;
+        assert_eq!(diff, s1)
+    }
+
+    #[test]
+    fn test_stats_mult() {
+        let mut s1 = Statistics {
+            attack: 2,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 2,
+        };
+        let product = Statistics {
+            attack: 2,
+            health: 2,
+        };
+        assert_eq!(product, s1 * s2);
+        s1 *= s2;
+        assert_eq!(product, s1)
+    }
+}

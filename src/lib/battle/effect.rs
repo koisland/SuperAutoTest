@@ -71,11 +71,11 @@ impl Effect {
     /// # Example
     /// ```rust
     /// use saptest::{
-    ///     Effect, Outcome, Statistics,
+    ///     Effect, Statistics,
     ///     battle::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
-    ///         state::{Position, Target, Condition},
+    ///         state::{Position, Target, Condition, Outcome},
     ///         actions::{Action, StatChangeType}
     ///     }
     /// };
