@@ -10,7 +10,7 @@ use crate::{
     },
     foods::names::FoodName,
     pets::names::PetName,
-    teams::{effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
+    teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_caterpillar_team,
         test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,

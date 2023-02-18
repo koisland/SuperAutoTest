@@ -5,7 +5,10 @@
 //! ### Teams
 //! Build a [`Team`] and simulate battles between them.
 //!  ```
-//! use saptest::{Pet, PetName, Food, FoodName, Team, Position};
+//! use saptest::{
+//!     Pet, PetName, Food, FoodName,
+//!     Team, TeamCombat, Position
+//! };
 //!
 //! // Create a team.
 //! let mut team = Team::new(
@@ -136,7 +139,7 @@ pub use crate::effects::{
     stats::Statistics,
 };
 #[doc(inline)]
-pub use crate::teams::{effects::TeamEffects, team::Team, viewer::TeamViewer};
+pub use crate::teams::{combat::TeamCombat, effects::TeamEffects, team::Team, viewer::TeamViewer};
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]

@@ -1,5 +1,7 @@
 //! [`Team`](crate::teams::team::Team) battle and effect logic..
 
+/// Implements [`Team`](crate::Team) battle mechanics.
+pub mod combat;
 /// [`Effect`](crate::Effect) application to one or more [`Team`](crate::Team)s.
 pub mod effects;
 /// Serialize a [`Team`](crate::Team) using [`serde_json`].

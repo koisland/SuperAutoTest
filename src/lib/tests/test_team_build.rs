@@ -6,6 +6,7 @@ use crate::{
     effects::state::Status,
     pets::{names::PetName, pet::Pet},
     teams::{
+        combat::TeamCombat,
         team::{Team, TeamFightOutcome},
         viewer::TeamViewer,
     },

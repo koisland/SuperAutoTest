@@ -9,6 +9,7 @@ use crate::{
     foods::{food::Food, names::FoodName},
     pets::{combat::PetCombat, names::PetName, pet::Pet},
     teams::{
+        combat::TeamCombat,
         team::{Team, TeamFightOutcome},
         viewer::TeamViewer,
     },

@@ -2,7 +2,7 @@ use crate::{
     effects::{effect::EntityName, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::names::FoodName,
     pets::names::PetName,
-    teams::{effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
+    teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_beaver_team, test_beetle_team, test_bluebird_team,
         test_chinchilla_team, test_cockroach_team, test_cricket_horse_team, test_duck_team,

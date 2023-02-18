@@ -16,6 +16,7 @@ use crate::{
         viewer::ShopViewer,
     },
     teams::{
+        combat::TeamCombat,
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
