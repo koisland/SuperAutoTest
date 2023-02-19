@@ -68,3 +68,14 @@ pub const TRIGGER_ROLL: Outcome = Outcome {
     position: Position::TriggerAffected,
     stat_diff: None,
 };
+
+/// Trigger when food bought.
+pub const TRIGGER_SHOP_TIER_UPGRADED: Outcome = Outcome {
+    status: Status::ShopTierUpgrade,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::None,
+    stat_diff: None,
+};

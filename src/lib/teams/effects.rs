@@ -19,7 +19,7 @@ use crate::{
         team::Team,
         viewer::{TargetPets, TeamViewer},
     },
-    Food, Pet, PetCombat, SAPDB,
+    Food, Pet, PetCombat, ShopItem, SAPDB,
 };
 
 use itertools::Itertools;
@@ -349,6 +349,16 @@ pub(crate) trait EffectApplyHelpers {
         targets: TargetPets,
         receiving_pet: &Rc<RefCell<Pet>>,
     ) -> Result<(), SAPTestError>;
+    fn gain_type_to_food(
+        &self,
+        gain_type: &GainType,
+        target_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<Option<Food>, SAPTestError>;
+    fn summon_type_to_pet(
+        &self,
+        summon_type: &SummonType,
+        target_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<Pet, SAPTestError>;
     fn summon_pet(
         &mut self,
         target_pet: Rc<RefCell<Pet>>,
@@ -378,13 +388,24 @@ pub(crate) trait EffectApplyHelpers {
 }
 
 impl EffectApplyHelpers for Team {
-    fn summon_pet(
-        &mut self,
-        target_pet: Rc<RefCell<Pet>>,
+    fn gain_type_to_food(
+        &self,
+        gain_type: &GainType,
+        target_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<Option<Food>, SAPTestError> {
+        Ok(match gain_type {
+            GainType::SelfItem => target_pet.borrow().item.clone(),
+            GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
+            GainType::StoredItem(food) => Some(*food.clone()),
+            GainType::NoItem => None,
+        })
+    }
+    fn summon_type_to_pet(
+        &self,
         summon_type: &SummonType,
-        opponent: &mut Team,
-    ) -> Result<Option<String>, SAPTestError> {
-        let pet = match summon_type {
+        target_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<Pet, SAPTestError> {
+        match summon_type {
             SummonType::QueryPet(sql, params, stats) => {
                 let pet_records: Vec<PetRecord> = SAPDB.execute_pet_query(sql, params)?;
                 let mut rng =
@@ -402,10 +423,10 @@ impl EffectApplyHelpers for Team {
                 if let Some(set_stats) = stats {
                     pet.stats = *set_stats;
                 }
-                pet
+                Ok(pet)
             }
-            SummonType::StoredPet(box_pet) => *box_pet.clone(),
-            SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
+            SummonType::StoredPet(box_pet) => Ok(*box_pet.clone()),
+            SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone()),
             SummonType::CustomPet(name, stat_types, lvl) => {
                 let mut stats = match stat_types {
                     StatChangeType::StaticValue(stats) => *stats,
@@ -418,16 +439,25 @@ impl EffectApplyHelpers for Team {
                     None,
                     Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
                     *lvl,
-                )?
+                )
             }
             SummonType::SelfPet(stats) => {
                 // Current pet. Remove item
                 let mut pet = target_pet.borrow().clone();
                 pet.item = None;
                 pet.stats = *stats;
-                pet
+                Ok(pet)
             }
-        };
+        }
+    }
+    fn summon_pet(
+        &mut self,
+        target_pet: Rc<RefCell<Pet>>,
+        summon_type: &SummonType,
+        opponent: &mut Team,
+    ) -> Result<Option<String>, SAPTestError> {
+        // Can't impl TryFrom because requires target pet.
+        let pet = self.summon_type_to_pet(summon_type, &target_pet)?;
 
         let target_idx = target_pet
             .borrow()
@@ -683,12 +713,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             Action::Gain(gain_food_type) => {
-                let food = match gain_food_type {
-                    GainType::SelfItem => effect_owner.borrow().item.clone(),
-                    GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
-                    GainType::StoredItem(food) => Some(*food.clone()),
-                    GainType::NoItem => None,
-                };
+                let food = self.gain_type_to_food(gain_food_type, &effect_owner)?;
 
                 if food.is_none() {
                     info!(target: "run", "(\"{}\")\nRemoved food from {}.", self.name, target_pet.borrow());
@@ -924,6 +949,7 @@ impl EffectApplyHelpers for Team {
                 pet_stats.attack = TryInto::<isize>::try_into(self.shop.tier())? + 1;
 
                 target_pet.borrow_mut().stats = pet_stats;
+                info!(target: "run", "(\"{}\")\nSet stats of {} by {}.", self.name, target_pet.borrow(), pet_stats)
             }
             Action::Copy(attr, target, pos) => {
                 // Create effect to select a pet.
@@ -938,9 +964,42 @@ impl EffectApplyHelpers for Team {
             }
             Action::AddShopStats(stats) => {
                 self.shop.perm_stats += *stats;
+                info!(target: "run", "(\"{}\")\nAdded permanent shop {}.", self.name, stats)
             }
-            Action::Profit => self.shop.coins += 1,
-            Action::FreeRoll => self.shop.free_rolls += 1,
+            Action::AddShopFood(gain_food_type) => {
+                let new_shop_food = self
+                    .gain_type_to_food(gain_food_type, &effect_owner)?
+                    .map(ShopItem::from);
+                info!(target: "run", "(\"{}\")\nAdding shop item {:?}.", self.name, new_shop_food.as_ref());
+
+                if let Some(Err(err)) = new_shop_food.map(|item| self.shop.add_item(item)) {
+                    info!(target: "run", "(\"{}\")\n{err}.", self.name)
+                }
+            }
+            Action::AddShopPet(summon_type) => {
+                let new_shop_pet =
+                    ShopItem::from(self.summon_type_to_pet(summon_type, &effect_owner)?);
+                info!(target: "run", "(\"{}\")\nAdding shop item {:?}.", self.name, &new_shop_pet);
+
+                if let Err(err) = self.shop.add_item(new_shop_pet) {
+                    info!(target: "run", "(\"{}\")\n{err}.", self.name)
+                }
+            }
+            Action::ClearShop(item_type) => {
+                match item_type {
+                    Entity::Pet => self.shop.pets.clear(),
+                    Entity::Food => self.shop.foods.clear(),
+                }
+                info!(target: "run", "(\"{}\")\nCleared shop {item_type:?}.", self.name)
+            }
+            Action::Profit => {
+                self.shop.coins += 1;
+                info!(target: "run", "(\"{}\")\nIncreased shop coins by 1. New coin count: {}", self.name, self.shop.coins)
+            }
+            Action::FreeRoll => {
+                self.shop.free_rolls += 1;
+                info!(target: "run", "(\"{}\")\nIncreased free rolls by 1. New free rolls: {}", self.name, self.shop.free_rolls)
+            }
             Action::None => {}
             _ => unimplemented!("Action not implemented"),
         }

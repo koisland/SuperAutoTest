@@ -167,6 +167,36 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 entity: Entity::Pet,
                 temp: record.temp_effect,
             }],
+            PetName::Mouse => {
+                let mut free_apple = Food::try_from(FoodName::Apple).unwrap();
+                free_apple.cost = 0;
+                let mut actions =
+                    vec![
+                        Action::AddShopFood(GainType::StoredItem(Box::new(free_apple)));
+                        record.lvl
+                    ];
+                actions.insert(0, Action::ClearShop(Entity::Food));
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_PET_SOLD,
+                    target: Target::Shop,
+                    position: Position::None,
+                    action: Action::Multiple(actions),
+                    uses: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Pillbug => vec![Effect {
+                owner: None,
+                trigger: TRIGGER_SHOP_TIER_UPGRADED,
+                target: Target::Friend,
+                position: Position::Range(-2..=-1),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+            }],
             PetName::Ant => vec![Effect {
                 owner: None,
                 trigger: TRIGGER_SELF_FAINT,

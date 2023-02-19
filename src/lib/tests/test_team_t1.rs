@@ -7,10 +7,11 @@ use crate::{
         count_pets, test_ant_team, test_beaver_team, test_beetle_team, test_bluebird_team,
         test_chinchilla_team, test_cockroach_team, test_cricket_horse_team, test_duck_team,
         test_duckling_team, test_fish_team, test_frilled_dragon_team, test_frog_team,
-        test_hummingbird_team, test_iguana_seahorse_team, test_ladybug_team, test_marmoset_team,
-        test_mosq_team, test_moth_team, test_pig_team,
+        test_hummingbird_team, test_iguana_seahorse_team, test_kiwi_team, test_ladybug_team,
+        test_marmoset_team, test_mosq_team, test_moth_team, test_mouse_team, test_pig_team,
+        test_pillbug_team,
     },
-    Condition, Entity, Position, ShopItemViewer, ShopViewer, TeamShopping,
+    Condition, Entity, Food, Position, ShopItemViewer, ShopViewer, TeamShopping,
 };
 
 #[test]
@@ -621,4 +622,89 @@ fn test_shop_frog_team() {
             health: 2
         }
     );
+}
+
+#[test]
+fn test_shop_kiwi_team() {
+    let mut team = test_kiwi_team();
+    team.open_shop().unwrap();
+    team.set_item(
+        Position::Last,
+        Some(Food::try_from(FoodName::Strawberry).unwrap()),
+    )
+    .unwrap();
+
+    assert_eq!(
+        team.last().unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+
+    team.sell(&Position::First).unwrap();
+
+    // Gains (1,2) from sell.
+    assert_eq!(
+        team.last().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 3
+        }
+    );
+}
+
+#[test]
+fn test_shop_mouse_team() {
+    let mut team = test_mouse_team();
+    team.set_shop_seed(Some(121))
+        .set_shop_tier(6)
+        .unwrap()
+        .open_shop()
+        .unwrap();
+
+    // Starting shop has two foods.
+    assert_eq!(team.len_shop_foods(), 2);
+
+    // Sell mouse.
+    team.sell(&Position::First).unwrap();
+
+    // Get one apple but clears shop.
+    assert_eq!(team.len_shop_foods(), 1);
+    let shop_items = team
+        .shop
+        .get_shop_items_by_pos(&Position::First, &Entity::Food)
+        .unwrap();
+    let apple = shop_items[0];
+    // Apple is free.
+    assert_eq!(apple.cost, 0);
+}
+
+#[test]
+fn test_shop_pillbug_team() {
+    let mut team = test_pillbug_team();
+    let pets = team.all();
+
+    // Check health of two pets behind pillbug.
+    for pet in pets.get(1..).unwrap() {
+        assert_eq!(
+            pet.borrow().stats,
+            Statistics {
+                attack: 2,
+                health: 1
+            }
+        )
+    }
+    // Upgrade shop.
+    team.set_shop_tier(2).unwrap().open_shop().unwrap();
+    // Two pets behind pillbug get (0,1) on shop tier upgrade.
+    for pet in pets.get(1..).unwrap() {
+        assert_eq!(
+            pet.borrow().stats,
+            Statistics {
+                attack: 2,
+                health: 2
+            }
+        )
+    }
 }

@@ -23,6 +23,8 @@ use crate::{
     Food, Pet, Position, Shop, Team,
 };
 
+use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
+
 trait TeamShoppingHelpers {
     fn buy_food_behavior(
         &mut self,
@@ -536,10 +538,25 @@ impl TeamShopping for Team {
     }
 
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError> {
+        // Calculate tier change.
+        let tier_diff =
+            TryInto::<isize>::try_into(tier)? - TryInto::<isize>::try_into(self.shop_tier())?;
+
+        // If increasing in tier, for each tier crate shop tier upgrade trigger.
+        if tier_diff.is_positive() {
+            for _ in 0..tier_diff {
+                self.triggers.push_back(TRIGGER_SHOP_TIER_UPGRADED)
+            }
+        }
+        self.shop.set_tier(tier)?;
         // Adjust history of team so curr turn reflects tier.
         let min_turn_to_tier = Shop::tier_to_num_turns(tier)?;
+
         self.history.curr_turn = min_turn_to_tier;
-        self.shop.set_tier(tier)?;
+        // Update trigger effects.
+        let mut empty_team = Team::default();
+        self.trigger_effects(&mut empty_team)?;
+
         Ok(self)
     }
 
@@ -578,7 +595,13 @@ impl TeamShopping for Team {
         (4 / 2 = 2) + (4 % 2 = 0) = 2
         (5 / 2 = 2) + (5 % 2 = 1) = 3
         */
-        let calc_tier = (self.history.curr_turn / 2) + (self.history.curr_turn % 2);
+        let calc_tier = ((self.history.curr_turn / 2) + (self.history.curr_turn % 2))
+            .clamp(MIN_SHOP_TIER, MAX_SHOP_TIER);
+
+        // Shop tier upgraded.
+        if self.shop.tier() + 1 == calc_tier {
+            self.triggers.push_back(TRIGGER_SHOP_TIER_UPGRADED)
+        }
         self.shop.set_tier(calc_tier)?;
         // Restore team to previous state.
         self.restore();

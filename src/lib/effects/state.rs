@@ -239,6 +239,8 @@ pub enum Status {
     StartTurn,
     /// End of Turn.
     EndTurn,
+    /// Shop tier upgraded.
+    ShopTierUpgrade,
     /// Start of Battle.
     StartOfBattle,
     /// After start of battle, prior to first battle.

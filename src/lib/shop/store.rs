@@ -26,8 +26,8 @@ const SLOTH_CHANCE: f64 = 0.0001;
 pub const DEFAULT_COIN_COUNT: usize = 10;
 const MAX_SHOP_PETS: usize = 6;
 const MAX_SHOP_FOODS: usize = 4;
-const MIN_SHOP_TIER: usize = 1;
-const MAX_SHOP_TIER: usize = 6;
+pub(crate) const MIN_SHOP_TIER: usize = 1;
+pub(crate) const MAX_SHOP_TIER: usize = 6;
 
 /// State of shop.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -287,8 +287,8 @@ impl Shop {
                 }
             }
             ItemSlot::Food(_) => {
-                // Open pet slots available so we remove the rightmost pet.
-                if self.available_pet_slots() != self.max_pet_slots() {
+                // Need slots available so we remove the rightmost pet.
+                if self.available_food_slots() == 0 {
                     self.pets.pop();
                 }
                 // Foods cannot exceed total shop length.
@@ -480,7 +480,7 @@ impl Shop {
     /// Convert tier to num_turns.
     pub(crate) fn tier_to_num_turns(tier: usize) -> Result<usize, SAPTestError> {
         Shop::is_valid_shop_tier(tier)?;
-        Ok(tier + (2 * (tier % 2)))
+        Ok(1 + (2 * tier))
     }
 
     /// Set the tier of a `Shop`.
@@ -540,7 +540,8 @@ impl Shop {
         let mut rng = self.get_rng();
 
         // Iterate through slots choose a random pet or sloth.
-        for _ in 0..self.available_pet_slots() {
+        let n_slots = self.available_pet_slots();
+        for _ in 0..n_slots {
             let (cost, mut pet) = if rng.gen_bool(SLOTH_CHANCE) {
                 (3, Pet::try_from(PetName::Sloth)?)
             } else {
@@ -574,7 +575,8 @@ impl Shop {
 
         // Iterate through slots choose a random food.
         // TODO: May have issue if additional items frozen.
-        for _ in 0..self.available_food_slots() {
+        let n_slots = self.available_food_slots();
+        for _ in 0..n_slots {
             let food_record =
                 possible_foods
                     .choose(&mut rng)

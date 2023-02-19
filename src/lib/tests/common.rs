@@ -1042,3 +1042,37 @@ pub fn test_cockroach_team() -> Team {
 pub fn test_duckling_team() -> Team {
     Team::new(&[Pet::try_from(PetName::Duckling).unwrap()], 5).unwrap()
 }
+
+pub fn test_kiwi_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Kiwi).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_mouse_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Mouse).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_pillbug_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Pillbug).unwrap(),
+            Pet::try_from(PetName::Bluebird).unwrap(),
+            Pet::try_from(PetName::Bluebird).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}

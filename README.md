@@ -17,8 +17,10 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 ### Teams
 Build a `Team` and simulate battles between them.
 ```rust
-use saptest::{Pet, PetName, Food, FoodName, Team, Position};
-
+use saptest::{
+    Pet, PetName, Food, FoodName,
+    Team, TeamCombat, Position
+};
 // Create a team.
 let mut team = Team::new(
     &vec![Pet::try_from(PetName::Ant).unwrap(); 5],

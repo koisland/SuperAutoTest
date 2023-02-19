@@ -73,12 +73,12 @@ pub struct Team {
     /// Calling [`trigger_effects`](super::effects::TeamEffects::trigger_effects) will exhaust all stored triggers.
     /// * As a result, this will always be empty unless mutated.
     pub triggers: VecDeque<Outcome>,
+    /// Pet shop.
+    #[serde(skip)]
+    pub shop: Shop,
     /// Effect history of a team.
     #[serde(skip)]
     pub(crate) history: History,
-    /// Pet shop.
-    #[serde(skip)]
-    pub(crate) shop: Shop,
     /// Current pet.
     #[serde(skip)]
     pub(crate) curr_pet: Option<Weak<RefCell<Pet>>>,
