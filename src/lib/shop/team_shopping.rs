@@ -31,13 +31,11 @@ trait TeamShoppingHelpers {
         &mut self,
         food: Rc<RefCell<Food>>,
         to_pos: &Position,
-        empty_team: &mut Team,
     ) -> Result<(), SAPTestError>;
     fn buy_pet_behavior(
         &mut self,
         pet: Rc<RefCell<Pet>>,
         to_pos: &Position,
-        empty_team: &mut Team,
     ) -> Result<(), SAPTestError>;
 }
 
@@ -337,7 +335,6 @@ impl TeamShoppingHelpers for Team {
         &mut self,
         food: Rc<RefCell<Food>>,
         to_pos: &Position,
-        empty_team: &mut Team,
     ) -> Result<(), SAPTestError> {
         let trigger_any_food = TRIGGER_ANY_FOOD_BOUGHT;
         self.triggers.push_back(trigger_any_food);
@@ -385,7 +382,7 @@ impl TeamShoppingHelpers for Team {
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 trigger_self_food.set_affected(&pet);
 
-                self.apply_single_effect(pet, &food_ability, empty_team)?;
+                self.apply_single_effect(pet, &food_ability, None)?;
             }
         }
         Ok(())
@@ -395,7 +392,6 @@ impl TeamShoppingHelpers for Team {
         &mut self,
         pet: Rc<RefCell<Pet>>,
         to_pos: &Position,
-        empty_team: &mut Team,
     ) -> Result<(), SAPTestError> {
         let affected_pets =
             self.get_pets_by_pos(self.first(), &Target::Friend, to_pos, None, None)?;
@@ -424,7 +420,7 @@ impl TeamShoppingHelpers for Team {
                         effect.assign_owner(Some(affected_pet));
                         if effect.trigger.status == Status::Levelup {
                             // Apply pet effect directly here if trigger is levelup.
-                            self.apply_effect(&levelup_trigger, &effect, empty_team)?;
+                            self.apply_effect(&levelup_trigger, &effect, None)?;
                         }
                     }
                     // Increment level.
@@ -514,10 +510,6 @@ impl TeamShopping for Team {
             });
         }
 
-        // TODO: Not great. Need to find way to make Team effect apply take optional opponent.
-        // Creates new empty team each time an item is bought.
-        let mut empty_team = Team::default();
-
         // Remove sold items.
         match item_type {
             Entity::Pet => self.shop.pets.retain(|pet| !selected_items.contains(pet)),
@@ -533,12 +525,12 @@ impl TeamShopping for Team {
             self.shop.coins -= item.cost;
 
             match item.item {
-                ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, to, &mut empty_team)?,
-                ItemSlot::Food(food) => self.buy_food_behavior(food, to, &mut empty_team)?,
+                ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, to)?,
+                ItemSlot::Food(food) => self.buy_food_behavior(food, to)?,
             };
         }
 
-        self.trigger_effects(&mut empty_team)?;
+        self.trigger_effects(None)?;
         self.clear_team();
         Ok(self)
     }
@@ -573,8 +565,7 @@ impl TeamShopping for Team {
         }
 
         // Trigger effects here.
-        let mut empty_team = Team::default();
-        self.trigger_effects(&mut empty_team)?;
+        self.trigger_effects(None)?;
         self.clear_team();
 
         Ok(self)
@@ -631,8 +622,7 @@ impl TeamShopping for Team {
 
         self.history.curr_turn = min_turn_to_tier;
         // Update trigger effects.
-        let mut empty_team = Team::default();
-        self.trigger_effects(&mut empty_team)?;
+        self.trigger_effects(None)?;
 
         Ok(self)
     }
@@ -661,8 +651,6 @@ impl TeamShopping for Team {
                 reason: "Cannot open an open shop.".to_string(),
             });
         }
-
-        let mut empty_team = Team::default();
 
         self.shop.state = ShopState::Open;
         /*
@@ -696,7 +684,7 @@ impl TeamShopping for Team {
         // Trigger start of turn.
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
-        self.trigger_effects(&mut empty_team)?;
+        self.trigger_effects(None)?;
 
         Ok(self)
     }
@@ -709,11 +697,9 @@ impl TeamShopping for Team {
             });
         }
 
-        let mut empty_team = Team::default();
-
         // Trigger end of turn.
         self.triggers.push_front(TRIGGER_END_TURN);
-        self.trigger_effects(&mut empty_team)?;
+        self.trigger_effects(None)?;
         self.clear_team();
 
         // Store friends.

@@ -211,7 +211,7 @@ pub trait TeamViewer {
     ///     true
     /// );
     /// // Search for pets.
-    /// let pets_found = team.get_pets_by_effect(&TRIGGER_NONE, &croc_effect, &enemy_team).unwrap();
+    /// let pets_found = team.get_pets_by_effect(&TRIGGER_NONE, &croc_effect, Some(&enemy_team)).unwrap();
     /// // As expected, the last enemy pet is the target of the effect.
     /// let (target, pet_found) = pets_found.first().unwrap();
     /// assert_eq!(Target::Enemy, *target);
@@ -224,23 +224,9 @@ pub trait TeamViewer {
         &self,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
-    ) -> Result<TargetPets, SAPTestError> {
-        let curr_pet = if let Some(effect_pet) = &effect.owner {
-            effect_pet.upgrade()
-        } else {
-            // Otherwise, use first pet on team.
-            self.first()
-        };
+        opponent: Option<&Team>,
+    ) -> Result<TargetPets, SAPTestError>;
 
-        self.get_pets_by_pos(
-            curr_pet,
-            &effect.target,
-            &effect.position,
-            Some(trigger),
-            Some(opponent),
-        )
-    }
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
     /// * [`TargetPets`] is a tuple with the belonging Target group ([`Target::Shop`], [`Target::Friend`], [`Target::Enemy`]) and the pets found.
@@ -737,7 +723,7 @@ impl TeamViewer for Team {
         &self,
         trigger: &Outcome,
         effect: &Effect,
-        opponent: &Team,
+        opponent: Option<&Team>,
     ) -> Result<TargetPets, SAPTestError> {
         let curr_pet = if let Some(effect_pet) = &effect.owner {
             effect_pet.upgrade()
@@ -750,7 +736,7 @@ impl TeamViewer for Team {
             &effect.target,
             &effect.position,
             Some(trigger),
-            Some(opponent),
+            opponent,
         )
     }
 }

@@ -126,8 +126,8 @@ impl TeamCombat for Team {
             opponent.triggers.push_front(TRIGGER_START_BATTLE)
         }
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-            self.trigger_effects(opponent)?;
-            opponent.trigger_effects(self)?;
+            self.trigger_effects(Some(opponent))?;
+            opponent.trigger_effects(Some(self))?;
         }
 
         self.clear_team();
@@ -168,8 +168,8 @@ impl TeamCombat for Team {
             ]);
 
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(opponent)?;
-                opponent.trigger_effects(self)?;
+                self.trigger_effects(Some(opponent))?;
+                opponent.trigger_effects(Some(self))?;
             }
 
             self.clear_team();
@@ -234,8 +234,8 @@ impl TeamCombat for Team {
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(opponent)?.clear_team();
-                opponent.trigger_effects(self)?.clear_team();
+                self.trigger_effects(Some(opponent))?.clear_team();
+                opponent.trigger_effects(Some(self))?.clear_team();
             }
         }
 

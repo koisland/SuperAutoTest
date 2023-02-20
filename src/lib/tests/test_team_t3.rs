@@ -368,7 +368,7 @@ fn test_battle_toad_team() {
     );
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Cricket hit by mosquito and takes 1 dmg
     assert_eq!(
@@ -404,7 +404,7 @@ fn test_battle_woodpecker_team() {
     );
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Two crickets at front on enemy team die.
     assert_eq!(
@@ -433,7 +433,7 @@ fn test_battle_woodpecker_self_hurt_team() {
 
     // Trigger start of battle effects and clear dead pets.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
     team.clear_team();
 
     // Two crickets at front of woodpecker on same team faint.

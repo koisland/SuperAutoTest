@@ -205,7 +205,7 @@ fn test_battle_hummingbird_team() {
     assert_eq!(count_pets(&team.friends, PetName::Hummingbird), 2);
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Duck gets 2/1 for every hummingbird since only strawberry friend.
     assert_eq!(

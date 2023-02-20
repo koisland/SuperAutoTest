@@ -728,7 +728,7 @@ fn test_battle_pineapple() {
     );
 
     team.triggers.push_back(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Mammoth takes 2 additional damage than normal thanks to pineapple.
     assert_eq!(

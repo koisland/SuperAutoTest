@@ -314,7 +314,7 @@ fn test_battle_white_tiger_team() {
     let mut enemy_team = test_gorilla_team();
 
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Deer behind gets 3 exp leveling to 2.
     let deer = team.nth(1).unwrap();
@@ -448,7 +448,7 @@ fn test_battle_stegosaurus_team() {
 
     // Activate start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -463,7 +463,7 @@ fn test_battle_stegosaurus_team() {
 
     // Re-activate start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -484,7 +484,7 @@ fn test_battle_velociraptor_team() {
     );
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Cricket at pos 1 now has coconut.
     assert_eq!(

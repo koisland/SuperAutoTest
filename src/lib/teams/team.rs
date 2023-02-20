@@ -284,7 +284,7 @@ impl Team {
     /// // Set seed for enemy_team and trigger StartBattle effects.
     /// enemy_team.set_seed(Some(0));
     /// team.triggers.push_front(TRIGGER_START_BATTLE);
-    /// team.trigger_effects(&mut enemy_team);
+    /// team.trigger_effects(Some(&mut enemy_team));
     ///
     /// // Mosquitoes always hit second pet with seed set to 0.
     /// assert!(
@@ -336,7 +336,7 @@ impl Team {
             ..Default::default()
         };
         let affected_pets = self
-            .get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)
+            .get_pets_by_effect(&TRIGGER_NONE, &null_effect, None)
             .map_err(|_| SAPTestError::InvalidTeamAction {
                 subject: "Item Pet Position".to_string(),
                 reason: format!("Position is not valid: {pos:?}"),
@@ -377,7 +377,7 @@ impl Team {
             owner: self.curr_pet.clone(),
             ..Default::default()
         };
-        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, self)?;
+        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, None)?;
 
         for (_, pet) in affected_pets.iter() {
             pet.borrow_mut().set_level(lvl)?;

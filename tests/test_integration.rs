@@ -92,7 +92,7 @@ fn test_create_custom_pet() {
 
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     assert!(
         team.friends[0].borrow().item.as_ref().unwrap().name == FoodName::Melon
@@ -235,15 +235,19 @@ fn test_apply_effect() {
         .apply_effect(
             &TRIGGER_START_BATTLE,
             &no_ref_mosquito_effect,
-            &mut enemy_team
+            Some(&mut enemy_team)
         )
         .is_err());
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
     let mosquito_effect = team.friends[0].borrow().effect[0].clone();
-    team.apply_effect(&TRIGGER_START_BATTLE, &mosquito_effect, &mut enemy_team)
-        .unwrap();
+    team.apply_effect(
+        &TRIGGER_START_BATTLE,
+        &mosquito_effect,
+        Some(&mut enemy_team),
+    )
+    .unwrap();
 
     // Last enemy mosquito takes one damage and opponent triggers gets updated.
     assert_eq!(

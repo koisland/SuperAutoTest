@@ -251,7 +251,7 @@ fn test_battle_atlantic_puffin_team() {
     );
     // Activate start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
     // Dog took 4 damage from puffin. 2 dmg x 2 strawberries.
     let dog_health = enemy_team
         .friends
@@ -326,7 +326,7 @@ fn test_battle_panda_team() {
     let original_stats = team.first().unwrap().borrow().stats;
 
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -353,7 +353,7 @@ fn test_battle_pug_team() {
     );
     // Activate start of battle effect of pug.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Ant levels up.
     assert_eq!(team.first().unwrap().borrow().exp, 2);
@@ -436,7 +436,7 @@ fn test_battle_wombat_team() {
 
     // Activate start of battle.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Wombat gains mammoth's effect.
     let wombat_effect = team

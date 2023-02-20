@@ -213,7 +213,7 @@ fn test_battle_hyena_team() {
         .collect_vec();
 
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // At lvl. 1 hyena swaps stats of all pets.
     for (mut og, new) in team
@@ -240,7 +240,7 @@ fn test_battle_hyena_team() {
     // Level up hyena.
     team.set_level(&hyena_pos, 2).unwrap();
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Hyena at lvl. 2 swaps positions of pets.
     assert_eq!(team.first().unwrap().borrow().name, PetName::Gorilla);
@@ -253,7 +253,7 @@ fn test_battle_hyena_team() {
     // Level up hyena.
     team.set_level(&hyena_pos, 3).unwrap();
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Hyena at lvl. 3 swaps positions and stats of pets.
     let gorilla = team.first().unwrap();
@@ -330,7 +330,7 @@ fn test_battle_lion_lowest_tier_team() {
 
     // Activate start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Stats are unchanged.
     assert_eq!(lion_original_stats, team.first().unwrap().borrow().stats)
@@ -353,7 +353,7 @@ fn test_battle_lion_highest_tier_team() {
 
     // Activate start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Adds 50% of attack and health to original stats.
     assert_eq!(
@@ -375,7 +375,7 @@ fn test_battle_swordfish_team() {
 
     // Activate start of battle effect.
     team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(&mut enemy_team).unwrap();
+    team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Both swordfish and enemy eagle are hit and take 25 dmg.
     assert!(swordfish.borrow().stats.health == 0);
