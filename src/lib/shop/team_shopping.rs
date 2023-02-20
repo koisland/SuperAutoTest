@@ -4,6 +4,7 @@ use itertools::Itertools;
 use log::info;
 
 use crate::{
+    db::pack::Pack,
     effects::{
         effect::Entity,
         state::{Status, Target},
@@ -20,7 +21,7 @@ use crate::{
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
-    Food, Pet, Position, Shop, Team,
+    Food, FoodName, Pet, Position, Shop, Statistics, Team,
 };
 
 use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
@@ -88,6 +89,7 @@ pub trait TeamShopping {
         item_type: &Entity,
         to: &Position,
     ) -> Result<&mut Self, SAPTestError>;
+
     /// Sell a [`Pet`](crate::Pet) on the [`Team`](crate::Team) for gold.
     /// # Example
     /// ```
@@ -109,6 +111,7 @@ pub trait TeamShopping {
     /// assert!(team.all().is_empty());
     /// ```
     fn sell(&mut self, pos: &Position) -> Result<&mut Self, SAPTestError>;
+
     /// Roll the [`Shop`](crate::Shop) restocking it with new items at the cost of `1` gold.
     /// # Example
     /// ```
@@ -125,6 +128,7 @@ pub trait TeamShopping {
     /// );
     /// ```
     fn roll_shop(&mut self) -> Result<&mut Self, SAPTestError>;
+
     /// Set the [`Shop`](crate::Shop)'s seed.
     /// * Setting the seed to [`None`] will randomize the rng.
     /// # Example
@@ -135,6 +139,7 @@ pub trait TeamShopping {
     /// team.set_shop_seed(Some(42));
     /// ```
     fn set_shop_seed(&mut self, seed: Option<u64>) -> &mut Self;
+
     /// Set the [`Shop`](crate::Shop)'s tier.
     /// * Note: This adjusts the number of turns in the team's history to the minimum required to reach the given tier.
     /// # Example
@@ -151,6 +156,45 @@ pub trait TeamShopping {
     /// assert!(adj_to_invalid_tier.is_err());
     /// ```
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError>;
+
+    /// Set the [`Shop`](crate::Shop) to only include [`PetName`](crate::PetName)s and [`FoodName`](crate::FoodName)s from these [`Pack`](crate::db::pack::Pack)s.
+    /// # Example
+    /// ```
+    /// use saptest::{Team, TeamShopping, db::pack::Pack};
+    ///
+    /// let mut team = Team::default();
+    /// team.set_shop_packs(&[Pack::Puppy]);
+    /// let packs = team.get_shop_packs();
+    ///
+    /// assert_eq!(packs.len(), 1);
+    /// assert_eq!(packs[0], Pack::Puppy);
+    /// ```
+    fn set_shop_packs(&mut self, packs: &[Pack]) -> &mut Self;
+
+    /// Returns an immutable reference to the [`Shop`].
+    /// # Example
+    /// ```rust no run
+    /// use saptest::{Team, TeamShopping};
+    ///
+    /// let mut team = Team::default();
+    /// team.get_shop();
+    /// ```
+    fn get_shop(&self) -> &Shop;
+
+    /// Returns the [`Shop`]'s [`Pack`]s.
+    /// # Example
+    /// ```
+    /// use saptest::{Team, TeamShopping, db::pack::Pack};
+    ///
+    /// // The Turtle pack is the default.
+    /// let mut team = Team::default();
+    /// let packs = team.get_shop_packs();
+    ///
+    /// assert_eq!(packs.len(), 1);
+    /// assert_eq!(packs[0], Pack::Turtle);
+    /// ```
+    fn get_shop_packs(&mut self) -> &[Pack];
+
     /// Freeze an item in the [`Shop`](crate::Shop).
     /// # Example
     /// ```
@@ -162,6 +206,7 @@ pub trait TeamShopping {
     /// );
     /// ```
     fn freeze_shop(&mut self, pos: Position, item_type: Entity) -> Result<&mut Self, SAPTestError>;
+
     /// Open the [`Shop`](crate::Shop) for a [`Team`](crate::Team).
     /// # Example
     /// ```
@@ -171,6 +216,7 @@ pub trait TeamShopping {
     /// assert!(team.open_shop().is_ok());
     /// ```
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError>;
+
     /// Close a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
     /// * Enables [`Team`](crate::Team) fighting.
     /// # Example
@@ -182,6 +228,7 @@ pub trait TeamShopping {
     /// assert!(team.close_shop().is_ok());
     /// ```
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError>;
+
     /// Get [`Shop`](crate::Shop) gold available.
     /// # Example
     /// ```
@@ -191,6 +238,7 @@ pub trait TeamShopping {
     /// assert_eq!(team.gold(), 10);
     /// ```
     fn gold(&self) -> usize;
+
     /// Get the [`Shop`](crate::Shop) tier.
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -199,6 +247,7 @@ pub trait TeamShopping {
     /// assert_eq!(team.shop_tier(), 1);
     /// ```
     fn shop_tier(&self) -> usize;
+
     /// Get number of foods in the [`Shop`](crate::Shop).
     /// # Example
     /// ```
@@ -210,6 +259,7 @@ pub trait TeamShopping {
     /// assert_eq!(team.len_shop_foods(), 1);
     /// ```
     fn len_shop_foods(&self) -> usize;
+
     /// Get number of pets in the [`Shop`](crate::Shop).
     /// # Example
     /// ```
@@ -221,6 +271,7 @@ pub trait TeamShopping {
     /// assert_eq!(team.len_shop_pets(), 3);
     /// ```
     fn len_shop_pets(&self) -> usize;
+
     /// Replace [`Shop`](crate::Shop) of [`Team`](crate::Team).
     /// # Example
     /// ```
@@ -257,6 +308,7 @@ pub trait TeamShopping {
     /// );
     /// ```
     fn replace_shop(&mut self, shop: Shop) -> Result<&mut Self, SAPTestError>;
+
     /// Prints the team's [`Shop`].
     /// # Example
     /// ```
@@ -307,12 +359,24 @@ impl TeamShoppingHelpers for Team {
             let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
             trigger_self_food.set_affected(target_pet);
             self.triggers.push_back(trigger_self_food);
+        } else if food.borrow().name == FoodName::CannedFood {
+            // Hard-coded can ability.
+            let can_stats = Statistics {
+                attack: 1,
+                health: 1,
+            };
+            for pet in self.shop.pets.iter() {
+                if let ItemSlot::Pet(pet) = &pet.item {
+                    pet.borrow_mut().stats += can_stats
+                }
+            }
+            self.shop.perm_stats += can_stats;
         } else {
             let mut food_ability = food.borrow().ability.clone();
             let target_pos =
                 Position::Multiple(vec![food_ability.position.clone(); food.borrow().n_targets]);
             let affected_pets =
-                self.get_pets_by_pos(self.first(), &Target::Friend, &target_pos, None, None)?;
+                self.get_pets_by_pos(self.first(), &food_ability.target, &target_pos, None, None)?;
             // For each pet found by the effect of food bought, apply its effect.
             for (_, pet) in affected_pets {
                 food_ability.assign_owner(Some(&pet));
@@ -535,6 +599,19 @@ impl TeamShopping for Team {
 
     fn len_shop_pets(&self) -> usize {
         self.shop.len_pets()
+    }
+
+    fn get_shop(&self) -> &Shop {
+        &self.shop
+    }
+
+    fn get_shop_packs(&mut self) -> &[Pack] {
+        &self.shop.packs
+    }
+
+    fn set_shop_packs(&mut self, packs: &[Pack]) -> &mut Self {
+        self.shop.packs = packs.to_vec();
+        self
     }
 
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError> {

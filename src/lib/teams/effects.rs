@@ -448,6 +448,14 @@ impl EffectApplyHelpers for Team {
                 pet.stats = *stats;
                 Ok(pet)
             }
+            SummonType::SelfTierPet => {
+                let summon_query_type = SummonType::QueryPet(
+                    "SELECT * FROM pets where tier = ?".to_string(),
+                    vec![target_pet.borrow().tier.to_string()],
+                    None,
+                );
+                self.summon_type_to_pet(&summon_query_type, target_pet)
+            }
         }
     }
     fn summon_pet(
@@ -676,12 +684,28 @@ impl EffectApplyHelpers for Team {
                 target_ids.push(target_pet.borrow().id.clone())
             }
             Action::Remove(stat_change) => {
-                let remove_stats = match stat_change {
+                let mut remove_stats = match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
                         effect_owner.borrow().stats.mult_perc(stats)
                     }
                 };
+                // Check for food. Add any effect dmg modifiers.
+                if let Some(item) = effect_owner
+                    .borrow()
+                    .item
+                    .as_ref()
+                    .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
+                {
+                    if let Action::Add(modifier) = &item.ability.action {
+                        remove_stats = match modifier {
+                            StatChangeType::StaticValue(stats) => remove_stats + *stats,
+                            StatChangeType::SelfMultValue(stats_mult) => {
+                                remove_stats.mult_perc(stats_mult)
+                            }
+                        }
+                    }
+                }
                 let mut atk_outcome = target_pet.borrow_mut().indirect_attack(&remove_stats);
 
                 // Update triggers from where they came from.
@@ -1000,8 +1024,19 @@ impl EffectApplyHelpers for Team {
                 self.shop.free_rolls += 1;
                 info!(target: "run", "(\"{}\")\nIncreased free rolls by 1. New free rolls: {}", self.name, self.shop.free_rolls)
             }
+            Action::Swap(swap_type) => {
+                // Only allow stat swap here.
+                if let RandomizeType::Stats = swap_type {
+                    target_pet.borrow_mut().stats.invert();
+                }
+            }
             Action::None => {}
-            _ => unimplemented!("Action not implemented"),
+            _ => {
+                return Err(SAPTestError::InvalidTeamAction {
+                    subject: "Action Not Implemented".to_string(),
+                    reason: format!("Single action ({:?}) not implemented yet.", &effect.action),
+                })
+            }
         }
         // Create edge by iterating over all targets affected.
         if let (Some(prev_node), Some(curr_node)) = (self.history.prev_node, self.history.curr_node)

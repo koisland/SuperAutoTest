@@ -469,7 +469,7 @@ impl TeamViewer for Team {
                 let Some(enemy_team) = opponent else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Enemy Team Provided".to_string(),
-                        reason: format!("Enemy team is required for finding pets by target {:?}", &target)
+                        reason: format!("Enemy team is required for finding pets by target {target:?}")
                     })
                 };
                 enemy_team
@@ -538,7 +538,7 @@ impl TeamViewer for Team {
                 let Some(trigger) = trigger else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Trigger Provided".to_string(),
-                        reason: format!("Trigger required for finding pets by {:?}", pos.clone())
+                        reason: format!("Trigger required for finding pets by {pos:?}")
                     })
                 };
                 if let Some(Some(affected_pet)) = trigger
@@ -722,7 +722,12 @@ impl TeamViewer for Team {
                     }
                 }
             }
-            _ => unimplemented!(),
+            _ => {
+                return Err(SAPTestError::InvalidTeamAction {
+                    subject: "Unimplemented Target/Position".to_string(),
+                    reason: format!("Cannot find any valid pets with {target:?} and {pos:?}"),
+                })
+            }
         }
 
         Ok(pets)

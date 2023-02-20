@@ -1,17 +1,11 @@
-use std::{
-    cell::RefCell,
-    fmt::Display,
-    fmt::Write,
-    ops::{Add, Range},
-    rc::Rc,
-};
+use std::{cell::RefCell, fmt::Display, fmt::Write, ops::Range, rc::Rc};
 
 use itertools::Itertools;
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
 
 use crate::{
-    db::utils::setup_param_query,
+    db::{pack::Pack, utils::setup_param_query},
     effects::{effect::Entity, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
@@ -108,15 +102,6 @@ impl From<Pet> for ShopItem {
     }
 }
 
-/// Sum the cost of shop items.
-impl Add for &ShopItem {
-    type Output = usize;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        self.cost + rhs.cost
-    }
-}
-
 impl Display for ItemSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -146,6 +131,8 @@ pub struct Shop {
     pub pets: Vec<ShopItem>,
     /// Foods in shop.
     pub foods: Vec<ShopItem>,
+    /// Packs shop should include.
+    pub packs: Vec<Pack>,
     /// Global permanent `Statistics` added to all `Pet`s.
     /// * Added via a `CannedFood`
     pub perm_stats: Statistics,
@@ -167,6 +154,7 @@ impl Default for Shop {
             pets: Vec::with_capacity(MAX_SHOP_PETS),
             foods: Vec::with_capacity(MAX_SHOP_FOODS),
             free_rolls: 0,
+            packs: vec![Pack::Turtle],
         }
     }
 }
@@ -480,7 +468,7 @@ impl Shop {
     /// Convert tier to num_turns.
     pub(crate) fn tier_to_num_turns(tier: usize) -> Result<usize, SAPTestError> {
         Shop::is_valid_shop_tier(tier)?;
-        Ok(1 + (2 * tier))
+        Ok(1 + (2 * tier.saturating_sub(1)))
     }
 
     /// Set the tier of a `Shop`.
@@ -504,7 +492,11 @@ impl Shop {
     /// Build shop query.
     fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> (String, Vec<String>) {
         let tiers = tiers.into_iter().map(|tier| tier.to_string()).collect_vec();
-        let params: [Vec<String>; 3] = [tiers, vec!["Turtle".to_string()], vec![1.to_string()]];
+        let params: [Vec<String>; 3] = [
+            tiers,
+            self.packs.iter().map(|pack| pack.to_string()).collect_vec(),
+            vec![1.to_string()],
+        ];
         let mut flat_param: Vec<String> = params.iter().flatten().cloned().collect_vec();
 
         let stmt = match entity {
@@ -540,7 +532,13 @@ impl Shop {
         let mut rng = self.get_rng();
 
         // Iterate through slots choose a random pet or sloth.
-        let n_slots = self.available_pet_slots();
+        let total_items = self.len_foods() + self.len_pets();
+        let total_allowed_items = self.max_food_slots() + self.max_pet_slots();
+        let n_slots = if total_items == total_allowed_items {
+            0
+        } else {
+            self.available_pet_slots()
+        };
         for _ in 0..n_slots {
             let (cost, mut pet) = if rng.gen_bool(SLOTH_CHANCE) {
                 (3, Pet::try_from(PetName::Sloth)?)
@@ -574,8 +572,13 @@ impl Shop {
         let mut rng = self.get_rng();
 
         // Iterate through slots choose a random food.
-        // TODO: May have issue if additional items frozen.
-        let n_slots = self.available_food_slots();
+        let total_items = self.len_foods() + self.len_pets();
+        let total_allowed_items = self.max_food_slots() + self.max_pet_slots();
+        let n_slots = if total_items == total_allowed_items {
+            0
+        } else {
+            self.available_food_slots()
+        };
         for _ in 0..n_slots {
             let food_record =
                 possible_foods

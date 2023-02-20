@@ -50,6 +50,8 @@ pub enum SummonType {
     CustomPet(PetName, StatChangeType, usize),
     /// Summon the pet owning the effect of this action.
     SelfPet(Statistics),
+    /// Summon a pet at the same tier as this pet with default stats.
+    SelfTierPet,
 }
 
 /// Types of item gains for [`Action::Gain`].

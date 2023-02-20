@@ -34,6 +34,7 @@
 //!     Entity, EntityName, Food, FoodName,
 //!     Shop, ShopItem, TeamShopping,
 //!     Team, TeamViewer, Position,
+//!     db::pack::Pack
 //! };
 //!
 //! // All teams are constructed with a shop at tier 1.
@@ -41,6 +42,7 @@
 //!
 //! // All shop functionality is supported.
 //! team.set_shop_seed(Some(1212))
+//!     .set_shop_packs(&[Pack::Turtle])
 //!     .open_shop().unwrap()
 //!     .buy(&Position::First, &Entity::Pet, &Position::First).unwrap()
 //!     .sell(&Position::First).unwrap()

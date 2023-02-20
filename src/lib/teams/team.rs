@@ -75,7 +75,7 @@ pub struct Team {
     pub triggers: VecDeque<Outcome>,
     /// Pet shop.
     #[serde(skip)]
-    pub shop: Shop,
+    pub(crate) shop: Shop,
     /// Effect history of a team.
     #[serde(skip)]
     pub(crate) history: History,
@@ -291,7 +291,7 @@ impl Team {
     ///     enemy_team.friends.get(1).map_or(false, |pet| pet.borrow().stats.health == 0),
     /// )
     /// ```
-    pub fn set_seed(&mut self, seed: Option<u64>) {
+    pub fn set_seed(&mut self, seed: Option<u64>) -> &mut Self {
         self.seed = seed;
 
         for pet in self.friends.iter().chain(self.fainted.iter()) {
@@ -300,6 +300,7 @@ impl Team {
         for stored_pet in self.stored_friends.iter_mut() {
             stored_pet.seed = seed
         }
+        self
     }
 
     /// Assign an item to a team member.

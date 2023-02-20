@@ -154,6 +154,15 @@ fn test_roll() {
 }
 
 #[test]
+fn test_roll_no_gold() {
+    let mut shop = Shop::new(1, Some(12)).unwrap();
+    for _ in 0..10 {
+        shop.roll().unwrap();
+    }
+    assert!(shop.roll().is_err())
+}
+
+#[test]
 fn test_view_item_attr() {
     let mut shop = Shop::new(6, Some(122)).unwrap();
     shop.add_item(ShopItem::try_from(Food::try_from(FoodName::Garlic).unwrap()).unwrap())
@@ -213,7 +222,7 @@ fn test_view_item_attr() {
         garlic.health_stat().is_none() &&
         garlic.actions()[0] == Action::Negate(Statistics { attack: 2, health: 0 }) &&
         // Occurs before being hurt and not during attacking.
-        garlic.triggers()[0] == Status::None
+        garlic.triggers()[0] == Status::AnyDmgCalc
     );
 
     // Choco gives experience. Stats implicit.
@@ -383,6 +392,12 @@ fn test_view_by_pos() {
     let all_pets = shop
         .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
         .unwrap();
+    let (parrot, horse, seal, _, _) = all_pets
+        .clone()
+        .into_iter()
+        .collect_tuple::<(&ShopItem, &ShopItem, &ShopItem, &ShopItem, &ShopItem)>()
+        .unwrap();
+
     let any_pet = shop
         .get_shop_items_by_pos(&Position::Any(Condition::None), &Entity::Pet)
         .unwrap();
@@ -394,6 +409,9 @@ fn test_view_by_pos() {
         .unwrap();
     let rng_of_pet = shop
         .get_shop_items_by_pos(&Position::Range(0..=2), &Entity::Pet)
+        .unwrap();
+    let n_num_pets = shop
+        .get_shop_items_by_pos(&Position::N(Condition::None, 3, true), &Entity::Pet)
         .unwrap();
 
     let rel_idx_food = shop
@@ -423,5 +441,14 @@ fn test_view_by_pos() {
         rng_of_pet[0].name() == EntityName::Pet(PetName::Parrot)
             && rng_of_pet[1].name() == EntityName::Pet(PetName::Horse)
             && rng_of_pet[2].name() == EntityName::Pet(PetName::Seal)
-    )
+    );
+
+    // Position::N() gets 3 pets but because randomized, doesn't have all of the first 3 pets.
+    assert_eq!(n_num_pets.len(), 3);
+    let has_first_three_pets = [
+        n_num_pets.contains(&parrot),
+        n_num_pets.contains(&horse),
+        n_num_pets.contains(&seal),
+    ];
+    assert!(!has_first_three_pets.into_iter().all(|cond| cond))
 }

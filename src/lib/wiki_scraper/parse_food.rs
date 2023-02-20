@@ -237,7 +237,7 @@ pub fn parse_one_food_entry(
         // Map tiers that are N/A to 0. ex. Coconut which is summoned.
         tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
 
-        let packs = [turtle_pack, puppy_pack, star_pack]
+        let mut packs = [turtle_pack, puppy_pack, star_pack]
             .iter()
             .filter_map(|(pack, pack_desc)| {
                 if let FoodTableCols::GamePack(pack_name) = pack {
@@ -248,6 +248,10 @@ pub fn parse_one_food_entry(
                 }
             })
             .collect_vec();
+        // If no containing pack, assume weekly.
+        if packs.is_empty() {
+            packs.push(Pack::Weekly)
+        }
 
         let holdable_item = is_holdable_item(name.1, effect.1);
         let (_, single_use) = is_temp_single_use(name.1, effect.1);

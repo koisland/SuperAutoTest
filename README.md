@@ -166,9 +166,6 @@ python setup.py install
 
 ## TODO:
 * Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
-* Add custom pack parser and reader.
-* Reorganize Team impl.
-  * Move to new trait.
 * Add trait for randomly generating teams.
 * Create Rust binding for Python.
 

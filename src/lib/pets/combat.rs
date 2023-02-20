@@ -5,7 +5,7 @@ use crate::{
     effects::{
         actions::{Action, StatChangeType},
         effect::Modify,
-        state::{Outcome, Position},
+        state::{Outcome, Position, Status},
         stats::Statistics,
         trigger::*,
     },
@@ -20,6 +20,52 @@ pub const MIN_DMG: isize = 1;
 /// The maximum damage any attack can do.
 pub const MAX_DMG: isize = 150;
 const FULL_DMG_NEG_ITEMS: [FoodName; 2] = [FoodName::Coconut, FoodName::Melon];
+const ALLOWED_FOOD_EFFECT_TRIGGER: [Status; 2] = [Status::AnyDmgCalc, Status::AttackDmgCalc];
+
+/// Gets the maximum damage a pet can receive.
+fn max_dmg_received(pet: &Pet) -> isize {
+    // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
+    if pet.has_active_ability(&Action::Invincible) {
+        0
+    } else {
+        MAX_DMG
+    }
+}
+
+/// Calculate minimum damage that a pet can receive.
+/// * `1` is the default.
+fn min_dmg_received(pet: &Pet) -> isize {
+    // If has melon or coconut, minimum dmg can be 0, Otherwise, should be 1.
+    if pet
+        .item
+        .as_ref()
+        .map_or(false, |food| FULL_DMG_NEG_ITEMS.contains(&food.name))
+    {
+        0
+    } else {
+        MIN_DMG
+    }
+}
+
+/// Final damage calculation considering death's touch and endure actions.
+fn final_dmg_calculation(pet: &Pet, dmg: isize, enemy: &Pet) -> isize {
+    // Insta-kill if all apply:
+    // * Any amount of damage is dealt.
+    // * Enemy has death's touch.
+    // * Pet being attacked has more health than 1.
+    if dmg != 0 && enemy.has_active_ability(&Action::Kill) && pet.stats.health > 1 {
+        0
+    } else {
+        let health = pet.stats.health.sub(dmg);
+        // If has endure, stay alive at 1 health.
+        // Otherwise do normal damage calculation.
+        if pet.has_active_ability(&Action::Endure) {
+            health.clamp(1, MAX_PET_STATS)
+        } else {
+            health.clamp(MIN_PET_STATS, MAX_PET_STATS)
+        }
+    }
+}
 
 /// Implements combat mechanics for a single [`Pet`].
 pub trait PetCombat {
@@ -61,34 +107,36 @@ pub trait PetCombat {
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome;
 
     /// Perform a projectile/indirect attack on a [`Pet`](crate::Pet).
+    /// * Health stat in [`Statistics`] is ignored.
     /// # Examples
     /// ```
     /// use saptest::{Pet, PetName, PetCombat, Statistics};
     ///
     /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
-    ///
     /// assert_eq!(ant.stats.health, 1);
     ///
+    /// // Deal damage with attack value of 2.
     /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
     ///
     /// assert_eq!(ant.stats.health, 0);
     /// ```
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> AttackOutcome;
+    fn indirect_attack(&mut self, dmg: &Statistics) -> AttackOutcome;
 
     /// Get triggers for both pets when health is altered.
     /// # Example
     /// ```
     /// use saptest::{Pet, PetName, PetCombat, effects::trigger::TRIGGER_SELF_UNHURT};
+    ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// // New health is identical.
-    /// let outcome = ant_1.get_outcome(1);
+    /// let outcome = ant_1.get_atk_outcomes(1);
     /// // Unhurt trigger for friends.
     /// assert_eq!(
     ///     outcome.friends.first().unwrap(),
     ///     &TRIGGER_SELF_UNHURT
     /// );
     /// ```
-    fn get_outcome(&self, new_health: isize) -> AttackOutcome;
+    fn get_atk_outcomes(&self, new_health: isize) -> AttackOutcome;
 
     /// Gets the [`Statistic`](crate::Statistics) modifiers of held foods that alter a pet's stats during battle.
     /// # Examples
@@ -96,65 +144,94 @@ pub trait PetCombat {
     /// **Nothing** - Gives no additional stats in damage calculation.
     /// ```
     /// use saptest::{Pet, PetName, Statistics, PetCombat};
+    ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
-    ///     Statistics::new(0, 0).unwrap()
+    ///     None
     /// );
     /// ```
     /// ---
     /// **Melon** - Gives `20` additional health in damage calculation.
     /// ```
     /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
-    ///     Statistics::new(0, 20).unwrap()
+    ///     Some(Statistics::new(0, 20).unwrap())
     /// );
     /// ```
     /// ---
     /// **MeatBone** - Gives `4` additional attack in damage calculation.
     /// ```
     /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
+    ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
-    ///     Statistics::new(4, 0).unwrap()
+    ///     Some(Statistics::new(4, 0).unwrap())
     /// );
     /// ```
-    fn get_food_stat_modifier(&self) -> Statistics;
+    fn get_food_stat_modifier(&self) -> Option<Statistics>;
+
+    /// Check if a [`Pet`]'s [`Food`](crate::Food) has this [`Action`].
+    /// * Returns `false` if out of uses.
+    /// # Example
+    /// ```
+    /// use saptest::{
+    ///     Pet, PetName, PetCombat,
+    ///     Food, FoodName, effects::actions::Action
+    /// };
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// ant_1.item = Some(Food::try_from(FoodName::Peanut).unwrap());
+    ///
+    /// assert!(ant_1.has_active_ability(&Action::Kill))
+    /// ```
+    fn has_active_ability(&self, ability: &Action) -> bool;
 }
 
 impl PetCombat for Pet {
-    fn indirect_attack(&mut self, hit_stats: &Statistics) -> AttackOutcome {
+    fn indirect_attack(&mut self, dmg: &Statistics) -> AttackOutcome {
         // If pet already dead, return early.
         if self.stats.health == 0 {
             return AttackOutcome::default();
         }
         // Get food status modifier. ex. Melon/Garlic
-        let stat_modifier = self.get_food_stat_modifier();
-        // Subtract stat_modifer (150/2) from indirect attack.
-        let enemy_atk = hit_stats
+        let stat_modifier = self
+            .get_food_stat_modifier()
+            .unwrap_or(Statistics::default());
+
+        let min_enemy_dmg = min_dmg_received(self);
+        let max_enemy_dmg = max_dmg_received(self);
+        let enemy_dmg = dmg
             .attack
             .sub(stat_modifier.health)
             // Must do a minimum of 1 damage.
-            .clamp(MIN_DMG, MAX_DMG);
-        let new_health = self
-            .stats
-            .health
-            .sub(enemy_atk)
-            .clamp(MIN_PET_STATS, MAX_PET_STATS);
+            .clamp(min_enemy_dmg, max_enemy_dmg);
+
+        let mut new_health = self.stats.health.sub(enemy_dmg);
+
+        // Account for endure ability.
+        new_health = if self.has_active_ability(&Action::Endure) {
+            new_health.clamp(1, MAX_PET_STATS)
+        } else {
+            new_health.clamp(MIN_PET_STATS, MAX_PET_STATS)
+        };
+
+        // Reduce uses from ability if possible.
+        self.item.as_mut().map(|item| item.ability.remove_uses(1));
 
         // Use health difference to determine outcome.
-        let outcome = self.get_outcome(new_health);
+        let outcome = self.get_atk_outcomes(new_health);
         // Set new health.
         self.stats.health = new_health.clamp(MIN_PET_STATS, MAX_PET_STATS);
         outcome
     }
 
-    fn get_outcome(&self, new_health: isize) -> AttackOutcome {
+    fn get_atk_outcomes(&self, new_health: isize) -> AttackOutcome {
         let health_diff = self
             .stats
             .health
@@ -199,16 +276,17 @@ impl PetCombat for Pet {
         }
     }
 
-    fn get_food_stat_modifier(&self) -> Statistics {
-        // If a pet has an item that alters stats...
-        // Otherwise, no stat modifier added.
-        self.item.as_ref().map_or(Statistics::default(), |food| {
+    fn get_food_stat_modifier(&self) -> Option<Statistics> {
+        if let Some(food) = self.item.as_ref().filter(|food| {
+            food.ability.position == Position::OnSelf
+                && ALLOWED_FOOD_EFFECT_TRIGGER.contains(&food.ability.trigger.status)
+        }) {
             let food_effect = if let Some(n_uses) = food.ability.uses {
-                if n_uses > 0 && food.ability.position == Position::OnSelf {
+                if n_uses > 0 {
                     // Return the food effect.
                     &food.ability.action
                 } else {
-                    &Action::None
+                    return None;
                 }
             } else {
                 // None means unlimited uses.
@@ -218,113 +296,77 @@ impl PetCombat for Pet {
             match food_effect {
                 // Get stat modifiers from effects.
                 Action::Add(stat_change) | Action::Remove(stat_change) => match stat_change {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats_mult) => self.stats.mult_perc(stats_mult),
+                    StatChangeType::StaticValue(stats) => Some(*stats),
+                    StatChangeType::SelfMultValue(stats_mult) => {
+                        Some(self.stats.mult_perc(stats_mult))
+                    }
                 },
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;
                     // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).
                     mod_stats.invert();
-                    mod_stats
+                    Some(mod_stats)
                 }
                 Action::Critical(prob) => {
                     let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                    let prob = *prob.clamp(&0, &100) as f64;
-                    // Deal double damage if probabilty yields true.
+                    let prob = (*prob).clamp(0, 100) as f64 / 100.0;
+                    // Deal double damage (Add attack twice) if probabilty yields true.
                     let dmg = if rng.gen_bool(prob) {
-                        self.stats.attack * 2
-                    } else {
                         self.stats.attack
+                    } else {
+                        0
                     };
 
-                    Statistics {
+                    Some(Statistics {
                         attack: dmg,
                         health: 0,
-                    }
+                    })
                 }
                 // Otherwise, no change.
-                _ => Statistics::default(),
+                _ => None,
             }
-        })
+        } else {
+            None
+        }
+    }
+
+    fn has_active_ability(&self, ability: &Action) -> bool {
+        if let Some(food) = self.item.as_ref() {
+            &food.ability.action == ability && food.ability.uses != Some(0)
+        } else {
+            false
+        }
     }
 
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {
         // Get stat modifier from food.
-        let stat_modifier = self.get_food_stat_modifier();
-        let enemy_stat_modifier = enemy.get_food_stat_modifier();
+        let stat_modifier = self
+            .get_food_stat_modifier()
+            .unwrap_or(Statistics::default());
+        let enemy_stat_modifier = enemy
+            .get_food_stat_modifier()
+            .unwrap_or(Statistics::default());
 
-        // If has melon or coconut, minimum dmg can be 0, Otherwise, should be 1.
-        let min_enemy_dmg = if self
-            .item
-            .as_ref()
-            .map_or(false, |food| FULL_DMG_NEG_ITEMS.contains(&food.name))
-        {
-            0
-        } else {
-            MIN_DMG
-        };
-        let min_dmg = if enemy
-            .item
-            .as_ref()
-            .map_or(false, |food| FULL_DMG_NEG_ITEMS.contains(&food.name))
-        {
-            0
-        } else {
-            MIN_DMG
-        };
+        let min_enemy_dmg = min_dmg_received(self);
+        let min_dmg = min_dmg_received(enemy);
 
         // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
-        let max_enemy_dmg = if self.item.as_ref().map_or(false, |food| {
-            food.ability.action == Action::Invincible && food.ability.uses != Some(0)
-        }) {
-            0
-        } else {
-            MAX_DMG
-        };
-        let max_dmg = if enemy.item.as_ref().map_or(false, |food| {
-            food.ability.action == Action::Invincible && food.ability.uses != Some(0)
-        }) {
-            0
-        } else {
-            MAX_DMG
-        };
+        let max_enemy_dmg = max_dmg_received(self);
+        let max_dmg = max_dmg_received(enemy);
 
         // Any modifiers must apply to ATTACK as we want to only temporarily modify the health attribute of a pet.
-        let enemy_atk = (enemy.stats.attack + enemy_stat_modifier.attack)
+        let enemy_dmg = (enemy.stats.attack + enemy_stat_modifier.attack)
             .sub(stat_modifier.health)
             .clamp(min_enemy_dmg, max_enemy_dmg);
 
-        let atk = (self.stats.attack + stat_modifier.attack)
+        let dmg = (self.stats.attack + stat_modifier.attack)
             .sub(enemy_stat_modifier.health)
             .clamp(min_dmg, max_dmg);
 
-        // Insta-kill if any amount of damage is dealt and enemy has death's touch.
-        let new_health = if enemy_atk != 0
-            && enemy
-                .item
-                .as_ref()
-                .map_or(false, |item| item.ability.action == Action::Kill)
-        {
-            0
-        } else {
-            self.stats.health.sub(enemy_atk)
-        };
+        let new_health = final_dmg_calculation(self, enemy_dmg, enemy);
+        let new_enemy_health = final_dmg_calculation(enemy, dmg, self);
 
-        let new_enemy_health = if atk != 0
-            && self
-                .item
-                .as_ref()
-                .map_or(false, |item| item.ability.action == Action::Kill)
-        {
-            0
-        } else {
-            enemy.stats.health.sub(atk)
-        };
-
-        (
-            new_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
-            new_enemy_health.clamp(MIN_PET_STATS, MAX_PET_STATS),
-        )
+        (new_health, new_enemy_health)
     }
 
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome {
@@ -336,8 +378,8 @@ impl PetCombat for Pet {
 
         // Get outcomes for both pets.
         // This doesn't factor in splash effects as pets outside of battle are affected.
-        let mut outcome = self.get_outcome(new_health);
-        let mut enemy_outcome = enemy.get_outcome(new_enemy_health);
+        let mut outcome = self.get_atk_outcomes(new_health);
+        let mut enemy_outcome = enemy.get_atk_outcomes(new_enemy_health);
 
         // Add specific trigger if directly knockout.
         if new_health == 0 {

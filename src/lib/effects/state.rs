@@ -251,6 +251,12 @@ pub enum Status {
     BeforeAttack,
     /// Pet is attacking.
     Attack,
+    /// Any damage calculation
+    AnyDmgCalc,
+    /// Indirect dmg attack calculation.
+    IndirectAttackDmgCalc,
+    /// Direct dmg attack calculation.
+    AttackDmgCalc,
     /// Pet levels up.
     Levelup,
     /// Food bought.

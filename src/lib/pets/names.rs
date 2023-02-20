@@ -127,7 +127,6 @@ pub enum PetName {
     Swordfish,
     Triceratops,
     Vulture,
-
     Alpaca,
     Tapir,
     Walrus,

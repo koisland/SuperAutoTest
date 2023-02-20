@@ -1,4 +1,13 @@
 #[cfg(test)]
+mod test_parse_pet;
+
+#[cfg(test)]
+mod test_parse_food;
+
+#[cfg(test)]
+mod test_parse_token;
+
+#[cfg(test)]
 mod test_pet;
 
 #[cfg(test)]

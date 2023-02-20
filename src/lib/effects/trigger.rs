@@ -81,6 +81,39 @@ pub const TRIGGER_END_BATTLE: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// Triggers for either attack or indirect attack damage calculation.
+pub const TRIGGER_DMG_CALC: Outcome = Outcome {
+    status: Status::AnyDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
+/// Triggers for only attack dmg calculation.
+pub const TRIGGER_ATK_DMG_CALC: Outcome = Outcome {
+    status: Status::AttackDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
+/// Triggers for only indirect attack calculation.
+pub const TRIGGER_INDIR_DMG_CALC: Outcome = Outcome {
+    status: Status::IndirectAttackDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
 /// Trigger for nothing?
 /// * Dunno why I made this.
 pub const TRIGGER_NONE: Outcome = Outcome {

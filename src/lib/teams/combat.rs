@@ -64,6 +64,7 @@ pub trait TeamCombat {
     /// }
     /// ```
     fn fight(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError>;
+
     /// Restore a team to its initial state.
     /// # Example
     /// ```rust no run
@@ -77,6 +78,7 @@ pub trait TeamCombat {
     ///     .restore();
     /// ```
     fn restore(&mut self) -> &mut Self;
+
     /// Clear team of empty slots and/or fainted pets and reset indices.
     /// # Examples
     /// ```

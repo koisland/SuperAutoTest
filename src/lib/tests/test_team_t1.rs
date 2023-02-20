@@ -409,6 +409,10 @@ fn test_shop_marmoset_team() {
     team.sell(&Position::First).unwrap();
 
     assert_eq!(team.shop.free_rolls, 1);
+
+    team.roll_shop().unwrap();
+
+    assert_eq!(team.shop.free_rolls, 0);
 }
 
 #[test]
