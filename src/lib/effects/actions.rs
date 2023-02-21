@@ -130,6 +130,8 @@ pub enum Action {
     ClearShop(Entity),
     /// Get gold.
     Profit,
+    /// Reduce cost of shop item.
+    Discount(Entity, usize),
     /// Free roll.
     FreeRoll,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.

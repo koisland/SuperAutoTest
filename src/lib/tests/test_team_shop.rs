@@ -1,3 +1,8 @@
+use std::{
+    cell::RefCell,
+    rc::{Rc, Weak},
+};
+
 use itertools::Itertools;
 
 use crate::{
@@ -5,6 +10,8 @@ use crate::{
     teams::{combat::TeamCombat, viewer::TeamViewer},
     Condition, Entity, Pet, PetName, Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
 };
+
+use super::common::test_jellyfish_team;
 
 #[test]
 fn test_team_shop_opening() {
@@ -188,4 +195,58 @@ fn test_team_shop_freeze() {
     team.open_shop().unwrap();
 
     team.print_shop();
+}
+
+#[test]
+fn test_shop_move() {
+    let mut team = test_jellyfish_team();
+    /*
+    JFish_0, Ant_2, Ant_1, Ant_0
+    */
+    let (ant_0, ant_1, _ant_2, _jfish_0) = team
+        .friends
+        .iter()
+        .map(Rc::downgrade)
+        .collect_tuple::<(
+            Weak<RefCell<Pet>>,
+            Weak<RefCell<Pet>>,
+            Weak<RefCell<Pet>>,
+            Weak<RefCell<Pet>>,
+        )>()
+        .unwrap();
+
+    /*
+    Ant_0, JFish_0, Ant_2, Ant_1,
+    */
+    team.move_pets(&Position::First, &Position::Last, false)
+        .unwrap();
+
+    assert!(ant_0.upgrade().unwrap().borrow().pos == Some(3));
+    /*
+    JFish_0, Ant_2, Ant_1, Ant_0
+    */
+    // Setting to 3rd arg to false moved the pet without merging it into the first pet.
+    team.move_pets(&Position::Last, &Position::First, false)
+        .unwrap();
+
+    assert!(ant_0.upgrade().unwrap().borrow().pos == Some(0));
+
+    /*
+    JFish_0, Ant_2, Ant_1 (+1)
+    */
+    team.move_pets(&Position::First, &Position::Relative(-1), true)
+        .unwrap();
+
+    // Pet has merged (+1 exp) and has been dropped.
+    assert!(ant_0.upgrade().is_none());
+    assert!(ant_1.upgrade().unwrap().borrow().exp == 1);
+
+    // Position::Any is okay.
+    assert!(team
+        .move_pets(&Position::First, &Position::Any(Condition::None), true)
+        .is_ok());
+    // Positions that require an opponent or target multiple pets are not supported.
+    assert!(team
+        .move_pets(&Position::Opposite, &Position::All(Condition::None), true)
+        .is_err())
 }

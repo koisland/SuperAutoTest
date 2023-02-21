@@ -269,21 +269,21 @@ impl TeamViewer for Team {
         self.friends
             .get(idx)
             .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
+            .map(Rc::clone)
     }
 
     fn first(&self) -> Option<Rc<RefCell<Pet>>> {
         self.friends
             .first()
             .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
+            .map(Rc::clone)
     }
 
     fn last(&self) -> Option<Rc<RefCell<Pet>>> {
         self.friends
             .last()
             .filter(|pet| pet.borrow().stats.health != 0)
-            .cloned()
+            .map(Rc::clone)
     }
 
     fn any(&self) -> Option<Rc<RefCell<Pet>>> {
@@ -296,7 +296,7 @@ impl TeamViewer for Team {
             .iter()
             .filter_map(|pet| {
                 if pet.borrow().stats.health != 0 {
-                    Some(pet.clone())
+                    Some(Rc::clone(pet))
                 } else {
                     None
                 }

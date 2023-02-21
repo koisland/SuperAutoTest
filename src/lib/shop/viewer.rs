@@ -324,6 +324,14 @@ impl ShopViewer for Shop {
                     found_items.push(found_item)
                 }
             }
+            Position::Multiple(positions) => {
+                for pos_found_items in positions
+                    .iter()
+                    .flat_map(|pos| self.get_shop_items_by_pos(pos, item).ok())
+                {
+                    found_items.extend(pos_found_items.iter())
+                }
+            }
             Position::None => {}
             _ => {
                 return Err(SAPTestError::InvalidShopAction {

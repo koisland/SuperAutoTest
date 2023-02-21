@@ -2,6 +2,8 @@ use std::{cell::RefCell, rc::Rc};
 
 use itertools::Itertools;
 use log::info;
+use rand::{random, seq::IteratorRandom, SeedableRng};
+use rand_chacha::ChaCha12Rng;
 
 use crate::{
     db::pack::Pack,
@@ -27,6 +29,11 @@ use crate::{
 use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
 
 trait TeamShoppingHelpers {
+    fn merge_behavior(
+        &mut self,
+        from_pet: &Rc<RefCell<Pet>>,
+        to_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<(), SAPTestError>;
     fn buy_food_behavior(
         &mut self,
         food: Rc<RefCell<Food>>,
@@ -307,6 +314,37 @@ pub trait TeamShopping {
     /// ```
     fn replace_shop(&mut self, shop: Shop) -> Result<&mut Self, SAPTestError>;
 
+    /// Move [`Pet`]s around merging them if desired.
+    /// # Example
+    /// ```
+    /// use saptest::{
+    ///     Team, TeamViewer, TeamShopping,
+    ///     Pet, PetName, Position
+    /// };
+    /// let mut team = Team::new(
+    ///     &[
+    ///         Pet::try_from(PetName::Ant).unwrap(),
+    ///         Pet::try_from(PetName::Ant).unwrap(),
+    ///         Pet::try_from(PetName::Ant).unwrap(),
+    ///     ],
+    ///     5
+    /// ).unwrap();
+    /// let last_ant = team.last().unwrap();
+    /// assert_eq!(last_ant.borrow().get_level(), 1);
+    ///
+    /// // Move first pet consecutively merging them into the last ant.
+    /// team.move_pets(&Position::First, &Position::Relative(-2), true).unwrap();
+    /// team.move_pets(&Position::First, &Position::Relative(-1), true).unwrap();
+    ///
+    /// assert_eq!(last_ant.borrow().get_level(), 2);
+    /// ```
+    fn move_pets(
+        &mut self,
+        from: &Position,
+        to: &Position,
+        merge: bool,
+    ) -> Result<&mut Self, SAPTestError>;
+
     /// Prints the team's [`Shop`].
     /// # Example
     /// ```
@@ -319,18 +357,62 @@ pub trait TeamShopping {
     /// ---
     /// ```no run
     /// (Pets)
-    /// (Normal) [Mosquito: (2,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    /// (Normal) [Beaver: (3,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    /// (Normal) [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    /// (Normal) [$3] [Mosquito: (2,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    /// (Normal) [$3] [Beaver: (3,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    /// (Normal) [$3] [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
     ///
     /// (Foods)
-    /// (Normal) [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
+    /// (Normal) [$3] [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
     /// ```
     fn print_shop(&self);
 }
 
 /// Helper methods for buy/sell behavior.
 impl TeamShoppingHelpers for Team {
+    fn merge_behavior(
+        &mut self,
+        from_pet: &Rc<RefCell<Pet>>,
+        to_pet: &Rc<RefCell<Pet>>,
+    ) -> Result<(), SAPTestError> {
+        // Get previous level. This will increase for every levelup.
+        let mut prev_lvl = to_pet.borrow().lvl;
+
+        // Stack pets.
+        to_pet.borrow_mut().merge(&from_pet.borrow())?;
+
+        // Check if pet leveled up. For EACH levelup:
+        // * Activate pet effects if trigger is a levelup.
+        //      * Must be done at previous level otherwise will use effect at current level.
+        //      * Ex. Fish levelup must use lvl. 1 effect not its current effect at lvl. 2.
+        // * Add shop pet on level
+        // * Add team levelup triggers.
+        for _ in 0..(to_pet.borrow().lvl - prev_lvl) {
+            let mut levelup_trigger = TRIGGER_SELF_LEVELUP;
+            levelup_trigger.set_affected(to_pet);
+
+            // For pet effect of leveled up pet.
+            for mut effect in to_pet.borrow().get_effect(prev_lvl)? {
+                effect.assign_owner(Some(to_pet));
+                if effect.trigger.status == Status::Levelup {
+                    // Apply pet effect directly here if trigger is levelup.
+                    self.apply_effect(&levelup_trigger, &effect, None)?;
+                }
+            }
+            // Increment level.
+            prev_lvl += 1;
+
+            // If pet levels, add a pet (tier above current tier) to shop.
+            if self.shop.add_levelup_pet().is_err() {
+                info!(target: "run", "Maximum pet capacity reached. No levelup pet added.")
+            };
+
+            // Add triggers for effects that trigger on any levelup.
+            let mut levelup_any_trigger = TRIGGER_ANY_LEVELUP;
+            levelup_any_trigger.set_affected(to_pet);
+            self.triggers.push_back(levelup_any_trigger);
+        }
+        Ok(())
+    }
     fn buy_food_behavior(
         &mut self,
         food: Rc<RefCell<Food>>,
@@ -399,43 +481,7 @@ impl TeamShoppingHelpers for Team {
         let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.borrow().name == pet.borrow().name {
-                // Get previous level. This will increase for every levelup.
-                let mut prev_lvl = affected_pet.borrow().lvl;
-
-                // Stack pets.
-                affected_pet.borrow_mut().merge(&pet.borrow())?;
-
-                // Check if pet leveled up. For EACH levelup:
-                // * Activate pet effects if trigger is a levelup.
-                //      * Must be done at previous level otherwise will use effect at current level.
-                //      * Ex. Fish levelup must use lvl. 1 effect not its current effect at lvl. 2.
-                // * Add shop pet on level
-                // * Add team levelup triggers.
-                for _ in 0..(affected_pet.borrow().lvl - prev_lvl) {
-                    let mut levelup_trigger = TRIGGER_SELF_LEVELUP;
-                    levelup_trigger.set_affected(affected_pet);
-
-                    // For pet effect of leveled up pet.
-                    for mut effect in affected_pet.borrow().get_effect(prev_lvl)? {
-                        effect.assign_owner(Some(affected_pet));
-                        if effect.trigger.status == Status::Levelup {
-                            // Apply pet effect directly here if trigger is levelup.
-                            self.apply_effect(&levelup_trigger, &effect, None)?;
-                        }
-                    }
-                    // Increment level.
-                    prev_lvl += 1;
-
-                    // If pet levels, add a pet (tier above current tier) to shop.
-                    if self.shop.add_levelup_pet().is_err() {
-                        info!(target: "run", "Maximum pet capacity reached. No levelup pet added.")
-                    };
-
-                    // Add triggers for effects that trigger on any levelup.
-                    let mut levelup_any_trigger = TRIGGER_ANY_LEVELUP;
-                    levelup_any_trigger.set_affected(affected_pet);
-                    self.triggers.push_back(levelup_any_trigger);
-                }
+                self.merge_behavior(&pet, affected_pet)?;
                 Some(affected_pet.clone())
             } else {
                 // Otherwise, add pet to position.
@@ -453,6 +499,15 @@ impl TeamShoppingHelpers for Team {
         if let Some(pet) = purchased_pet {
             let mut buy_trigger = TRIGGER_SELF_PET_BOUGHT;
             buy_trigger.set_affected(&pet);
+            // For each effect a pet has create a buy trigger to show that a pet with this status purchased.
+            // Needed for salamander.
+            for effect in pet.borrow().effect.iter() {
+                let mut buy_any_trigger =
+                    trigger_any_pet_bought_status(effect.trigger.status.clone());
+                buy_any_trigger.set_affected(&pet);
+                self.triggers.push_back(buy_any_trigger)
+            }
+
             self.triggers.push_back(buy_trigger)
         }
 
@@ -721,6 +776,76 @@ impl TeamShopping for Team {
         // Adjust turns to reflect tier.
         self.history.curr_turn = adj_turn;
         self.shop = shop;
+        Ok(self)
+    }
+
+    fn move_pets(
+        &mut self,
+        from: &Position,
+        to: &Position,
+        merge: bool,
+    ) -> Result<&mut Self, SAPTestError> {
+        let mut pets = Vec::with_capacity(2);
+
+        for pos in [from, to].into_iter() {
+            let pet = match pos {
+                Position::Any(condition) => {
+                    let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
+                    self.get_pets_by_cond(condition)
+                        .into_iter()
+                        .choose(&mut rng)
+                }
+                Position::First => self.first(),
+                Position::Last => self
+                    .friends
+                    .len()
+                    .checked_sub(1)
+                    .and_then(|idx| self.nth(idx)),
+                Position::Relative(idx) => {
+                    let idx = *idx;
+                    let adj_idx = TryInto::<usize>::try_into(-idx)?;
+                    self.nth(adj_idx)
+                }
+                _ => {
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: "Move Position Not Implemented".to_string(),
+                        reason: format!("Position ({pos:?}) not implemented for move."),
+                    })
+                }
+            };
+            pets.push(pet)
+        }
+        if let (Some(from_pet), Some(to_pet)) = (&pets[0], &pets[1]) {
+            // Same pet so just return.
+            if Rc::ptr_eq(from_pet, to_pet) {
+                return Ok(self);
+            }
+            let from_pos = from_pet
+                .borrow()
+                .pos
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "Missing Position".to_string(),
+                    reason: format!("Pet {from_pet:?} has no position."),
+                })?;
+            let to_pos = to_pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Missing Position".to_string(),
+                reason: format!("Pet {to_pet:?} has no position."),
+            })?;
+
+            // If same pet name, merge.
+            // Otherwise move from_pet to to_pet position.
+            if from_pet.borrow().name == to_pet.borrow().name && merge {
+                self.merge_behavior(from_pet, to_pet)?;
+                // Remove pet.
+                self.friends.remove(from_pos);
+            } else {
+                let from_pet = self.friends.remove(from_pos);
+                self.friends.insert(to_pos, from_pet)
+            }
+
+            self.trigger_effects(None)?;
+            self.clear_team();
+        }
         Ok(self)
     }
 

@@ -1,15 +1,20 @@
 use crate::{
-    effects::{state::Position, trigger::TRIGGER_START_BATTLE},
+    effects::{
+        state::{Position, Status},
+        trigger::TRIGGER_START_BATTLE,
+    },
     pets::names::PetName,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
-        test_dove_team, test_elephant_peacock_team, test_flamingo_team, test_hedgehog_team,
-        test_koala_team, test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team,
-        test_rat_team, test_skunk_team, test_spider_team, test_stork_team, test_toucan_team,
-        test_wombat_team,
+        test_dove_team, test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
+        test_goldfish_team, test_hedgehog_team, test_jellyfish_team, test_koala_team,
+        test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team, test_rat_team,
+        test_salamander_team, test_shrimp_team, test_skunk_team, test_spider_team, test_stork_team,
+        test_swan_team, test_tabby_cat_team, test_toucan_team, test_wombat_team, test_yak_team,
     },
-    Food, FoodName, Statistics, TeamEffects,
+    Entity, Food, FoodName, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Statistics, Team,
+    TeamEffects, TeamShopping,
 };
 
 #[test]
@@ -451,4 +456,273 @@ fn test_battle_wombat_team() {
     let mammoth_effect = mammoth_effect.first().unwrap();
 
     assert_eq!(&wombat_effect, mammoth_effect)
+}
+
+#[test]
+fn test_shop_shrimp_team() {
+    let mut team = test_shrimp_team();
+    team.set_seed(Some(12)).open_shop().unwrap();
+
+    let (ant_1, ant_2, shrimp) = (
+        team.nth(0).unwrap(),
+        team.nth(1).unwrap(),
+        team.nth(2).unwrap(),
+    );
+
+    assert_eq!(
+        ant_1.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    assert_eq!(
+        ant_2.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    assert_eq!(
+        shrimp.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 3
+        }
+    );
+
+    team.sell(&Position::First).unwrap();
+
+    // Shrimp got (0,1) from sell.
+    assert_eq!(
+        shrimp.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 4
+        }
+    );
+
+    // Sell shrimp
+    team.sell(&Position::Last).unwrap();
+
+    // Shrimp doesn't activate on self, ant at same stats.
+    assert_eq!(
+        ant_2.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+}
+
+#[test]
+fn test_shop_swan_team() {
+    let mut team = test_swan_team();
+
+    assert_eq!(team.gold(), 10);
+
+    team.open_shop().unwrap();
+
+    assert_eq!(team.gold(), 11);
+}
+
+#[test]
+fn test_shop_frigate_bird_team() {
+    let mut team = test_elephant_peacock_team();
+    let mut shop = Shop::default();
+    // Add frigatebird
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::Frigatebird).unwrap()))
+        .unwrap();
+
+    // Peacock has hurt ability.
+    assert_eq!(
+        team.nth(1).unwrap().borrow().stats,
+        Statistics::new(2, 5).unwrap()
+    );
+    // Replace shop.
+    team.replace_shop(shop)
+        .unwrap()
+        .open_shop()
+        .unwrap()
+        .buy(&Position::First, &Entity::Pet, &Position::Last)
+        .unwrap();
+
+    // Peacock gains two health after purchase.
+    assert_eq!(
+        team.nth(1).unwrap().borrow().stats,
+        Statistics::new(2, 7).unwrap()
+    );
+}
+
+#[test]
+fn test_shop_goldfish_team() {
+    let mut team = test_goldfish_team();
+    team.open_shop().unwrap();
+
+    let affected_pos = Position::Multiple(vec![Position::First, Position::Relative(-1)]);
+    let affected_shop_pets = team
+        .get_shop()
+        .get_shop_items_by_pos(&affected_pos, &Entity::Pet)
+        .unwrap();
+    // Pets are discounted by 2 gold from 3 gold to 1 gold.
+    assert!(affected_shop_pets.iter().all(|pet| pet.cost == 1));
+}
+
+#[test]
+fn test_shop_dromedary_team() {
+    let mut team = test_dromedary_team();
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    let affected_pos = Position::Multiple(vec![Position::First, Position::Relative(-1)]);
+    let affected_shop_pets = team
+        .get_shop()
+        .get_shop_items_by_pos(&affected_pos, &Entity::Pet)
+        .unwrap();
+    let (def_mosq, def_pig) = (
+        Pet::try_from(PetName::Mosquito).unwrap(),
+        Pet::try_from(PetName::Pig).unwrap(),
+    );
+    let (mosq, pig) = (
+        affected_shop_pets.first().unwrap(),
+        affected_shop_pets.get(1).unwrap(),
+    );
+
+    // Mosquito and pig are (1,1) higher than default.
+    assert!(
+        mosq.attack_stat().unwrap() == def_mosq.stats.attack + 1
+            && mosq.health_stat().unwrap() == def_mosq.stats.health + 1
+    );
+    assert!(
+        pig.attack_stat().unwrap() == def_pig.stats.attack + 1
+            && pig.health_stat().unwrap() == def_pig.stats.health + 1
+    );
+}
+
+#[test]
+fn test_shop_tabbycat_team() {
+    let mut team = test_tabby_cat_team();
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    assert!(team.last().unwrap().borrow().item.is_none());
+
+    let first_pet = team.first().unwrap();
+    let second_pet = team.nth(1).unwrap();
+
+    assert_eq!(first_pet.borrow().stats, Statistics::new(2, 1).unwrap());
+    assert_eq!(second_pet.borrow().stats, Statistics::new(2, 1).unwrap());
+    // Buy food on tabby.
+    team.buy(&Position::First, &Entity::Food, &Position::Last)
+        .unwrap();
+
+    assert!(team.last().unwrap().borrow().item.is_some());
+
+    assert_eq!(first_pet.borrow().stats, Statistics::new(3, 1).unwrap());
+    assert_eq!(second_pet.borrow().stats, Statistics::new(3, 1).unwrap());
+}
+
+#[test]
+fn test_shop_guinea_pig_team() {
+    let mut team = Team::default();
+    let mut shop = Shop::default();
+    // Add guinea pig.
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::GuineaPig).unwrap()))
+        .unwrap();
+
+    assert!(team.all().is_empty());
+    // Replace shop.
+    team.replace_shop(shop)
+        .unwrap()
+        .open_shop()
+        .unwrap()
+        .buy(&Position::First, &Entity::Pet, &Position::Last)
+        .unwrap();
+
+    // Two guinea pigs after purchase of one guinea pig.
+    let pets = team.all();
+    assert!(
+        pets.len() == 2
+            && pets
+                .iter()
+                .all(|pet| pet.borrow().name == PetName::GuineaPig)
+    )
+}
+
+#[test]
+fn test_shop_jellyfish_team() {
+    let mut team = test_jellyfish_team();
+
+    let leveled_pet = team.nth(2).unwrap();
+    let jellyfish = team.last().unwrap();
+    assert!(leveled_pet.borrow().lvl == 1);
+    assert_eq!(jellyfish.borrow().stats, Statistics::new(2, 3).unwrap());
+    // Merge pets to reach level 2.
+    team.move_pets(&Position::First, &Position::Relative(-2), true)
+        .unwrap();
+    team.move_pets(&Position::First, &Position::Relative(-1), true)
+        .unwrap();
+
+    // Pet reached level 2.
+    assert!(leveled_pet.borrow().lvl == 2);
+    // Jellyfish gets (1,1)
+    assert_eq!(jellyfish.borrow().stats, Statistics::new(3, 4).unwrap());
+}
+
+#[test]
+fn test_shop_salamander_team() {
+    let mut team = test_salamander_team();
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    let salamander = team.first().unwrap();
+    assert_eq!(
+        salamander.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 4
+        }
+    );
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    // Pet bought has start of battle trigger.
+    assert_eq!(
+        team.first().unwrap().borrow().effect[0].trigger.status,
+        Status::StartOfBattle
+    );
+    // Salamander gains +2 atk as result.
+    assert_eq!(
+        salamander.borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 4
+        }
+    );
+}
+
+#[test]
+fn test_shop_yak_team() {
+    let mut team = test_yak_team();
+    team.open_shop().unwrap();
+
+    let yak = team.first().unwrap();
+
+    assert_eq!(
+        yak.borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 5
+        }
+    );
+
+    // End turn.
+    team.close_shop().unwrap();
+
+    // Yak gains (1, -1).
+    assert_eq!(
+        yak.borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 4
+        }
+    );
 }

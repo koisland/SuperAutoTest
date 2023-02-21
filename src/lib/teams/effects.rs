@@ -5,7 +5,7 @@ use crate::{
             Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
         },
         effect::{Effect, Entity, Modify},
-        state::{Condition, EqualityCondition, Outcome, Position, Status, Target},
+        state::{Condition, Outcome, Position, Status, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -19,7 +19,7 @@ use crate::{
         team::Team,
         viewer::{TargetPets, TeamViewer},
     },
-    Food, Pet, PetCombat, ShopItem, SAPDB,
+    Food, Pet, PetCombat, ShopItem, ShopViewer, SAPDB,
 };
 
 use itertools::Itertools;
@@ -32,13 +32,12 @@ use rand::{
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
 
-const NONSPECIFIC_POSITIONS: [Position; 5] = [
-    Position::None,
-    Position::Any(Condition::None),
-    Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
-    Position::Relative(-1),
-    Position::All(Condition::None),
-];
+fn is_nonspecific_position(pos: &Position) -> bool {
+    matches!(
+        pos,
+        Position::Any(_) | Position::All(_) | Position::None | Position::Relative(_)
+    )
+}
 
 /// Enable applying [`Effect`]s to multiple [`Team`]s.
 /// ```rust no run
@@ -161,7 +160,7 @@ impl TeamEffects for Team {
                 if let Some(food) = pet.borrow_mut().item.as_mut().filter(|food| {
                     (food.ability.trigger == trigger
                         // This bottom condition allows triggers for effects that activate on any position/positions
-                        || (NONSPECIFIC_POSITIONS.contains(&food.ability.trigger.position)
+                        || (is_nonspecific_position(&food.ability.trigger.position)
                             && food.ability.trigger.position == trigger.position
                             && food.ability.trigger.affected_team == trigger.affected_team
                             && food.ability.trigger.status == trigger.status))
@@ -174,7 +173,7 @@ impl TeamEffects for Team {
                 for pet_effect in pet.borrow_mut().effect.iter_mut().filter(|effect| {
                     (effect.trigger == trigger
                         // This bottom condition allows triggers for effects that activate on any position/positions. ex. Horse.
-                        || (NONSPECIFIC_POSITIONS.contains(&effect.trigger.position)
+                        || (is_nonspecific_position(&effect.trigger.position)
                             && effect.trigger.position == trigger.position
                             && effect.trigger.affected_team == trigger.affected_team
                             && effect.trigger.status == trigger.status))
@@ -1098,6 +1097,23 @@ impl EffectApplyHelpers for Team {
             Action::Profit => {
                 self.shop.coins += 1;
                 info!(target: "run", "(\"{}\")\nIncreased shop coins by 1. New coin count: {}", self.name, self.shop.coins)
+            }
+            Action::Discount(entity, discount) => {
+                // Method only gets immutable refs.
+                let affected_items_copy = self
+                    .shop
+                    .get_shop_items_by_pos(&effect.position, entity)?
+                    .into_iter()
+                    .cloned()
+                    .collect_vec();
+                let shop_items = match entity {
+                    Entity::Pet => self.shop.pets.iter_mut(),
+                    Entity::Food => self.shop.foods.iter_mut(),
+                };
+                for item in shop_items.filter(|item| affected_items_copy.contains(item)) {
+                    item.cost = item.cost.saturating_sub(*discount)
+                }
+                self.shop.refresh_costs();
             }
             Action::FreeRoll => {
                 self.shop.free_rolls += 1;

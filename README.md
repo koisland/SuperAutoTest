@@ -52,8 +52,18 @@ let mut team = Team::default();
 
 // All shop functionality is supported.
 team.set_shop_seed(Some(1212))
+    .set_shop_packs(&[Pack::Turtle])
     .open_shop().unwrap()
-    .buy(&Position::First, &Entity::Pet, &Position::First).unwrap()
+    .buy(
+        &Position::First, // From
+        &Entity::Pet, // Pets
+        &Position::First // To first position, merging if possible.
+    ).unwrap()
+    .move_pets(
+        &Position::First, // First pet.
+        &Position::Relative(-2), // To pet 2 slots behind. Otherwise, ignore.
+        true // And merge them if possible.
+    ).unwrap()
     .sell(&Position::First).unwrap()
     .freeze_shop(Position::Last, Entity::Pet).unwrap()
     .roll_shop().unwrap()
@@ -165,7 +175,10 @@ python setup.py install
 ---
 
 ## TODO:
-* Expand database fields for unique ability types (summon atk/health, summon percentage, etc.).
+* Bring back empty slots as certain effects with incorrect behavior.
+    * Pepper and empty slot at position 1 of enemy team.
+    * Hawk.
+    * Woodpecker.
 * Add trait for randomly generating teams.
 * Create Rust binding for Python.
 

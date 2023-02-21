@@ -340,6 +340,19 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 }]
             }
+            PetName::Shrimp => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_ANY_PET_SOLD,
+                    target: Target::Friend,
+                    position: Position::Any(Condition::None),
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    // Activates multiple times per trigger.
+                    uses: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
             PetName::Spider => {
                 vec![Effect {
                     owner: None,
@@ -355,6 +368,123 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         None,
                     )),
                     uses: Some(record.n_triggers),
+                }]
+            }
+            PetName::Swan => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_START_TURN,
+                    target: Target::Shop,
+                    position: Position::None,
+                    action: Action::Multiple(vec![Action::Profit; record.lvl]),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Frigatebird => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_PET_BOUGHT,
+                    target: Target::Friend,
+                    position: Position::Any(Condition::Equal(EqualityCondition::Trigger(
+                        Status::Hurt,
+                    ))),
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::GoldFish => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_START_TURN,
+                    target: Target::Shop,
+                    position: Position::Multiple(vec![Position::First, Position::Relative(-1)]),
+                    action: Action::Discount(Entity::Pet, record.lvl),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Dromedary => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_START_TURN,
+                    target: Target::Shop,
+                    position: Position::Multiple(vec![Position::First, Position::Relative(-1)]),
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::TabbyCat => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_FOOD_EATEN,
+                    target: Target::Friend,
+                    position: Position::All(Condition::NotEqual(EqualityCondition::IsSelf)),
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::GuineaPig => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_PET_BOUGHT,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Summon(SummonType::SelfPet(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Jellyfish => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_ANY_LEVELUP,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Salamander => {
+                vec![Effect {
+                    owner: None,
+                    trigger: trigger_any_pet_bought_status(Status::StartOfBattle),
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                }]
+            }
+            PetName::Yak => {
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_END_TURN,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Multiple(vec![
+                        // Damage is hardcoded as not captured by regex.
+                        Action::Remove(StatChangeType::StaticValue(Statistics {
+                            attack: 1,
+                            health: 0,
+                        })),
+                        Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    ]),
+                    uses: Some(record.n_triggers),
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
                 }]
             }
             PetName::Badger => {

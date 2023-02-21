@@ -249,6 +249,67 @@ pub fn test_toucan_team() -> Team {
     .unwrap()
 }
 
+pub fn test_shrimp_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Shrimp).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_swan_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Swan).unwrap()], 5).unwrap()
+}
+
+// Frigatebird uses peacock.
+
+pub fn test_goldfish_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::GoldFish).unwrap()], 5).unwrap()
+}
+
+pub fn test_dromedary_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Dromedary).unwrap()], 5).unwrap()
+}
+
+pub fn test_tabby_cat_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::TabbyCat).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+// No guinea pig.
+
+pub fn test_jellyfish_team() -> Team {
+    Team::new(
+        &[
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Ant).unwrap(),
+            Pet::try_from(PetName::Jellyfish).unwrap(),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_salamander_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Salamander).unwrap()], 5).unwrap()
+}
+
+pub fn test_yak_team() -> Team {
+    Team::new(&[Pet::try_from(PetName::Yak).unwrap()], 5).unwrap()
+}
+
 pub fn test_wombat_team() -> Team {
     Team::new(&[Pet::try_from(PetName::Wombat).unwrap()], 5).unwrap()
 }

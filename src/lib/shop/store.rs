@@ -11,7 +11,7 @@ use crate::{
     foods::food::Food,
     pets::{names::PetName, pet::Pet},
     shop::viewer::ShopViewer,
-    Position, SAPDB,
+    Position, ShopItemViewer, SAPDB,
 };
 
 /// Sloth chance.
@@ -113,7 +113,7 @@ impl Display for ItemSlot {
 
 impl Display for ShopItem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({:?}) {}", self.state, self.item)
+        write!(f, "({:?}) [${}] {}", self.state, self.cost, self.item)
     }
 }
 
@@ -220,6 +220,16 @@ impl Shop {
     pub fn restock(&mut self) -> Result<&mut Self, SAPTestError> {
         self.fill_pets()?.fill_foods()?;
         Ok(self)
+    }
+
+    /// Resets costs if rc items in shop item slots modified.
+    pub(crate) fn refresh_costs(&mut self) {
+        for item in self.foods.iter_mut() {
+            item.cost = item.cost()
+        }
+        for item in self.pets.iter_mut() {
+            item.cost = item.cost()
+        }
     }
 
     /// Add a [`ShopItem`] to the shop.

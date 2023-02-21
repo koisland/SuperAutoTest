@@ -31,21 +31,33 @@
 //! Add shop functionality to a [`Team`] and roll, freeze, buy/sell pets and foods.
 //! ```
 //! use saptest::{
-//!     Entity, EntityName, Food, FoodName,
+//!     Entity, EntityName, Pet, PetName, Food, FoodName,
 //!     Shop, ShopItem, TeamShopping,
 //!     Team, TeamViewer, Position,
 //!     db::pack::Pack
 //! };
 //!
 //! // All teams are constructed with a shop at tier 1.
-//! let mut team = Team::default();
+//! let mut team = Team::new(
+//!     &vec![Pet::try_from(PetName::Ant).unwrap(); 4],
+//!     5
+//! ).unwrap();
 //!
 //! // All shop functionality is supported.
 //! team.set_shop_seed(Some(1212))
 //!     .set_shop_packs(&[Pack::Turtle])
 //!     .open_shop().unwrap()
-//!     .buy(&Position::First, &Entity::Pet, &Position::First).unwrap()
+//!     .buy(
+//!         &Position::First, // From
+//!         &Entity::Pet, // Pets
+//!         &Position::First // To first position, merging if possible.
+//!     ).unwrap()
 //!     .sell(&Position::First).unwrap()
+//!     .move_pets(
+//!         &Position::First, // From first pet
+//!         &Position::Relative(-2), // To 2nd pet behind.
+//!         true // And merge them if possible.
+//!     ).unwrap()
 //!     .freeze_shop(Position::Last, Entity::Pet).unwrap()
 //!     .roll_shop().unwrap()
 //!     .close_shop().unwrap();
