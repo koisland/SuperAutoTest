@@ -8,11 +8,11 @@ fn bench_blowfish_rally(c: &mut Criterion) {
         blowfish.stats.health = 50;
         let hedgehog = Pet::try_from(PetName::Hedgehog).unwrap();
         let pets = [
-            hedgehog,
-            blowfish.clone(),
-            blowfish.clone(),
-            blowfish.clone(),
-            blowfish,
+            Some(hedgehog),
+            Some(blowfish.clone()),
+            Some(blowfish.clone()),
+            Some(blowfish.clone()),
+            Some(blowfish),
         ];
         let mut team = Team::new(&pets, 5).unwrap();
         team.set_seed(Some(50));
@@ -34,9 +34,9 @@ fn bench_blowfish_rally(c: &mut Criterion) {
 fn bench_sapai(c: &mut Criterion) {
     let mut team = black_box({
         let pets = [
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ox).unwrap(),
-            Pet::try_from(PetName::Tiger).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ox).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
         ];
         let mut team = Team::new(&pets, 5).unwrap();
         team.set_seed(Some(50));
@@ -44,8 +44,8 @@ fn bench_sapai(c: &mut Criterion) {
     });
     let mut enemy_team = black_box({
         let pets = [
-            Pet::try_from(PetName::Sheep).unwrap(),
-            Pet::try_from(PetName::Tiger).unwrap(),
+            Some(Pet::try_from(PetName::Sheep).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
         ];
         let mut team = Team::new(&pets, 5).unwrap();
         team.set_seed(Some(50));

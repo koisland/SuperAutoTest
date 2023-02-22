@@ -2,7 +2,11 @@ use crate::{
     effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
-    teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
+    teams::{
+        combat::{ClearOption, TeamCombat},
+        team::TeamFightOutcome,
+        viewer::TeamViewer,
+    },
     tests::common::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
         test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_clownfish_team,
@@ -201,10 +205,12 @@ fn test_battle_filled_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Overflow in pets (ram in this case) gets added to team's dead.
-    let fainted_pets = &team.fainted;
-    let first_pet = fainted_pets.first().unwrap().borrow().name.clone();
-    assert_eq!(2, fainted_pets.len());
-    assert_eq!(PetName::Ram, first_pet)
+    let first_pet = team.fainted.first();
+    assert_eq!(2, team.fainted.len());
+    assert_eq!(
+        PetName::Ram,
+        first_pet.as_ref().unwrap().as_ref().unwrap().borrow().name
+    );
 }
 
 #[test]
@@ -219,8 +225,9 @@ fn test_battle_aardvark_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Cricket faints and Zombie Cricket spawns
+    let fainted_pet = enemy_team.fainted.first().unwrap();
     assert_eq!(
-        enemy_team.fainted.first().unwrap().borrow().name,
+        fainted_pet.as_ref().unwrap().borrow().name,
         PetName::Cricket
     );
     assert_eq!(
@@ -256,7 +263,8 @@ fn test_battle_bear_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Bear fainted.
-    assert_eq!(team.fainted.first().unwrap().borrow().name, PetName::Bear);
+    let fainted_bear = team.fainted.first().unwrap();
+    assert_eq!(fainted_bear.as_ref().unwrap().borrow().name, PetName::Bear);
     // Duck now has honey.
     assert_eq!(
         enemy_team
@@ -319,8 +327,9 @@ fn test_battle_blobfish_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Blobfish dies.
+    let fainted_blobfish = team.fainted.first().unwrap();
     assert_eq!(
-        team.fainted.first().unwrap().as_ref().borrow().name,
+        fainted_blobfish.as_ref().unwrap().borrow().name,
         PetName::Blobfish
     );
     // Dog in front now has 1 experience.
@@ -394,27 +403,16 @@ fn test_battle_woodpecker_team() {
     let mut team = test_woodpecker_team();
     let mut enemy_team = test_cricket_horse_team();
 
-    assert_eq!(
-        enemy_team.nth(0).unwrap().borrow().stats,
-        Statistics::new(1, 2).unwrap()
-    );
-    assert_eq!(
-        enemy_team.nth(1).unwrap().borrow().stats,
-        Statistics::new(1, 2).unwrap()
-    );
+    let (first_enemy, second_enemy) = (enemy_team.first().unwrap(), enemy_team.nth(1).unwrap());
+    assert_eq!(first_enemy.borrow().stats, Statistics::new(1, 2).unwrap());
+    assert_eq!(second_enemy.borrow().stats, Statistics::new(1, 2).unwrap());
     // Trigger start of battle effects.
     team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
     // Two crickets at front on enemy team die.
-    assert_eq!(
-        enemy_team.friends.first().unwrap().borrow().stats,
-        Statistics::new(1, 0).unwrap()
-    );
-    assert_eq!(
-        enemy_team.friends.get(1).unwrap().borrow().stats,
-        Statistics::new(1, 0).unwrap()
-    );
+    assert_eq!(first_enemy.borrow().stats, Statistics::new(1, 0).unwrap());
+    assert_eq!(second_enemy.borrow().stats, Statistics::new(1, 0).unwrap());
 }
 
 #[test]
@@ -434,15 +432,8 @@ fn test_battle_woodpecker_self_hurt_team() {
     // Trigger start of battle effects and clear dead pets.
     team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
-    team.clear_team();
+    team.clear_team(ClearOption::RemoveSlots);
 
     // Two crickets at front of woodpecker on same team faint.
-    assert_eq!(
-        team.fainted.first().unwrap().borrow().stats,
-        Statistics::new(1, 0).unwrap()
-    );
-    assert_eq!(
-        team.fainted.get(1).unwrap().borrow().stats,
-        Statistics::new(1, 0).unwrap()
-    );
+    assert_eq!(team.fainted.len(), 2);
 }

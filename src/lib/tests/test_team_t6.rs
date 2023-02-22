@@ -144,7 +144,7 @@ fn test_battle_mammoth_team() {
 
     // Stats of every pet after mammoth.
     for team in [&team, &enemy_team].into_iter() {
-        for pet in team.friends.get(1..).unwrap().iter() {
+        for pet in team.friends.get(1..).unwrap().iter().flatten() {
             assert_eq!(
                 pet.borrow().stats,
                 Statistics {
@@ -162,7 +162,7 @@ fn test_battle_mammoth_team() {
 
     // All pets on team gained (2,2)
     for team in [&team, &enemy_team].into_iter() {
-        for pet in team.friends.iter() {
+        for pet in team.friends.iter().flatten() {
             assert_eq!(
                 pet.borrow().stats,
                 Statistics {

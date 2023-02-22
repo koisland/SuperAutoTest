@@ -23,7 +23,7 @@ use saptest::{
 };
 // Create a team.
 let mut team = Team::new(
-    &vec![Pet::try_from(PetName::Ant).unwrap(); 5],
+    &vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5],
     5
 ).unwrap();
 let mut enemy_team = team.clone();
@@ -175,10 +175,6 @@ python setup.py install
 ---
 
 ## TODO:
-* Bring back empty slots as certain effects with incorrect behavior.
-    * Pepper and empty slot at position 1 of enemy team.
-    * Hawk.
-    * Woodpecker.
 * Add trait for randomly generating teams.
 * Create Rust binding for Python.
 

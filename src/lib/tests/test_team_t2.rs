@@ -4,7 +4,11 @@ use crate::{
         trigger::TRIGGER_START_BATTLE,
     },
     pets::names::PetName,
-    teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
+    teams::{
+        combat::{ClearOption, TeamCombat},
+        team::TeamFightOutcome,
+        viewer::TeamViewer,
+    },
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
         test_dove_team, test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
@@ -258,15 +262,9 @@ fn test_battle_atlantic_puffin_team() {
     team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
     // Dog took 4 damage from puffin. 2 dmg x 2 strawberries.
-    let dog_health = enemy_team
-        .friends
-        .get(4)
-        .as_ref()
-        .unwrap()
-        .borrow()
-        .stats
-        .health;
-    assert_eq!(dog_health, 0)
+    let targeted_dog = enemy_team.friends.get(4).unwrap();
+    let dog_health = targeted_dog.as_ref().unwrap().borrow().stats.health;
+    assert_eq!(dog_health, 0);
 }
 
 #[test]
@@ -278,7 +276,8 @@ fn test_battle_dove_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Lvl 1 dove faints.
-    assert_eq!(team.fainted.get(0).unwrap().borrow().name, PetName::Dove);
+    let dove = team.fainted.get(0).unwrap();
+    assert_eq!(dove.as_ref().unwrap().borrow().name, PetName::Dove);
     for i in 0..2 {
         // First two strawberry friends get (2,2)
         assert_eq!(
@@ -337,11 +336,11 @@ fn test_battle_panda_team() {
         team.first().unwrap().borrow().stats,
         original_stats + add_stats
     );
-    team.clear_team();
+    team.clear_team(ClearOption::RemoveSlots);
 
     // Panda died.
-    let first_fainted_pet = &team.fainted[0].borrow().name;
-    assert_eq!(*first_fainted_pet, PetName::Panda)
+    let first_fainted_pet = team.fainted[0].as_ref().unwrap();
+    assert_eq!(first_fainted_pet.borrow().name, PetName::Panda);
 }
 
 #[test]
@@ -378,8 +377,11 @@ fn test_battle_stork_team() {
 
     // TODO: Currently, has no tier information so uses tier 1 ( (stork tier) 2 - 1) by default.
     assert_eq!(team.first().unwrap().borrow().tier, 1);
-    let first_fainted_pet = &team.fainted.first().unwrap().borrow().name;
-    assert_eq!(*first_fainted_pet, PetName::Stork)
+    let first_fainted_pet = team.fainted.first().unwrap();
+    assert_eq!(
+        first_fainted_pet.as_ref().unwrap().borrow().name,
+        PetName::Stork
+    );
 }
 
 #[test]

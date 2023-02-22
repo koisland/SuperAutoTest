@@ -28,9 +28,9 @@ pub trait TeamViewer {
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -39,6 +39,7 @@ pub trait TeamViewer {
     /// )
     /// ```
     fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>>;
+
     /// Get the first pet on team.
     /// * Fainted pets are ignored.
     /// # Examples
@@ -46,9 +47,9 @@ pub trait TeamViewer {
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -57,6 +58,7 @@ pub trait TeamViewer {
     /// )
     /// ```
     fn first(&self) -> Option<Rc<RefCell<Pet>>>;
+
     /// Get the first pet on team.
     /// * Fainted pets are ignored.
     /// # Examples
@@ -64,9 +66,9 @@ pub trait TeamViewer {
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -75,6 +77,7 @@ pub trait TeamViewer {
     /// )
     /// ```
     fn last(&self) -> Option<Rc<RefCell<Pet>>>;
+
     /// Get a random available pet.
     /// * Fainted pets and/or empty slots are ignored.
     /// # Examples
@@ -82,8 +85,8 @@ pub trait TeamViewer {
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Dog).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
+    ///     Some(Pet::try_from(PetName::Dog).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
     /// ], 5).unwrap();
     /// team.set_seed(Some(0));
     ///
@@ -93,6 +96,7 @@ pub trait TeamViewer {
     /// )
     /// ```
     fn any(&self) -> Option<Rc<RefCell<Pet>>>;
+
     /// Get all available pets.
     /// * Fainted pets and/or empty slots are ignored.
     /// # Examples
@@ -100,9 +104,9 @@ pub trait TeamViewer {
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let mut team = Team::new(&[
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap(),
-    ///     Pet::try_from(PetName::Cat).unwrap()
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap()),
+    ///     Some(Pet::try_from(PetName::Cat).unwrap())
     /// ], 5).unwrap();
     ///
     /// assert_eq!(
@@ -111,10 +115,13 @@ pub trait TeamViewer {
     /// )
     /// ```
     fn all(&self) -> Vec<Rc<RefCell<Pet>>>;
-    /// Check pets that match an [`EqualityCondition`](crate::effects::state::EqualityCondition).
+
+    /// Filter pets that match an [`EqualityCondition`](crate::effects::state::EqualityCondition).
+    /// * Used by [`TeamViewer::get_pets_by_cond`].
     fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
     where
         T: IntoIterator<Item = Rc<RefCell<Pet>>>;
+
     /// Get pets by a given [`Condition`].
     /// # Examples
     /// ---
@@ -126,9 +133,9 @@ pub trait TeamViewer {
     /// };
     ///
     /// let pets = [
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Mosquito).unwrap()
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Mosquito).unwrap())
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Get pets with a start of battle effect trigger.
@@ -150,9 +157,9 @@ pub trait TeamViewer {
     ///     effects::state::{Status, EqualityCondition}
     /// };
     /// let pets = [
-    ///     Pet::try_from(PetName::Gorilla).unwrap(),
-    ///     Pet::try_from(PetName::Leopard).unwrap(),
-    ///     Pet::try_from(PetName::Mosquito).unwrap()
+    ///     Some(Pet::try_from(PetName::Gorilla).unwrap()),
+    ///     Some(Pet::try_from(PetName::Leopard).unwrap()),
+    ///     Some(Pet::try_from(PetName::Mosquito).unwrap())
     /// ];
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Give two random pets honey.
@@ -170,13 +177,14 @@ pub trait TeamViewer {
     /// assert_eq!(matching_pets.len(), 2);
     /// ```
     fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>>;
+
     /// Get all pet effects on the team.
     /// # Examples
     /// ```
     /// use saptest::{Pet, PetName, Team, TeamViewer};
     ///
     /// let team = Team::new(
-    ///     &[Pet::try_from(PetName::Dog).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -196,7 +204,7 @@ pub trait TeamViewer {
     ///     }
     /// };
     /// let team = Team::new(
-    ///     &[Pet::try_from(PetName::Ant).unwrap(), Pet::try_from(PetName::Dog).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Ant).unwrap()), Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     /// let enemy_team = team.clone();
@@ -237,7 +245,7 @@ pub trait TeamViewer {
     ///     Position, Condition, effects::state::Target
     /// };
     /// let team = Team::new(
-    ///     &[Pet::try_from(PetName::Ant).unwrap(), Pet::try_from(PetName::Dog).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Ant).unwrap()), Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     /// // Find all pets.
@@ -261,29 +269,33 @@ impl TeamViewer for Team {
     fn get_effects(&self) -> Vec<Vec<Effect>> {
         self.friends
             .iter()
+            .flatten()
             .map(|pet| pet.borrow().effect.clone())
             .collect_vec()
     }
 
     fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .get(idx)
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .map(Rc::clone)
+        self.friends.get(idx).and_then(|pet| {
+            pet.as_ref()
+                .filter(|pet| pet.borrow().stats.health != 0)
+                .map(Rc::clone)
+        })
     }
 
     fn first(&self) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .first()
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .map(Rc::clone)
+        self.friends.first().and_then(|pet| {
+            pet.as_ref()
+                .filter(|pet| pet.borrow().stats.health != 0)
+                .map(Rc::clone)
+        })
     }
 
     fn last(&self) -> Option<Rc<RefCell<Pet>>> {
-        self.friends
-            .last()
-            .filter(|pet| pet.borrow().stats.health != 0)
-            .map(Rc::clone)
+        self.friends.last().and_then(|pet| {
+            pet.as_ref()
+                .filter(|pet| pet.borrow().stats.health != 0)
+                .map(Rc::clone)
+        })
     }
 
     fn any(&self) -> Option<Rc<RefCell<Pet>>> {
@@ -295,11 +307,9 @@ impl TeamViewer for Team {
         self.friends
             .iter()
             .filter_map(|pet| {
-                if pet.borrow().stats.health != 0 {
-                    Some(Rc::clone(pet))
-                } else {
-                    None
-                }
+                pet.as_ref()
+                    .filter(|pet| pet.borrow().stats.health != 0)
+                    .map(Rc::clone)
             })
             .collect_vec()
     }
@@ -460,7 +470,12 @@ impl TeamViewer for Team {
                 };
                 enemy_team
             }
-            _ => unimplemented!(),
+            Target::None => {
+                return Err(SAPTestError::InvalidTeamAction {
+                    subject: "No Target Provided".to_string(),
+                    reason: "A target is required for finding pets.".to_string(),
+                })
+            }
         };
         let team = if *target == Target::Friend {
             self
@@ -558,8 +573,8 @@ impl TeamViewer for Team {
                         .unwrap();
                     // Pet can only be on same team.
                     if target_team == Target::Friend {
-                        if let Some(rel_pet) = team.friends.get(adj_idx) {
-                            pets.push((*target, rel_pet.clone()))
+                        if let Some(rel_pet) = team.nth(adj_idx) {
+                            pets.push((*target, rel_pet))
                         }
                     }
                 }
@@ -574,8 +589,8 @@ impl TeamViewer for Team {
                     } else {
                         opponent
                     };
-                    if let Some(rel_pet) = team.friends.get(adj_idx) {
-                        pets.push((target_team, rel_pet.clone()))
+                    if let Some(rel_pet) = team.nth(adj_idx) {
+                        pets.push((target_team, rel_pet))
                     }
                 }
             }
@@ -587,8 +602,8 @@ impl TeamViewer for Team {
                         let (target_team, adj_idx) =
                             team._cvt_rel_idx_to_adj_idx(effect_pet_idx, idx).unwrap();
                         if target_team == Target::Friend {
-                            if let Some(rel_pet) = team.friends.get(adj_idx) {
-                                pets.push((target_team, rel_pet.clone()))
+                            if let Some(rel_pet) = team.nth(adj_idx) {
+                                pets.push((target_team, rel_pet))
                             }
                         }
                     }
@@ -606,7 +621,7 @@ impl TeamViewer for Team {
                         } else {
                             opponent
                         };
-                        if let Some(rel_pet) = team.friends.get(adj_idx) {
+                        if let Some(rel_pet) = team.nth(adj_idx) {
                             pets.push((target_team, rel_pet.clone()))
                         }
                     }
@@ -689,12 +704,14 @@ impl TeamViewer for Team {
                 if let Some(Some(prev_pet)) = pos.checked_sub(1).map(|idx| {
                     friends
                         .iter()
+                        .flatten()
                         .find(|friend| friend.borrow().pos == Some(idx))
                 }) {
                     pets.push((*target, prev_pet.clone()))
                 };
                 if let Some(ahead_pet) = friends
                     .iter()
+                    .flatten()
                     .find(|friend| friend.borrow().pos == Some(pos + 1))
                 {
                     pets.push((*target, ahead_pet.clone()))

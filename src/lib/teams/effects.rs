@@ -54,7 +54,7 @@ pub trait TeamEffects {
     /// };
     ///
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
-    /// let mut team = Team::new(&vec![mosquito; 5], 5).unwrap();
+    /// let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
     /// let mut enemy_team = team.clone();
     ///
     /// // Add a start of battle trigger.
@@ -66,6 +66,7 @@ pub trait TeamEffects {
     /// assert_eq!(team.triggers.len(), 0);
     /// ```
     fn trigger_effects(&mut self, opponent: Option<&mut Team>) -> Result<&mut Self, SAPTestError>;
+
     /// Apply an [`Effect`] with an associated [`Outcome`] trigger to a [`Team`].
     /// * The `opponent` [`Team`] will get updated with additional [`Outcome`]s.
     /// * Effects and triggers should contain a Weak reference to the owning/affecting pet.
@@ -82,8 +83,8 @@ pub trait TeamEffects {
     /// let no_ref_mosquito_effect = mosquito.effect.first().cloned().unwrap();
     ///
     /// // Init teams.
-    /// let mut team = Team::new(&vec![mosquito.clone(); 5], 5).unwrap();
-    /// let mut enemy_team = Team::new(&vec![mosquito; 5], 5).unwrap();
+    /// let mut team = Team::new(&vec![Some(mosquito.clone()); 5], 5).unwrap();
+    /// let mut enemy_team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
     /// enemy_team.set_seed(Some(0));
     ///
     /// // Without a reference to the pet owning the effect, this will fail.
@@ -96,7 +97,7 @@ pub trait TeamEffects {
     ///
     /// // Last enemy mosquito takes one damage and opponent triggers gets updated.
     /// assert_eq!(
-    ///     enemy_team.friends[4].borrow().stats,
+    ///     enemy_team.nth(4).unwrap().borrow().stats,
     ///     Statistics::new(2, 1).unwrap()
     /// );
     /// assert!(
@@ -138,11 +139,11 @@ impl TeamEffects for Team {
             };
 
             // Iterate through pets in descending order by attack strength to collect valid effects.
-            for (effect_pet_idx, pet) in self
+            for pet in self
                 .friends
                 .iter()
-                .enumerate()
-                .sorted_by(|(_, pet_1), (_, pet_2)| {
+                .flatten()
+                .sorted_by(|pet_1, pet_2| {
                     pet_1
                         .borrow()
                         .stats
@@ -151,6 +152,10 @@ impl TeamEffects for Team {
                 })
                 .rev()
             {
+                let effect_pet_idx = pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "No Pet Position Index.".to_string(),
+                    reason: format!("Pet {} must have an index set at this point.", pet.borrow()),
+                })?;
                 let same_pet_as_trigger = trigger
                     .clone()
                     .affected_pet
@@ -200,9 +205,9 @@ impl TeamEffects for Team {
                         }
                     }
                     // For Tiger. Check if behind. Determines number of times effect applied.
-                    let num_times_applied = self
-                        .friends
-                        .get(effect_pet_idx + 1)
+                    let pet_behind = self.friends.get(effect_pet_idx + 1).cloned();
+                    let num_times_applied = pet_behind
+                        .flatten()
                         .map(|pet| {
                             if pet.borrow().name == PetName::Tiger {
                                 2
@@ -226,7 +231,13 @@ impl TeamEffects for Team {
             let _sold_pet = if (trigger.status, trigger.position, trigger.affected_team)
                 == (Status::Sell, Position::OnSelf, Target::Friend)
             {
-                trigger_pet_pos.map(|pos| self.friends.remove(pos))
+                if let Some(pet_pos) = trigger_pet_pos {
+                    let pet = self.friends.remove(pet_pos);
+                    self.friends.insert(pet_pos, None);
+                    Some(pet)
+                } else {
+                    None
+                }
             } else {
                 None
             };
@@ -307,7 +318,7 @@ impl TeamEffects for Team {
                             team.set_indices();
                         }
                         RandomizeType::Stats => {
-                            for pet in team.friends.iter() {
+                            for pet in team.friends.iter().flatten() {
                                 pet.borrow_mut().stats.invert();
                             }
                         }
@@ -341,7 +352,7 @@ impl TeamEffects for Team {
                             Target::Enemy => {
                                 opponent.apply_single_effect(pet, effect, Some(self))?
                             }
-                            _ => unimplemented!(),
+                            _ => unreachable!("Should never reach this branch as only team and enemy team allowed."),
                         };
                     }
                 } else {
@@ -505,13 +516,11 @@ impl EffectApplyHelpers for Team {
         };
 
         self.add_pet(pet, adj_target_idx, opponent)?;
-        let new_pet_id = self
-            .friends
-            .get(adj_target_idx)
+        let added_pet = self.friends.get(adj_target_idx);
+        let new_pet_id = added_pet
             .unwrap()
-            .borrow()
-            .id
-            .clone();
+            .as_ref()
+            .and_then(|item| item.borrow().id.clone());
         Ok(new_pet_id)
     }
 
@@ -828,7 +837,7 @@ impl EffectApplyHelpers for Team {
                         for effect in rc_transformed_pet.borrow_mut().effect.iter_mut() {
                             effect.assign_owner(Some(&rc_transformed_pet));
                         }
-                        self.friends.insert(target_idx, rc_transformed_pet);
+                        self.friends.insert(target_idx, Some(rc_transformed_pet));
                     }
                 }
             }
@@ -988,6 +997,7 @@ impl EffectApplyHelpers for Team {
                 let chosen_friend = self
                     .friends
                     .iter()
+                    .flatten()
                     .filter_map(|pet| {
                         let pet_name = pet.borrow().name.clone();
                         (pet_name != PetName::Tapir).then_some(pet_name)

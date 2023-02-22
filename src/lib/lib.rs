@@ -12,7 +12,7 @@
 //!
 //! // Create a team.
 //! let mut team = Team::new(
-//!     &vec![Pet::try_from(PetName::Ant).unwrap(); 5],
+//!     &vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5],
 //!     5
 //! ).unwrap();
 //! let mut enemy_team = team.clone();
@@ -39,7 +39,7 @@
 //!
 //! // All teams are constructed with a shop at tier 1.
 //! let mut team = Team::new(
-//!     &vec![Pet::try_from(PetName::Ant).unwrap(); 4],
+//!     &vec![Some(Pet::try_from(PetName::Ant).unwrap()); 4],
 //!     5
 //! ).unwrap();
 //!

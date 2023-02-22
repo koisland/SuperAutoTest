@@ -81,9 +81,9 @@ fn test_create_custom_pet() {
     );
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            custom_pet,
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(custom_pet),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     )
@@ -94,9 +94,11 @@ fn test_create_custom_pet() {
     team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
 
+    let front_ant = team.friends[0].as_ref().unwrap();
+    let behind_ant = team.friends[2].as_ref().unwrap();
     assert!(
-        team.friends[0].borrow().item.as_ref().unwrap().name == FoodName::Melon
-            && team.friends[2].borrow().item.as_ref().unwrap().name == FoodName::Melon
+        front_ant.borrow().item.as_ref().unwrap().name == FoodName::Melon
+            && behind_ant.borrow().item.as_ref().unwrap().name == FoodName::Melon
     )
 }
 
@@ -166,11 +168,11 @@ fn test_multithreaded_team_battle() {
         children.push(thread::spawn(|| {
             let mut team_1 = Team::new(
                 &vec![
-                    Pet::try_from(PetName::Ant).unwrap(),
-                    Pet::try_from(PetName::Ant).unwrap(),
-                    Pet::try_from(PetName::Ant).unwrap(),
-                    Pet::try_from(PetName::Ant).unwrap(),
-                    Pet::try_from(PetName::Ant).unwrap(),
+                    Some(Pet::try_from(PetName::Ant).unwrap()),
+                    Some(Pet::try_from(PetName::Ant).unwrap()),
+                    Some(Pet::try_from(PetName::Ant).unwrap()),
+                    Some(Pet::try_from(PetName::Ant).unwrap()),
+                    Some(Pet::try_from(PetName::Ant).unwrap()),
                 ],
                 5,
             )
@@ -226,8 +228,8 @@ fn test_apply_effect() {
     let no_ref_mosquito_effect = mosquito.effect.first().cloned().unwrap();
 
     // Init teams.
-    let mut team = Team::new(&vec![mosquito.clone(); 5], 5).unwrap();
-    let mut enemy_team = Team::new(&vec![mosquito; 5], 5).unwrap();
+    let mut team = Team::new(&vec![Some(mosquito.clone()); 5], 5).unwrap();
+    let mut enemy_team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
     enemy_team.set_seed(Some(0));
 
     // Without a reference to the pet owning the effect, this will fail.
@@ -241,7 +243,7 @@ fn test_apply_effect() {
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    let mosquito_effect = team.friends[0].borrow().effect[0].clone();
+    let mosquito_effect = team.friends[0].as_ref().unwrap().borrow().effect[0].clone();
     team.apply_effect(
         &TRIGGER_START_BATTLE,
         &mosquito_effect,
@@ -251,7 +253,7 @@ fn test_apply_effect() {
 
     // Last enemy mosquito takes one damage and opponent triggers gets updated.
     assert_eq!(
-        enemy_team.friends[4].borrow().stats,
+        enemy_team.friends[4].as_ref().unwrap().borrow().stats,
         Statistics::new(2, 1).unwrap()
     );
     assert!(enemy_team
@@ -280,10 +282,10 @@ fn test_serialize_team() {
     // Create a team.
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Mosquito).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -298,4 +300,25 @@ fn test_serialize_team() {
 
     // Note this creates a clone of the pets in a new rc ptr. They aren't equivalent.
     assert_ne!(new_team, team)
+}
+
+#[test]
+fn blowfish_battle() {
+    let config = saptest::logging::build_log_config();
+    log4rs::init_config(config).unwrap();
+
+    let mut blowfish = Pet::try_from(PetName::Blowfish).unwrap();
+    blowfish.stats.health = 50;
+    let hedgehog = Pet::try_from(PetName::Hedgehog).unwrap();
+    let mut pets = vec![Some(blowfish); 99];
+    pets.insert(0, Some(hedgehog));
+
+    let mut team = Team::new(&pets, 100).unwrap();
+    let mut enemy_team = team.clone();
+    team.name = "Self".to_string();
+
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
+    while let TeamFightOutcome::None = outcome {
+        outcome = team.fight(&mut enemy_team).unwrap();
+    }
 }

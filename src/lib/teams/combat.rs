@@ -1,6 +1,5 @@
-use std::rc::Rc;
-
 use log::info;
+use std::rc::Rc;
 
 use crate::{
     effects::{state::Status, trigger::*},
@@ -10,6 +9,21 @@ use crate::{
     PetCombat, Team, TeamEffects, TeamViewer,
 };
 
+/// Clear options for [`Team::clear_team`](crate::teams::combat::TeamCombat::clear_team)
+pub enum ClearOption {
+    /// Retain empty slots.
+    KeepSlots,
+    /// Remove empty slots.
+    RemoveSlots,
+}
+impl From<&ClearOption> for bool {
+    fn from(value: &ClearOption) -> Self {
+        match value {
+            ClearOption::KeepSlots => true,
+            ClearOption::RemoveSlots => false,
+        }
+    }
+}
 /// Enables combat between two [`Team`]s.
 /// ```rust no run
 /// use saptest::TeamCombat;
@@ -26,11 +40,11 @@ pub trait TeamCombat {
     ///     Pet, PetName
     /// };
     /// let mut team = Team::new(
-    ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
+    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Pet::try_from(PetName::Hippo).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -49,11 +63,11 @@ pub trait TeamCombat {
     ///     Pet, PetName
     /// };
     /// let mut team = Team::new(
-    ///     &vec![Pet::try_from(PetName::Cricket).unwrap(); 5],
+    ///     &vec![Some(Pet::try_from(PetName::Cricket).unwrap()); 5],
     ///     5
     /// ).unwrap();
     /// let mut enemy_team = Team::new(
-    ///     &[Pet::try_from(PetName::Hippo).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Hippo).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -82,21 +96,25 @@ pub trait TeamCombat {
     /// Clear team of empty slots and/or fainted pets and reset indices.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName, Team, TeamCombat, TeamViewer, TeamEffects};
+    /// use saptest::{
+    ///     Pet, PetName, Team,
+    ///     TeamCombat, TeamViewer, TeamEffects,
+    ///     teams::combat::ClearOption
+    /// };
     ///
     /// let mut default_team = Team::new(
-    ///     &[Pet::try_from(PetName::Dog).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     ///
     /// assert_eq!(default_team.friends.len(), 1);
     ///
     /// default_team.first().unwrap().borrow_mut().stats.health = 0;
-    /// default_team.clear_team();
+    /// default_team.clear_team(ClearOption::RemoveSlots);
     ///
     /// assert_eq!(default_team.friends.len(), 0);
     /// ```
-    fn clear_team(&mut self) -> &mut Self;
+    fn clear_team(&mut self, clear_opt: ClearOption) -> &mut Self;
 }
 
 impl TeamCombat for Team {
@@ -111,12 +129,12 @@ impl TeamCombat for Team {
             });
         }
 
-        info!(target: "dev", "(\"{}\")\n{}", self.name, self);
-        info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+        info!(target: "run", "(\"{}\")\n{}", self.name, self);
+        info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
         // Apply start of battle effects.
-        self.clear_team();
-        opponent.clear_team();
+        self.clear_team(ClearOption::KeepSlots);
+        opponent.clear_team(ClearOption::KeepSlots);
 
         // If current phase is 1, add start battle triggers.
         if self.history.curr_phase == 1 {
@@ -130,8 +148,8 @@ impl TeamCombat for Team {
             opponent.trigger_effects(Some(self))?;
         }
 
-        self.clear_team();
-        opponent.clear_team();
+        self.clear_team(ClearOption::KeepSlots);
+        opponent.clear_team(ClearOption::KeepSlots);
 
         // If current phase is 1, add before first battle triggers.
         // Used for butterfly.
@@ -172,18 +190,18 @@ impl TeamCombat for Team {
                 opponent.trigger_effects(Some(self))?;
             }
 
-            self.clear_team();
-            opponent.clear_team();
+            self.clear_team(ClearOption::KeepSlots);
+            opponent.clear_team(ClearOption::KeepSlots);
         }
 
         // Check that two pets exist and attack.
         // Attack will result in triggers being added.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
             // Attack and get outcome of fight.
-            info!(target: "dev", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
+            info!(target: "run", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
             let mut outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-            info!(target: "dev", "(\"{}\")\n{}", self.name, self);
-            info!(target: "dev", "(\"{}\")\n{}", opponent.name, opponent);
+            info!(target: "run", "(\"{}\")\n{}", self.name, self);
+            info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
             // Update outcomes with weak references.
             for trigger in outcome.friends.iter_mut() {
@@ -234,8 +252,11 @@ impl TeamCombat for Team {
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(Some(opponent))?.clear_team();
-                opponent.trigger_effects(Some(self))?.clear_team();
+                self.trigger_effects(Some(opponent))?
+                    .clear_team(ClearOption::RemoveSlots);
+                opponent
+                    .trigger_effects(Some(self))?
+                    .clear_team(ClearOption::RemoveSlots);
             }
         }
 
@@ -252,13 +273,13 @@ impl TeamCombat for Team {
                 self.history.curr_turn += 1;
 
                 if self.friends.is_empty() && opponent.friends.is_empty() {
-                    info!(target: "dev", "Draw!");
+                    info!(target: "run", "Draw!");
                     TeamFightOutcome::Draw
                 } else if !opponent.friends.is_empty() {
-                    info!(target: "dev", "Enemy team won...");
+                    info!(target: "run", "Enemy team won...");
                     TeamFightOutcome::Loss
                 } else {
-                    info!(target: "dev", "Your team won!");
+                    info!(target: "run", "Your team won!");
                     TeamFightOutcome::Win
                 }
             },
@@ -268,7 +289,7 @@ impl TeamCombat for Team {
     fn restore(&mut self) -> &mut Self {
         self.friends = Team::create_rc_pets(&self.stored_friends);
         // Set current pet to first in line.
-        self.curr_pet = self.friends.first().map(Rc::downgrade);
+        self.curr_pet = self.friends.iter().flatten().next().map(Rc::downgrade);
         self.fainted.clear();
         // Set current battle phase to 1.
         self.history.curr_phase = 1;
@@ -276,19 +297,23 @@ impl TeamCombat for Team {
         self
     }
 
-    fn clear_team(&mut self) -> &mut Self {
+    fn clear_team(&mut self, clear_opt: ClearOption) -> &mut Self {
         let mut new_idx = 0;
-        self.friends.retain(|pet| {
-            // Check if not dead.
-            if pet.borrow().stats.health != 0 {
-                pet.borrow_mut().pos = Some(new_idx);
-                new_idx += 1;
-                true
+        self.friends.retain(|slot| {
+            if let Some(pet) = slot {
+                // Check if not dead.
+                if pet.borrow().stats.health != 0 {
+                    pet.borrow_mut().pos = Some(new_idx);
+                    new_idx += 1;
+                    true
+                } else {
+                    // Pet is dead.
+                    info!(target: "run", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
+                    self.fainted.push(Some(pet.clone()));
+                    false
+                }
             } else {
-                // Pet is dead.
-                info!(target: "dev", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
-                self.fainted.push(pet.clone());
-                false
+                (&clear_opt).into()
             }
         });
         self

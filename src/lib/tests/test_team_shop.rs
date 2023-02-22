@@ -17,8 +17,8 @@ use super::common::test_jellyfish_team;
 fn test_team_shop_opening() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -31,8 +31,8 @@ fn test_team_shop_opening() {
 fn test_team_shop_closing() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -46,8 +46,8 @@ fn test_team_shop_closing() {
 fn test_team_shop_buy() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -57,6 +57,10 @@ fn test_team_shop_buy() {
 
     let (any_pos, pet_item_type, first_pos) =
         (Position::Any(Condition::None), Entity::Pet, Position::First);
+    // Invalid position to buy.
+    assert!(team
+        .buy(&Position::Relative(-12), &pet_item_type, &first_pos)
+        .is_err());
     for _ in 0..2 {
         team.buy(&any_pos, &pet_item_type, &first_pos).unwrap();
     }
@@ -69,8 +73,8 @@ fn test_team_shop_buy() {
 fn test_team_shop_sell() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -81,15 +85,18 @@ fn test_team_shop_sell() {
     team.sell(&Position::First).unwrap();
 
     assert_eq!(team.shop.coins, 11);
-    assert_eq!(team.all().len(), 1)
+    assert_eq!(team.all().len(), 1);
+
+    // Invalid position to sell.
+    assert!(team.sell(&Position::Relative(-12)).is_err())
 }
 
 #[test]
 fn test_team_shop_state_battle() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -107,7 +114,7 @@ fn test_team_shop_state_battle() {
 #[test]
 fn test_shop_invalid_states() {
     let mut team = Team::default();
-    let mut custom_team = Team::new(&[Pet::try_from(PetName::Ant).unwrap()], 5).unwrap();
+    let mut custom_team = Team::new(&[Some(Pet::try_from(PetName::Ant).unwrap())], 5).unwrap();
 
     // Default state for both team is closed.
     assert!(custom_team.shop.state == ShopState::Closed && team.shop.state == ShopState::Closed);
@@ -139,8 +146,8 @@ fn test_shop_invalid_states() {
 fn test_team_shop_freeze() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Beaver).unwrap(),
-            Pet::try_from(PetName::Mosquito).unwrap(),
+            Some(Pet::try_from(PetName::Beaver).unwrap()),
+            Some(Pet::try_from(PetName::Mosquito).unwrap()),
         ],
         5,
     )
@@ -206,6 +213,7 @@ fn test_shop_move() {
     let (ant_0, ant_1, _ant_2, _jfish_0) = team
         .friends
         .iter()
+        .flatten()
         .map(Rc::downgrade)
         .collect_tuple::<(
             Weak<RefCell<Pet>>,

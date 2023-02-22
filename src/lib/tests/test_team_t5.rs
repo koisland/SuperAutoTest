@@ -26,8 +26,8 @@ fn test_battle_croc_team() {
     let mut team = test_crocodile_team();
     let mut enemy_team = test_crocodile_team();
 
-    let last_pet = team.friends.last().unwrap();
-    let last_enemy_pet = team.friends.last().unwrap();
+    let last_pet = team.last().unwrap();
+    let last_enemy_pet = team.last().unwrap();
     assert_eq!(last_pet.borrow().name, PetName::Cricket);
     assert_eq!(last_enemy_pet.borrow().name, PetName::Cricket);
 
@@ -35,13 +35,13 @@ fn test_battle_croc_team() {
     // Two zombie crickets are spawned in their place.
     team.fight(&mut enemy_team).unwrap();
 
-    let last_pet = team.friends.last().unwrap().borrow();
-    let last_enemy_pet = team.friends.last().unwrap().borrow();
+    let last_pet = team.last().unwrap();
+    let last_enemy_pet = team.last().unwrap();
 
     assert_eq!(team.friends.len(), 4);
     assert_eq!(enemy_team.friends.len(), 4);
-    assert_eq!(last_pet.name, PetName::ZombieCricket);
-    assert_eq!(last_enemy_pet.name, PetName::ZombieCricket);
+    assert_eq!(last_pet.borrow().name, PetName::ZombieCricket);
+    assert_eq!(last_enemy_pet.borrow().name, PetName::ZombieCricket);
 }
 
 #[test]
@@ -204,11 +204,13 @@ fn test_battle_hyena_team() {
     let team_stats = team
         .friends
         .iter()
+        .flatten()
         .map(|pet| pet.borrow().stats)
         .collect_vec();
     let enemy_stats = enemy_team
         .friends
         .iter()
+        .flatten()
         .map(|pet| pet.borrow().stats)
         .collect_vec();
 
@@ -219,6 +221,7 @@ fn test_battle_hyena_team() {
     for (mut og, new) in team
         .friends
         .iter()
+        .flatten()
         .map(|pet| pet.borrow().stats)
         .zip_eq(team_stats)
     {
@@ -227,6 +230,7 @@ fn test_battle_hyena_team() {
     for (mut og, new) in enemy_team
         .friends
         .iter()
+        .flatten()
         .map(|pet| pet.borrow().stats)
         .zip_eq(enemy_stats)
     {
@@ -308,7 +312,12 @@ fn test_battle_microbe_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // All pets have weakness after microbe faints.
-    for pet in team.friends.iter().chain(enemy_team.friends.iter()) {
+    for pet in team
+        .friends
+        .iter()
+        .chain(enemy_team.friends.iter())
+        .flatten()
+    {
         assert_eq!(pet.borrow().item.as_ref().unwrap().name, FoodName::Weak);
     }
 }

@@ -10,7 +10,12 @@ use crate::{
     },
     foods::names::FoodName,
     pets::names::PetName,
-    teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
+    teams::{
+        combat::{ClearOption, TeamCombat},
+        effects::TeamEffects,
+        team::TeamFightOutcome,
+        viewer::TeamViewer,
+    },
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_caterpillar_team,
         test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,
@@ -185,8 +190,8 @@ fn test_battle_rooster_lvl_2_team() {
 
     team.fight(&mut enemy_team).unwrap();
 
-    let chick = team.friends.first().unwrap();
-    let chick_2 = team.friends.get(1).unwrap();
+    let chick = team.first().unwrap();
+    let chick_2 = team.nth(1).unwrap();
     // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
     assert!(
         chick.borrow().name == PetName::Chick
@@ -283,7 +288,7 @@ fn test_battle_whale_team() {
     for effect in team.first().unwrap().borrow_mut().effect.iter_mut() {
         effect.assign_owner(None);
     }
-    let cricket_copy = team.friends.first().unwrap().borrow().clone();
+    let cricket_copy = team.first().unwrap().borrow().clone();
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -386,6 +391,7 @@ fn test_battle_lynx_team() {
     let mut team = test_lynx_team();
     let mut enemy_team = test_hippo_team();
 
+    let enemy_hippo = enemy_team.first().unwrap();
     // 5 levels on team. So 5 dmg.
     assert_eq!(
         team.all().iter().map(|pet| pet.borrow().lvl).sum::<usize>(),
@@ -395,10 +401,7 @@ fn test_battle_lynx_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Hippo faints at start of battle.
-    assert_eq!(
-        enemy_team.fainted.first().unwrap().borrow().stats,
-        Statistics::new(4, 0).unwrap()
-    );
+    assert_eq!(enemy_hippo.borrow().stats, Statistics::new(4, 0).unwrap());
 
     team.restore();
     enemy_team.restore();
@@ -434,7 +437,7 @@ fn test_battle_porcupine_team() {
     enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
     enemy_team.trigger_effects(Some(&mut team)).unwrap();
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
-    enemy_team.clear_team();
+    enemy_team.clear_team(ClearOption::RemoveSlots);
 
     // 2 Mosquitoes faint from returned fire from porcupine
     assert_eq!(enemy_team.fainted.len(), 2);
@@ -490,8 +493,11 @@ fn test_battle_sniped_caterpillar_team() {
     // The team wins.
     assert_eq!(outcome, TeamFightOutcome::Win);
     // But the butterfly faints due to snipe from single mosquito on enemy team.
-    let first_fainted_pet = &team.fainted.first().unwrap().borrow().name;
-    assert_eq!(*first_fainted_pet, PetName::Butterfly)
+    let first_fainted_pet = &team.fainted.first().unwrap();
+    assert_eq!(
+        first_fainted_pet.as_ref().unwrap().borrow().name,
+        PetName::Butterfly
+    );
 }
 
 #[test]
@@ -500,14 +506,13 @@ fn test_battle_anteater_team() {
     let mut enemy_team = test_hippo_team();
 
     // Single anteater.
+    let anteater = team.first();
     assert_eq!(team.all().len(), 1);
+    assert_eq!(anteater.as_ref().unwrap().borrow().name, PetName::Anteater);
     team.fight(&mut enemy_team).unwrap();
 
     // After faint, two anteaters spawn.
-    assert_eq!(
-        team.fainted.first().unwrap().borrow().name,
-        PetName::Anteater
-    );
+    assert_eq!(team.fainted.first().unwrap(), &anteater);
     let all_friends = team.all();
     assert_eq!(all_friends.len(), 2);
     assert!(all_friends

@@ -18,11 +18,11 @@ use super::common::test_ant_team;
 fn test_create_team_standard_size() {
     let team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     );
@@ -34,16 +34,16 @@ fn test_create_team_standard_size() {
 fn test_create_team_large_size() {
     let team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         10,
     );
@@ -55,11 +55,11 @@ fn test_create_team_large_size() {
 fn test_create_team_invalid_size() {
     let team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         3,
     );
@@ -95,12 +95,17 @@ fn test_team_restore() {
     assert_eq!(team.triggers, original_team.triggers);
 
     for (restored_pet, original_pet) in team.friends.iter().zip_eq(original_team.friends.iter()) {
-        assert!(restored_pet.borrow().stats == original_pet.borrow().stats);
+        assert!(
+            restored_pet.as_ref().unwrap().borrow().stats
+                == original_pet.as_ref().unwrap().borrow().stats
+        );
         for (effect_restored, effect_original) in restored_pet
+            .as_ref()
+            .unwrap()
             .borrow()
             .effect
             .iter()
-            .zip_eq(original_pet.borrow().effect.iter())
+            .zip_eq(original_pet.as_ref().unwrap().borrow().effect.iter())
         {
             assert!(effect_restored.uses == effect_original.uses)
         }
@@ -111,9 +116,9 @@ fn test_team_restore() {
 fn test_team_push() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Snake).unwrap(),
-            Pet::try_from(PetName::Hippo).unwrap(),
-            Pet::try_from(PetName::Dog).unwrap(),
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Hippo).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
         ],
         5,
     )
@@ -135,8 +140,8 @@ fn test_team_push() {
     let push_trigger_dog = team.triggers.back().unwrap();
 
     // Get weak references to pets.
-    let dog = Rc::downgrade(&team.friends.get(0).unwrap());
-    let snake = Rc::downgrade(&team.friends.get(2).unwrap());
+    let dog = Rc::downgrade(team.friends.get(0).unwrap().as_ref().unwrap());
+    let snake = Rc::downgrade(&team.friends.get(2).unwrap().as_ref().unwrap());
 
     // Snake
     assert!(
@@ -152,4 +157,57 @@ fn test_team_push() {
         push_trigger_dog.status == Status::Pushed
             && push_trigger_dog.affected_pet.as_ref().unwrap().ptr_eq(&dog)
     );
+}
+
+#[test]
+fn test_team_add_pet() {
+    // Create a starting team with max size of 3.
+    let mut team = Team::new(
+        &[
+            Some(Pet::try_from(PetName::Snake).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+        ],
+        3,
+    )
+    .unwrap();
+
+    // Add pet at end.
+    team.add_pet(Pet::try_from(PetName::Ant).unwrap(), 2, None)
+        .unwrap();
+    // Attmepting to add again is overflow of pets.
+    assert!(team
+        .add_pet(Pet::try_from(PetName::Ant).unwrap(), 3, None)
+        .is_err());
+    // This is counted as a fainted pet.
+    assert_eq!(team.fainted.len(), 1);
+    assert_eq!(team.friends.len(), 3);
+    // Extend size of team.
+    team.max_size = 8;
+
+    assert_eq!(team.friends.iter().filter(|slot| slot.is_none()).count(), 0);
+    // Adding pets within bounds of team's max size will extend empty slots as well as add the pet.
+    team.add_pet(Pet::try_from(PetName::Ant).unwrap(), 6, None)
+        .unwrap();
+
+    // Three empty slots created.
+    assert_eq!(team.friends.iter().filter(|slot| slot.is_none()).count(), 3);
+
+    // Adding a pet to a pos with another pet with the same name will not merge them.
+    // Will append after the pos.
+    {
+        let fourth_pos = team.friends.get(3).unwrap();
+        assert!(fourth_pos.is_none());
+    }
+    team.add_pet(Pet::try_from(PetName::Ant).unwrap(), 2, None)
+        .unwrap();
+    {
+        // Pet now at position.
+        let fourth_pos = team.friends.get(3).unwrap();
+        assert!(fourth_pos.is_some());
+    }
+
+    // Adding a pet to a position greater than the max size will error.
+    assert!(team
+        .add_pet(Pet::try_from(PetName::Ant).unwrap(), 9, None)
+        .is_err())
 }

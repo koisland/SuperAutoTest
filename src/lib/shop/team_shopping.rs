@@ -19,7 +19,7 @@ use crate::{
         viewer::ShopViewer,
     },
     teams::{
-        combat::TeamCombat,
+        combat::{ClearOption, TeamCombat},
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
@@ -75,7 +75,7 @@ pub trait TeamShopping {
     /// use saptest::{Pet, PetName, Team, TeamShopping, Position, Entity, Condition};
     ///
     /// let mut team = Team::new(
-    ///     &[Pet::try_from(PetName::Ant).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Ant).unwrap())],
     ///     5
     /// ).unwrap();
     /// team.set_shop_seed(Some(42))
@@ -101,7 +101,7 @@ pub trait TeamShopping {
     /// use saptest::{Team, TeamViewer, TeamShopping, Pet, PetName, Position};
     ///
     /// let mut team = Team::new(
-    ///     &[Pet::try_from(PetName::Ant).unwrap()],
+    ///     &[Some(Pet::try_from(PetName::Ant).unwrap())],
     ///     5
     /// ).unwrap();
     ///
@@ -323,9 +323,9 @@ pub trait TeamShopping {
     /// };
     /// let mut team = Team::new(
     ///     &[
-    ///         Pet::try_from(PetName::Ant).unwrap(),
-    ///         Pet::try_from(PetName::Ant).unwrap(),
-    ///         Pet::try_from(PetName::Ant).unwrap(),
+    ///         Some(Pet::try_from(PetName::Ant).unwrap()),
+    ///         Some(Pet::try_from(PetName::Ant).unwrap()),
+    ///         Some(Pet::try_from(PetName::Ant).unwrap()),
     ///     ],
     ///     5
     /// ).unwrap();
@@ -586,7 +586,7 @@ impl TeamShopping for Team {
         }
 
         self.trigger_effects(None)?;
-        self.clear_team();
+        self.clear_team(ClearOption::KeepSlots);
         Ok(self)
     }
 
@@ -621,7 +621,7 @@ impl TeamShopping for Team {
 
         // Trigger effects here.
         self.trigger_effects(None)?;
-        self.clear_team();
+        self.clear_team(ClearOption::KeepSlots);
 
         Ok(self)
     }
@@ -731,6 +731,7 @@ impl TeamShopping for Team {
             if let Some(pet) = self
                 .friends
                 .iter()
+                .flatten()
                 .find(|pet| pet.borrow().id.as_ref() == Some(pet_id))
             {
                 pet.borrow_mut().stats -= *stats
@@ -755,13 +756,13 @@ impl TeamShopping for Team {
         // Trigger end of turn.
         self.triggers.push_front(TRIGGER_END_TURN);
         self.trigger_effects(None)?;
-        self.clear_team();
+        self.clear_team(ClearOption::KeepSlots);
 
         // Store friends.
         self.stored_friends = self
-            .all()
-            .into_iter()
-            .map(|pet| pet.borrow().clone())
+            .friends
+            .iter()
+            .map(|slot| slot.as_ref().map(|pet| pet.borrow().clone()))
             .collect_vec();
 
         // Reset coins.
@@ -844,7 +845,7 @@ impl TeamShopping for Team {
             }
 
             self.trigger_effects(None)?;
-            self.clear_team();
+            self.clear_team(ClearOption::KeepSlots);
         }
         Ok(self)
     }

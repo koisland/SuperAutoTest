@@ -363,16 +363,16 @@ fn test_attack_peanuts_melon_overflow() {
 fn test_attack_chili() {
     let mut team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     )
     .unwrap();
     let mut enemy_team = Team::new(
         &[
-            Pet::try_from(PetName::Ant).unwrap(),
-            Pet::try_from(PetName::Ant).unwrap(),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
         5,
     )
@@ -390,6 +390,41 @@ fn test_attack_chili() {
 
     // Ant team wins instead of drawing due to chili's splash damage.
     assert_eq!(outcome, TeamFightOutcome::Win);
+}
+
+#[test]
+fn test_attack_chili_w_front_space() {
+    let mut team = Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+        ],
+        5,
+    )
+    .unwrap();
+    let mut enemy_team = Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            None,
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+        ],
+        5,
+    )
+    .unwrap();
+    // Give first pet chili on first team.
+    team.set_item(
+        Position::First,
+        Some(Food::try_from(&FoodName::Chili).unwrap()),
+    )
+    .unwrap();
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Only 1 pet on enemy team dies due to space at 1st position.
+    assert_eq!(enemy_team.all().len(), 1);
+
+    // Good positioning results in a draw instead of a loss.
+    assert_eq!(team.fight(&mut enemy_team).unwrap(), TeamFightOutcome::Draw)
 }
 
 #[test]
@@ -550,7 +585,7 @@ fn test_shop_start_turn_foods() {
     let mut ant = Pet::try_from(PetName::Ant).unwrap();
     ant.item = Some(Food::try_from(FoodName::Grapes).unwrap());
 
-    let mut team = Team::new(&[ant], 5).unwrap();
+    let mut team = Team::new(&[Some(ant)], 5).unwrap();
 
     // Start with 10.
     assert_eq!(team.gold(), 10);
@@ -714,8 +749,8 @@ fn test_battle_pineapple() {
     let mut mosq = Pet::try_from(PetName::Mosquito).unwrap();
     mosq.item = Some(Food::try_from(FoodName::Pineapple).unwrap());
 
-    let mut team = Team::new(&[mosq], 5).unwrap();
-    let mut enemy_team = Team::new(&[Pet::try_from(PetName::Mammoth).unwrap()], 5).unwrap();
+    let mut team = Team::new(&[Some(mosq)], 5).unwrap();
+    let mut enemy_team = Team::new(&[Some(Pet::try_from(PetName::Mammoth).unwrap())], 5).unwrap();
 
     let mammoth = enemy_team.first().unwrap();
     // Starting mammoth stats.
@@ -841,7 +876,7 @@ fn test_battle_popcorns() {
     let first_ant = team.first().unwrap();
     team.fight(&mut enemy_team).unwrap();
 
-    assert_eq!(team.fainted.first().unwrap(), &first_ant);
+    assert_eq!(team.fainted.first().unwrap(), &Some(first_ant.clone()));
     // Summoned pet is same tier as ant.
     let summoned_pet = team.first().unwrap();
     assert_eq!(summoned_pet.borrow().tier, first_ant.borrow().tier);

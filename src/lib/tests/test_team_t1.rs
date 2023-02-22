@@ -22,6 +22,7 @@ fn test_battle_ant_team() {
     let all_2_1 = team
         .friends
         .iter()
+        .flatten()
         .all(|pet| pet.borrow().stats == Statistics::new(2, 1).unwrap());
     assert!(all_2_1);
 
@@ -31,6 +32,7 @@ fn test_battle_ant_team() {
     let any_gets_2_1 = team
         .friends
         .iter()
+        .flatten()
         .any(|pet| pet.borrow().stats == Statistics::new(4, 2).unwrap());
     // Another pet gets (2,1).
     assert!(any_gets_2_1)
@@ -128,8 +130,10 @@ fn test_battle_frog_team() {
     let mut team = test_frog_team();
     let mut enemy_team = test_ant_team();
 
+    let cricket = team.first();
+    let frilled_dragon = team.nth(2);
     assert_eq!(
-        team.friends.get(0).unwrap().as_ref().borrow().stats,
+        cricket.unwrap().as_ref().borrow().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -137,7 +141,7 @@ fn test_battle_frog_team() {
     );
     // Frilled dragon before activation of ability.
     assert_eq!(
-        team.friends.get(2).unwrap().as_ref().borrow().stats,
+        frilled_dragon.as_ref().unwrap().as_ref().borrow().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -151,7 +155,7 @@ fn test_battle_frog_team() {
 
     // Frilled dragon gets cricket stats.
     assert_eq!(
-        team.friends.get(2).unwrap().as_ref().borrow().stats,
+        frilled_dragon.unwrap().as_ref().borrow().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -165,7 +169,7 @@ fn test_battle_moth_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.friends.first().unwrap().as_ref().borrow().stats,
+        team.first().unwrap().as_ref().borrow().stats,
         Statistics {
             attack: 2,
             health: 3
@@ -175,7 +179,7 @@ fn test_battle_moth_team() {
     team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(
-        team.friends.first().unwrap().as_ref().borrow().stats,
+        team.first().unwrap().as_ref().borrow().stats,
         Statistics {
             attack: 8,
             health: 1
@@ -188,15 +192,16 @@ fn test_battle_hummingbird_team() {
     let mut team = test_hummingbird_team();
     let mut enemy_team = test_ant_team();
 
+    let duck = team.first().unwrap();
     assert_eq!(
-        team.friends.first().unwrap().as_ref().borrow().stats,
+        duck.borrow().stats,
         Statistics {
             attack: 2,
             health: 3
         }
     );
     // Duck has strawberry.
-    let duck = team.friends.first().unwrap();
+
     assert_eq!(
         duck.borrow().item.as_ref().unwrap().name,
         FoodName::Strawberry
@@ -209,7 +214,7 @@ fn test_battle_hummingbird_team() {
 
     // Duck gets 2/1 for every hummingbird since only strawberry friend.
     assert_eq!(
-        team.friends.first().unwrap().as_ref().borrow().stats,
+        duck.borrow().stats,
         Statistics {
             attack: 6,
             health: 5
@@ -595,7 +600,7 @@ fn test_shop_frog_team() {
     );
     // Frilled dragon now has cricket stats.
     assert_eq!(
-        team_frog_sell.nth(1).unwrap().borrow().stats,
+        team_frog_sell.nth(2).unwrap().borrow().stats,
         Statistics {
             attack: 1,
             health: 2
