@@ -14,4 +14,4 @@
 # tokens_version = ?
 
 filename = "./sap.db"
-update_on_startup = false
+update_on_startup = true
