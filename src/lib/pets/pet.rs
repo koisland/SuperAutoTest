@@ -425,6 +425,9 @@ impl Pet {
             // * Experience + 1 from pet itself.
             self.add_experience(from.exp + 1)?;
 
+            // Refresh effects.
+            self.effect = self.get_effect(self.lvl)?;
+
             Ok(self)
         } else {
             return Err(SAPTestError::InvalidPetAction {

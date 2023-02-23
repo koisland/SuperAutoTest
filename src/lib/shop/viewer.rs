@@ -41,6 +41,7 @@ pub trait ShopViewer {
         cond: &Condition,
         item_type: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError>;
+
     /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Position`](crate::Position).
     /// # Example
     /// ```
@@ -178,20 +179,17 @@ impl ShopViewer for Shop {
                 }
                 EqualityCondition::Trigger(trigger) => found_items.extend(
                     all_items
-                        .filter_map(|item| {
-                            let item_triggers = item.triggers();
-                            (item_triggers.contains(trigger)).then_some(item)
-                        })
+                        .filter(|item| item.triggers().contains(trigger))
                         .into_iter(),
                 ),
                 EqualityCondition::Action(action) => found_items.extend(
                     all_items
-                        .filter_map(|item| {
-                            let item_actions = item.actions();
-                            (item_actions.contains(action)).then_some(item)
-                        })
+                        .filter(|item| item.actions().contains(action))
                         .into_iter(),
                 ),
+                EqualityCondition::Frozen => {
+                    found_items.extend(all_items.filter(|item| item.is_frozen()).into_iter())
+                }
                 _ => {
                     return Err(SAPTestError::InvalidShopAction {
                         subject: "Invalid Equality Condition".to_string(),

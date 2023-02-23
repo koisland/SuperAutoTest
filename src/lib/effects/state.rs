@@ -28,6 +28,8 @@ pub enum EqualityCondition {
     Action(Box<Action>),
     /// Triggered by this [`Status`].
     Trigger(Status),
+    /// Is frozen. Only available for shops.
+    Frozen,
 }
 
 /// Conditions to select [`Pet`]s by.
@@ -245,8 +247,12 @@ pub enum Status {
     StartOfBattle,
     /// After start of battle, prior to first battle.
     BeforeFirstBattle,
-    /// End of Battle.
-    EndOfBattle,
+    /// Won the Battle.
+    WinBattle,
+    /// Loss the battle.
+    LoseBattle,
+    /// Drew
+    DrawBattle,
     /// Before pet attacks.
     BeforeAttack,
     /// Pet is attacking.

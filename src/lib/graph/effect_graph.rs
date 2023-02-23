@@ -13,6 +13,7 @@ pub struct History {
     pub curr_turn: usize,
     pub curr_node: Option<NodeIndex>,
     pub prev_node: Option<NodeIndex>,
+    pub last_outcome: Option<NodeIndex>,
     pub effect_graph: Graph<Outcome, (Target, Position, Action, String), Directed>,
 }
 
@@ -23,6 +24,7 @@ impl Default for History {
             curr_turn: 1,
             curr_node: Default::default(),
             prev_node: Default::default(),
+            last_outcome: Default::default(),
             effect_graph: Default::default(),
         }
     }

@@ -1142,3 +1142,115 @@ pub fn test_pillbug_team() -> Team {
     )
     .unwrap()
 }
+
+pub fn test_giraffe_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Giraffe).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_rabbit_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Rabbit).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_emperor_tamarin_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::EmperorTamarin).unwrap())], 5).unwrap()
+}
+
+pub fn test_wasp_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Wasp).unwrap())], 5).unwrap()
+}
+
+pub fn test_hatching_chick_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::HatchingChick).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_owl_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Owl).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_puppy_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Puppy).unwrap()),
+            Some(Pet::try_from(PetName::Puppy).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_tropicalfish_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::TropicalFish).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_capybara_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Capybara).unwrap())], 5).unwrap()
+}
+
+pub fn test_cassowary_team() -> Team {
+    let mut cassowary = Pet::try_from(PetName::Cassowary).unwrap();
+    cassowary.item = Some(Food::try_from(FoodName::Strawberry).unwrap());
+    Team::new(&[Some(cassowary)], 5).unwrap()
+}
+
+pub fn test_leech_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Peacock).unwrap()),
+            Some(Pet::try_from(PetName::Leech).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_okapi_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Okapi).unwrap())], 5).unwrap()
+}
+
+pub fn test_starfish_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Duck).unwrap()),
+            Some(Pet::try_from(PetName::Starfish).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}

@@ -2,7 +2,10 @@ use log::info;
 use std::rc::Rc;
 
 use crate::{
-    effects::{state::Status, trigger::*},
+    effects::{
+        state::{Outcome, Status},
+        trigger::*,
+    },
     error::SAPTestError,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
@@ -265,14 +268,7 @@ impl TeamCombat for Team {
             if !self.friends.is_empty() && !opponent.friends.is_empty() {
                 TeamFightOutcome::None
             } else {
-                // Add end of battle node.
-                self.history.prev_node = self.history.curr_node;
-                self.history.curr_node =
-                    Some(self.history.effect_graph.add_node(TRIGGER_END_BATTLE));
-                // On outcome, increase turn count.
-                self.history.curr_turn += 1;
-
-                if self.friends.is_empty() && opponent.friends.is_empty() {
+                let outcome = if self.friends.is_empty() && opponent.friends.is_empty() {
                     info!(target: "run", "Draw!");
                     TeamFightOutcome::Draw
                 } else if !opponent.friends.is_empty() {
@@ -281,7 +277,17 @@ impl TeamCombat for Team {
                 } else {
                     info!(target: "run", "Your team won!");
                     TeamFightOutcome::Win
-                }
+                };
+                let outcome_trigger: Outcome = (&outcome).into();
+                // Add end of battle node.
+                let outcome_node = self.history.effect_graph.add_node(outcome_trigger);
+                self.history.prev_node = self.history.curr_node;
+                self.history.curr_node = Some(outcome_node);
+                self.history.last_outcome = Some(outcome_node);
+                // On outcome, increase turn count.
+                self.history.curr_turn += 1;
+                // Return outcome.
+                outcome
             },
         )
     }

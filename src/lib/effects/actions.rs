@@ -78,7 +78,7 @@ pub enum RandomizeType {
 
 /// Conditional logic for [`Action::Conditional`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum ConditionType {
+pub enum LogicType {
     /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
     ForEach(Target, Condition),
     /// If target `Pet` meets condition, do `Action`.
@@ -139,7 +139,7 @@ pub enum Action {
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
     /// Perform a conditional `Action`.
-    Conditional(ConditionType, Box<Action>),
+    Conditional(LogicType, Box<Action>),
     /// Hardcoded rhino ability.
     Rhino(Statistics),
     /// Hardcoded lynx ability.
@@ -152,6 +152,11 @@ pub enum Action {
     Tapir,
     /// Hardcoded cockroach ability.
     Cockroach,
+    /// Hardcoded puppy and trex ability.
+    /// * This could be build using [`Action::Conditional`] at some point in the future.
+    AddIfGold(usize, Statistics),
+    /// Hardcoded snail ability.
+    Snail(Statistics),
     /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.

@@ -55,6 +55,17 @@ pub enum TeamFightOutcome {
     None,
 }
 
+impl From<&TeamFightOutcome> for Outcome {
+    fn from(value: &TeamFightOutcome) -> Self {
+        match value {
+            TeamFightOutcome::Win => TRIGGER_WIN_BATTLE,
+            TeamFightOutcome::Loss => TRIGGER_LOSE_BATTLE,
+            TeamFightOutcome::Draw => TRIGGER_DRAW_BATTLE,
+            TeamFightOutcome::None => TRIGGER_NONE,
+        }
+    }
+}
+
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {

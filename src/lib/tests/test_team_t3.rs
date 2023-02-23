@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::{
     effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
@@ -9,15 +11,18 @@ use crate::{
     },
     tests::common::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
-        test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_clownfish_team,
-        test_cricket_horse_team, test_dog_team, test_dolphin_team, test_filled_sheep_team,
-        test_hummingbird_team, test_kangaroo_team, test_ox_team, test_seagull_team,
-        test_sheep_team, test_toad_team, test_woodpecker_self_hurt_team, test_woodpecker_team,
+        test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_capybara_team,
+        test_cassowary_team, test_clownfish_team, test_cricket_horse_team, test_dog_team,
+        test_dolphin_team, test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team,
+        test_hatching_chick_team, test_hippo_team, test_hummingbird_team, test_kangaroo_team,
+        test_leech_team, test_mouse_team, test_okapi_team, test_owl_team, test_ox_team,
+        test_puppy_team, test_rabbit_team, test_seagull_team, test_sheep_team, test_starfish_team,
+        test_toad_team, test_tropicalfish_team, test_wasp_team, test_woodpecker_self_hurt_team,
+        test_woodpecker_team,
     },
-    TeamEffects,
+    Condition, Entity, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
+    TeamShopping,
 };
-
-// use crate::LOG_CONFIG;
 
 #[test]
 fn test_battle_badger_team() {
@@ -436,4 +441,512 @@ fn test_battle_woodpecker_self_hurt_team() {
 
     // Two crickets at front of woodpecker on same team faint.
     assert_eq!(team.fainted.len(), 2);
+}
+
+#[test]
+fn test_shop_giraffe_team() {
+    let mut team = test_giraffe_team();
+
+    team.open_shop().unwrap();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    team.close_shop().unwrap();
+    // Gain (1,1) after ending turn.
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 5
+        }
+    );
+}
+
+#[test]
+fn test_shop_rabbit_team() {
+    let mut team = test_rabbit_team();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    team.set_shop_seed(Some(12))
+        .open_shop()
+        .unwrap()
+        .buy(&Position::First, &Entity::Food, &Position::First)
+        .unwrap();
+
+    // Pet gains (0,1) after item bought and eaten by pet.
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 5
+        }
+    );
+}
+
+#[test]
+fn test_shop_snail_team() {
+    let mut team = test_mouse_team();
+    let mut enemy_team = test_hippo_team();
+
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
+    while let TeamFightOutcome::None = outcome {
+        outcome = team.fight(&mut enemy_team).unwrap()
+    }
+
+    // Team loses.
+    assert!(outcome == TeamFightOutcome::Loss);
+
+    let mut shop = Shop::default();
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::Snail).unwrap()))
+        .unwrap();
+
+    team.replace_shop(shop).unwrap();
+    team.open_shop().unwrap();
+
+    let pets = team.all();
+    let (mouse, ant) = (pets.first().unwrap(), pets.last().unwrap());
+
+    assert_eq!(
+        mouse.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    assert_eq!(
+        ant.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    let pets = team.all();
+    let (snail, mouse, ant) = (
+        pets.first().unwrap(),
+        pets.get(1).unwrap(),
+        pets.last().unwrap(),
+    );
+    // Pets get (1,1)
+    // Snail gets no stats. Same as default.
+    assert_eq!(
+        snail.borrow().stats,
+        Pet::try_from(PetName::Snail).unwrap().stats
+    );
+    assert_eq!(
+        mouse.borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+    assert_eq!(
+        ant.borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+}
+
+#[test]
+fn test_shop_emperor_tamarin_team() {
+    let mut team = test_emperor_tamarin_team();
+
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    let shop_pets = team
+        .shop
+        .get_shop_items_by_pos(&Position::First, &Entity::Pet)
+        .unwrap();
+    let first_shop_pet_slot = shop_pets.first().unwrap();
+    assert!(
+        first_shop_pet_slot.attack_stat() == Some(2)
+            && first_shop_pet_slot.health_stat() == Some(2)
+    );
+
+    // Sell emperor tamarin.
+    team.sell(&Position::First).unwrap();
+
+    // First shop pet gains (1,2).
+    let shop_pets = team
+        .shop
+        .get_shop_items_by_pos(&Position::First, &Entity::Pet)
+        .unwrap();
+    let first_shop_pet_slot = shop_pets.first().unwrap();
+    assert!(
+        first_shop_pet_slot.attack_stat() == Some(3)
+            && first_shop_pet_slot.health_stat() == Some(4)
+    );
+}
+
+#[test]
+fn test_shop_wasp_team() {
+    let mut team = test_wasp_team();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 2
+        }
+    );
+    // Open shop and set shop tier to tier 2.
+    team.set_shop_seed(Some(12))
+        .open_shop()
+        .unwrap()
+        .set_shop_tier(2)
+        .unwrap();
+
+    // Wasp gains (1,0) which is 50% of base attack.
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+}
+
+#[test]
+fn test_shop_hatching_chick_lvl_1_team() {
+    let mut team = test_hatching_chick_team();
+
+    let original_dog_stats = Statistics {
+        attack: 3,
+        health: 4,
+    };
+    assert_eq!(team.first().unwrap().borrow().stats, original_dog_stats);
+
+    // Open shop and set shop tier to tier 2.
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    // Gain (4,4)
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 7,
+            health: 8
+        }
+    );
+
+    team.open_shop().unwrap();
+
+    // Stats are temporary.
+    assert_eq!(original_dog_stats, team.first().unwrap().borrow().stats,);
+}
+
+#[test]
+fn test_shop_hatching_chick_lvl_2_team() {
+    let mut team = test_hatching_chick_team();
+    let original_dog_stats = Statistics {
+        attack: 3,
+        health: 4,
+    };
+    let new_dog_stats = Statistics {
+        attack: 5,
+        health: 6,
+    };
+    assert_eq!(team.first().unwrap().borrow().stats, original_dog_stats);
+
+    team.open_shop().unwrap();
+    // Upgrade chick to level 2.
+    team.last().unwrap().borrow_mut().set_level(2).unwrap();
+    team.close_shop().unwrap();
+
+    // Gain (2, 2)
+    assert_eq!(team.first().unwrap().borrow().stats, new_dog_stats);
+
+    team.open_shop().unwrap();
+    // Stats are not temporary.
+    assert_eq!(team.first().unwrap().borrow().stats, new_dog_stats);
+}
+
+#[test]
+fn test_shop_hatching_chick_lvl_3_team() {
+    let mut team = test_hatching_chick_team();
+    // Dog in front of chick has no exp.
+    assert_eq!(team.first().unwrap().borrow().exp, 0);
+
+    team.open_shop().unwrap();
+    // Upgrade chick to level 3 during shop phase so stats/exp retained.
+    team.last().unwrap().borrow_mut().set_level(3).unwrap();
+    team.close_shop().unwrap();
+
+    // Reopen shop. Dog now has 1 exp.
+    team.open_shop().unwrap();
+    assert_eq!(team.first().unwrap().borrow().exp, 1);
+}
+
+#[test]
+fn test_shop_owl_team() {
+    let mut team = test_owl_team();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+
+    // Sell at last position.
+    team.open_shop().unwrap().sell(&Position::Last).unwrap();
+
+    // Dog gets (2,2).
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 5,
+            health: 6
+        }
+    );
+}
+
+#[test]
+fn test_shop_puppy_team() {
+    let mut team = test_puppy_team();
+
+    assert_eq!(team.gold(), 10);
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 1,
+            health: 2
+        }
+    );
+    // End turn.
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 3
+        }
+    );
+}
+
+#[test]
+fn test_shop_tropical_fish_team() {
+    let mut team = test_tropicalfish_team();
+
+    let pets = team.all();
+    let (first_pet, last_pet) = (pets.first().unwrap(), pets.last().unwrap());
+
+    assert!(
+        first_pet.borrow().stats
+            == Statistics {
+                attack: 3,
+                health: 4
+            }
+            && last_pet.borrow().stats
+                == Statistics {
+                    attack: 3,
+                    health: 4
+                }
+    );
+    // End turn.
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    // Pets adjacent get (0, 1).
+    let pets = team.all();
+    let (first_pet, last_pet) = (pets.first().unwrap(), pets.last().unwrap());
+    assert!(
+        first_pet.borrow().stats
+            == Statistics {
+                attack: 3,
+                health: 5
+            }
+            && last_pet.borrow().stats
+                == Statistics {
+                    attack: 3,
+                    health: 5
+                }
+    );
+}
+
+#[test]
+fn test_shop_capybara_team() {
+    let mut team = test_capybara_team();
+
+    team.set_shop_seed(Some(12))
+        .open_shop()
+        .unwrap()
+        .roll_shop()
+        .unwrap();
+
+    let add_stats = Statistics {
+        attack: 2,
+        health: 1,
+    };
+    let shop_pets = team
+        .shop
+        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .unwrap();
+
+    // Item stats.
+    let (mosq_stats, pig_stats, beaver_stats) = (0..3)
+        .map(|idx| {
+            Statistics::new(
+                shop_pets[idx].attack_stat().unwrap(),
+                shop_pets[idx].health_stat().unwrap(),
+            )
+            .unwrap()
+        })
+        .collect_tuple::<(Statistics, Statistics, Statistics)>()
+        .unwrap();
+
+    // Items stats are added on roll.
+    assert_eq!(
+        mosq_stats,
+        Pet::try_from(PetName::Mosquito).unwrap().stats + add_stats
+    );
+    assert_eq!(
+        pig_stats,
+        Pet::try_from(PetName::Pig).unwrap().stats + add_stats
+    );
+    assert_eq!(
+        beaver_stats,
+        Pet::try_from(PetName::Beaver).unwrap().stats + add_stats
+    );
+}
+
+#[test]
+fn test_shop_cassowary_team() {
+    let mut team = test_cassowary_team();
+    team.open_shop().unwrap();
+
+    let cassowary = team.first().unwrap();
+    assert_eq!(
+        cassowary.borrow().stats,
+        Statistics {
+            attack: 2,
+            health: 4
+        }
+    );
+    // Cassowary has strawberry.
+    assert_eq!(
+        cassowary.borrow().item.as_ref().unwrap().name,
+        FoodName::Strawberry
+    );
+    team.close_shop().unwrap();
+
+    // Gains (2, 1)
+    assert_eq!(
+        cassowary.borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 5
+        }
+    );
+}
+
+#[test]
+fn test_shop_leech_team() {
+    let mut team = test_leech_team();
+
+    let pets = team.all();
+    let peacock = pets.first().unwrap();
+    let leech = pets.last().unwrap();
+
+    // Starting stats.
+    assert!(
+        peacock.borrow().stats == Statistics::new(2, 5).unwrap()
+            && leech.borrow().stats == Statistics::new(4, 2).unwrap()
+    );
+
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    let pets = team.all();
+    let peacock = pets.first().unwrap();
+    let leech = pets.last().unwrap();
+
+    // Leech damages peacock by (0,1) causing it to gain (4,0).
+    // Then it gains (0, 1)
+    assert!(
+        peacock.borrow().stats == Statistics::new(6, 4).unwrap()
+            && leech.borrow().stats == Statistics::new(4, 3).unwrap()
+    );
+}
+
+#[test]
+fn test_shop_okapi_team() {
+    let mut team = test_okapi_team();
+
+    team.open_shop().unwrap();
+
+    let okapi = team.first().unwrap();
+    let starting_stats = okapi.borrow().stats;
+    const STATS_PER_ROLL: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    const NUM_ROLLS: usize = 5;
+
+    // Roll 5 times.
+    for i in 1..=NUM_ROLLS {
+        let added_stats = STATS_PER_ROLL * Statistics::new(i, i).unwrap();
+
+        team.roll_shop().unwrap();
+
+        // Every rolls adds (1,1)
+        assert_eq!(
+            starting_stats + added_stats,
+            team.first().unwrap().borrow().stats
+        )
+    }
+    let final_stats = okapi.borrow().stats;
+    // Try rolling an additional time.
+    team.roll_shop().unwrap();
+
+    // Stats don't increase as max number of uses per turn reached.
+    assert_eq!(final_stats, okapi.borrow().stats);
+}
+
+#[test]
+fn test_shop_starfish_team() {
+    let mut team = test_starfish_team();
+
+    // Duck has Sell trigger.
+    let duck = team.first().unwrap();
+    assert!(
+        duck.borrow().name == PetName::Duck
+            && duck
+                .borrow()
+                .effect
+                .iter()
+                .any(|effect| effect.trigger.status == Status::Sell)
+    );
+    // Dog will be targeted as startfish cannot target itself.
+    assert_eq!(
+        team.last().unwrap().borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    team.open_shop().unwrap().sell(&Position::First).unwrap();
+
+    // Gains (1,1)
+    assert_eq!(
+        team.last().unwrap().borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 5
+        }
+    );
 }

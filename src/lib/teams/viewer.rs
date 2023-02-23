@@ -118,11 +118,16 @@ pub trait TeamViewer {
 
     /// Filter pets that match an [`EqualityCondition`](crate::effects::state::EqualityCondition).
     /// * Used by [`TeamViewer::get_pets_by_cond`].
+    /// * Will [`panic`] if used using a condition specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
     fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
     where
         T: IntoIterator<Item = Rc<RefCell<Pet>>>;
 
     /// Get pets by a given [`Condition`].
+    /// * Will [`panic`] if using:
+    ///     * A [`Condition::Equal`] or [`Condition::NotEqual`] specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
+    ///         * Use the [`ShopViewer::get_shop_items_by_cond`] method instead.
+    ///     * Nested [`Condition::Multiple`] or [`Condition::MultipleAll`].
     /// # Examples
     /// ---
     /// Pets with a [`StartOfBattle`](crate::effects::state::Status::StartOfBattle) [`Effect`](crate::Effect) trigger.
@@ -191,6 +196,7 @@ pub trait TeamViewer {
     /// assert_eq!(team.get_effects().len(), 1);
     /// ```
     fn get_effects(&self) -> Vec<Vec<Effect>>;
+
     /// Get pets affected by an effect and a trigger.
     /// # Example
     /// ```
@@ -238,6 +244,8 @@ pub trait TeamViewer {
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
     /// * [`TargetPets`] is a tuple with the belonging Target group ([`Target::Shop`], [`Target::Friend`], [`Target::Enemy`]) and the pets found.
+    /// * May [`panic`] under certain [`Condition`]s.
+    ///     * See [`TeamViewer::get_pets_by_cond`].
     /// # Example
     /// ```rust
     /// use saptest::{
@@ -361,6 +369,7 @@ impl TeamViewer for Team {
                         .any(|effect| effect.action == **action)
                 })
                 .collect_vec(),
+            _ => unimplemented!("Condition not implemented for Team pets."),
         }
     }
 
@@ -444,7 +453,7 @@ impl TeamViewer for Team {
                 Condition::LowestTier => all_pets
                     .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                _ => unimplemented!("Condition not implemented."),
+                _ => unimplemented!("Condition not implemented for Team pets or attempted to nest multiple Condition::Multiple*s."),
             }
         }
     }

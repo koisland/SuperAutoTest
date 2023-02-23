@@ -70,9 +70,31 @@ pub const TRIGGER_END_TURN: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// End of battle trigger.
-pub const TRIGGER_END_BATTLE: Outcome = Outcome {
-    status: Status::EndOfBattle,
+/// Won battle trigger.
+pub const TRIGGER_WIN_BATTLE: Outcome = Outcome {
+    status: Status::WinBattle,
+    position: Position::None,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::None,
+    afflicting_team: Target::None,
+};
+
+/// Won battle trigger.
+pub const TRIGGER_LOSE_BATTLE: Outcome = Outcome {
+    status: Status::LoseBattle,
+    position: Position::None,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::None,
+    afflicting_team: Target::None,
+};
+
+/// Draw battle trigger.
+pub const TRIGGER_DRAW_BATTLE: Outcome = Outcome {
+    status: Status::DrawBattle,
     position: Position::None,
     affected_pet: None,
     afflicting_pet: None,
@@ -208,7 +230,7 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
 /// Trigger for when the friend ahead [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Relative(-1),
+    position: Position::Relative(1),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,

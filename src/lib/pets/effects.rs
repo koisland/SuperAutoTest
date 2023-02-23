@@ -2,7 +2,7 @@ use crate::{
     db::record::PetRecord,
     effects::{
         actions::{
-            Action, ConditionType, CopyType, GainType, RandomizeType, StatChangeType, SummonType,
+            Action, CopyType, GainType, LogicType, RandomizeType, StatChangeType, SummonType,
         },
         effect::{Effect, Entity, EntityName},
         state::{Condition, EqualityCondition, Position, Status, Target},
@@ -572,6 +572,186 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 ]),
                 uses: None,
             }],
+            PetName::Giraffe => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_END_TURN,
+                target: Target::Friend,
+                position: Position::Relative(1),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Rabbit => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_ANY_FOOD_EATEN,
+                target: Target::Friend,
+                position: Position::TriggerAffected,
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Snail => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SELF_PET_BOUGHT,
+                target: Target::Friend,
+                position: Position::All(Condition::NotEqual(EqualityCondition::IsSelf)),
+                action: Action::Snail(effect_stats),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::EmperorTamarin => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SELF_PET_SOLD,
+                target: Target::Shop,
+                position: Position::First,
+                action: Action::Add(StatChangeType::SelfMultValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Wasp => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SHOP_TIER_UPGRADED,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Add(StatChangeType::SelfMultValue(effect_stats)),
+                uses: None,
+            }],
+            PetName::HatchingChick => {
+                let mut base_effect = Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_END_TURN,
+                    target: Target::Friend,
+                    position: Position::Relative(1),
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                };
+                match record.lvl {
+                    1 | 2 => {}
+                    3 => {
+                        base_effect.trigger = TRIGGER_START_TURN;
+                        base_effect.action = Action::Experience;
+                    }
+                    _ => {
+                        return Err(SAPTestError::QueryFailure {
+                            subject: "Invalid Pet Level".to_string(),
+                            reason: format!("PetRecord for {} has an invalid level.", record.name),
+                        })
+                    }
+                }
+                vec![base_effect]
+            }
+            PetName::Owl => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_SELF_PET_SOLD,
+                target: Target::Friend,
+                position: Position::Any(Condition::None),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Puppy => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_END_TURN,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::AddIfGold(2, effect_stats),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::TropicalFish => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_END_TURN,
+                target: Target::Friend,
+                position: Position::Adjacent,
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Capybara => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_ROLL,
+                target: Target::Shop,
+                position: Position::All(Condition::NotEqual(EqualityCondition::Frozen)),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Cassowary => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_END_TURN,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Conditional(
+                    LogicType::If(
+                        Target::Friend,
+                        Condition::Equal(EqualityCondition::Name(EntityName::Food(
+                            FoodName::Strawberry,
+                        ))),
+                    ),
+                    Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                ),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Leech => vec![
+                // Dmg is hardcoded as regex on captures health buff.
+                Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_END_TURN,
+                    target: Target::Friend,
+                    position: Position::Relative(1),
+                    action: Action::Remove(StatChangeType::StaticValue(Statistics {
+                        attack: 1,
+                        health: 0,
+                    })),
+                    uses: Some(record.n_triggers),
+                },
+                Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_END_TURN,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(record.n_triggers),
+                },
+            ],
+            PetName::Okapi => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_ROLL,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
+            PetName::Starfish => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: trigger_any_pet_sold_status(Status::Sell),
+                target: Target::Friend,
+                position: Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
             PetName::Sheep => {
                 let ram = Box::new(Pet::new(
                     PetName::Ram,
@@ -824,7 +1004,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Conditional(
-                    ConditionType::ForEach(
+                    LogicType::ForEach(
                         Target::Friend,
                         Condition::Equal(EqualityCondition::Trigger(Status::Faint)),
                     ),
@@ -939,7 +1119,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     position: Position::Any(Condition::None),
                     action: Action::Multiple(vec![
                         Action::Conditional(
-                            ConditionType::ForEach(
+                            LogicType::ForEach(
                                 // Note: The reason it is enemy is because all actions act on the team being affected.
                                 Target::Enemy,
                                 Condition::Equal(EqualityCondition::Name(EntityName::Food(
@@ -1195,7 +1375,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Conditional(
-                    ConditionType::If(Target::Friend, Condition::LowestTier),
+                    LogicType::If(Target::Friend, Condition::LowestTier),
                     Box::new(Action::Multiple(vec![
                         Action::Gain(GainType::DefaultItem(FoodName::Coconut)),
                         Action::Add(StatChangeType::StaticValue(effect_stats)),
@@ -1398,7 +1578,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Conditional(
-                    ConditionType::If(Target::Friend, Condition::HighestTier),
+                    LogicType::If(Target::Friend, Condition::HighestTier),
                     Box::new(Action::Add(StatChangeType::SelfMultValue(effect_stats))),
                 ),
                 uses: Some(record.n_triggers),

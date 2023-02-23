@@ -15,9 +15,34 @@ pub(crate) fn trigger_any_pet_bought_status(status: Status) -> Outcome {
         stat_diff: None,
     }
 }
+
+/// Create a trigger for when a pet is sold with an effect that triggers with this status.
+pub(crate) fn trigger_any_pet_sold_status(status: Status) -> Outcome {
+    Outcome {
+        status: Status::Sell,
+        affected_pet: None,
+        affected_team: Target::Friend,
+        afflicting_pet: None,
+        afflicting_team: Target::None,
+        position: Position::Any(Condition::Equal(EqualityCondition::Trigger(status))),
+        stat_diff: None,
+    }
+}
+
 /// Trigger when food bought.
 pub const TRIGGER_ANY_FOOD_BOUGHT: Outcome = Outcome {
     status: Status::BuyFood,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::Any(Condition::None),
+    stat_diff: None,
+};
+
+/// Trigger when any food bought and eaten.
+pub const TRIGGER_ANY_FOOD_EATEN: Outcome = Outcome {
+    status: Status::AteFood,
     affected_pet: None,
     affected_team: Target::Friend,
     afflicting_pet: None,
@@ -88,7 +113,7 @@ pub const TRIGGER_ROLL: Outcome = Outcome {
     affected_team: Target::Friend,
     afflicting_pet: None,
     afflicting_team: Target::None,
-    position: Position::TriggerAffected,
+    position: Position::None,
     stat_diff: None,
 };
 

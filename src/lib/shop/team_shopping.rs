@@ -436,8 +436,11 @@ impl TeamShoppingHelpers for Team {
 
             // Create trigger if food eaten.
             let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
+            let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
             trigger_self_food.set_affected(target_pet);
-            self.triggers.push_back(trigger_self_food);
+            trigger_any_food.set_affected(target_pet);
+
+            self.triggers.extend([trigger_self_food, trigger_any_food]);
         } else if food.borrow().name == FoodName::CannedFood {
             // Hard-coded can ability.
             let can_stats = Statistics {
@@ -462,7 +465,11 @@ impl TeamShoppingHelpers for Team {
 
                 // Pet triggers for eating food.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
+                let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
                 trigger_self_food.set_affected(&pet);
+                trigger_any_food.set_affected(&pet);
+
+                self.triggers.extend([trigger_self_food, trigger_any_food]);
 
                 self.apply_single_effect(pet, &food_ability, None)?;
             }
@@ -610,7 +617,16 @@ impl TeamShopping for Team {
                 sell_trigger.set_affected(&pet);
                 sell_any_trigger.set_affected(&pet);
 
+                // First sell trigger must be self trigger to remove it from friends list.
+                // Otherwise, will remain in friends as target for effects.
                 self.triggers.extend([sell_trigger, sell_any_trigger]);
+
+                for effect in pet.borrow().effect.iter() {
+                    let mut sell_w_status_trigger =
+                        trigger_any_pet_sold_status(effect.trigger.status.clone());
+                    sell_w_status_trigger.set_affected(&pet);
+                    self.triggers.push_back(sell_w_status_trigger)
+                }
             }
         } else {
             return Err(SAPTestError::InvalidShopAction {
@@ -636,6 +652,7 @@ impl TeamShopping for Team {
 
         self.shop.roll()?;
         self.triggers.push_back(TRIGGER_ROLL);
+        self.trigger_effects(None)?;
         Ok(self)
     }
 
