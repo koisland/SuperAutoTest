@@ -566,8 +566,8 @@ fn test_shop_goldfish_team() {
         .get_shop()
         .get_shop_items_by_pos(&affected_pos, &Entity::Pet)
         .unwrap();
-    // Pets are discounted by 2 gold from 3 gold to 1 gold.
-    assert!(affected_shop_pets.iter().all(|pet| pet.cost == 1));
+    // Pets are discounted by 1 gold from 3 gold to 2 gold.
+    assert!(affected_shop_pets.iter().all(|pet| pet.cost == 2));
 }
 
 #[test]

@@ -14,7 +14,7 @@ use crate::{
         viewer::TeamViewer,
     },
     tests::common::test_ant_team,
-    Condition, Effect, EntityName, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
+    Effect, EntityName, ItemCondition, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
     TeamShopping,
 };
 // use crate::LOG_CONFIG;
@@ -790,7 +790,7 @@ fn test_shop_canned_food() {
     fn first_shop_pet_query<'a>(team: &'a Team) -> &'a ShopItem {
         let shop_pets = team
             .shop
-            .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+            .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
             .unwrap();
         let pet_1 = shop_pets.get(0).unwrap();
         pet_1

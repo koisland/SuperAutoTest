@@ -20,7 +20,7 @@ use crate::{
         test_toad_team, test_tropicalfish_team, test_wasp_team, test_woodpecker_self_hurt_team,
         test_woodpecker_team,
     },
-    Condition, Entity, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
+    Entity, ItemCondition, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
     TeamShopping,
 };
 
@@ -795,7 +795,7 @@ fn test_shop_capybara_team() {
     };
     let shop_pets = team
         .shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
 
     // Item stats.

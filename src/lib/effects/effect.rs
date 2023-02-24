@@ -3,6 +3,7 @@ use crate::{
         actions::Action,
         state::{Outcome, Position, Target},
     },
+    error::SAPTestError,
     FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
@@ -66,6 +67,25 @@ impl PartialEq for Effect {
     }
 }
 
+impl TryFrom<&Effect> for Rc<RefCell<Pet>> {
+    type Error = SAPTestError;
+
+    fn try_from(effect: &Effect) -> Result<Self, Self::Error> {
+        effect
+            .owner
+            .as_ref()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Missing Effect Owner".to_string(),
+                reason: format!("{effect:?} has no owner."),
+            })?
+            .upgrade()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Dropped Owner".to_string(),
+                reason: "Pet reference dropped.".to_string(),
+            })
+    }
+}
+
 impl Effect {
     /// Generate a new effect.
     /// # Example
@@ -75,7 +95,7 @@ impl Effect {
     ///     effects::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
-    ///         state::{Position, Target, Condition, Outcome},
+    ///         state::{Position, Target, ItemCondition, Outcome},
     ///         actions::{Action, StatChangeType}
     ///     }
     /// };
@@ -83,7 +103,7 @@ impl Effect {
     ///     Entity::Pet,
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
-    ///     Position::Any(Condition::None),
+    ///     Position::Any(ItemCondition::None),
     ///     Action::Add(StatChangeType::StaticValue(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false

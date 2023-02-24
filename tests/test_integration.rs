@@ -7,7 +7,7 @@ use saptest::{
     },
     teams::{combat::TeamCombat, team::TeamFightOutcome},
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
-    TeamShopping, SAPDB,
+    TeamShopping, TeamViewer, SAPDB,
 };
 use std::{str::FromStr, thread};
 
@@ -31,6 +31,8 @@ fn test_create_known_food() {
 
 #[test]
 fn test_create_custom_food() {
+    // A custom Churro food item.
+    // On any friend fainting, add (1,2) to the owner of the churro.
     // https://superautopets.fandom.com/f/p/4400000000000047398
     let food = Food::new(
         &FoodName::Custom("Churro".to_string()),
@@ -44,7 +46,7 @@ fn test_create_custom_food() {
                 health: 2,
             })),
             None,
-            true,
+            false,
         )),
     );
     assert!(food.is_ok());
@@ -304,9 +306,7 @@ fn test_serialize_team() {
 
 #[test]
 fn blowfish_battle() {
-    let config = saptest::logging::build_log_config();
-    log4rs::init_config(config).unwrap();
-
+    // 99 blowfish battle and a hedgehog at the front.
     let mut blowfish = Pet::try_from(PetName::Blowfish).unwrap();
     blowfish.stats.health = 50;
     let hedgehog = Pet::try_from(PetName::Hedgehog).unwrap();
@@ -321,4 +321,35 @@ fn blowfish_battle() {
     while let TeamFightOutcome::None = outcome {
         outcome = team.fight(&mut enemy_team).unwrap();
     }
+}
+
+#[test]
+fn permanent_coconut() {
+    // This is an forum post on how to get permanent coconut.
+    // https://superautopets.fandom.com/f/p/4400000000000044254
+    // It relies on the order of pets on ending turn.
+    // The parrot must have higher attack than the leech in order for this to work.
+    let pets = [
+        Some(Pet::try_from(PetName::Seagull).unwrap()),
+        Some(Pet::try_from(PetName::Gorilla).unwrap()),
+        Some(
+            Pet::new(
+                PetName::Parrot,
+                None,
+                Some(Statistics::new(5, 3).unwrap()),
+                1,
+            )
+            .unwrap(),
+        ),
+        Some(Pet::try_from(PetName::Leech).unwrap()),
+    ];
+    let mut team = Team::new(&pets, 5).unwrap();
+    // Trigger end of turn.
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    let parrot = team.nth(2).unwrap();
+    assert_eq!(
+        parrot.borrow().item.as_ref().unwrap().name,
+        FoodName::Coconut
+    );
 }

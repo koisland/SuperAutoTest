@@ -11,7 +11,7 @@ use crate::{
         test_marmoset_team, test_mosq_team, test_moth_team, test_mouse_team, test_pig_team,
         test_pillbug_team,
     },
-    Condition, Entity, Food, Position, ShopItemViewer, ShopViewer, TeamShopping,
+    Entity, Food, ItemCondition, Position, ShopItemViewer, ShopViewer, TeamShopping,
 };
 
 #[test]
@@ -148,8 +148,8 @@ fn test_battle_frog_team() {
         }
     );
 
-    // Frilled dragon activates.
-    // Then frog activates swapping stats of cricket and frilled dragon.
+    // First, frog activates swapping stats of cricket and frilled dragon.
+    // Then, Frilled dragon activates.
     // Cricket with 2/2 dies spawning zombie cricket.
     team.fight(&mut enemy_team).unwrap();
 
@@ -157,8 +157,8 @@ fn test_battle_frog_team() {
     assert_eq!(
         frilled_dragon.unwrap().as_ref().borrow().stats,
         Statistics {
-            attack: 1,
-            health: 2
+            attack: 2,
+            health: 3
         }
     );
 }
@@ -274,7 +274,7 @@ fn test_shop_duck_team() {
     team.set_shop_seed(Some(11)).open_shop().unwrap();
 
     // Search pets.
-    let (pet_pos, item_type) = (Position::All(Condition::None), Entity::Pet);
+    let (pet_pos, item_type) = (Position::All(ItemCondition::None), Entity::Pet);
     let shop_pets_before = team
         .shop
         .get_shop_items_by_pos(&pet_pos, &item_type)

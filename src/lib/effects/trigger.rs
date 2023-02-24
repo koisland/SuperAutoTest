@@ -1,5 +1,5 @@
 use crate::effects::{
-    state::{Condition, Outcome, Position, Status, Target},
+    state::{ItemCondition, Outcome, Position, Status, Target},
     stats::Statistics,
 };
 
@@ -184,7 +184,7 @@ pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -196,7 +196,7 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -252,7 +252,7 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
 /// Trigger for when the any friendly [`Pet`](crate::pets::pet::Pet) is hurt.
 pub const TRIGGER_ANY_HURT: Outcome = Outcome {
     status: Status::Hurt,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -264,7 +264,7 @@ pub const TRIGGER_ANY_HURT: Outcome = Outcome {
 /// Trigger for when the any enemy [`Pet`](crate::pets::pet::Pet) is hurt.
 pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
     status: Status::Hurt,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -299,7 +299,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
 /// * Ignore self.
 pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     status: Status::BeforeAttack,
-    position: Position::Any(Condition::NotEqual(EqualityCondition::IsSelf)),
+    position: Position::Any(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -332,7 +332,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is summoned.
 pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -343,7 +343,7 @@ pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is summoned.
 pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -354,7 +354,7 @@ pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is pushed.
 pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -365,7 +365,7 @@ pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is pushed.
 pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -376,7 +376,7 @@ pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
 /// Trigger for when any friend [`Pet`](crate::pets::pet::Pet) levels up.
 pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     status: Status::Levelup,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,

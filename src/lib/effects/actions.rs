@@ -1,7 +1,7 @@
 use crate::{
     effects::{
         effect::Effect,
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
         stats::Statistics,
     },
     foods::{food::Food, names::FoodName},
@@ -61,6 +61,10 @@ pub enum GainType {
     SelfItem,
     /// Gain the default food item.
     DefaultItem(FoodName),
+    /// Query item.
+    QueryItem(String, Vec<String>),
+    /// Random shop item.
+    RandomShopItem,
     /// Gain the stored item.
     StoredItem(Box<Food>),
     /// Remove item.
@@ -76,13 +80,28 @@ pub enum RandomizeType {
     Stats,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions for [`LogicType`].
+pub enum ConditionType {
+    /// Pet condition.
+    Pet(Target, ItemCondition),
+    /// Team condition.
+    Team(TeamCondition),
+    /// Shop condition.
+    Shop(ShopCondition),
+}
+
 /// Conditional logic for [`Action::Conditional`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum LogicType {
-    /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
-    ForEach(Target, Condition),
-    /// If target `Pet` meets condition, do `Action`.
-    If(Target, Condition),
+    /// Do multiple `Action`s based on number of times [`ConditionType`] met.
+    ForEach(ConditionType),
+    /// If [`ConditionType`] met, do `Action`.
+    If(ConditionType),
+    /// If [`ConditionType`] not met, do `Action`.
+    IfNot(ConditionType),
+    /// If any [`ConditionType`].
+    IfAny(ConditionType),
 }
 
 /// Pet actions.
@@ -152,11 +171,6 @@ pub enum Action {
     Tapir,
     /// Hardcoded cockroach ability.
     Cockroach,
-    /// Hardcoded puppy and trex ability.
-    /// * This could be build using [`Action::Conditional`] at some point in the future.
-    AddIfGold(usize, Statistics),
-    /// Hardcoded snail ability.
-    Snail(Statistics),
     /// Gain one experience point.
     Experience,
     /// WIP: Endure damage so health doesn't go below one.

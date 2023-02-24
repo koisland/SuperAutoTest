@@ -8,7 +8,7 @@ use itertools::Itertools;
 use crate::{
     shop::store::ShopState,
     teams::{combat::TeamCombat, viewer::TeamViewer},
-    Condition, Entity, Pet, PetName, Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
+    Entity, ItemCondition, Pet, PetName, Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
 };
 
 use super::common::test_jellyfish_team;
@@ -55,8 +55,11 @@ fn test_team_shop_buy() {
 
     team.set_shop_seed(Some(1212)).open_shop().unwrap();
 
-    let (any_pos, pet_item_type, first_pos) =
-        (Position::Any(Condition::None), Entity::Pet, Position::First);
+    let (any_pos, pet_item_type, first_pos) = (
+        Position::Any(ItemCondition::None),
+        Entity::Pet,
+        Position::First,
+    );
     // Invalid position to buy.
     assert!(team
         .buy(&Position::Relative(-12), &pet_item_type, &first_pos)
@@ -156,14 +159,14 @@ fn test_team_shop_freeze() {
 
     let original_shop_foods = team
         .shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Food)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap()
         .into_iter()
         .cloned()
         .collect_vec();
     let original_shop_pets = team
         .shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap()
         .into_iter()
         .cloned()
@@ -174,9 +177,9 @@ fn test_team_shop_freeze() {
 
     team.open_shop()
         .unwrap()
-        .freeze_shop(Position::All(Condition::None), Entity::Pet)
+        .freeze_shop(Position::All(ItemCondition::None), Entity::Pet)
         .unwrap()
-        .freeze_shop(Position::All(Condition::None), Entity::Food)
+        .freeze_shop(Position::All(ItemCondition::None), Entity::Food)
         .unwrap()
         .close_shop()
         .unwrap();
@@ -186,11 +189,11 @@ fn test_team_shop_freeze() {
     // Everything frozen.
     let post_shop_foods = team
         .shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Food)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap();
     let post_shop_pets = team
         .shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
     assert!(post_shop_foods.into_iter().all(|food| food.is_frozen()));
     assert!(post_shop_pets.into_iter().all(|food| food.is_frozen()));
@@ -251,10 +254,14 @@ fn test_shop_move() {
 
     // Position::Any is okay.
     assert!(team
-        .move_pets(&Position::First, &Position::Any(Condition::None), true)
+        .move_pets(&Position::First, &Position::Any(ItemCondition::None), true)
         .is_ok());
     // Positions that require an opponent or target multiple pets are not supported.
     assert!(team
-        .move_pets(&Position::Opposite, &Position::All(Condition::None), true)
+        .move_pets(
+            &Position::Opposite,
+            &Position::All(ItemCondition::None),
+            true
+        )
         .is_err())
 }

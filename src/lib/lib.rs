@@ -149,7 +149,7 @@ pub mod teams;
 #[doc(inline)]
 pub use crate::effects::{
     effect::{Effect, Entity, EntityName},
-    state::{Condition, Position},
+    state::{ItemCondition, Position},
     stats::Statistics,
 };
 #[doc(inline)]

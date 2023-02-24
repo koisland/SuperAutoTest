@@ -11,7 +11,7 @@ use crate::{
     effects::{
         actions::{Action, StatChangeType},
         effect::EntityName,
-        state::{Condition, EqualityCondition, Status},
+        state::{EqualityCondition, ItemCondition, Status},
     },
     error::SAPTestError,
     Entity, Position, Shop,
@@ -19,16 +19,16 @@ use crate::{
 
 /// Enables viewing [`ShopItem`]s and their state.
 pub trait ShopViewer {
-    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Condition`](crate::Condition).
+    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`ItemCondition`](crate::ItemCondition).
     /// # Example
     /// ```
-    /// use saptest::{Shop, ShopViewer, ShopItemViewer, Entity, Condition, Position};
+    /// use saptest::{Shop, ShopViewer, ShopItemViewer, Entity, ItemCondition, Position};
     ///
-    /// let (cond, item_type) = (Condition::Healthiest, Entity::Pet);
+    /// let (cond, item_type) = (ItemCondition::Healthiest, Entity::Pet);
     /// let shop = Shop::new(1, Some(42)).unwrap();
     ///
     /// // Find highest health pet by searching through all pets manually.
-    /// let all_items = shop.get_shop_items_by_pos(&Position::All(Condition::None), &item_type).unwrap();
+    /// let all_items = shop.get_shop_items_by_pos(&Position::All(ItemCondition::None), &item_type).unwrap();
     /// let highest_health_pet = all_items.into_iter().max_by(|pet_1, pet_2| pet_1.health_stat().cmp(&pet_2.health_stat()));
     ///
     /// // Found directly using the condition.
@@ -38,16 +38,16 @@ pub trait ShopViewer {
     /// ```
     fn get_shop_items_by_cond(
         &self,
-        cond: &Condition,
+        cond: &ItemCondition,
         item_type: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError>;
 
     /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Position`](crate::Position).
     /// # Example
     /// ```
-    /// use saptest::{Shop, ShopViewer, Entity, Position, Condition};
+    /// use saptest::{Shop, ShopViewer, Entity, Position, ItemCondition};
     ///
-    /// let (pos, item_type) = (Position::All(Condition::None), Entity::Pet);
+    /// let (pos, item_type) = (Position::All(ItemCondition::None), Entity::Pet);
     /// let shop = Shop::new(1, Some(42)).unwrap();
     /// let found_items = shop.get_shop_items_by_pos(&pos, &item_type).unwrap();
     ///
@@ -116,7 +116,7 @@ impl ShopViewer for Shop {
 
     fn get_shop_items_by_cond(
         &self,
-        cond: &Condition,
+        cond: &ItemCondition,
         item_type: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError> {
         let mut found_items = Vec::new();
@@ -126,38 +126,38 @@ impl ShopViewer for Shop {
         };
 
         match cond {
-            Condition::None => found_items.extend(all_items),
-            Condition::Healthiest => {
+            ItemCondition::None => found_items.extend(all_items),
+            ItemCondition::Healthiest => {
                 if let Some(highest_tier_item) = all_items
                     .max_by(|item_1, item_2| item_1.health_stat().cmp(&item_2.health_stat()))
                 {
                     found_items.push(highest_tier_item)
                 }
             }
-            Condition::Illest => {
+            ItemCondition::Illest => {
                 if let Some(lowest_tier_item) = all_items
                     .min_by(|item_1, item_2| item_1.health_stat().cmp(&item_2.health_stat()))
                 {
                     found_items.push(lowest_tier_item)
                 }
             }
-            Condition::Strongest => {
+            ItemCondition::Strongest => {
                 if let Some(highest_tier_item) = all_items
                     .max_by(|item_1, item_2| item_1.attack_stat().cmp(&item_2.attack_stat()))
                 {
                     found_items.push(highest_tier_item)
                 }
             }
-            Condition::Weakest => {
+            ItemCondition::Weakest => {
                 if let Some(lowest_tier_item) = all_items
                     .min_by(|item_1, item_2| item_1.attack_stat().cmp(&item_2.attack_stat()))
                 {
                     found_items.push(lowest_tier_item)
                 }
             }
-            Condition::HighestTier | Condition::LowestTier => {
+            ItemCondition::HighestTier | ItemCondition::LowestTier => {
                 let all_tiers = all_items.clone().map(|item| item.tier());
-                let des_tier = if cond == &Condition::HighestTier {
+                let des_tier = if cond == &ItemCondition::HighestTier {
                     all_tiers.max()
                 } else {
                     all_tiers.min()
@@ -170,7 +170,7 @@ impl ShopViewer for Shop {
                     found_items.extend(found_tier_items)
                 }
             }
-            Condition::Equal(eq_cond) => match eq_cond {
+            ItemCondition::Equal(eq_cond) => match eq_cond {
                 EqualityCondition::Tier(tier) => {
                     found_items.extend(all_items.filter(|item| item.tier() == *tier))
                 }
@@ -192,17 +192,17 @@ impl ShopViewer for Shop {
                 }
                 _ => {
                     return Err(SAPTestError::InvalidShopAction {
-                        subject: "Invalid Equality Condition".to_string(),
+                        subject: "Invalid Equality ItemCondition".to_string(),
                         reason: format!("Cannot use {eq_cond:?} to search for items."),
                     })
                 }
             },
-            Condition::NotEqual(eq_cond) => {
+            ItemCondition::NotEqual(eq_cond) => {
                 let eq_items =
-                    self.get_shop_items_by_cond(&Condition::Equal(eq_cond.clone()), item_type)?;
+                    self.get_shop_items_by_cond(&ItemCondition::Equal(eq_cond.clone()), item_type)?;
                 found_items.extend(all_items.filter(|item| !eq_items.contains(item)))
             }
-            Condition::Multiple(conditions) => {
+            ItemCondition::Multiple(conditions) => {
                 let all_cond_items: Vec<&ShopItem> = conditions
                     .iter()
                     .filter_map(|condition| self.get_shop_items_by_cond(condition, item_type).ok())
@@ -210,7 +210,7 @@ impl ShopViewer for Shop {
                     .collect_vec();
                 found_items.extend(all_cond_items)
             }
-            Condition::MultipleAll(conditions) => {
+            ItemCondition::MultipleAll(conditions) => {
                 let mut matching_pets = vec![];
                 let all_matches = conditions
                     .iter()

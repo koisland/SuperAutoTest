@@ -3,7 +3,7 @@ use crate::{
     effects::{
         actions::{Action, RandomizeType, StatChangeType, SummonType},
         effect::{Effect, Entity},
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -241,7 +241,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
-                position: Position::Any(Condition::None),
+                position: Position::Any(ItemCondition::None),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 temp: record.end_of_battle,

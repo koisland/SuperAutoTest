@@ -5,7 +5,7 @@ use crate::{
         actions::{Action, StatChangeType},
         state::{EqualityCondition, Status},
     },
-    Condition, Entity, EntityName, Food, FoodName, Pet, PetName, Position, Shop, ShopItem,
+    Entity, EntityName, Food, FoodName, ItemCondition, Pet, PetName, Position, Shop, ShopItem,
     ShopItemViewer, ShopViewer, Statistics,
 };
 
@@ -170,10 +170,10 @@ fn test_view_item_attr() {
         .add_item(ShopItem::try_from(Food::try_from(FoodName::Chocolate).unwrap()).unwrap())
         .unwrap();
     let pets = shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
     let foods = shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Food)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap();
     let pizza = foods[0];
     let chili = foods[1];
@@ -244,10 +244,10 @@ fn test_view_by_cond() {
     */
     let shop = Shop::new(6, Some(122)).unwrap();
     let pets = shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
     let foods = shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Food)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap();
 
     let (parrot, horse, seal, gorilla, giraffe) = pets
@@ -260,56 +260,62 @@ fn test_view_by_cond() {
         .unwrap();
 
     let healthiest = shop
-        .get_shop_items_by_cond(&Condition::Healthiest, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::Healthiest, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(healthiest, gorilla);
 
     let illest = shop
-        .get_shop_items_by_cond(&Condition::Illest, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::Illest, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(illest, horse);
 
     let strongest = shop
-        .get_shop_items_by_cond(&Condition::Strongest, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::Strongest, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(strongest, gorilla);
 
     let weakest = shop
-        .get_shop_items_by_cond(&Condition::Weakest, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::Weakest, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(weakest, giraffe);
 
     let highest_tier = shop
-        .get_shop_items_by_cond(&Condition::HighestTier, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::HighestTier, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(highest_tier, gorilla);
 
     let lowest_tier = shop
-        .get_shop_items_by_cond(&Condition::LowestTier, &Entity::Pet)
+        .get_shop_items_by_cond(&ItemCondition::LowestTier, &Entity::Pet)
         .unwrap()[0];
     assert_eq!(lowest_tier, horse);
 
     let name_is_parrot = shop
         .get_shop_items_by_cond(
-            &Condition::Equal(EqualityCondition::Name(EntityName::Pet(PetName::Parrot))),
+            &ItemCondition::Equal(EqualityCondition::Name(EntityName::Pet(PetName::Parrot))),
             &Entity::Pet,
         )
         .unwrap()[0];
     assert_eq!(name_is_parrot, parrot);
 
     let tier_is_5 = shop
-        .get_shop_items_by_cond(&Condition::Equal(EqualityCondition::Tier(5)), &Entity::Pet)
+        .get_shop_items_by_cond(
+            &ItemCondition::Equal(EqualityCondition::Tier(5)),
+            &Entity::Pet,
+        )
         .unwrap()[0];
     assert_eq!(tier_is_5, seal);
 
     // Can't check if self.
     assert!(shop
-        .get_shop_items_by_cond(&Condition::Equal(EqualityCondition::IsSelf), &Entity::Pet)
+        .get_shop_items_by_cond(
+            &ItemCondition::Equal(EqualityCondition::IsSelf),
+            &Entity::Pet
+        )
         .is_err());
 
     let trigger_is_hurt = shop
         .get_shop_items_by_cond(
-            &Condition::Equal(EqualityCondition::Trigger(Status::Hurt)),
+            &ItemCondition::Equal(EqualityCondition::Trigger(Status::Hurt)),
             &Entity::Pet,
         )
         .unwrap()[0];
@@ -318,7 +324,7 @@ fn test_view_by_cond() {
     // All other pets aside gorilla are included.
     let trigger_is_not_hurt = shop
         .get_shop_items_by_cond(
-            &Condition::NotEqual(EqualityCondition::Trigger(Status::Hurt)),
+            &ItemCondition::NotEqual(EqualityCondition::Trigger(Status::Hurt)),
             &Entity::Pet,
         )
         .unwrap();
@@ -327,9 +333,9 @@ fn test_view_by_cond() {
     // Get multiple conditions.
     let tier_is_5_or_6 = shop
         .get_shop_items_by_cond(
-            &Condition::Multiple(vec![
-                Condition::Equal(EqualityCondition::Tier(5)),
-                Condition::Equal(EqualityCondition::Tier(6)),
+            &ItemCondition::Multiple(vec![
+                ItemCondition::Equal(EqualityCondition::Tier(5)),
+                ItemCondition::Equal(EqualityCondition::Tier(6)),
             ]),
             &Entity::Pet,
         )
@@ -343,9 +349,9 @@ fn test_view_by_cond() {
 
     let tier_is_not_5_and_trigger_is_hurt = shop
         .get_shop_items_by_cond(
-            &Condition::MultipleAll(vec![
-                Condition::NotEqual(EqualityCondition::Tier(5)),
-                Condition::Equal(EqualityCondition::Trigger(Status::Hurt)),
+            &ItemCondition::MultipleAll(vec![
+                ItemCondition::NotEqual(EqualityCondition::Tier(5)),
+                ItemCondition::Equal(EqualityCondition::Trigger(Status::Hurt)),
             ]),
             &Entity::Pet,
         )
@@ -358,13 +364,13 @@ fn test_view_by_cond() {
     // Also works for foods.
     // * All stat conditions will check effect stats. Chili has 5 attack dmg (3 more) compared to pizza.
     let strongest_food = shop
-        .get_shop_items_by_cond(&Condition::Strongest, &Entity::Food)
+        .get_shop_items_by_cond(&ItemCondition::Strongest, &Entity::Food)
         .unwrap()[0];
     assert_eq!(strongest_food, chili);
 
     let gives_2_2_stats = shop
         .get_shop_items_by_cond(
-            &Condition::Equal(EqualityCondition::Action(Box::new(Action::Add(
+            &ItemCondition::Equal(EqualityCondition::Action(Box::new(Action::Add(
                 StatChangeType::StaticValue(Statistics::new(2, 2).unwrap()),
             )))),
             &Entity::Food,
@@ -390,7 +396,7 @@ fn test_view_by_pos() {
     let shop = Shop::new(6, Some(122)).unwrap();
 
     let all_pets = shop
-        .get_shop_items_by_pos(&Position::All(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
     let (parrot, horse, seal, _, _) = all_pets
         .clone()
@@ -399,7 +405,7 @@ fn test_view_by_pos() {
         .unwrap();
 
     let any_pet = shop
-        .get_shop_items_by_pos(&Position::Any(Condition::None), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::Any(ItemCondition::None), &Entity::Pet)
         .unwrap();
     let first_pet = shop
         .get_shop_items_by_pos(&Position::First, &Entity::Pet)
@@ -411,7 +417,7 @@ fn test_view_by_pos() {
         .get_shop_items_by_pos(&Position::Range(0..=2), &Entity::Pet)
         .unwrap();
     let n_num_pets = shop
-        .get_shop_items_by_pos(&Position::N(Condition::None, 3, true), &Entity::Pet)
+        .get_shop_items_by_pos(&Position::N(ItemCondition::None, 3, true), &Entity::Pet)
         .unwrap();
 
     let rel_idx_food = shop

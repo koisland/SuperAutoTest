@@ -8,7 +8,10 @@ use std::{
 
 use crate::{
     effects::{effect::EntityName, stats::Statistics},
+    error::SAPTestError,
     pets::pet::Pet,
+    shop::store::ShopState,
+    FoodName,
 };
 
 use super::actions::Action;
@@ -32,25 +35,70 @@ pub enum EqualityCondition {
     Frozen,
 }
 
-/// Conditions to select [`Pet`]s by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum Condition {
-    /// Choose the healthiest (highest health) pet.
+/// Conditions a `Team` is in.
+pub enum TeamCondition {
+    /// Previous team fight was win.
+    PreviousWon,
+    /// Previous team fight was draw.
+    PreviousDraw,
+    /// Previous team fight was loss.
+    PreviousLoss,
+    /// Has this many open slots.
+    OpenSpaceEqual(usize),
+    /// Has this many pets on team.
+    NumberPetsEqual(usize),
+    /// Has this many or more pets on team.
+    NumberPetsGreaterEqual(usize),
+}
+
+impl TryFrom<&TeamCondition> for Status {
+    type Error = SAPTestError;
+
+    fn try_from(value: &TeamCondition) -> Result<Self, Self::Error> {
+        match value {
+            TeamCondition::PreviousWon => Ok(Status::WinBattle),
+            TeamCondition::PreviousDraw => Ok(Status::DrawBattle),
+            TeamCondition::PreviousLoss => Ok(Status::LoseBattle),
+            _ => Err(SAPTestError::InvalidTeamAction {
+                subject: "Convert TeamCondition Failure".to_string(),
+                reason: "Team Condition must match a possible battle status (ex. Win or Lose)"
+                    .to_string(),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions a `Shop` is in.
+pub enum ShopCondition {
+    /// Shop is in this state.
+    InState(ShopState),
+    /// Gold is equal to this amount.
+    GoldEqual(usize),
+    /// Gold is greater than or equal to this amount.
+    GoldGreaterEqual(usize),
+}
+
+/// Conditions to select [`Pet`]s or [`ShopItem`](crate::shop::store::ShopItem) by.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum ItemCondition {
+    /// Is the healthiest (highest health) pet.
     Healthiest,
-    /// Choose the illest (lowest health) pet.
+    /// Is the illest (lowest health) pet.
     Illest,
-    /// Choose the strongest (highest attack) pet.
+    /// Is the strongest (highest attack) pet.
     Strongest,
-    /// Choose the weakest (lowest attack) pet.
+    /// Is the weakest (lowest attack) pet.
     Weakest,
-    /// Highest tier pet.
+    /// Is highest tier pet.
     HighestTier,
-    /// Lowest tier pet.
+    /// Is lowest tier pet.
     LowestTier,
     /// Multiple conditions.
-    Multiple(Vec<Condition>),
+    Multiple(Vec<ItemCondition>),
     /// Multiple conditions. All must be met to be included.
-    MultipleAll(Vec<Condition>),
+    MultipleAll(Vec<ItemCondition>),
     /// Has the quality.
     Equal(EqualityCondition),
     /// Doesn't have this quality.
@@ -62,13 +110,13 @@ pub enum Condition {
 /// Positions to select pets by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Position {
-    /// Some number of [`Pet`]s based on a given [`Condition`].
+    /// Some number of [`Pet`]s based on a given [`ItemCondition`].
     /// * 3rd argument will shuffle any found pets.
-    N(Condition, usize, bool),
-    /// Any [`Pet`] that matches a given [`Condition`].
-    Any(Condition),
-    /// All [`Pet`]s that match a given [`Condition`].
-    All(Condition),
+    N(ItemCondition, usize, bool),
+    /// Any [`Pet`] that matches a given [`ItemCondition`].
+    Any(ItemCondition),
+    /// All [`Pet`]s that match a given [`ItemCondition`].
+    All(ItemCondition),
     /// Position of self.
     OnSelf,
     /// Pet affected in [`Outcome`] trigger.
@@ -269,6 +317,8 @@ pub enum Status {
     BuyFood,
     /// Food eaten.
     AteFood,
+    /// Specific food eaten.
+    AteSpecificFood(FoodName),
     /// Pet bought.
     BuyPet,
     /// Pet sold.

@@ -2,7 +2,7 @@ use crate::{
     effects::{
         actions::{Action, StatChangeType},
         effect::Entity,
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -67,7 +67,7 @@ fn test_create_def_pet() {
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Any(Condition::None),
+                position: Position::Any(ItemCondition::None),
                 action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
@@ -90,7 +90,7 @@ fn test_get_effect() {
             entity: Entity::Pet,
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
-            position: Position::Any(Condition::None),
+            position: Position::Any(ItemCondition::None),
             action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
             uses: Some(1),
             temp: false
@@ -176,7 +176,7 @@ fn test_create_pet() {
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Any(Condition::None),
+                position: Position::Any(ItemCondition::None),
                 action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false

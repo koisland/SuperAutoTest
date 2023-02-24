@@ -3,6 +3,7 @@ use std::{cell::RefCell, fmt::Display, fmt::Write, ops::Range, rc::Rc};
 use itertools::Itertools;
 use rand::prelude::*;
 use rand_chacha::ChaCha12Rng;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     db::{pack::Pack, utils::setup_param_query},
@@ -11,7 +12,7 @@ use crate::{
     foods::food::Food,
     pets::{names::PetName, pet::Pet},
     shop::viewer::ShopViewer,
-    Position, ShopItemViewer, SAPDB,
+    Position, SAPDB,
 };
 
 /// Sloth chance.
@@ -24,7 +25,7 @@ pub(crate) const MIN_SHOP_TIER: usize = 1;
 pub(crate) const MAX_SHOP_TIER: usize = 6;
 
 /// State of shop.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ShopState {
     /// Open shop.
     Open,
@@ -60,6 +61,8 @@ pub struct ShopItem {
     pub(crate) state: ItemState,
     /// Current gold cost of item.
     pub(crate) cost: usize,
+    /// Item position.
+    pub(crate) pos: Option<usize>,
 }
 
 impl ShopItem {
@@ -87,6 +90,7 @@ impl From<Food> for ShopItem {
             item: ItemSlot::Food(Rc::new(RefCell::new(value))),
             state: ItemState::Normal,
             cost,
+            pos: None,
         }
     }
 }
@@ -98,6 +102,7 @@ impl From<Pet> for ShopItem {
             item: ItemSlot::Pet(Rc::new(RefCell::new(value))),
             state: ItemState::Normal,
             cost,
+            pos: None,
         }
     }
 }
@@ -222,16 +227,6 @@ impl Shop {
         Ok(self)
     }
 
-    /// Resets costs if rc items in shop item slots modified.
-    pub(crate) fn refresh_costs(&mut self) {
-        for item in self.foods.iter_mut() {
-            item.cost = item.cost()
-        }
-        for item in self.pets.iter_mut() {
-            item.cost = item.cost()
-        }
-    }
-
     /// Add a [`ShopItem`] to the shop.
     /// * Foods added over the limit will remove pets on the **rightmost side**.
     /// * Pets can be added over the limit if the food limit allows the space.
@@ -283,6 +278,9 @@ impl Shop {
                         reason: format!("Insufficient space to add {item}."),
                     });
                 }
+                for (i, item) in self.pets.iter_mut().enumerate() {
+                    item.pos = Some(i)
+                }
             }
             ItemSlot::Food(_) => {
                 // Need slots available so we remove the rightmost pet.
@@ -297,6 +295,9 @@ impl Shop {
                         subject: "Max Shop Foods".to_string(),
                         reason: format!("Insufficient space to add {item}."),
                     });
+                }
+                for (i, item) in self.foods.iter_mut().enumerate() {
+                    item.pos = Some(i)
                 }
             }
         };
@@ -500,7 +501,7 @@ impl Shop {
     }
 
     /// Build shop query.
-    fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> (String, Vec<String>) {
+    pub(crate) fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> (String, Vec<String>) {
         let tiers = tiers.into_iter().map(|tier| tier.to_string()).collect_vec();
         let params: [Vec<String>; 3] = [
             tiers,
@@ -549,7 +550,7 @@ impl Shop {
         } else {
             self.available_pet_slots()
         };
-        for _ in 0..n_slots {
+        for i in 0..n_slots {
             let (cost, mut pet) = if rng.gen_bool(SLOTH_CHANCE) {
                 (3, Pet::try_from(PetName::Sloth)?)
             } else {
@@ -569,6 +570,7 @@ impl Shop {
                 item: ItemSlot::Pet(Rc::new(RefCell::new(pet))),
                 state: ItemState::Normal,
                 cost,
+                pos: Some(i),
             });
         }
 
@@ -589,7 +591,7 @@ impl Shop {
         } else {
             self.available_food_slots()
         };
-        for _ in 0..n_slots {
+        for i in 0..n_slots {
             let food_record =
                 possible_foods
                     .choose(&mut rng)
@@ -604,6 +606,7 @@ impl Shop {
                 item: ItemSlot::Food(Rc::new(RefCell::new(food))),
                 state: ItemState::Normal,
                 cost: food_record.cost,
+                pos: Some(i),
             });
         }
 

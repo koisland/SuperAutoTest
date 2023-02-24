@@ -2,7 +2,7 @@ use crate::{
     effects::state::{EqualityCondition, Outcome, Target},
     error::SAPTestError,
     shop::store::ItemSlot,
-    Condition, Effect, Entity, EntityName, FoodName, Pet, Position, ShopViewer, Team,
+    Effect, Entity, EntityName, FoodName, ItemCondition, Pet, Position, ShopViewer, Team,
 };
 use itertools::Itertools;
 use rand::{
@@ -123,17 +123,17 @@ pub trait TeamViewer {
     where
         T: IntoIterator<Item = Rc<RefCell<Pet>>>;
 
-    /// Get pets by a given [`Condition`].
+    /// Get pets by a given [`ItemCondition`].
     /// * Will [`panic`] if using:
-    ///     * A [`Condition::Equal`] or [`Condition::NotEqual`] specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
+    ///     * A [`ItemCondition::Equal`] or [`ItemCondition::NotEqual`] specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
     ///         * Use the [`ShopViewer::get_shop_items_by_cond`] method instead.
-    ///     * Nested [`Condition::Multiple`] or [`Condition::MultipleAll`].
+    ///     * Nested [`ItemCondition::Multiple`] or [`ItemCondition::MultipleAll`].
     /// # Examples
     /// ---
     /// Pets with a [`StartOfBattle`](crate::effects::state::Status::StartOfBattle) [`Effect`](crate::Effect) trigger.
     /// ```
     /// use saptest::{
-    ///     Pet, PetName, Team, TeamViewer, Condition,
+    ///     Pet, PetName, Team, TeamViewer, ItemCondition,
     ///     effects::state::{Status, EqualityCondition}
     /// };
     ///
@@ -145,7 +145,7 @@ pub trait TeamViewer {
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Get pets with a start of battle effect trigger.
     /// let matching_pets = team.get_pets_by_cond(
-    ///     &Condition::Equal(EqualityCondition::Trigger(Status::StartOfBattle))
+    ///     &ItemCondition::Equal(EqualityCondition::Trigger(Status::StartOfBattle))
     /// );
     /// assert_eq!(
     ///     matching_pets.len(),
@@ -158,7 +158,7 @@ pub trait TeamViewer {
     /// use saptest::{
     ///     Pet, PetName, Food, FoodName,
     ///     Team, TeamViewer,
-    ///     Condition, EntityName, Position,
+    ///     ItemCondition, EntityName, Position,
     ///     effects::state::{Status, EqualityCondition}
     /// };
     /// let pets = [
@@ -169,11 +169,11 @@ pub trait TeamViewer {
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Give two random pets honey.
     /// team.set_item(
-    ///     Position::N(Condition::None, 2, true),
+    ///     Position::N(ItemCondition::None, 2, true),
     ///     Some(Food::try_from(FoodName::Honey).unwrap())
     /// );
     /// let matching_pets = team.get_pets_by_cond(
-    ///     &Condition::Equal(
+    ///     &ItemCondition::Equal(
     ///         EqualityCondition::Name(
     ///             EntityName::Food(FoodName::Honey)
     ///         )
@@ -181,7 +181,7 @@ pub trait TeamViewer {
     /// );
     /// assert_eq!(matching_pets.len(), 2);
     /// ```
-    fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>>;
+    fn get_pets_by_cond(&self, cond: &ItemCondition) -> Vec<Rc<RefCell<Pet>>>;
 
     /// Get all pet effects on the team.
     /// # Examples
@@ -244,20 +244,20 @@ pub trait TeamViewer {
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
     /// * [`TargetPets`] is a tuple with the belonging Target group ([`Target::Shop`], [`Target::Friend`], [`Target::Enemy`]) and the pets found.
-    /// * May [`panic`] under certain [`Condition`]s.
+    /// * May [`panic`] under certain [`ItemCondition`]s.
     ///     * See [`TeamViewer::get_pets_by_cond`].
     /// # Example
     /// ```rust
     /// use saptest::{
     ///     Team, TeamViewer, Pet, PetName,
-    ///     Position, Condition, effects::state::Target
+    ///     Position, ItemCondition, effects::state::Target
     /// };
     /// let team = Team::new(
     ///     &[Some(Pet::try_from(PetName::Ant).unwrap()), Some(Pet::try_from(PetName::Dog).unwrap())],
     ///     5
     /// ).unwrap();
     /// // Find all pets.
-    /// let found_pets = team.get_pets_by_pos(None, &Target::Friend, &Position::All(Condition::None), None, None);
+    /// let found_pets = team.get_pets_by_pos(None, &Target::Friend, &Position::All(ItemCondition::None), None, None);
     /// assert!(
     ///     found_pets.is_ok() &&
     ///     found_pets.unwrap().len() == 2
@@ -271,9 +271,36 @@ pub trait TeamViewer {
         trigger: Option<&Outcome>,
         opponent: Option<&Team>,
     ) -> Result<TargetPets, SAPTestError>;
+
+    /// Get the number of open [`Pet`] slots on the [`Team`].
+    /// # Example
+    /// ```
+    /// use saptest::{Team, TeamViewer};
+    ///
+    /// let team = Team::default();
+    /// assert_eq!(team.open_slots(), 5);
+    /// ```
+    fn open_slots(&self) -> usize;
+
+    /// Get the number of filled [`Pet`] slots on the [`Team`].
+    /// # Example
+    /// ```
+    /// use saptest::{Team, TeamViewer};
+    ///
+    /// let team = Team::default();
+    /// assert_eq!(team.filled_slots(), 0);
+    /// ```
+    fn filled_slots(&self) -> usize;
 }
 
 impl TeamViewer for Team {
+    fn filled_slots(&self) -> usize {
+        self.friends.iter().flatten().count()
+    }
+    fn open_slots(&self) -> usize {
+        self.max_size - self.filled_slots()
+    }
+
     fn get_effects(&self) -> Vec<Vec<Effect>> {
         self.friends
             .iter()
@@ -369,17 +396,17 @@ impl TeamViewer for Team {
                         .any(|effect| effect.action == **action)
                 })
                 .collect_vec(),
-            _ => unimplemented!("Condition not implemented for Team pets."),
+            _ => unimplemented!("ItemCondition not implemented for Team pets."),
         }
     }
 
-    fn get_pets_by_cond(&self, cond: &Condition) -> Vec<Rc<RefCell<Pet>>> {
-        if let Condition::Multiple(conditions) = cond {
+    fn get_pets_by_cond(&self, cond: &ItemCondition) -> Vec<Rc<RefCell<Pet>>> {
+        if let ItemCondition::Multiple(conditions) = cond {
             conditions
                 .iter()
                 .flat_map(|condition| self.get_pets_by_cond(condition))
                 .collect()
-        } else if let Condition::MultipleAll(conditions) = cond {
+        } else if let ItemCondition::MultipleAll(conditions) = cond {
             let mut matching_pets = vec![];
             let all_matches = conditions
                 .iter()
@@ -401,7 +428,7 @@ impl TeamViewer for Team {
         } else {
             let all_pets = self.all().into_iter();
             match cond {
-                Condition::Healthiest => all_pets
+                ItemCondition::Healthiest => all_pets
                     .max_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -410,7 +437,7 @@ impl TeamViewer for Team {
                             .cmp(&pet_2.borrow().stats.health)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Illest => all_pets
+                ItemCondition::Illest => all_pets
                     .min_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -419,7 +446,7 @@ impl TeamViewer for Team {
                             .cmp(&pet_2.borrow().stats.health)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Strongest => all_pets
+                ItemCondition::Strongest => all_pets
                     .max_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -428,7 +455,7 @@ impl TeamViewer for Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Weakest => all_pets
+                ItemCondition::Weakest => all_pets
                     .min_by(|pet_1, pet_2| {
                         pet_1
                             .borrow()
@@ -437,8 +464,8 @@ impl TeamViewer for Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                Condition::Equal(eq_cond) => self.check_eq_cond(all_pets, eq_cond),
-                Condition::NotEqual(eq_cond) => {
+                ItemCondition::Equal(eq_cond) => self.check_eq_cond(all_pets, eq_cond),
+                ItemCondition::NotEqual(eq_cond) => {
                     let eqiv_pets = self.check_eq_cond(all_pets.clone(), eq_cond);
                     all_pets
                         .into_iter()
@@ -446,14 +473,14 @@ impl TeamViewer for Team {
                         .collect_vec()
                 }
                 // Allow all if condition is None.
-                Condition::None => self.all(),
-                Condition::HighestTier => all_pets
+                ItemCondition::None => self.all(),
+                ItemCondition::HighestTier => all_pets
                     .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                Condition::LowestTier => all_pets
+                ItemCondition::LowestTier => all_pets
                     .min_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
-                _ => unimplemented!("Condition not implemented for Team pets or attempted to nest multiple Condition::Multiple*s."),
+                _ => unimplemented!("ItemCondition not implemented for Team pets or attempted to nest multiple ItemCondition::Multiple*s."),
             }
         }
     }
@@ -578,7 +605,7 @@ impl TeamViewer for Team {
             (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {
                 if let Some(Some(effect_pet_idx)) = &curr_pet.as_ref().map(|pet| pet.borrow().pos) {
                     let (target_team, adj_idx) = team
-                        ._cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
+                        .cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
                         .unwrap();
                     // Pet can only be on same team.
                     if target_team == Target::Friend {
@@ -591,7 +618,7 @@ impl TeamViewer for Team {
             (Target::Either, Position::Relative(rel_pos)) => {
                 if let Some(Some(effect_pet_idx)) = &curr_pet.as_ref().map(|pet| pet.borrow().pos) {
                     let (target_team, adj_idx) = self
-                        ._cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
+                        .cvt_rel_idx_to_adj_idx(*effect_pet_idx, *rel_pos)
                         .unwrap();
                     let team = if target_team == Target::Friend {
                         self
@@ -609,7 +636,7 @@ impl TeamViewer for Team {
                         curr_pet.as_ref().map(|pet| pet.borrow().pos)
                     {
                         let (target_team, adj_idx) =
-                            team._cvt_rel_idx_to_adj_idx(effect_pet_idx, idx).unwrap();
+                            team.cvt_rel_idx_to_adj_idx(effect_pet_idx, idx).unwrap();
                         if target_team == Target::Friend {
                             if let Some(rel_pet) = team.nth(adj_idx) {
                                 pets.push((target_team, rel_pet))
@@ -624,7 +651,7 @@ impl TeamViewer for Team {
                         &curr_pet.as_ref().map(|pet| pet.borrow().pos)
                     {
                         let (target_team, adj_idx) =
-                            self._cvt_rel_idx_to_adj_idx(*effect_pet_idx, idx).unwrap();
+                            self.cvt_rel_idx_to_adj_idx(*effect_pet_idx, idx).unwrap();
                         let team = if target_team == Target::Friend {
                             self
                         } else {

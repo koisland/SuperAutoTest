@@ -72,7 +72,7 @@ pub trait TeamShopping {
     /// ---
     /// Buying a random food.
     /// ```
-    /// use saptest::{Pet, PetName, Team, TeamShopping, Position, Entity, Condition};
+    /// use saptest::{Pet, PetName, Team, TeamShopping, Position, Entity, ItemCondition};
     ///
     /// let mut team = Team::new(
     ///     &[Some(Pet::try_from(PetName::Ant).unwrap())],
@@ -82,7 +82,7 @@ pub trait TeamShopping {
     ///     .open_shop().unwrap();
     /// // Buy a random food in the shop and put it on/in front of the 1st pet slot on the team.
     /// let first_random_item_purchase = team.buy(
-    ///     &Position::Any(Condition::None),
+    ///     &Position::Any(ItemCondition::None),
     ///     &Entity::Food,
     ///     &Position::First
     /// );
@@ -437,10 +437,13 @@ impl TeamShoppingHelpers for Team {
             // Create trigger if food eaten.
             let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
             let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
+            let mut trigger_self_food_name = trigger_self_food_ate_name(food.borrow().name.clone());
             trigger_self_food.set_affected(target_pet);
             trigger_any_food.set_affected(target_pet);
+            trigger_self_food_name.set_affected(target_pet);
 
-            self.triggers.extend([trigger_self_food, trigger_any_food]);
+            self.triggers
+                .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
         } else if food.borrow().name == FoodName::CannedFood {
             // Hard-coded can ability.
             let can_stats = Statistics {
@@ -455,8 +458,12 @@ impl TeamShoppingHelpers for Team {
             self.shop.perm_stats += can_stats;
         } else {
             let mut food_ability = food.borrow().ability.clone();
-            let target_pos =
-                Position::Multiple(vec![food_ability.position.clone(); food.borrow().n_targets]);
+            // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
+            let target_pos = if food.borrow().n_targets == 1 {
+                to_pos.clone()
+            } else {
+                Position::Multiple(vec![food_ability.position.clone(); food.borrow().n_targets])
+            };
             let affected_pets =
                 self.get_pets_by_pos(self.first(), &food_ability.target, &target_pos, None, None)?;
             // For each pet found by the effect of food bought, apply its effect.
@@ -466,10 +473,14 @@ impl TeamShoppingHelpers for Team {
                 // Pet triggers for eating food.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
+                let mut trigger_self_food_name =
+                    trigger_self_food_ate_name(food.borrow().name.clone());
                 trigger_self_food.set_affected(&pet);
                 trigger_any_food.set_affected(&pet);
+                trigger_self_food_name.set_affected(&pet);
 
-                self.triggers.extend([trigger_self_food, trigger_any_food]);
+                self.triggers
+                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
 
                 self.apply_single_effect(pet, &food_ability, None)?;
             }
@@ -488,24 +499,30 @@ impl TeamShoppingHelpers for Team {
         let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.borrow().name == pet.borrow().name {
-                self.merge_behavior(&pet, affected_pet)?;
+                self.merge_behavior(affected_pet, &pet)?;
                 Some(affected_pet.clone())
             } else {
-                // Otherwise, add pet to position.
+                // Pet target exists. If position is last, make sure put after pet.
+                // Otherwise, add pet in front of position.
                 let adj_idx = if let Position::Last = to_pos { 1 } else { 0 };
                 let pos = affected_pet.borrow().pos.unwrap_or(0) + adj_idx;
                 self.add_pet(pet.borrow().clone(), pos, None)?;
                 self.nth(pos)
             }
         } else {
-            // No pets at all, check if specific position.
-            self.add_pet(pet.borrow().clone(), 0, None)?;
-            self.nth(0)
+            // No pets at all, summon at specific position, defaulting to 0 if not specific.
+            let idx = self.cvt_pos_to_idx(to_pos).unwrap_or(0);
+            self.add_pet(pet.borrow().clone(), idx, None)?;
+            self.nth(idx)
         };
 
         if let Some(pet) = purchased_pet {
             let mut buy_trigger = TRIGGER_SELF_PET_BOUGHT;
+            let mut buy_any_trigger = TRIGGER_ANY_PET_BOUGHT;
             buy_trigger.set_affected(&pet);
+            buy_any_trigger.set_affected(&pet);
+            self.triggers.extend([buy_trigger, buy_any_trigger]);
+
             // For each effect a pet has create a buy trigger to show that a pet with this status purchased.
             // Needed for salamander.
             for effect in pet.borrow().effect.iter() {
@@ -514,8 +531,6 @@ impl TeamShoppingHelpers for Team {
                 buy_any_trigger.set_affected(&pet);
                 self.triggers.push_back(buy_any_trigger)
             }
-
-            self.triggers.push_back(buy_trigger)
         }
 
         Ok(())
@@ -552,9 +567,18 @@ impl TeamShopping for Team {
             .collect_vec();
 
         if selected_items.is_empty() {
+            let items_empty = match item_type {
+                Entity::Pet => self.shop.pets.is_empty(),
+                Entity::Food => self.shop.foods.is_empty(),
+            };
+            let err_msg = if items_empty {
+                format!("No {item_type:?} items left to purchase.")
+            } else {
+                format!("No {item_type:?} items selected with {from:?} position.")
+            };
             return Err(SAPTestError::InvalidShopAction {
-                subject: "No Items Selected".to_string(),
-                reason: format!("No {item_type:?} items selected with {from:?} position."),
+                subject: "No Items Selectable".to_string(),
+                reason: err_msg,
             });
         }
 
@@ -758,6 +782,7 @@ impl TeamShopping for Team {
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
         self.trigger_effects(None)?;
+        self.clear_team(ClearOption::KeepSlots);
 
         Ok(self)
     }
@@ -768,6 +793,15 @@ impl TeamShopping for Team {
                 subject: "Closed Shop (Close)".to_string(),
                 reason: "Cannot close a closed shop.".to_string(),
             });
+        }
+
+        // Reset effects.
+        for friend in self.friends.iter().flatten() {
+            let mut reset_effect = friend.borrow().get_effect(friend.borrow().lvl)?;
+            for effect in reset_effect.iter_mut() {
+                effect.assign_owner(Some(friend));
+            }
+            friend.borrow_mut().effect = reset_effect;
         }
 
         // Trigger end of turn.

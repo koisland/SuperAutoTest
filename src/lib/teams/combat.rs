@@ -305,6 +305,7 @@ impl TeamCombat for Team {
 
     fn clear_team(&mut self, clear_opt: ClearOption) -> &mut Self {
         let mut new_idx = 0;
+        let keep_slot = (&clear_opt).into();
         self.friends.retain(|slot| {
             if let Some(pet) = slot {
                 // Check if not dead.
@@ -319,7 +320,11 @@ impl TeamCombat for Team {
                     false
                 }
             } else {
-                (&clear_opt).into()
+                // If slot kept, must maintain correct index with slot.
+                if keep_slot {
+                    new_idx += 1;
+                }
+                keep_slot
             }
         });
         self
