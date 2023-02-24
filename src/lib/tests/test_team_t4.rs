@@ -21,8 +21,8 @@ use crate::{
         test_buffalo_team, test_caterpillar_team, test_crow_team, test_deer_team,
         test_doberman_highest_tier_team, test_doberman_team, test_donkey_team, test_dragonfly_team,
         test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team, test_jerboa_team,
-        test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team, test_ox_team,
-        test_parrot_team, test_pelican_team, test_penguin_team, test_platypus_team,
+        test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team, test_orangutan_team,
+        test_ox_team, test_parrot_team, test_pelican_team, test_penguin_team, test_platypus_team,
         test_porcupine_team, test_praying_mantis_team, test_rooster_team, test_skunk_team,
         test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team, test_worm_team,
     },
@@ -480,6 +480,21 @@ fn test_battle_caterpillar_team() {
     let butterfly = team.first().unwrap();
     assert_eq!(butterfly.borrow().stats, Statistics::new(50, 46).unwrap());
     assert_eq!(butterfly.borrow().name, PetName::Butterfly);
+}
+
+#[test]
+fn test_shop_caterpillar_team() {
+    let mut team = Team::new(&[Some(Pet::try_from(PetName::Caterpillar).unwrap())], 5).unwrap();
+
+    let caterpillar = team.first().unwrap();
+    // Starts with lvl 1 and no exp.
+    assert!(caterpillar.borrow().exp == 0 && caterpillar.borrow().lvl == 1);
+
+    team.open_shop().unwrap();
+
+    let caterpillar = team.first().unwrap();
+    // Gains 1 exp on start of turn.
+    assert!(caterpillar.borrow().exp == 1 && caterpillar.borrow().lvl == 1)
 }
 
 #[test]
@@ -1069,5 +1084,30 @@ fn test_shop_praying_mantis_team() {
     assert_eq!(
         team.first().unwrap().borrow().stats,
         mantis_start_stats + MANTIS_BUFF
+    );
+}
+
+#[test]
+fn test_shop_orangutan_team() {
+    let mut team = test_orangutan_team();
+
+    team.open_shop().unwrap();
+
+    // Lowest health pet is ant.
+    let found_pets = team.get_pets_by_cond(&ItemCondition::Illest);
+    let lowest_health_pet = found_pets.first().unwrap();
+    assert_eq!(lowest_health_pet.borrow().name, PetName::Ant);
+
+    let ant_start_stats = lowest_health_pet.borrow().stats;
+    const ORANGUTAN_BUFF: Statistics = Statistics {
+        attack: 0,
+        health: 4,
+    };
+
+    team.close_shop().unwrap();
+    // Ant gains buff because lowest health.
+    assert_eq!(
+        lowest_health_pet.borrow().stats,
+        ant_start_stats + ORANGUTAN_BUFF
     );
 }

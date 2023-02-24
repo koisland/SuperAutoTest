@@ -963,6 +963,16 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     },
                 ]
             }
+            PetName::Orangutan => vec![Effect {
+                owner: None,
+                entity: Entity::Pet,
+                temp: record.temp_effect,
+                trigger: TRIGGER_END_TURN,
+                target: Target::Friend,
+                position: Position::Any(ItemCondition::Illest),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: Some(record.n_triggers),
+            }],
             PetName::Platypus => {
                 let duck = Pet::new(PetName::Duck, None, None, record.lvl)?;
                 let beaver = Pet::new(PetName::Beaver, None, None, record.lvl)?;

@@ -1287,6 +1287,18 @@ pub fn test_worm_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Worm).unwrap())], 5).unwrap()
 }
 
+pub fn test_orangutan_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Worm).unwrap()),
+            Some(Pet::try_from(PetName::Orangutan).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
 pub fn test_dragonfly_team() -> Team {
     let lvl_3_duck = Pet::new(PetName::Duck, None, None, 3).unwrap();
     Team::new(
