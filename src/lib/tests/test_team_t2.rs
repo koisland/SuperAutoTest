@@ -4,11 +4,7 @@ use crate::{
         trigger::TRIGGER_START_BATTLE,
     },
     pets::names::PetName,
-    teams::{
-        combat::{ClearOption, TeamCombat},
-        team::TeamFightOutcome,
-        viewer::TeamViewer,
-    },
+    teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
         test_dove_team, test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
@@ -336,7 +332,7 @@ fn test_battle_panda_team() {
         team.first().unwrap().borrow().stats,
         original_stats + add_stats
     );
-    team.clear_team(ClearOption::RemoveSlots);
+    team.clear_team();
 
     // Panda died.
     let first_fainted_pet = team.fainted[0].as_ref().unwrap();

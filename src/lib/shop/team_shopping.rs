@@ -19,11 +19,11 @@ use crate::{
         viewer::ShopViewer,
     },
     teams::{
-        combat::{ClearOption, TeamCombat},
+        combat::TeamCombat,
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
-    Food, FoodName, Pet, Position, Shop, Statistics, Team,
+    Food, FoodName, ItemCondition, Pet, Position, Shop, Statistics, Team,
 };
 
 use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
@@ -617,7 +617,7 @@ impl TeamShopping for Team {
         }
 
         self.trigger_effects(None)?;
-        self.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
         Ok(self)
     }
 
@@ -637,19 +637,33 @@ impl TeamShopping for Team {
                 self.shop.coins += pet.borrow().lvl;
 
                 let mut sell_trigger = TRIGGER_SELF_PET_SOLD;
-                let mut sell_any_trigger = TRIGGER_ANY_PET_SOLD;
                 sell_trigger.set_affected(&pet);
+                let mut sell_any_trigger = TRIGGER_ANY_PET_SOLD;
                 sell_any_trigger.set_affected(&pet);
 
                 // First sell trigger must be self trigger to remove it from friends list.
                 // Otherwise, will remain in friends as target for effects.
-                self.triggers.extend([sell_trigger, sell_any_trigger]);
+                self.triggers.push_back(sell_trigger);
 
+                // Check for an any trigger that shouldn't activate.
+                let mut any_trigger_on_self = false;
                 for effect in pet.borrow().effect.iter() {
                     let mut sell_w_status_trigger =
                         trigger_any_pet_sold_status(effect.trigger.status.clone());
                     sell_w_status_trigger.set_affected(&pet);
-                    self.triggers.push_back(sell_w_status_trigger)
+                    self.triggers.push_back(sell_w_status_trigger);
+
+                    // If effect triggers on any pet sold, and target position is any pet. Ignore any trigger.
+                    // Ex. Shrimp
+                    if effect.trigger == sell_any_trigger
+                        && effect.position == Position::Any(ItemCondition::None)
+                    {
+                        any_trigger_on_self = true
+                    }
+                }
+
+                if !any_trigger_on_self {
+                    self.triggers.push_back(sell_any_trigger);
                 }
             }
         } else {
@@ -661,7 +675,7 @@ impl TeamShopping for Team {
 
         // Trigger effects here.
         self.trigger_effects(None)?;
-        self.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
 
         Ok(self)
     }
@@ -782,7 +796,7 @@ impl TeamShopping for Team {
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
         self.trigger_effects(None)?;
-        self.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
 
         Ok(self)
     }
@@ -807,7 +821,7 @@ impl TeamShopping for Team {
         // Trigger end of turn.
         self.triggers.push_front(TRIGGER_END_TURN);
         self.trigger_effects(None)?;
-        self.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
 
         // Store friends.
         self.stored_friends = self
@@ -896,7 +910,7 @@ impl TeamShopping for Team {
             }
 
             self.trigger_effects(None)?;
-            self.clear_team(ClearOption::KeepSlots);
+            self.clear_team();
         }
         Ok(self)
     }

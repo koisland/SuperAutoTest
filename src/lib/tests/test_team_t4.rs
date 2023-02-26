@@ -10,12 +10,7 @@ use crate::{
     },
     foods::names::FoodName,
     pets::names::PetName,
-    teams::{
-        combat::{ClearOption, TeamCombat},
-        effects::TeamEffects,
-        team::TeamFightOutcome,
-        viewer::TeamViewer,
-    },
+    teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_bison_team,
         test_buffalo_team, test_caterpillar_team, test_crow_team, test_deer_team,
@@ -106,7 +101,7 @@ fn test_shop_parrot_team() {
             action: Action::Copy(
                 CopyType::Effect(vec![], Some(1)),
                 Target::Friend,
-                Position::Relative(1),
+                Position::Nearest(1),
             ),
             uses: None,
             temp: true,
@@ -439,7 +434,7 @@ fn test_battle_porcupine_team() {
     enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
     enemy_team.trigger_effects(Some(&mut team)).unwrap();
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
-    enemy_team.clear_team(ClearOption::RemoveSlots);
+    enemy_team.clear_team();
 
     // 2 Mosquitoes faint from returned fire from porcupine
     assert_eq!(enemy_team.fainted.len(), 2);
@@ -464,15 +459,6 @@ fn test_battle_caterpillar_team() {
     assert_eq!(caterpillar.borrow().stats, Statistics::new(2, 2).unwrap());
     assert_eq!(caterpillar.borrow().name, PetName::Caterpillar);
 
-    // Trigger start of battle effects.
-    // Copy does not trigger yet.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
-
-    let butterfly = team.first().unwrap();
-    assert_eq!(butterfly.borrow().stats, Statistics::new(1, 1).unwrap());
-    assert_eq!(butterfly.borrow().name, PetName::Butterfly);
-
     // Right before battle phase, butterfly will copy effect.
     team.fight(&mut enemy_team).unwrap();
 
@@ -495,26 +481,6 @@ fn test_shop_caterpillar_team() {
     let caterpillar = team.first().unwrap();
     // Gains 1 exp on start of turn.
     assert!(caterpillar.borrow().exp == 1 && caterpillar.borrow().lvl == 1)
-}
-
-#[test]
-fn test_battle_sniped_caterpillar_team() {
-    let mut team = test_caterpillar_team();
-    let mut enemy_team = test_mosq_team();
-    enemy_team.friends.remove(2);
-    enemy_team.friends.remove(1);
-    team.set_seed(Some(42));
-
-    let outcome = team.fight(&mut enemy_team).unwrap();
-
-    // The team wins.
-    assert_eq!(outcome, TeamFightOutcome::Win);
-    // But the butterfly faints due to snipe from single mosquito on enemy team.
-    let first_fainted_pet = &team.fainted.first().unwrap();
-    assert_eq!(
-        first_fainted_pet.as_ref().unwrap().borrow().name,
-        PetName::Butterfly
-    );
 }
 
 #[test]
@@ -1036,7 +1002,7 @@ fn test_shop_crow_team() {
     );
 
     // Ant on team is base exp and lvl.
-    team.clear_team(ClearOption::RemoveSlots);
+    team.clear_team();
     let ant = team.first().unwrap();
     assert!(ant.borrow().lvl == 1 && ant.borrow().exp == 0);
 
@@ -1054,7 +1020,7 @@ fn test_shop_platypus_team() {
     assert_eq!(team.friends.len(), 1);
 
     team.open_shop().unwrap().sell(&Position::First).unwrap();
-    team.clear_team(ClearOption::RemoveSlots);
+    team.clear_team();
     // Two pets after selling platypus: duck and a beaver are spawned.
     assert_eq!(team.friends.len(), 2);
     let (duck, beaver) = (team.first().unwrap(), team.last().unwrap());

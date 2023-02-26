@@ -57,8 +57,8 @@ fn test_battle_fly_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Zombie fly spawned after cricket dies.
-    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieCricket);
-    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieFly);
+    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieFly);
+    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::ZombieCricket);
 
     // Finish battle.
     let mut outcome = team.fight(&mut enemy_team).unwrap();

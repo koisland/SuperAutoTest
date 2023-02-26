@@ -103,7 +103,7 @@ pub enum ItemCondition {
     Equal(EqualityCondition),
     /// Doesn't have this quality.
     NotEqual(EqualityCondition),
-    /// No condition.
+    /// All alive pets.
     None,
 }
 
@@ -132,7 +132,12 @@ pub enum Position {
     /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].
+    /// * Note: Empty slots are taken into consideration.
     Relative(isize),
+    /// Nearest pet(s) ahead or behind from current [`Pet`].
+    /// * Negative values check pets behind.
+    /// * Positive values check pets ahead.
+    Nearest(isize),
     /// Multiple [`Position`]s.
     Multiple(Vec<Position>),
     /// All [`Pet`]'s adjacent to current index.

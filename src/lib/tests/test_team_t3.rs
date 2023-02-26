@@ -4,11 +4,7 @@ use crate::{
     effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
-    teams::{
-        combat::{ClearOption, TeamCombat},
-        team::TeamFightOutcome,
-        viewer::TeamViewer,
-    },
+    teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
         test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_capybara_team,
@@ -437,7 +433,7 @@ fn test_battle_woodpecker_self_hurt_team() {
     // Trigger start of battle effects and clear dead pets.
     team.triggers.push_front(TRIGGER_START_BATTLE);
     team.trigger_effects(Some(&mut enemy_team)).unwrap();
-    team.clear_team(ClearOption::RemoveSlots);
+    team.clear_team();
 
     // Two crickets at front of woodpecker on same team faint.
     assert_eq!(team.fainted.len(), 2);

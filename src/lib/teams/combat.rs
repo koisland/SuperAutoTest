@@ -12,21 +12,6 @@ use crate::{
     PetCombat, Team, TeamEffects, TeamViewer,
 };
 
-/// Clear options for [`Team::clear_team`](crate::teams::combat::TeamCombat::clear_team)
-pub enum ClearOption {
-    /// Retain empty slots.
-    KeepSlots,
-    /// Remove empty slots.
-    RemoveSlots,
-}
-impl From<&ClearOption> for bool {
-    fn from(value: &ClearOption) -> Self {
-        match value {
-            ClearOption::KeepSlots => true,
-            ClearOption::RemoveSlots => false,
-        }
-    }
-}
 /// Enables combat between two [`Team`]s.
 /// ```rust no run
 /// use saptest::TeamCombat;
@@ -102,7 +87,6 @@ pub trait TeamCombat {
     /// use saptest::{
     ///     Pet, PetName, Team,
     ///     TeamCombat, TeamViewer, TeamEffects,
-    ///     teams::combat::ClearOption
     /// };
     ///
     /// let mut default_team = Team::new(
@@ -113,11 +97,11 @@ pub trait TeamCombat {
     /// assert_eq!(default_team.friends.len(), 1);
     ///
     /// default_team.first().unwrap().borrow_mut().stats.health = 0;
-    /// default_team.clear_team(ClearOption::RemoveSlots);
+    /// default_team.clear_team();
     ///
     /// assert_eq!(default_team.friends.len(), 0);
     /// ```
-    fn clear_team(&mut self, clear_opt: ClearOption) -> &mut Self;
+    fn clear_team(&mut self) -> &mut Self;
 }
 
 impl TeamCombat for Team {
@@ -136,23 +120,23 @@ impl TeamCombat for Team {
         info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
         // Apply start of battle effects.
-        self.clear_team(ClearOption::KeepSlots);
-        opponent.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
+        opponent.clear_team();
 
-        // If current phase is 1, add start battle triggers.
+        // If current phase is 1, perform start of battle.
+        // Only one team is required to activate this.
         if self.history.curr_phase == 1 {
-            self.triggers.push_front(TRIGGER_START_BATTLE)
+            self.trigger_start_battle_effects(opponent)?;
         }
-        if opponent.history.curr_phase == 1 {
-            opponent.triggers.push_front(TRIGGER_START_BATTLE)
-        }
+
+        // Exhaust any produced triggers from start of battle.
         while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
             self.trigger_effects(Some(opponent))?;
             opponent.trigger_effects(Some(self))?;
         }
 
-        self.clear_team(ClearOption::KeepSlots);
-        opponent.clear_team(ClearOption::KeepSlots);
+        self.clear_team();
+        opponent.clear_team();
 
         // If current phase is 1, add before first battle triggers.
         // Used for butterfly.
@@ -165,8 +149,12 @@ impl TeamCombat for Team {
 
         // Increment battle phase counter.
         self.history.curr_phase += 1;
+        opponent.history.curr_phase += 1;
 
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
+            self.curr_pet = Some(Rc::downgrade(&pet));
+            opponent.curr_pet = Some(Rc::downgrade(&opponent_pet));
+
             self.triggers.extend([
                 TRIGGER_SELF_BEFORE_ATTACK
                     .clone()
@@ -193,8 +181,8 @@ impl TeamCombat for Team {
                 opponent.trigger_effects(Some(self))?;
             }
 
-            self.clear_team(ClearOption::KeepSlots);
-            opponent.clear_team(ClearOption::KeepSlots);
+            self.clear_team();
+            opponent.clear_team();
         }
 
         // Check that two pets exist and attack.
@@ -255,11 +243,8 @@ impl TeamCombat for Team {
 
             // Apply effect triggers from combat phase.
             while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(Some(opponent))?
-                    .clear_team(ClearOption::RemoveSlots);
-                opponent
-                    .trigger_effects(Some(self))?
-                    .clear_team(ClearOption::RemoveSlots);
+                self.trigger_effects(Some(opponent))?.clear_team();
+                opponent.trigger_effects(Some(self))?.clear_team();
             }
         }
 
@@ -279,13 +264,23 @@ impl TeamCombat for Team {
                     TeamFightOutcome::Win
                 };
                 let outcome_trigger: Outcome = (&outcome).into();
+                let opponent_outcome_trigger: Outcome = (&outcome.inverse()).into();
                 // Add end of battle node.
                 let outcome_node = self.history.effect_graph.add_node(outcome_trigger);
+                let opponent_outcome_node = opponent
+                    .history
+                    .effect_graph
+                    .add_node(opponent_outcome_trigger);
                 self.history.prev_node = self.history.curr_node;
                 self.history.curr_node = Some(outcome_node);
                 self.history.last_outcome = Some(outcome_node);
+
+                opponent.history.prev_node = opponent.history.curr_node;
+                opponent.history.curr_node = Some(opponent_outcome_node);
+                opponent.history.last_outcome = Some(opponent_outcome_node);
                 // On outcome, increase turn count.
                 self.history.curr_turn += 1;
+                opponent.history.curr_turn += 1;
                 // Return outcome.
                 outcome
             },
@@ -293,6 +288,7 @@ impl TeamCombat for Team {
     }
 
     fn restore(&mut self) -> &mut Self {
+        // Note this invalids any pre-existing rc pets as updates will only affect these pets.
         self.friends = Team::create_rc_pets(&self.stored_friends);
         // Set current pet to first in line.
         self.curr_pet = self.friends.iter().flatten().next().map(Rc::downgrade);
@@ -303,28 +299,31 @@ impl TeamCombat for Team {
         self
     }
 
-    fn clear_team(&mut self, clear_opt: ClearOption) -> &mut Self {
-        let mut new_idx = 0;
-        let keep_slot = (&clear_opt).into();
+    fn clear_team(&mut self) -> &mut Self {
+        let mut idx = 0;
         self.friends.retain(|slot| {
+            // Pet in slot.
             if let Some(pet) = slot {
-                // Check if not dead.
-                if pet.borrow().stats.health != 0 {
-                    pet.borrow_mut().pos = Some(new_idx);
-                    new_idx += 1;
-                    true
-                } else {
-                    // Pet is dead.
+                // Pet is dead remove.
+                // Otherwise, reindex pet.
+                if pet.borrow().stats.health == 0 {
                     info!(target: "run", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
                     self.fainted.push(Some(pet.clone()));
                     false
+                } else {
+                    pet.borrow_mut().pos = Some(idx);
+                    idx += 1;
+                    true
                 }
             } else {
-                // If slot kept, must maintain correct index with slot.
-                if keep_slot {
-                    new_idx += 1;
+                // If no indices (idx == 0) assigned, still haven't reached a valid pet.
+                // Otherwise, keep incrementing idx to maintain order.
+                if idx == 0 {
+                    false
+                } else {
+                    idx += 1;
+                    true
                 }
-                keep_slot
             }
         });
         self

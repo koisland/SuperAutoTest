@@ -176,7 +176,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Mouse => {
-                let mut free_apple = Food::try_from(FoodName::Apple).unwrap();
+                let mut free_apple = Food::try_from(FoodName::Apple)?;
                 free_apple.cost = 0;
                 let mut actions =
                     vec![
@@ -199,7 +199,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 trigger: TRIGGER_SHOP_TIER_UPGRADED,
                 target: Target::Friend,
-                position: Position::Range(-2..=-1),
+                position: Position::Nearest(-2),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: None,
                 entity: Entity::Pet,
@@ -272,7 +272,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_START_BATTLE,
                     target: Target::Friend,
-                    position: Position::Relative(1),
+                    position: Position::Nearest(1),
                     action: Action::Add(StatChangeType::SelfMultValue(effect_stats)),
                     uses: Some(record.n_triggers),
                     entity: Entity::Pet,
@@ -284,7 +284,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_SELF_ATTACK,
                     target: Target::Friend,
-                    position: Position::Relative(-1),
+                    position: Position::Nearest(-1),
                     action: Action::Multiple(vec![
                         Action::Remove(StatChangeType::StaticValue(
                             effect_stats
@@ -300,7 +300,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Range(-2..=-1),
+                position: Position::Nearest(-2),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: Some(record.n_triggers),
                 entity: Entity::Pet,
@@ -527,7 +527,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_HURT,
                     target: Target::Friend,
-                    position: Position::Relative(-1),
+                    position: Position::Nearest(-1),
                     action: Action::Multiple(vec![
                         Action::Add(StatChangeType::StaticValue(
                             effect_stats
@@ -640,7 +640,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_END_TURN,
                     target: Target::Friend,
-                    position: Position::Relative(1),
+                    position: Position::Nearest(1),
                     action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                     uses: Some(record.n_triggers),
                 };
@@ -728,7 +728,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_END_TURN,
                     target: Target::Friend,
-                    position: Position::Relative(1),
+                    position: Position::Nearest(1),
                     action: Action::Remove(StatChangeType::StaticValue(Statistics {
                         attack: 1,
                         health: 0,
@@ -931,7 +931,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Crow => {
-                let mut free_chocolate = Food::try_from(FoodName::Chocolate).unwrap();
+                let mut free_chocolate = Food::try_from(FoodName::Chocolate)?;
                 // Amount of experience tied to level of crow.
                 free_chocolate.ability.action =
                     Action::Multiple(vec![Action::Experience; record.lvl]);
@@ -1048,7 +1048,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Copy(
                     CopyType::Effect(vec![], Some(record.lvl)),
                     Target::Friend,
-                    Position::Relative(1),
+                    Position::Nearest(1),
                 ),
                 uses: None,
             }],
@@ -1089,7 +1089,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
-                    position: Position::Range(-max_pets_behind..=-1),
+                    position: Position::Nearest(-max_pets_behind),
                     action: Action::Gain(GainType::DefaultItem(FoodName::Melon)),
                     uses: Some(record.n_triggers),
                 }]
@@ -1101,7 +1101,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Whale(record.lvl, Position::Relative(1)),
+                action: Action::Whale(record.lvl, Position::Nearest(1)),
                 uses: Some(record.n_triggers),
             }],
             PetName::Crocodile => {
@@ -1408,7 +1408,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         entity: Entity::Pet,
                         trigger: TRIGGER_START_BATTLE,
                         target: Target::Friend,
-                        position: Position::Relative(1),
+                        position: Position::Nearest(1),
                         action: Action::Add(StatChangeType::SelfMultValue(effect_stats)),
                         uses: Some(record.n_triggers),
                         temp: record.temp_effect,
@@ -1483,7 +1483,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
-                    position: Position::Range(-n_pets_behind..=-1),
+                    position: Position::Nearest(-n_pets_behind),
                     // If None, update during team init with current item.
                     action: Action::Gain(GainType::SelfItem),
                     uses: Some(record.n_triggers),
@@ -1547,7 +1547,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Relative(-1),
+                position: Position::Nearest(-1),
                 action: Action::Experience,
                 uses: Some(record.n_triggers),
             }],
@@ -1577,7 +1577,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Either,
-                position: Position::Range(1..=2),
+                position: Position::Nearest(2),
                 action: Action::Multiple(vec![
                     Action::Remove(StatChangeType::StaticValue(
                         effect_stats
@@ -1917,7 +1917,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
-                position: Position::Range(-record.lvl.try_into()?..=-1),
+                position: Position::Nearest(-record.lvl.try_into()?),
                 action: Action::Multiple(vec![Action::Experience; 3]),
                 uses: Some(record.n_triggers),
             }],

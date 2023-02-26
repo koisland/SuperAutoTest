@@ -66,6 +66,18 @@ impl From<&TeamFightOutcome> for Outcome {
     }
 }
 
+impl TeamFightOutcome {
+    /// Opposite outcome.
+    pub fn inverse(&self) -> Self {
+        match self {
+            TeamFightOutcome::Win => TeamFightOutcome::Loss,
+            TeamFightOutcome::Loss => TeamFightOutcome::Win,
+            TeamFightOutcome::Draw => TeamFightOutcome::Draw,
+            TeamFightOutcome::None => TeamFightOutcome::None,
+        }
+    }
+}
+
 /// A Super Auto Pets team.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Team {
@@ -532,8 +544,9 @@ impl Team {
         let new_pet_id = format!("{}_{}", pet.name, self.pet_count + 1);
         let pet_id = pet.id.clone();
         let rc_pet = Rc::new(RefCell::new(pet));
+        let alive_pets = self.all().len();
 
-        if self.all().len() == self.max_size {
+        if alive_pets == self.max_size {
             // Add overflow to dead pets.
             self.fainted.push(Some(rc_pet));
 
@@ -591,7 +604,7 @@ impl Team {
         }
         self.triggers.extend([self_trigger, any_trigger]);
 
-        info!(target: "dev", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), rc_pet.borrow());
+        info!(target: "run", "(\"{}\")\nAdded pet to pos {pos}: {}.", self.name.to_string(), rc_pet.borrow());
 
         // Empty slot. Remove and replace with pet.
         let curr_slot = self.friends.get(pos);
@@ -605,8 +618,6 @@ impl Team {
         if let Some(Some(pet)) = self.friends.first() {
             self.curr_pet = Some(Rc::downgrade(pet));
         }
-        // And reset indices.
-        self.set_indices();
 
         Ok(self)
     }

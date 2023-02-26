@@ -173,7 +173,7 @@ pub enum Action {
     Cockroach,
     /// Gain one experience point.
     Experience,
-    /// WIP: Endure damage so health doesn't go below one.
+    /// Endure damage so health doesn't go below one.
     Endure,
     #[default]
     /// No action to take.

@@ -473,7 +473,7 @@ impl TeamViewer for Team {
                         .collect_vec()
                 }
                 // Allow all if condition is None.
-                ItemCondition::None => self.all(),
+                ItemCondition::None => all_pets.collect_vec(),
                 ItemCondition::HighestTier => all_pets
                     .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
                     .map_or(vec![], |found| vec![found]),
@@ -513,7 +513,7 @@ impl TeamViewer for Team {
                 })
             }
         };
-        let team = if *target == Target::Friend {
+        let team = if matches!(*target, Target::Friend | Target::Either) {
             self
         } else {
             opponent
@@ -571,22 +571,7 @@ impl TeamViewer for Team {
                     pets.push((*target, self_pet.clone()))
                 }
             }
-            (_, Position::TriggerAffected) => {
-                let Some(trigger) = trigger else {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "No Trigger Provided".to_string(),
-                        reason: format!("Trigger required for finding pets by {pos:?}")
-                    })
-                };
-                if let Some(Some(affected_pet)) = trigger
-                    .affected_pet
-                    .as_ref()
-                    .map(|pet_ref| pet_ref.upgrade())
-                {
-                    pets.push((trigger.affected_team, affected_pet))
-                }
-            }
-            (_, Position::TriggerAfflicting) => {
+            (_, Position::TriggerAfflicting) | (_, Position::TriggerAffected) => {
                 let Some(trigger) = trigger else {
                     let pos = pos.clone();
                     return Err(SAPTestError::InvalidTeamAction {
@@ -594,12 +579,13 @@ impl TeamViewer for Team {
                         reason: format!("Trigger required for finding pets by {pos:?}")
                     })
                 };
-                if let Some(Some(afflicting_pet)) = trigger
-                    .afflicting_pet
-                    .as_ref()
-                    .map(|pet_ref| pet_ref.upgrade())
-                {
-                    pets.push((trigger.affected_team, afflicting_pet))
+                let trigger_pet = if let Position::TriggerAffected = pos {
+                    trigger.affected_pet.as_ref()
+                } else {
+                    trigger.afflicting_pet.as_ref()
+                };
+                if let Some(Some(trigger_pet)) = trigger_pet.map(|pet_ref| pet_ref.upgrade()) {
+                    pets.push((trigger.affected_team, trigger_pet))
                 }
             }
             (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {
@@ -630,13 +616,93 @@ impl TeamViewer for Team {
                     }
                 }
             }
+            (Target::Friend | Target::Enemy, Position::Nearest(n_pets_directional)) => {
+                if let Some(Some(effect_pet_idx)) = curr_pet.as_ref().map(|pet| pet.borrow().pos) {
+                    // Negative ranges have to work for both teams hence matching on target.
+                    // When matching on opponent, always set to first pet.
+                    // (o = curr, x = dest)
+                    // Ex. -2 behind
+                    //      [o][ ][x][ ][ ]
+                    // * If friend: 1..5 (We don't want the first position.)
+                    // * If enemy: 0..5 (We want the first position.)
+                    // Ex. 2 ahead
+                    //      [x][ ][o][ ][ ]
+                    // * If at pos other than 0: 0..3
+                    // * If at pos 0: 0..0 (We don't want the first position.)
+                    let (num_pets, pet_range) = if n_pets_directional.is_negative() {
+                        // If target is enemy include the first pet in pet range.
+                        let start_pos = if *target == Target::Enemy {
+                            effect_pet_idx
+                        } else {
+                            effect_pet_idx + 1
+                        };
+                        (
+                            TryInto::<usize>::try_into(-*n_pets_directional)?,
+                            start_pos..team.friends.len(),
+                        )
+                    } else {
+                        let num_pets = TryInto::<usize>::try_into(*n_pets_directional)?;
+                        let start_pos = effect_pet_idx.saturating_sub(num_pets);
+                        (
+                            num_pets,
+                            // Cover first position to the position of pet.
+                            start_pos..effect_pet_idx,
+                        )
+                    };
+                    // Get pets from range.
+                    if let Some(slots_in_range) = team.friends.get(pet_range) {
+                        let mut pets_in_range = slots_in_range.iter().flatten();
+
+                        for _ in 0..num_pets {
+                            if let Some(pet) = pets_in_range.next() {
+                                pets.push((*target, pet.clone()))
+                            }
+                        }
+                    }
+                }
+            }
+            (Target::Either, Position::Nearest(n_pets_directional)) => {
+                let num_pets = if n_pets_directional.is_negative() {
+                    TryInto::<usize>::try_into(-*n_pets_directional)?
+                } else {
+                    TryInto::<usize>::try_into(*n_pets_directional)?
+                };
+                let pets_in_range = team.get_pets_by_pos(
+                    curr_pet.clone(),
+                    &Target::Friend,
+                    &Position::Nearest(*n_pets_directional),
+                    trigger,
+                    Some(opponent),
+                )?;
+                // If less than expected on current team found. Get the other team's pets.
+                let num_in_range = pets_in_range.len();
+                if num_in_range < num_pets {
+                    let missing_n_pets: isize = (num_pets - num_in_range).try_into()?;
+                    // Set reference pet to first opponent pet and target to enemy
+                    let opponents_pets = team.get_pets_by_pos(
+                        curr_pet,
+                        &Target::Enemy,
+                        // Set to negative as we are looking at the pets behind the first opponent pet.
+                        &Position::Nearest(-(missing_n_pets)),
+                        None,
+                        Some(opponent),
+                    )?;
+                    pets.extend(
+                        opponents_pets
+                            .into_iter()
+                            .map(|(_, pet)| (Target::Enemy, pet)),
+                    );
+                }
+                // Add pets found on team to opponent's pets.
+                pets.extend(pets_in_range);
+            }
             (Target::Friend | Target::Enemy, Position::Range(effect_range)) => {
                 for idx in effect_range.clone() {
                     if let Some(Some(effect_pet_idx)) =
                         curr_pet.as_ref().map(|pet| pet.borrow().pos)
                     {
                         let (target_team, adj_idx) =
-                            team.cvt_rel_idx_to_adj_idx(effect_pet_idx, idx).unwrap();
+                            team.cvt_rel_idx_to_adj_idx(effect_pet_idx, idx)?;
                         if target_team == Target::Friend {
                             if let Some(rel_pet) = team.nth(adj_idx) {
                                 pets.push((target_team, rel_pet))

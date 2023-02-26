@@ -176,10 +176,10 @@ python setup.py install
 
 ## TODO:
 * Add trait for randomly generating teams.
-* Create Rust binding for Python.
 
 ---
 ## Sources
 * https://superautopets.fandom.com/wiki
 * https://emoji.supply/kitchen/
 * https://github.com/manny405/sapai
+* ["ADVANCED Mechanics in Super Auto Pets (Guide)"](https://www.youtube.com/watch?v=NSqjuA32AoA) by Blueberry Pieper

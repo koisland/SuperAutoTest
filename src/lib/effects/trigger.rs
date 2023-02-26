@@ -310,7 +310,7 @@ pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
 /// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead attacks.
 pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     status: Status::Attack,
-    position: Position::Relative(1),
+    position: Position::Nearest(1),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
