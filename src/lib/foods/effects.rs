@@ -195,7 +195,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 trigger: TRIGGER_NONE,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::None,
+                action: Action::AddShopStats(effect_stats),
                 uses,
                 temp: record.end_of_battle,
             },
@@ -241,7 +241,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
-                position: Position::Any(ItemCondition::None),
+                position: Position::N(ItemCondition::None, record.n_targets, true),
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 temp: record.end_of_battle,
@@ -293,7 +293,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
-            // TODO: Milk, popcorns, lollipop
             _ => Effect {
                 owner: None,
                 entity: Entity::Food,

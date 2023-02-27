@@ -38,6 +38,54 @@ fn test_custom_food() {
 }
 
 #[test]
+fn test_set_food_item() {
+    let mut team = Team::new(&vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5).unwrap();
+    team.set_seed(Some(1211));
+
+    let first_pos = Position::First;
+    let garlic = Food::try_from(FoodName::Garlic).unwrap();
+    let apple = Food::try_from(FoodName::Apple).unwrap();
+    let pizza = Food::try_from(FoodName::Pizza).unwrap();
+
+    let first_pet = team.first().unwrap();
+    let first_pet_start_stats = first_pet.borrow().stats;
+    // Give first pet garlic.
+    team.set_item(&first_pos, Some(garlic)).unwrap();
+    assert_eq!(
+        first_pet.borrow().item.as_ref().unwrap().name,
+        FoodName::Garlic
+    );
+
+    // Give first pet an apple.
+    const APPLE_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    team.set_item(&first_pos, Some(apple)).unwrap();
+    // First pet still has garlic.
+    assert_eq!(
+        first_pet.borrow().item.as_ref().unwrap().name,
+        FoodName::Garlic
+    );
+    // And gets apple buff.
+    assert_eq!(first_pet.borrow().stats, first_pet_start_stats + APPLE_BUFF);
+
+    // Give pizza.
+    let (third_pet, last_pet) = (team.nth(2).unwrap(), team.last().unwrap());
+    let third_pet_start_stats = third_pet.borrow().stats;
+    let last_pet_start_stats = last_pet.borrow().stats;
+    const PIZZA_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 2,
+    };
+    team.set_item(&first_pos, Some(pizza)).unwrap();
+
+    // Two random pets got buff as expected. Set position does not matter.
+    assert_eq!(last_pet.borrow().stats, third_pet_start_stats + PIZZA_BUFF);
+    assert_eq!(third_pet.borrow().stats, last_pet_start_stats + PIZZA_BUFF);
+}
+
+#[test]
 fn test_food_override_effect() {
     let buffed_apple = Food::new(
         &FoodName::Apple,
@@ -381,7 +429,7 @@ fn test_attack_chili() {
     // Give first pet chili on first team.
     // Will kill entire team in first attack
     team.set_item(
-        Position::First,
+        &Position::First,
         Some(Food::try_from(&FoodName::Chili).unwrap()),
     )
     .unwrap();
@@ -413,7 +461,7 @@ fn test_attack_chili_w_front_space() {
     .unwrap();
     // Give first pet chili on first team.
     team.set_item(
-        Position::First,
+        &Position::First,
         Some(Food::try_from(&FoodName::Chili).unwrap()),
     )
     .unwrap();
@@ -434,7 +482,7 @@ fn test_battle_honey_team() {
 
     // Give last pet honey on first team.
     team.set_item(
-        Position::Last,
+        &Position::Last,
         Some(Food::try_from(&FoodName::Honey).unwrap()),
     )
     .unwrap();
@@ -456,7 +504,7 @@ fn test_battle_mushroom_team() {
 
     // Give last pet mushroom on first team.
     team.set_item(
-        Position::Last,
+        &Position::Last,
         Some(Food::try_from(&FoodName::Mushroom).unwrap()),
     )
     .unwrap();

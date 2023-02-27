@@ -458,7 +458,7 @@ pub fn test_seagull_team() -> Team {
     )
     .unwrap();
     team.set_item(
-        Position::Last,
+        &Position::Last,
         Some(Food::try_from(FoodName::Honey).unwrap()),
     )
     .unwrap();
@@ -702,7 +702,7 @@ pub fn test_rhino_team() -> Team {
 pub fn test_scorpion_team() -> Team {
     let mut team = Team::new(&[Some(Pet::try_from(PetName::Scorpion).unwrap())], 5).unwrap();
     team.set_item(
-        Position::First,
+        &Position::First,
         Some(Food::try_from(FoodName::Peanut).unwrap()),
     )
     .unwrap();
@@ -920,7 +920,7 @@ pub fn test_alpaca_team() -> Team {
 
     // Give mushroom to alpaca.
     team.set_item(
-        Position::Relative(-1),
+        &Position::Relative(-1),
         Some(Food::try_from(FoodName::Mushroom).unwrap()),
     )
     .unwrap();
@@ -1025,7 +1025,7 @@ pub fn test_velociraptor_team() -> Team {
     )
     .unwrap();
     team.set_item(
-        Position::Range(-2..=-1),
+        &Position::Range(-1..=0),
         Some(Food::try_from(FoodName::Strawberry).unwrap()),
     )
     .unwrap();
@@ -1371,3 +1371,97 @@ pub fn test_praying_mantis_team() -> Team {
     )
     .unwrap()
 }
+
+pub fn test_monkey_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Monkey).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_seal_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Seal).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_moose_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Moose).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_goat_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Goat).unwrap())], 5).unwrap()
+}
+
+pub fn test_poodle_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Poodle).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_fox_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Fox).unwrap())], 5).unwrap()
+}
+
+pub fn test_hamster_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Hamster).unwrap())], 5).unwrap()
+}
+
+pub fn test_polar_bear_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::PolarBear).unwrap())], 5).unwrap()
+}
+
+/// No strawberries.
+pub fn test_shoebill_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Shoebill).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_siberian_husky_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::SiberianHusky).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+// No team for zebra.

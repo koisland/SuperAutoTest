@@ -169,7 +169,7 @@ pub trait TeamViewer {
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Give two random pets honey.
     /// team.set_item(
-    ///     Position::N(ItemCondition::None, 2, true),
+    ///     &Position::N(ItemCondition::None, 2, true),
     ///     Some(Food::try_from(FoodName::Honey).unwrap())
     /// );
     /// let matching_pets = team.get_pets_by_cond(

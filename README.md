@@ -65,7 +65,7 @@ team.set_shop_seed(Some(1212))
         true // And merge them if possible.
     ).unwrap()
     .sell(&Position::First).unwrap()
-    .freeze_shop(Position::Last, Entity::Pet).unwrap()
+    .freeze_shop(&Position::Last, &Entity::Pet).unwrap()
     .roll_shop().unwrap()
     .close_shop().unwrap();
 

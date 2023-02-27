@@ -23,12 +23,12 @@ use crate::{
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
-    Food, FoodName, ItemCondition, Pet, Position, Shop, Statistics, Team,
+    Food, FoodName, ItemCondition, Pet, Position, Shop, Team,
 };
 
 use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
 
-trait TeamShoppingHelpers {
+pub(crate) trait TeamShoppingHelpers {
     fn merge_behavior(
         &mut self,
         from_pet: &Rc<RefCell<Pet>>,
@@ -37,17 +37,20 @@ trait TeamShoppingHelpers {
     fn buy_food_behavior(
         &mut self,
         food: Rc<RefCell<Food>>,
+        curr_pet: Option<Rc<RefCell<Pet>>>,
         to_pos: &Position,
+        emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError>;
     fn buy_pet_behavior(
         &mut self,
         pet: Rc<RefCell<Pet>>,
+        curr_pet: Option<Rc<RefCell<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError>;
 }
 
 /// Implements Super Auto Pets [`Shop`](crate::Shop) behavior.
-/// ```rust no run
+/// ```rust no_run
 /// use saptest::TeamShopping;
 /// ```
 pub trait TeamShopping {
@@ -137,7 +140,7 @@ pub trait TeamShopping {
     /// Set the [`Shop`](crate::Shop)'s seed.
     /// * Setting the seed to [`None`] will randomize the rng.
     /// # Example
-    /// ``` rust no run
+    /// ``` rust no_run
     /// use saptest::{Team, TeamShopping};
     ///
     /// let mut team = Team::default();
@@ -178,7 +181,7 @@ pub trait TeamShopping {
 
     /// Returns an immutable reference to the [`Shop`].
     /// # Example
-    /// ```rust no run
+    /// ```rust no_run
     /// use saptest::{Team, TeamShopping};
     ///
     /// let mut team = Team::default();
@@ -207,10 +210,14 @@ pub trait TeamShopping {
     /// let mut team = Team::default();
     /// team.open_shop().unwrap();
     /// assert!(
-    ///     team.freeze_shop(Position::First, Entity::Pet).is_ok()
+    ///     team.freeze_shop(&Position::First, &Entity::Pet).is_ok()
     /// );
     /// ```
-    fn freeze_shop(&mut self, pos: Position, item_type: Entity) -> Result<&mut Self, SAPTestError>;
+    fn freeze_shop(
+        &mut self,
+        pos: &Position,
+        item_type: &Entity,
+    ) -> Result<&mut Self, SAPTestError>;
 
     /// Open the [`Shop`](crate::Shop) for a [`Team`](crate::Team).
     /// # Example
@@ -355,7 +362,7 @@ pub trait TeamShopping {
     /// team.print_shop();
     /// ```
     /// ---
-    /// ```no run
+    /// ```shell
     /// (Pets)
     /// (Normal) [$3] [Mosquito: (2,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
     /// (Normal) [$3] [Beaver: (3,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
@@ -416,56 +423,51 @@ impl TeamShoppingHelpers for Team {
     fn buy_food_behavior(
         &mut self,
         food: Rc<RefCell<Food>>,
+        curr_pet: Option<Rc<RefCell<Pet>>>,
         to_pos: &Position,
+        emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError> {
-        let trigger_any_food = TRIGGER_ANY_FOOD_BOUGHT;
-        self.triggers.push_back(trigger_any_food);
+        // Emit buy any food trigger.
+        if emit_buy_triggers {
+            let trigger_any_food = TRIGGER_ANY_FOOD_BOUGHT;
+            self.triggers.push_back(trigger_any_food);
+        }
 
         // Give food to a single pet.
         if food.borrow().holdable {
             let affected_pets =
-                self.get_pets_by_pos(self.first(), &Target::Friend, to_pos, None, None)?;
-            let (_, target_pet) = affected_pets
-                .first()
-                .ok_or(SAPTestError::InvalidTeamAction {
-                    subject: "No Item Target".to_string(),
-                    reason: "Holdable item must have a target".to_string(),
-                })?;
-            food.borrow_mut().ability.assign_owner(Some(target_pet));
-            target_pet.borrow_mut().item = Some(food.borrow().clone());
+                self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
-            // Create trigger if food eaten.
-            let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
-            let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
-            let mut trigger_self_food_name = trigger_self_food_ate_name(food.borrow().name.clone());
-            trigger_self_food.set_affected(target_pet);
-            trigger_any_food.set_affected(target_pet);
-            trigger_self_food_name.set_affected(target_pet);
+            for (_, pet) in affected_pets {
+                food.borrow_mut().ability.assign_owner(Some(&pet));
+                pet.borrow_mut().item = Some(food.borrow().clone());
 
-            self.triggers
-                .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
-        } else if food.borrow().name == FoodName::CannedFood {
-            // Hard-coded can ability.
-            let can_stats = Statistics {
-                attack: 1,
-                health: 1,
-            };
-            for pet in self.shop.pets.iter() {
-                if let ItemSlot::Pet(pet) = &pet.item {
-                    pet.borrow_mut().stats += can_stats
-                }
+                // Create trigger if food eaten.
+                let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
+                let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
+                let mut trigger_self_food_name =
+                    trigger_self_food_ate_name(food.borrow().name.clone());
+                trigger_self_food.set_affected(&pet);
+                trigger_any_food.set_affected(&pet);
+                trigger_self_food_name.set_affected(&pet);
+
+                self.triggers
+                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
             }
-            self.shop.perm_stats += can_stats;
+        } else if food.borrow().name == FoodName::CannedFood {
+            // Applying any effect requires an owner so assign current pet.
+            food.borrow_mut().ability.assign_owner(curr_pet.as_ref());
+            self.apply_shop_effect(&food.borrow().ability)?;
         } else {
             let mut food_ability = food.borrow().ability.clone();
             // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
             let target_pos = if food.borrow().n_targets == 1 {
                 to_pos.clone()
             } else {
-                Position::Multiple(vec![food_ability.position.clone(); food.borrow().n_targets])
+                food_ability.position.clone()
             };
             let affected_pets =
-                self.get_pets_by_pos(self.first(), &food_ability.target, &target_pos, None, None)?;
+                self.get_pets_by_pos(curr_pet, &food_ability.target, &target_pos, None, None)?;
             // For each pet found by the effect of food bought, apply its effect.
             for (_, pet) in affected_pets {
                 food_ability.assign_owner(Some(&pet));
@@ -482,7 +484,7 @@ impl TeamShoppingHelpers for Team {
                 self.triggers
                     .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
 
-                self.apply_single_effect(pet, &food_ability, None)?;
+                self.apply_single_effect(&pet, &food_ability, None)?;
             }
         }
         Ok(())
@@ -491,10 +493,10 @@ impl TeamShoppingHelpers for Team {
     fn buy_pet_behavior(
         &mut self,
         pet: Rc<RefCell<Pet>>,
+        curr_pet: Option<Rc<RefCell<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError> {
-        let affected_pets =
-            self.get_pets_by_pos(self.first(), &Target::Friend, to_pos, None, None)?;
+        let affected_pets = self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
         let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
             // If affected pet same as purchased pet.
@@ -611,8 +613,8 @@ impl TeamShopping for Team {
             self.shop.coins -= item.cost;
 
             match item.item {
-                ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, to)?,
-                ItemSlot::Food(food) => self.buy_food_behavior(food, to)?,
+                ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, self.first(), to)?,
+                ItemSlot::Food(food) => self.buy_food_behavior(food, self.first(), to, true)?,
             };
         }
 
@@ -742,7 +744,11 @@ impl TeamShopping for Team {
         self
     }
 
-    fn freeze_shop(&mut self, pos: Position, item_type: Entity) -> Result<&mut Self, SAPTestError> {
+    fn freeze_shop(
+        &mut self,
+        pos: &Position,
+        item_type: &Entity,
+    ) -> Result<&mut Self, SAPTestError> {
         if self.shop.state == ShopState::Closed {
             return Err(SAPTestError::InvalidShopAction {
                 subject: "Closed Shop (Freeze)".to_string(),
@@ -750,7 +756,7 @@ impl TeamShopping for Team {
             });
         }
 
-        self.shop.freeze(&pos, &item_type)?;
+        self.shop.freeze(pos, item_type)?;
         Ok(self)
     }
 

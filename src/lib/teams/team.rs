@@ -1,13 +1,12 @@
 use crate::{
     effects::{
-        effect::Effect,
         state::{Outcome, Position, Target},
         trigger::*,
     },
     error::SAPTestError,
     graph::effect_graph::History,
     pets::pet::{assign_effect_owner, Pet},
-    shop::store::ShopState,
+    shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
     teams::viewer::TeamViewer,
     Food, Shop,
 };
@@ -357,7 +356,7 @@ impl Team {
     ///     5
     /// ).unwrap();
     /// team.set_item(
-    ///     Position::Relative(0),
+    ///     &Position::Relative(0),
     ///     Some(Food::try_from(&FoodName::Garlic).unwrap())
     /// ).unwrap();
     ///
@@ -366,31 +365,30 @@ impl Team {
     /// ```
     pub fn set_item(
         &mut self,
-        pos: Position,
+        pos: &Position,
         item: Option<Food>,
     ) -> Result<&mut Self, SAPTestError> {
-        // Create a temporary effect to grab all desired pets to give items to.
-        let null_effect = Effect {
-            target: Target::Friend,
-            position: pos.clone(),
-            owner: self.curr_pet.clone(),
-            ..Default::default()
-        };
-        let affected_pets = self
-            .get_pets_by_effect(&TRIGGER_NONE, &null_effect, None)
-            .map_err(|_| SAPTestError::InvalidTeamAction {
-                subject: "Item Pet Position".to_string(),
-                reason: format!("Position is not valid: {pos:?}"),
-            })?;
+        // If item, assign/activate item. Otherwise, set to None.
+        if let Some(food) = item.as_ref() {
+            self.buy_food_behavior(
+                Rc::new(RefCell::new(food.clone())),
+                self.first(),
+                pos,
+                false,
+            )?;
+        } else {
+            let affected_pets = self
+                .get_pets_by_pos(self.first(), &Target::Friend, pos, None, None)
+                .map_err(|_| SAPTestError::InvalidTeamAction {
+                    subject: "Item Pet Position".to_string(),
+                    reason: format!("Position is not valid: {pos:?}"),
+                })?;
 
-        for (_, pet) in affected_pets.iter() {
-            let mut item_copy = item.clone();
-            if let Some(item) = item_copy.as_mut() {
-                item.ability.owner = Some(Rc::downgrade(pet));
-                item.ability.trigger.affected_pet = Some(Rc::downgrade(pet));
+            for (_, pet) in affected_pets.into_iter() {
+                pet.borrow_mut().item = None
             }
-            pet.borrow_mut().item = item_copy;
         }
+
         Ok(self)
     }
 
@@ -411,14 +409,7 @@ impl Team {
     /// assert_eq!(dog.borrow().get_level(), 2);
     /// ```
     pub fn set_level(&mut self, pos: &Position, lvl: usize) -> Result<&mut Self, SAPTestError> {
-        // Create a temporary effect to grab all desired pets to give items to.
-        let null_effect = Effect {
-            target: Target::Friend,
-            position: pos.clone(),
-            owner: self.curr_pet.clone(),
-            ..Default::default()
-        };
-        let affected_pets = self.get_pets_by_effect(&TRIGGER_NONE, &null_effect, None)?;
+        let affected_pets = self.get_pets_by_pos(self.first(), &Target::Friend, pos, None, None)?;
 
         for (_, pet) in affected_pets.iter() {
             pet.borrow_mut().set_level(lvl)?;

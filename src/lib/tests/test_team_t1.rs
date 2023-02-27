@@ -638,7 +638,7 @@ fn test_shop_kiwi_team() {
     let mut team = test_kiwi_team();
     team.open_shop().unwrap();
     team.set_item(
-        Position::Last,
+        &Position::Last,
         Some(Food::try_from(FoodName::Strawberry).unwrap()),
     )
     .unwrap();

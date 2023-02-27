@@ -477,18 +477,17 @@ fn test_battle_velociraptor_team() {
     team.set_seed(Some(12));
     let mut enemy_team = test_gorilla_team();
 
-    // Cricket at pos 1 has strawberry.
+    // Cricket at front has strawberry.
     assert_eq!(
-        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
+        team.first().unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Strawberry
     );
     // Trigger start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
 
-    // Cricket at pos 1 now has coconut.
+    // Cricket at front now has coconut.
     assert_eq!(
-        team.nth(1).unwrap().borrow().item.as_ref().unwrap().name,
+        team.first().unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Coconut
     );
 }

@@ -18,7 +18,14 @@ use crate::{
         test_skunk_team, test_swordfish_team, test_triceratops_team, test_turkey_team,
         test_vulture_team,
     },
-    Entity, Food, Pet, Team, TeamEffects, TeamShopping,
+    Entity, EntityName, Food, ItemCondition, Pet, Shop, ShopItemViewer, ShopViewer, Team,
+    TeamEffects, TeamShopping,
+};
+
+use super::common::{
+    test_fox_team, test_goat_team, test_hamster_team, test_monkey_team, test_moose_team,
+    test_polar_bear_team, test_poodle_team, test_seal_team, test_shoebill_team,
+    test_siberian_husky_team,
 };
 
 #[test]
@@ -100,7 +107,7 @@ fn test_battle_scorpion_team() {
 
     // Replace peanut with mushroom.
     team.set_item(
-        Position::First,
+        &Position::First,
         Some(Food::try_from(FoodName::Mushroom).unwrap()),
     )
     .unwrap();
@@ -424,4 +431,431 @@ fn test_battle_vulture_team() {
     assert_eq!(team.fainted.len(), 2);
     // Enemy team has an additional fainted pet because vulture effect triggers.
     assert_eq!(enemy_team.fainted.len(), 3);
+}
+
+#[test]
+fn test_shop_cow_team() {
+    let mut team = Team::default();
+
+    // Create shop with Cow inside.
+    let mut shop = Shop::default();
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::Cow).unwrap()))
+        .unwrap();
+
+    // Replace shop.
+    team.replace_shop(shop).unwrap().open_shop().unwrap();
+
+    // One item in shop
+    assert_eq!(team.len_shop_foods(), 1);
+    // Not milk.
+    assert!(!team
+        .shop
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
+        .unwrap()
+        .iter()
+        .any(|item| item.name() == EntityName::Food(FoodName::Milk)));
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+    // Two free milks added.
+    assert_eq!(team.len_shop_foods(), 2);
+    assert!(team
+        .shop
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
+        .unwrap()
+        .iter()
+        .all(|item| item.name() == EntityName::Food(FoodName::Milk) && item.cost == 0))
+}
+
+#[test]
+fn test_shop_monkey_team() {
+    let mut team = test_monkey_team();
+
+    team.open_shop().unwrap();
+
+    let ant = team.first().unwrap();
+    let ant_start_stats = ant.borrow().stats;
+    const MONKEY_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 3,
+    };
+
+    team.close_shop().unwrap();
+
+    // Ant got monkey buff at end of turn.
+    assert_eq!(ant.borrow().stats, ant_start_stats + MONKEY_BUFF);
+}
+
+#[test]
+fn test_shop_seal_team() {
+    let mut team = test_seal_team();
+
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    let pets = team.all();
+    let [ant_1, ant_2, seal] = pets.get(0..3).unwrap() else { panic!() };
+    let (ant_1_start_stats, ant_2_start_stats, seal_start_stats) = (
+        ant_1.borrow().stats,
+        ant_2.borrow().stats,
+        seal.borrow().stats,
+    );
+    const SEAL_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    team.buy(&Position::First, &Entity::Food, &Position::Last)
+        .unwrap();
+
+    // Two ants get buff after seal eats food.
+    assert!(
+        ant_1_start_stats + SEAL_BUFF == ant_1.borrow().stats
+            && ant_2_start_stats + SEAL_BUFF == ant_2.borrow().stats
+            && seal_start_stats == seal.borrow().stats
+    );
+}
+
+#[test]
+fn test_shop_moose_team() {
+    let mut team = test_moose_team();
+    let seed = Some(12);
+    team.set_seed(seed)
+        .set_shop_tier(6)
+        .unwrap()
+        .set_shop_seed(seed)
+        .open_shop()
+        .unwrap();
+
+    let (freeze_pos, freeze_item_type) = (Position::All(ItemCondition::None), Entity::Pet);
+    team.freeze_shop(&freeze_pos, &freeze_item_type).unwrap();
+
+    // Items are frozen before the end of the turn.
+    let items = team
+        .get_shop()
+        .get_shop_items_by_pos(&freeze_pos, &freeze_item_type)
+        .unwrap();
+    assert!(items.iter().all(|item| item.is_frozen()));
+    // Min pet tier in shop is 4.
+    let min_tier = items
+        .iter()
+        .min_by(|item_1, item_2| item_1.tier().cmp(&item_2.tier()))
+        .map(|item| item.tier())
+        .unwrap();
+    assert_eq!(min_tier, 4);
+
+    const MOOSE_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    let mult_moose_buff = MOOSE_BUFF * Statistics::new(min_tier, min_tier).unwrap();
+    let buff_target = team.nth(1).unwrap();
+    let buff_target_start_stats = buff_target.borrow().stats;
+
+    // End turn.
+    team.close_shop().unwrap();
+
+    // Items no longer frozen.
+    let items = team
+        .get_shop()
+        .get_shop_items_by_pos(&freeze_pos, &freeze_item_type)
+        .unwrap();
+    assert!(items.iter().all(|item| !item.is_frozen()));
+    // Target gets (4,4) = (1,1) * 4.
+    assert_eq!(
+        buff_target.borrow().stats,
+        buff_target_start_stats + mult_moose_buff
+    );
+}
+
+#[test]
+fn test_shop_goat_team() {
+    let mut team = test_goat_team();
+
+    const PET_COST: usize = 3;
+    const GOAT_REFUND: usize = 1;
+    const START_GOLD: usize = 10;
+
+    team.open_shop().unwrap();
+
+    // Start with this much gold.
+    assert_eq!(team.gold(), START_GOLD);
+
+    let (buy_pos, item_type) = (Position::First, Entity::Pet);
+    let found_items = team
+        .get_shop()
+        .get_shop_items_by_pos(&buy_pos, &item_type)
+        .unwrap();
+    // Pet costs 3 gold.
+    assert_eq!(found_items.first().unwrap().cost, PET_COST);
+
+    // Buy pet.
+    team.buy(&buy_pos, &item_type, &Position::First).unwrap();
+
+    assert_eq!(team.gold(), START_GOLD - PET_COST + GOAT_REFUND);
+}
+
+#[test]
+fn test_shop_poodle_team() {
+    let mut team = test_poodle_team();
+    team.set_seed(Some(12)).open_shop().unwrap();
+
+    let pets = team.all();
+    let [
+        ant,
+        dog_1,
+        dog_2,
+        poodle,
+        tiger
+        ] = pets.get(0..5).unwrap() else { panic!() };
+
+    const POODLE_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+
+    let (
+        ant_start_stats,
+        dog_1_start_stats,
+        dog_2_start_stats,
+        poodle_start_stats,
+        tiger_start_stats,
+    ) = (
+        ant.borrow().stats,
+        dog_1.borrow().stats,
+        dog_2.borrow().stats,
+        poodle.borrow().stats,
+        tiger.borrow().stats,
+    );
+    team.close_shop().unwrap();
+
+    // Only one dog buffed and poodle doesn't buff itself.
+    assert!(
+        ant.borrow().stats == ant_start_stats + POODLE_BUFF
+            && dog_1.borrow().stats == dog_1_start_stats
+            && dog_2.borrow().stats == dog_2_start_stats + POODLE_BUFF
+            && poodle.borrow().stats == poodle_start_stats
+            && tiger.borrow().stats == tiger_start_stats + POODLE_BUFF
+    );
+}
+
+#[test]
+fn test_shop_fox_team() {
+    let mut team = test_fox_team();
+    let seed = Some(12);
+    team.set_seed(seed).set_shop_seed(seed).open_shop().unwrap();
+
+    let fox = team.first().unwrap();
+    // Roll so no money left to buy from shop.
+    for _ in 0..10 {
+        team.roll_shop().unwrap();
+    }
+    // No gold.
+    assert_eq!(team.gold(), 0);
+    // Fox has no item.
+    assert_eq!(fox.borrow().item, None);
+
+    team.close_shop().unwrap();
+
+    // Stole honey from shop.
+    assert_eq!(fox.borrow().item.as_ref().unwrap().name, FoodName::Honey);
+}
+
+#[test]
+fn test_shop_hamster_team() {
+    let mut team = test_hamster_team();
+
+    team.open_shop().unwrap();
+
+    const STARTING_GOLD: usize = 10;
+    assert_eq!(team.gold(), STARTING_GOLD);
+
+    // Each roll with lvl.1 hamster gives one gold back.
+    // Works twice.
+    for _ in 0..2 {
+        team.roll_shop().unwrap();
+        assert_eq!(team.gold(), STARTING_GOLD);
+    }
+
+    // Uses exhausted so now cost 1 gold.
+    team.roll_shop().unwrap();
+    assert_eq!(team.gold(), STARTING_GOLD - 1);
+}
+
+#[test]
+fn test_shop_polar_bear_team() {
+    let mut team = test_polar_bear_team();
+
+    /// Helper function to get first pet stats from shop.
+    fn first_shop_pet_stats(team: &Team, pos: &Position, item_type: &Entity) -> Statistics {
+        let frozen_shop_pet = team
+            .get_shop()
+            .get_shop_items_by_pos(pos, item_type)
+            .unwrap()
+            .into_iter()
+            .next()
+            .unwrap();
+        Statistics::new(
+            frozen_shop_pet.attack_stat().unwrap(),
+            frozen_shop_pet.health_stat().unwrap(),
+        )
+        .unwrap()
+    }
+
+    let (shop_pet_pos, item_type) = (Position::First, Entity::Pet);
+    team.open_shop().unwrap();
+
+    let frozen_shop_pet_start_stats = first_shop_pet_stats(&team, &shop_pet_pos, &item_type);
+    const POLAR_BEAR_BUFF: Statistics = Statistics {
+        attack: 4,
+        health: 4,
+    };
+
+    // Freeze pet.
+    team.freeze_shop(&shop_pet_pos, &item_type)
+        .unwrap()
+        .close_shop()
+        .unwrap();
+
+    // First shop pet gets polar bear buff on start of turn.
+    team.open_shop().unwrap();
+    assert_eq!(
+        frozen_shop_pet_start_stats + POLAR_BEAR_BUFF,
+        first_shop_pet_stats(&team, &shop_pet_pos, &item_type)
+    );
+}
+
+#[test]
+fn test_shop_shoebill_team() {
+    let mut team = test_shoebill_team();
+
+    let affected_pos = Position::All(ItemCondition::None);
+
+    team.open_shop().unwrap();
+
+    // Close shop with no strawberries on friends.
+    let friends_start_stats_no_berry = team
+        .all()
+        .into_iter()
+        .map(|friend| friend.borrow().stats)
+        .collect_vec();
+
+    team.close_shop().unwrap();
+
+    // No change in stats on ending turn.
+    assert_eq!(
+        friends_start_stats_no_berry,
+        team.all()
+            .into_iter()
+            .map(|friend| friend.borrow().stats)
+            .collect_vec()
+    );
+
+    team.open_shop().unwrap();
+
+    // Give team strawberries.
+    team.set_item(
+        &affected_pos,
+        Some(Food::try_from(FoodName::Strawberry).unwrap()),
+    )
+    .unwrap();
+
+    let friends = team.all();
+    let friends_start_stats_w_berry = friends
+        .iter()
+        .map(|friend| friend.borrow().stats)
+        .collect_vec();
+    const SHOEBILL_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 2,
+    };
+
+    // All friends have strawberries.
+    assert!(friends
+        .iter()
+        .all(|pet| pet.borrow().item.as_ref().unwrap().name == FoodName::Strawberry));
+    // End turn.
+    team.close_shop().unwrap();
+
+    let friends_curr_stats = friends
+        .iter()
+        .map(|friend| friend.borrow().stats)
+        .collect_vec();
+
+    for (prev, after) in friends_start_stats_w_berry
+        .iter()
+        .zip_eq(friends_curr_stats.iter())
+    {
+        // Every pet (including shoebill) gets buff since have strawberry.
+        assert_eq!(*prev + SHOEBILL_BUFF, *after)
+    }
+}
+
+#[test]
+fn test_shop_siberian_husky_team() {
+    let mut team = test_siberian_husky_team();
+    let pet_pos_w_no_item = Position::First;
+    // Give ant at front garlic.
+    team.open_shop()
+        .unwrap()
+        .set_item(
+            &pet_pos_w_no_item,
+            Some(Food::try_from(FoodName::Garlic).unwrap()),
+        )
+        .unwrap();
+
+    let all_pets = team.all();
+    let [ant, dog, husky, tiger] = all_pets.get(0..4).unwrap() else { panic!() };
+    let (ant_start_stats, dog_start_stats, husky_start_stats, tiger_start_stats) = all_pets
+        .iter()
+        .map(|pet| pet.borrow().stats)
+        .collect_tuple()
+        .unwrap();
+    const HUSKY_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+
+    team.close_shop().unwrap();
+
+    // All pets w/o an item (excluding husky) get husky buff.
+    assert!(
+        ant.borrow().stats == ant_start_stats
+            && dog.borrow().stats == dog_start_stats + HUSKY_BUFF
+            && husky.borrow().stats == husky_start_stats
+            && tiger.borrow().stats == tiger_start_stats + HUSKY_BUFF
+    );
+}
+
+#[test]
+fn test_shop_zebra_team() {
+    let mut team = Team::new(&[Some(Pet::try_from(PetName::Ant).unwrap())], 5).unwrap();
+
+    // Create shop with Cow inside.
+    let mut shop = Shop::default();
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::Zebra).unwrap()))
+        .unwrap();
+
+    // Replace shop.
+    team.replace_shop(shop).unwrap().open_shop().unwrap();
+
+    let ant = team.first().unwrap();
+
+    const ZEBRA_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 2,
+    };
+    let ant_start_stats = ant.borrow().stats;
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    // Ant gets buff when zebra bought.
+    assert_eq!(ant.borrow().stats, ant_start_stats + ZEBRA_BUFF);
+
+    team.sell(&Position::First).unwrap();
+
+    // Ant gets additional buff when zebra sold.
+    assert_eq!(
+        ant.borrow().stats,
+        ant_start_stats + ZEBRA_BUFF + ZEBRA_BUFF
+    );
 }

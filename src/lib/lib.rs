@@ -21,8 +21,8 @@
 //! team.set_seed(Some(25));
 //!
 //! // Give food to pets.
-//! team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
-//! enemy_team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
+//! team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok());
+//! enemy_team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok());
 //!
 //! // And fight!
 //! team.fight(&mut enemy_team);
@@ -58,7 +58,7 @@
 //!         &Position::Relative(-2), // To 2nd pet behind.
 //!         true // And merge them if possible.
 //!     ).unwrap()
-//!     .freeze_shop(Position::Last, Entity::Pet).unwrap()
+//!     .freeze_shop(&Position::Last, &Entity::Pet).unwrap()
 //!     .roll_shop().unwrap()
 //!     .close_shop().unwrap();
 //!

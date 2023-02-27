@@ -138,7 +138,7 @@ const SUSHI_ENTRY: &str = "
 
 const PEANUTS_ENTRY: &str = "
 |N/A
-|{{IconSAP|Peanuts}}
+|{{IconSAP|Peanut}}
 |Knockout any pet attacked and hurt by this.
 |Yes (summoned)
 |Yes
@@ -318,7 +318,7 @@ fn test_parse_missing_data_food_entry() {
 fn food_cost() {
     assert_eq!(3, get_food_cost("Cupcake"));
     assert_eq!(1, get_food_cost("Sleeping Pill"));
-    assert_eq!(0, get_food_cost("Weakness"))
+    assert_eq!(0, get_food_cost("Weak"))
 }
 
 #[test]
@@ -334,7 +334,7 @@ fn test_holdable_item() {
     // Exception. Only correct because matches name.
     assert_eq!(
         true,
-        is_holdable_item("Peanuts", &clean_link_text(PEANUTS_ENTRY))
+        is_holdable_item("Peanut", &clean_link_text(PEANUTS_ENTRY))
     );
     assert_eq!(
         false,

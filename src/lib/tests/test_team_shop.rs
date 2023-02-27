@@ -138,7 +138,7 @@ fn test_shop_invalid_states() {
 
     // Cannot freeze items in a closed shop.
     assert!(custom_team
-        .freeze_shop(Position::First, Entity::Food)
+        .freeze_shop(&Position::First, &Entity::Food)
         .is_err());
 
     // Cannot roll items in a closed shop.
@@ -177,9 +177,9 @@ fn test_team_shop_freeze() {
 
     team.open_shop()
         .unwrap()
-        .freeze_shop(Position::All(ItemCondition::None), Entity::Pet)
+        .freeze_shop(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap()
-        .freeze_shop(Position::All(ItemCondition::None), Entity::Food)
+        .freeze_shop(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap()
         .close_shop()
         .unwrap();

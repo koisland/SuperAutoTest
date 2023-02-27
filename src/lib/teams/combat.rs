@@ -13,7 +13,7 @@ use crate::{
 };
 
 /// Enables combat between two [`Team`]s.
-/// ```rust no run
+/// ```rust no_run
 /// use saptest::TeamCombat;
 /// ```
 pub trait TeamCombat {
@@ -69,7 +69,7 @@ pub trait TeamCombat {
 
     /// Restore a team to its initial state.
     /// # Example
-    /// ```rust no run
+    /// ```rust no_run
     /// use saptest::{Pet, PetName, Team, TeamCombat, TeamEffects};
     ///
     /// // Empty team.

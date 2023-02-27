@@ -390,7 +390,7 @@ fn test_battle_racoon_team() {
     // Give melon to first pet.
     enemy_team
         .set_item(
-            Position::First,
+            &Position::First,
             Some(Food::try_from(FoodName::Garlic).unwrap()),
         )
         .unwrap();

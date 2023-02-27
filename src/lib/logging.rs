@@ -21,7 +21,7 @@ const RUN_LOGFILE: &str = "./log/saptest_run.log";
 /// 3. `./log/saptest_run.log`
 ///     * Run log showing breakdown of steps.
 ///
-/// ```rust no run
+/// ```rust no_run
 /// use saptest::logging::build_log_config;
 ///
 /// fn main() {

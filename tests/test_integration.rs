@@ -121,7 +121,7 @@ fn test_create_team() {
         .unwrap()
         // Give the 2nd pet behind current pet Garlic.
         .set_item(
-            Position::Relative(-2),
+            &Position::Relative(-2),
             Food::try_from(FoodName::Garlic).ok(),
         )
         .unwrap();
@@ -151,7 +151,7 @@ fn test_team_shop() {
         .unwrap()
         .sell(&Position::First)
         .unwrap()
-        .freeze_shop(Position::Last, Entity::Pet)
+        .freeze_shop(&Position::Last, &Entity::Pet)
         .unwrap()
         .roll_shop()
         .unwrap()

@@ -147,7 +147,14 @@ pub enum Action {
     AddShopPet(SummonType),
     /// Clear shop items.
     ClearShop(Entity),
-    /// Get gold.
+    /// Get `1` gold.
+    /// * To chain multiple:
+    ///
+    /// ```no_run
+    /// use saptest::effects::actions::Action;
+    /// // Get 3 gold.
+    /// let multiple_gold = Action::Multiple(vec![Action::Profit; 3]);
+    /// ```
     Profit,
     /// Reduce cost of shop item.
     Discount(Entity, usize),
@@ -171,6 +178,12 @@ pub enum Action {
     Tapir,
     /// Hardcoded cockroach ability.
     Cockroach,
+    /// Hardcoded moose ability
+    /// * Arg determines base stats before multiplier of buff added to random friend.
+    Moose(Statistics),
+    /// Hardcoded fox ability.
+    /// * Arg determines the buff multiplier.
+    Fox(Entity, usize),
     /// Gain one experience point.
     Experience,
     /// Endure damage so health doesn't go below one.
