@@ -1,4 +1,4 @@
-//! Battle logic for a [`Team`](crate::battle::team::Team).
+//! Effects in Super Auto Pets
 
 /// [`Effect`](crate::Effect) actions and their possible types.
 pub mod actions;
@@ -8,11 +8,5 @@ pub mod effect;
 pub mod state;
 /// [`Pet`](crate::Pet) and [`Food`](crate::Food) stats.
 pub mod stats;
-/// [`Team`](crate::Team) of [`Pet`](crate::Pet)s.
-pub mod team;
-/// [`Effect`](crate::Effect) application to one or more [`Team`](crate::Team)s.
-pub mod team_effect_apply;
-/// Serialize a [`Team`](crate::Team) using [`serde_json`].
-pub mod team_serialize;
 /// [`Effect`](crate::Effect) triggers.
 pub mod trigger;

@@ -3,7 +3,7 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    battle::effect::Effect, db::record::FoodRecord, error::SAPTestError, foods::names::FoodName,
+    db::record::FoodRecord, effects::effect::Effect, error::SAPTestError, foods::names::FoodName,
     SAPDB,
 };
 
@@ -12,6 +12,8 @@ use crate::{
 pub struct Food {
     /// A food name.
     pub name: FoodName,
+    /// Food tier.
+    pub tier: usize,
     /// A food effect.
     pub ability: Effect,
     /// Whether the food is holdable.
@@ -20,6 +22,8 @@ pub struct Food {
     pub temp: bool,
     /// The cost of a food.
     pub cost: usize,
+    /// Number of targets this food affects.
+    pub n_targets: usize,
 }
 impl TryFrom<FoodName> for Food {
     type Error = SAPTestError;
@@ -86,10 +90,12 @@ impl Food {
 
         Ok(Food {
             name: name.clone(),
+            tier: food_record.tier,
             ability: effect,
             temp: food_record.single_use,
             holdable: food_record.holdable,
             cost: food_record.cost,
+            n_targets: food_record.n_targets,
         })
     }
 }

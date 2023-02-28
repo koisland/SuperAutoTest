@@ -1,8 +1,8 @@
 use crate::{
-    battle::{
+    effects::{
         actions::{Action, StatChangeType},
         effect::Entity,
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -47,7 +47,7 @@ fn test_attack_pet() {
 #[test]
 fn test_create_def_pet() {
     let mut pet = Pet::try_from(PetName::Ant).unwrap();
-    pet.seed = 0;
+    pet.seed = Some(0);
 
     assert_eq!(
         pet,
@@ -61,20 +61,20 @@ fn test_create_def_pet() {
             },
             lvl: 1,
             exp: 0,
+            cost: 3,
             effect: vec![Effect {
                 owner: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Any(Condition::None),
+                position: Position::Any(ItemCondition::None),
                 action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],
             item: None,
             pos: None,
-            cost: 3,
-            seed: 0
+            seed: Some(0)
         }
     )
 }
@@ -90,7 +90,7 @@ fn test_get_effect() {
             entity: Entity::Pet,
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
-            position: Position::Any(Condition::None),
+            position: Position::Any(ItemCondition::None),
             action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
             uses: Some(1),
             temp: false
@@ -156,7 +156,7 @@ fn test_create_pet() {
     )
     .unwrap();
 
-    test_ant.seed = 0;
+    test_ant.seed = Some(0);
 
     assert_eq!(
         test_ant,
@@ -170,20 +170,20 @@ fn test_create_pet() {
             },
             lvl: 1,
             exp: 0,
+            cost: 3,
             effect: vec![Effect {
                 owner: None,
                 entity: Entity::Pet,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::Any(Condition::None),
+                position: Position::Any(ItemCondition::None),
                 action: Action::Add(StatChangeType::StaticValue(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],
             item: None,
             pos: None,
-            cost: 3,
-            seed: 0
+            seed: Some(0)
         }
     )
 }
@@ -200,7 +200,7 @@ fn create_pet_token() {
         1,
     )
     .unwrap();
-    test_bee.seed = 0;
+    test_bee.seed = Some(0);
 
     assert_eq!(
         test_bee,
@@ -214,11 +214,11 @@ fn create_pet_token() {
             },
             lvl: 1,
             exp: 0,
+            cost: 0,
             effect: vec![],
             item: None,
             pos: None,
-            cost: 0,
-            seed: 0
+            seed: Some(0)
         }
     );
 }
@@ -230,6 +230,41 @@ fn test_set_pos() {
     assert!(test_ant.pos == Some(0))
 }
 
+#[test]
+fn test_swap_pet() {
+    let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
+    let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
+    let (pet_1_copy, pet_2_copy) = (pet_1.clone(), pet_2.clone());
+    pet_1.swap(&mut pet_2);
+
+    assert_eq!(pet_1_copy, pet_2);
+    assert_eq!(pet_2_copy, pet_1);
+}
+
+#[test]
+fn test_merge_pets() {
+    let mut pet = Pet::try_from(PetName::Gorilla).unwrap();
+    let other_pet = Pet::try_from(PetName::Gorilla).unwrap();
+
+    assert!(pet.merge(&other_pet).is_ok());
+    assert_eq!(pet.stats, Statistics::new(7, 10).unwrap())
+}
+
+#[test]
+fn test_swap_pet_stats() {
+    let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
+    let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
+    assert!(
+        pet_1.stats == Statistics::new(6, 9).unwrap()
+            && pet_2.stats == Statistics::new(10, 4).unwrap()
+    );
+
+    pet_1.swap_stats(&mut pet_2);
+    assert!(
+        pet_1.stats == Statistics::new(10, 4).unwrap()
+            && pet_2.stats == Statistics::new(6, 9).unwrap()
+    );
+}
 #[test]
 fn test_add_experience() {
     let mut test_ant = Pet::try_from(PetName::Ant).unwrap();

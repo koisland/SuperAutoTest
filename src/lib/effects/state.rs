@@ -6,93 +6,140 @@ use std::{
     rc::{Rc, Weak},
 };
 
-use crate::{battle::stats::Statistics, foods::names::FoodName, pets::pet::Pet, PetName};
+use crate::{
+    effects::{effect::EntityName, stats::Statistics},
+    error::SAPTestError,
+    pets::pet::Pet,
+    shop::store::ShopState,
+    FoodName,
+};
 
-/// The outcome of a [`Team`](crate::battle::team::Team) fight.
-///
-/// # Examples
-/// This can be used as an exit condition in a fight.
-/// ```rust
-/// use saptest::{Team, Pet, PetName, Statistics, battle::state::TeamFightOutcome};
-///
-/// let pet = Pet::try_from(PetName::Blowfish).unwrap();
-/// let mut team = Team::new(&vec![pet.clone(); 5], 5).unwrap();
-/// let mut enemy_team = Team::clone(&team);
-///
-/// // Continue fighting while the winner of a fight is None.
-/// let mut winner = team.fight(&mut enemy_team);
-/// while let TeamFightOutcome::None = winner {
-///     winner = team.fight(&mut enemy_team);
-/// }
-/// ```
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum TeamFightOutcome {
-    /// Outcome of fight is a win.
-    Win,
-    /// Outcome of fight is a loss.
-    Loss,
-    /// Outcome of fight is a draw.
-    Draw,
-    /// No outcome for fight.
-    None,
+use super::actions::Action;
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Possible equality conditions to check.
+pub enum EqualityCondition {
+    /// Is same pet.
+    IsSelf,
+    /// Is this tier.
+    Tier(usize),
+    /// Has same name.
+    Name(EntityName),
+    /// Is this level.
+    Level(usize),
+    /// Has this [`Action`].
+    Action(Box<Action>),
+    /// Triggered by this [`Status`].
+    Trigger(Status),
+    /// Is frozen. Only available for shops.
+    Frozen,
 }
 
-/// Conditions to select [`Pet`]s by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
-pub enum Condition {
-    /// Choose the healthiest (highest health) pet.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions a `Team` is in.
+pub enum TeamCondition {
+    /// Previous team fight was win.
+    PreviousWon,
+    /// Previous team fight was draw.
+    PreviousDraw,
+    /// Previous team fight was loss.
+    PreviousLoss,
+    /// Has this many open slots.
+    OpenSpaceEqual(usize),
+    /// Has this many pets on team.
+    NumberPetsEqual(usize),
+    /// Has this many or more pets on team.
+    NumberPetsGreaterEqual(usize),
+}
+
+impl TryFrom<&TeamCondition> for Status {
+    type Error = SAPTestError;
+
+    fn try_from(value: &TeamCondition) -> Result<Self, Self::Error> {
+        match value {
+            TeamCondition::PreviousWon => Ok(Status::WinBattle),
+            TeamCondition::PreviousDraw => Ok(Status::DrawBattle),
+            TeamCondition::PreviousLoss => Ok(Status::LoseBattle),
+            _ => Err(SAPTestError::InvalidTeamAction {
+                subject: "Convert TeamCondition Failure".to_string(),
+                reason: "Team Condition must match a possible battle status (ex. Win or Lose)"
+                    .to_string(),
+            }),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions a `Shop` is in.
+pub enum ShopCondition {
+    /// Shop is in this state.
+    InState(ShopState),
+    /// Gold is equal to this amount.
+    GoldEqual(usize),
+    /// Gold is greater than or equal to this amount.
+    GoldGreaterEqual(usize),
+}
+
+/// Conditions to select [`Pet`]s or [`ShopItem`](crate::shop::store::ShopItem) by.
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum ItemCondition {
+    /// Is the healthiest (highest health) pet.
     Healthiest,
-    /// Choose the illest (lowest health) pet.
+    /// Is the illest (lowest health) pet.
     Illest,
-    /// Choose the stronges (highest attack) pet.
+    /// Is the strongest (highest attack) pet.
     Strongest,
-    /// Choose the weakest (lowest attack) pet.
+    /// Is the weakest (lowest attack) pet.
     Weakest,
-    /// Highest tier pet.
+    /// Is highest tier pet.
     HighestTier,
-    /// Lowest tier pet.
+    /// Is lowest tier pet.
     LowestTier,
-    /// Choose all pets that have an item with a given [`FoodName`].
-    HasFood(Option<FoodName>),
-    /// Choose all pet that have an [`Effect`](crate::Effect) triggered by some [`Status`].
-    TriggeredBy(Status),
     /// Multiple conditions.
-    Multiple(Vec<Condition>),
+    Multiple(Vec<ItemCondition>),
     /// Multiple conditions. All must be met to be included.
-    MultipleAll(Vec<Condition>),
-    /// Ignore self.
-    NotSelf,
-    /// Not a specific [`PetName`].
-    NotPetName(PetName),
-    /// No condition.
+    MultipleAll(Vec<ItemCondition>),
+    /// Has the quality.
+    Equal(EqualityCondition),
+    /// Doesn't have this quality.
+    NotEqual(EqualityCondition),
+    /// All alive pets.
     None,
 }
 
 /// Positions to select pets by.
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Position {
-    ///Some number of [`Pet`]s based on a given [`Condition`].
-    N(Condition, usize),
-    /// Any [`Pet`] that matches a given [`Condition`].
-    Any(Condition),
-    /// All [`Pet`]s that match a given [`Condition`].
-    All(Condition),
+    /// Some number of [`Pet`]s based on a given [`ItemCondition`].
+    /// * 3rd argument will shuffle any found pets.
+    N(ItemCondition, usize, bool),
+    /// Any [`Pet`] that matches a given [`ItemCondition`].
+    Any(ItemCondition),
+    /// All [`Pet`]s that match a given [`ItemCondition`].
+    All(ItemCondition),
     /// Position of self.
     OnSelf,
     /// Pet affected in [`Outcome`] trigger.
     TriggerAffected,
     /// Pet causing in [`Outcome`] trigger.
     TriggerAfflicting,
-    /// First pet on [`Team`](crate::battle::team::Team).
+    /// First pet on [`Team`](crate::teams::team::Team).
     First,
-    /// Last pet on [`Team`](crate::battle::team::Team).
+    /// Last pet on [`Team`](crate::teams::team::Team).
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
-    /// A specified range on a [`Team`](crate::battle::team::Team).
+    /// Pets ahead of current pet.
+    Ahead,
+    /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].
+    /// * Note: Empty slots are taken into consideration.
     Relative(isize),
+    /// Nearest pet(s) ahead or behind from current [`Pet`].
+    /// * Negative values check pets behind.
+    /// * Positive values check pets ahead.
+    Nearest(isize),
     /// Multiple [`Position`]s.
     Multiple(Vec<Position>),
     /// All [`Pet`]'s adjacent to current index.
@@ -185,7 +232,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mut faint_trigger = TRIGGER_SELF_FAINT.clone();
@@ -204,7 +251,7 @@ impl Outcome {
     /// # Example.
     /// ```
     /// use std::{rc::Rc, cell::RefCell};
-    /// use saptest::{Pet, PetName, battle::trigger::TRIGGER_SELF_FAINT};
+    /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
     /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mosquito = Rc::new(RefCell::new(Pet::try_from(PetName::Mosquito).unwrap()));
@@ -223,7 +270,7 @@ impl Outcome {
     /// Get the affected pet of a trigger.
     /// # Example
     /// ```
-    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::effects::trigger::TRIGGER_START_BATTLE;
     /// // No single affected pet as affects every pet.
     /// assert!(TRIGGER_START_BATTLE.get_affected().is_none())
     /// ```
@@ -234,7 +281,7 @@ impl Outcome {
     /// Get the afflicting pet of a trigger.
     /// # Example
     /// ```
-    /// use saptest::battle::trigger::TRIGGER_START_BATTLE;
+    /// use saptest::effects::trigger::TRIGGER_START_BATTLE;
     /// // No single afflicting pet as no pet causes the start of battle.
     /// assert!(TRIGGER_START_BATTLE.get_afflicting().is_none())
     /// ```
@@ -249,20 +296,36 @@ pub enum Status {
     StartTurn,
     /// End of Turn.
     EndTurn,
+    /// Shop tier upgraded.
+    ShopTierUpgrade,
     /// Start of Battle.
     StartOfBattle,
     /// After start of battle, prior to first battle.
     BeforeFirstBattle,
-    /// End of Battle.
-    EndOfBattle,
+    /// Won the Battle.
+    WinBattle,
+    /// Loss the battle.
+    LoseBattle,
+    /// Drew
+    DrawBattle,
     /// Before pet attacks.
     BeforeAttack,
     /// Pet is attacking.
     Attack,
+    /// Any damage calculation
+    AnyDmgCalc,
+    /// Indirect dmg attack calculation.
+    IndirectAttackDmgCalc,
+    /// Direct dmg attack calculation.
+    AttackDmgCalc,
     /// Pet levels up.
     Levelup,
     /// Food bought.
     BuyFood,
+    /// Food eaten.
+    AteFood,
+    /// Specific food eaten.
+    AteSpecificFood(FoodName),
     /// Pet bought.
     BuyPet,
     /// Pet sold.

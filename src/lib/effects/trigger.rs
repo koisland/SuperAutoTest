@@ -1,7 +1,9 @@
-use crate::battle::{
-    state::{Condition, Outcome, Position, Status, Target},
+use crate::effects::{
+    state::{ItemCondition, Outcome, Position, Status, Target},
     stats::Statistics,
 };
+
+use super::state::EqualityCondition;
 
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
 pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 2] {
@@ -22,10 +24,6 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
 
     [self_faint, any_faint, ahead_faint]
 }
-
-/// All start of battle triggers.
-/// * Currently start of turn triggers are included as `Shop`s have not been implemented.
-pub const ALL_TRIGGERS_START_BATTLE: [Outcome; 2] = [TRIGGER_START_TURN, TRIGGER_START_BATTLE];
 
 /// Start of battle trigger.
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {
@@ -72,15 +70,70 @@ pub const TRIGGER_END_TURN: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// End of battle trigger.
-pub const TRIGGER_END_BATTLE: Outcome = Outcome {
-    status: Status::EndOfBattle,
+/// Won battle trigger.
+pub const TRIGGER_WIN_BATTLE: Outcome = Outcome {
+    status: Status::WinBattle,
     position: Position::None,
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
+};
+
+/// Won battle trigger.
+pub const TRIGGER_LOSE_BATTLE: Outcome = Outcome {
+    status: Status::LoseBattle,
+    position: Position::None,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::None,
+    afflicting_team: Target::None,
+};
+
+/// Draw battle trigger.
+pub const TRIGGER_DRAW_BATTLE: Outcome = Outcome {
+    status: Status::DrawBattle,
+    position: Position::None,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::None,
+    afflicting_team: Target::None,
+};
+
+/// Triggers for either attack or indirect attack damage calculation.
+pub const TRIGGER_DMG_CALC: Outcome = Outcome {
+    status: Status::AnyDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
+/// Triggers for only attack dmg calculation.
+pub const TRIGGER_ATK_DMG_CALC: Outcome = Outcome {
+    status: Status::AttackDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};
+
+/// Triggers for only indirect attack calculation.
+pub const TRIGGER_INDIR_DMG_CALC: Outcome = Outcome {
+    status: Status::IndirectAttackDmgCalc,
+    affected_pet: None,
+    affected_team: Target::None,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
 };
 
 /// Trigger for nothing?
@@ -117,10 +170,21 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) levelsup.
+pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
+    status: Status::Levelup,
+    position: Position::OnSelf,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};
+
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -132,7 +196,7 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -166,7 +230,7 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
 /// Trigger for when the friend ahead [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Relative(-1),
+    position: Position::Relative(1),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -188,7 +252,7 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
 /// Trigger for when the any friendly [`Pet`](crate::pets::pet::Pet) is hurt.
 pub const TRIGGER_ANY_HURT: Outcome = Outcome {
     status: Status::Hurt,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -200,7 +264,7 @@ pub const TRIGGER_ANY_HURT: Outcome = Outcome {
 /// Trigger for when the any enemy [`Pet`](crate::pets::pet::Pet) is hurt.
 pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
     status: Status::Hurt,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     // Gets replaced at runtime.
     affected_pet: None,
     afflicting_pet: None,
@@ -235,7 +299,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
 /// * Ignore self.
 pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     status: Status::BeforeAttack,
-    position: Position::Any(Condition::NotSelf),
+    position: Position::Any(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -246,7 +310,7 @@ pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
 /// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead attacks.
 pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     status: Status::Attack,
-    position: Position::Relative(1),
+    position: Position::Nearest(1),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -268,7 +332,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is summoned.
 pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -279,7 +343,7 @@ pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is summoned.
 pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -290,7 +354,7 @@ pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
 /// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is pushed.
 pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -301,7 +365,7 @@ pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
 /// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is pushed.
 pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -312,7 +376,7 @@ pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
 /// Trigger for when any friend [`Pet`](crate::pets::pet::Pet) levels up.
 pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     status: Status::Levelup,
-    position: Position::Any(Condition::None),
+    position: Position::Any(ItemCondition::None),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,

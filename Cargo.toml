@@ -8,13 +8,14 @@ lazy-regex = "2.3.1"
 regex = "1.5"
 itertools = "0.10.5"
 log = "0.4.17"
-log4rs = {version = "1.2.0", features = ["rolling_file_appender", "compound_policy", "size_trigger", "fixed_window_roller"]}
+log4rs = "1.2.0"
 petgraph = "0.6.2"
 rand_chacha = "0.3.1"
 thiserror = "1.0.38"
 lazy_static = "1.4.0"
 r2d2_sqlite = "0.21.0"
 r2d2 = "0.8.10"
+toml = "0.7.2"
 
 [dev-dependencies]
 criterion = {version = "0.3", features = ["html_reports"]}
@@ -29,7 +30,7 @@ path = "src/lib/lib.rs"
 
 [package]
 name = "saptest"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Keisuke K. Oshima <koshima789@gmail.com>"]
 description = "A library for testing Super Auto Pets teams."

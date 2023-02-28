@@ -1,4 +1,4 @@
-//! Error types for library.
+//! Error types.
 
 use thiserror::Error;
 
@@ -54,6 +54,15 @@ pub enum SAPTestError {
         /// Subject of action.
         subject: String,
         /// Reason for action failure.
+        reason: String,
+    },
+
+    /// Shop error.
+    #[error("Invalid shop action: {subject:?} due to {reason:?}")]
+    InvalidShopAction {
+        /// Subject of invalid shop action.
+        subject: String,
+        /// Failure reason.
         reason: String,
     },
 

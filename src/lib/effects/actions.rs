@@ -1,12 +1,12 @@
 use crate::{
-    battle::{
+    effects::{
         effect::Effect,
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
         stats::Statistics,
     },
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
-    PetName,
+    Entity, PetName,
 };
 use serde::{Deserialize, Serialize};
 
@@ -50,17 +50,25 @@ pub enum SummonType {
     CustomPet(PetName, StatChangeType, usize),
     /// Summon the pet owning the effect of this action.
     SelfPet(Statistics),
+    /// Summon a pet at the same tier as this pet with default stats.
+    SelfTierPet,
 }
 
-/// Types of item gains for Action::Gain.
+/// Types of item gains for [`Action::Gain`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum GainType {
     /// Gain the item of the pet owning the effect of this action.
     SelfItem,
     /// Gain the default food item.
     DefaultItem(FoodName),
+    /// Query item.
+    QueryItem(String, Vec<String>),
+    /// Random shop item.
+    RandomShopItem,
     /// Gain the stored item.
     StoredItem(Box<Food>),
+    /// Remove item.
+    NoItem,
 }
 
 /// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can alter pets.
@@ -72,13 +80,28 @@ pub enum RandomizeType {
     Stats,
 }
 
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions for [`LogicType`].
+pub enum ConditionType {
+    /// Pet condition.
+    Pet(Target, ItemCondition),
+    /// Team condition.
+    Team(TeamCondition),
+    /// Shop condition.
+    Shop(ShopCondition),
+}
+
 /// Conditional logic for [`Action::Conditional`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
-pub enum ConditionType {
-    /// Do multiple `Action`s based on number of `Pet`s matching a `Condition`.
-    ForEach(Target, Condition),
-    /// If target `Pet` meets condition, do `Action`.
-    If(Target, Condition),
+pub enum LogicType {
+    /// Do multiple `Action`s based on number of times [`ConditionType`] met.
+    ForEach(ConditionType),
+    /// If [`ConditionType`] met, do `Action`.
+    If(ConditionType),
+    /// If [`ConditionType`] not met, do `Action`.
+    IfNot(ConditionType),
+    /// If any [`ConditionType`].
+    IfAny(ConditionType),
 }
 
 /// Pet actions.
@@ -116,14 +139,33 @@ pub enum Action {
     Invincible,
     /// Gain a `Food` item.
     Gain(GainType),
-    /// WIP: Get gold.
+    /// Add permanent stats to shop.
+    AddShopStats(Statistics),
+    /// Add a shop food.
+    AddShopFood(GainType),
+    /// Add a shop pet.
+    AddShopPet(SummonType),
+    /// Clear shop items.
+    ClearShop(Entity),
+    /// Get `1` gold.
+    /// * To chain multiple:
+    ///
+    /// ```no_run
+    /// use saptest::effects::actions::Action;
+    /// // Get 3 gold.
+    /// let multiple_gold = Action::Multiple(vec![Action::Profit; 3]);
+    /// ```
     Profit,
+    /// Reduce cost of shop item.
+    Discount(Entity, usize),
+    /// Free roll.
+    FreeRoll,
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(SummonType),
     /// Do multiple `Action`s.
     Multiple(Vec<Action>),
     /// Perform a conditional `Action`.
-    Conditional(ConditionType, Box<Action>),
+    Conditional(LogicType, Box<Action>),
     /// Hardcoded rhino ability.
     Rhino(Statistics),
     /// Hardcoded lynx ability.
@@ -134,9 +176,17 @@ pub enum Action {
     Stegosaurus(Statistics),
     /// Hardcoded tapir ability.
     Tapir,
+    /// Hardcoded cockroach ability.
+    Cockroach,
+    /// Hardcoded moose ability
+    /// * Arg determines base stats before multiplier of buff added to random friend.
+    Moose(Statistics),
+    /// Hardcoded fox ability.
+    /// * Arg determines the buff multiplier.
+    Fox(Entity, usize),
     /// Gain one experience point.
     Experience,
-    /// WIP: Endure damage so health doesn't go below one.
+    /// Endure damage so health doesn't go below one.
     Endure,
     #[default]
     /// No action to take.

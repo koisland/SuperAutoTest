@@ -1,8 +1,23 @@
 #[cfg(test)]
+mod test_parse_pet;
+
+#[cfg(test)]
+mod test_parse_food;
+
+#[cfg(test)]
+mod test_parse_token;
+
+#[cfg(test)]
 mod test_pet;
 
 #[cfg(test)]
 mod test_food;
+
+#[cfg(test)]
+mod test_shop;
+
+#[cfg(test)]
+mod test_team_shop;
 
 #[cfg(test)]
 mod test_team_build;

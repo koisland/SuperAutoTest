@@ -1,9 +1,10 @@
 use crate::{
-    battle::{
+    effects::{
         actions::Action,
         state::{Outcome, Position, Target},
     },
-    Pet,
+    error::SAPTestError,
+    FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -12,14 +13,23 @@ use std::{
     rc::{Rc, Weak},
 };
 
-/// Owner of [`Effect`].
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq, Default)]
+/// A Super Auto Pets entity.
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Entity {
     #[default]
     /// A [`Pet`](crate::pets::pet::Pet).
     Pet,
     /// A [`Food`](crate::foods::food::Food).
     Food,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+/// [`Entity`] names.
+pub enum EntityName {
+    /// Pet name.
+    Pet(PetName),
+    /// Food name.
+    Food(FoodName),
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.
@@ -57,16 +67,35 @@ impl PartialEq for Effect {
     }
 }
 
+impl TryFrom<&Effect> for Rc<RefCell<Pet>> {
+    type Error = SAPTestError;
+
+    fn try_from(effect: &Effect) -> Result<Self, Self::Error> {
+        effect
+            .owner
+            .as_ref()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Missing Effect Owner".to_string(),
+                reason: format!("{effect:?} has no owner."),
+            })?
+            .upgrade()
+            .ok_or(SAPTestError::InvalidTeamAction {
+                subject: "Dropped Owner".to_string(),
+                reason: "Pet reference dropped.".to_string(),
+            })
+    }
+}
+
 impl Effect {
     /// Generate a new effect.
     /// # Example
     /// ```rust
     /// use saptest::{
-    ///     Effect, Outcome, Statistics,
-    ///     battle::{
+    ///     Effect, Statistics,
+    ///     effects::{
     ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
-    ///         state::{Position, Target, Condition},
+    ///         state::{Position, Target, ItemCondition, Outcome},
     ///         actions::{Action, StatChangeType}
     ///     }
     /// };
@@ -74,7 +103,7 @@ impl Effect {
     ///     Entity::Pet,
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
-    ///     Position::Any(Condition::None),
+    ///     Position::Any(ItemCondition::None),
     ///     Action::Add(StatChangeType::StaticValue(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false
@@ -141,7 +170,7 @@ impl Display for Effect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[Effect (Uses: {:?}): ({:?}) - Trigger: {:?} - Action: {:?} on {:?} ({:?}) ]",
+            "[Effect (Uses: {:?}): ({:?}) - Trigger: {} - Action: {:?} on {:?} ({:?}) ]",
             self.uses, self.entity, self.trigger, self.action, self.target, self.position
         )
     }
@@ -152,7 +181,7 @@ pub trait Modify {
     /// Add `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();
@@ -166,7 +195,7 @@ pub trait Modify {
     /// Remove `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, battle::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();

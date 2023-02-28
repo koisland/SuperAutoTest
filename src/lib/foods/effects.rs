@@ -1,20 +1,22 @@
 use crate::{
-    battle::{
-        actions::{Action, StatChangeType, SummonType},
+    db::record::FoodRecord,
+    effects::{
+        actions::{Action, RandomizeType, StatChangeType, SummonType},
         effect::{Effect, Entity},
-        state::{Condition, Position, Target},
+        state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,
     },
-    db::record::FoodRecord,
     error::SAPTestError,
     foods::names::FoodName,
     pets::{
         names::PetName,
         pet::{MAX_PET_STATS, MIN_PET_STATS},
     },
+    shop::trigger::TRIGGER_SELF_FOOD_EATEN,
 };
 
+/// May need to be similar to Pet effects as Vec<Effect> at some point.
 impl TryFrom<&FoodRecord> for Effect {
     type Error = SAPTestError;
 
@@ -44,7 +46,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Invincible,
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Garlic | FoodName::Lemon => Effect {
@@ -54,7 +56,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Negate(effect_stats),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Honey => Effect {
@@ -74,7 +76,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Melon => Effect {
@@ -84,7 +86,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Negate(effect_stats),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Mushroom => Effect {
@@ -107,7 +109,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Kill,
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Steak => Effect {
@@ -117,7 +119,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
             FoodName::Weak => {
@@ -129,7 +131,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 Effect {
                     owner: None,
                     entity: Entity::Food,
-                    trigger: TRIGGER_NONE,
+                    trigger: TRIGGER_DMG_CALC,
                     target: Target::Friend,
                     position: Position::OnSelf,
                     action: Action::Remove(StatChangeType::StaticValue(vulnerable_stats)),
@@ -140,7 +142,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::SleepingPill => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Kill,
@@ -161,8 +163,8 @@ impl TryFrom<&FoodRecord> for Effect {
                 owner: None,
                 entity: Entity::Food,
                 trigger: TRIGGER_START_TURN,
-                target: Target::Friend,
-                position: Position::OnSelf,
+                target: Target::Shop,
+                position: Position::None,
                 action: Action::Profit,
                 uses,
                 temp: record.end_of_battle,
@@ -170,7 +172,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Chocolate => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Experience,
@@ -180,7 +182,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Pepper => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Endure,
@@ -192,40 +194,41 @@ impl TryFrom<&FoodRecord> for Effect {
                 entity: Entity::Food,
                 trigger: TRIGGER_NONE,
                 target: Target::Shop,
-                position: Position::All(Condition::None),
-                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                position: Position::None,
+                action: Action::AddShopStats(effect_stats),
                 uses,
                 temp: record.end_of_battle,
             },
             FoodName::FortuneCookie => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_ATK_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Critical(50),
-                uses,
+                uses: None,
                 temp: record.end_of_battle,
             },
             FoodName::Cheese => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_ATK_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Critical(100),
                 uses,
                 temp: record.end_of_battle,
             },
-            // FoodName::Pineapple => Effect {  owner: None,
-            //     entity: Entity::Food,
-            //     trigger: TRIGGER_NONE,
-            //     target: Target::Enemy,
-            //     position: Position::OnSelf,
-            //     action: Action::Add(effect_stats),
-            //     uses: None,
-            //     temp: record.end_of_battle,
-            // },
+            FoodName::Pineapple => Effect {
+                owner: None,
+                entity: Entity::Food,
+                trigger: TRIGGER_INDIR_DMG_CALC,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses: None,
+                temp: record.end_of_battle,
+            },
             FoodName::SaladBowl
             | FoodName::Sushi
             | FoodName::Stew
@@ -233,20 +236,16 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::Pizza
             | FoodName::SoftIce
             | FoodName::HotDog
-            | FoodName::Orange => {
-                let actions =
-                    vec![Action::Add(StatChangeType::StaticValue(effect_stats)); record.n_targets];
-                Effect {
-                    owner: None,
-                    entity: Entity::Food,
-                    trigger: TRIGGER_NONE,
-                    target: Target::Friend,
-                    position: Position::Any(Condition::None),
-                    action: Action::Multiple(actions),
-                    uses,
-                    temp: record.end_of_battle,
-                }
-            }
+            | FoodName::Orange => Effect {
+                owner: None,
+                entity: Entity::Food,
+                trigger: TRIGGER_NONE,
+                target: Target::Friend,
+                position: Position::N(ItemCondition::None, record.n_targets, true),
+                action: Action::Add(StatChangeType::StaticValue(effect_stats)),
+                uses,
+                temp: record.end_of_battle,
+            },
             FoodName::Apple
             | FoodName::Bacon
             | FoodName::Cookie
@@ -257,7 +256,7 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::ChickenLeg => Effect {
                 owner: None,
                 entity: Entity::Food,
-                trigger: TRIGGER_NONE,
+                trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
@@ -274,7 +273,26 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
-            // TODO: Milk, popcorns, lollipop, strawberry
+            FoodName::Lollipop => Effect {
+                owner: None,
+                entity: Entity::Food,
+                trigger: TRIGGER_SELF_FOOD_EATEN,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Swap(RandomizeType::Stats),
+                uses,
+                temp: record.end_of_battle,
+            },
+            FoodName::Popcorns => Effect {
+                owner: None,
+                entity: Entity::Food,
+                trigger: TRIGGER_SELF_FAINT,
+                target: Target::Friend,
+                position: Position::OnSelf,
+                action: Action::Summon(SummonType::SelfTierPet),
+                uses,
+                temp: record.end_of_battle,
+            },
             _ => Effect {
                 owner: None,
                 entity: Entity::Food,

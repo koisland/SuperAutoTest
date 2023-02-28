@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::{
-    battle::{effect::Effect, stats::Statistics},
     db::record::PetRecord,
+    effects::{effect::Effect, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
@@ -34,7 +34,7 @@ pub(crate) fn assign_effect_owner(pet: &Rc<RefCell<Pet>>) {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     /// An identifier for a pet.
-    pub id: Option<String>,
+    pub(crate) id: Option<String>,
     /// Name for pet.
     pub name: PetName,
     /// Tier of pet.
@@ -45,16 +45,16 @@ pub struct Pet {
     pub effect: Vec<Effect>,
     /// Held pet [`Food`] item.
     pub item: Option<Food>,
-    /// Cost of pet.
-    pub cost: usize,
     /// Seed for pet RNG.
     /// * Used in damage calculation for items like [`Fortune Cookie`](crate::foods::names::FoodName::FortuneCookie)
-    pub seed: u64,
+    pub seed: Option<u64>,
+    /// Cost of food.
+    pub cost: usize,
     /// Level of pet.
     pub(crate) lvl: usize,
     /// Experience of pet.
     pub(crate) exp: usize,
-    /// Pet position on a [`Team`](crate::battle::team::Team).
+    /// Pet position on a [`Team`](crate::teams::team::Team).
     pub(crate) pos: Option<usize>,
 }
 
@@ -77,8 +77,14 @@ impl Display for Pet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{}: ({},{}) (Level: {}) (Pos: {:?}) (Item: {:?})]",
-            self.name, self.stats.attack, self.stats.health, self.lvl, self.pos, self.item
+            "[{}: ({},{}) (Level: {} Exp: {}) (Pos: {:?}) (Item: {:?})]",
+            self.name,
+            self.stats.attack,
+            self.stats.health,
+            self.lvl,
+            self.exp,
+            self.pos,
+            self.item
         )
     }
 }
@@ -96,8 +102,9 @@ impl TryFrom<PetRecord> for Pet {
 
     fn try_from(record: PetRecord) -> Result<Pet, SAPTestError> {
         let pet_stats = Statistics::new(record.attack, record.health)?;
-        let (tier, lvl, cost) = (record.tier, record.lvl, record.cost);
+        let (tier, lvl) = (record.tier, record.lvl);
         let pet_name = record.name.clone();
+        let cost = record.cost;
         let effect: Vec<Effect> = record.try_into()?;
 
         Ok(Pet {
@@ -180,13 +187,13 @@ impl Pet {
     /// # Example
     /// ```rust
     /// use saptest::{
-    ///     battle::{
+    ///     effects::{
     ///         trigger::TRIGGER_START_BATTLE,
     ///         effect::Entity,
     ///         actions::{Action, GainType},
-    ///         state::{Position, Status, Target},
+    ///         state::{Position, Status, Target, Outcome},
     ///     },
-    ///     Effect, Food, FoodName, Outcome, Pet, Statistics,
+    ///     Effect, Food, FoodName, Pet, Statistics,
     /// };
     /// let custom_pet = Pet::custom(
     ///     "MelonBear", Some("id_custom_pet_1".to_string()),
@@ -225,7 +232,7 @@ impl Pet {
     /// Get the effect of this pet at a given level.
     /// # Examples
     /// ```rust
-    /// use saptest::{Pet, PetName, Statistics, battle::actions::{Action, StatChangeType}};
+    /// use saptest::{Pet, PetName, Statistics, effects::actions::{Action, StatChangeType}};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
     ///
@@ -277,6 +284,18 @@ impl Pet {
         self.lvl
     }
 
+    /// Get required experience to a level.
+    /// # Example
+    /// ```
+    /// use saptest::Pet;
+    /// // Pet requires 2 exp to reach level 1.
+    /// assert_eq!(Pet::get_exp_to_level(1), 2);
+    /// // Pet requires 5 exp to reach level 2.
+    /// assert_eq!(Pet::get_exp_to_level(2), 5);
+    /// ```
+    pub fn get_exp_to_level(lvl: usize) -> usize {
+        (lvl * (lvl - 1)) + (lvl + 1)
+    }
     /// Add an experience point to a pet.
     /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
@@ -316,7 +335,7 @@ impl Pet {
                 // lvl 3 -> lvl 4 (3 * (3-1) + (3+1)) = 10
                 loop {
                     // Calculate required exp to level up.
-                    let req_exp = (self.lvl * (self.lvl - 1)) + (self.lvl + 1);
+                    let req_exp = Pet::get_exp_to_level(self.lvl);
                     if self.exp + exp >= req_exp {
                         self.exp += exp;
                         self.lvl += 1;
@@ -384,9 +403,86 @@ impl Pet {
             Ok(self)
         }
     }
+    /// Merge a pet with another pet.
+    /// # Examples
+    /// ```
+    /// use saptest::{Pet, PetName};
+    ///
+    /// let mut pet = Pet::try_from(PetName::Gorilla).unwrap();
+    /// let other_pet = Pet::try_from(PetName::Gorilla).unwrap();
+    ///
+    /// assert!(pet.merge(&other_pet).is_ok());
+    /// ```
+    pub fn merge(&mut self, from: &Pet) -> Result<&mut Self, SAPTestError> {
+        if self.name == from.name {
+            // Stack pet. Take max attack and health from pet.
+            let max_attack = self.stats.attack.max(from.stats.attack);
+            let max_health = self.stats.health.max(from.stats.health);
+            self.stats.attack = max_attack;
+            self.stats.health = max_health;
+
+            // Add exp accumulated by from pet.
+            // * Experience + 1 from pet itself.
+            self.add_experience(from.exp + 1)?;
+
+            // Refresh effects.
+            self.effect = self.get_effect(self.lvl)?;
+
+            Ok(self)
+        } else {
+            return Err(SAPTestError::InvalidPetAction {
+                subject: "Incompatible Pets".to_string(),
+                reason: format!("Cannot merge {self} with {from}."),
+            });
+        }
+    }
+
+    /// Swap a pets stats with another on the team.
+    /// # Examples
+    /// ```
+    /// use saptest::{Pet, PetName, Team, Statistics};
+    ///
+    /// let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
+    /// let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
+    /// assert!(
+    ///     pet_1.stats == Statistics::new(6, 9).unwrap() &&
+    ///     pet_2.stats == Statistics::new(10, 4).unwrap()
+    /// );
+    ///
+    /// pet_1.swap_stats(&mut pet_2);
+    /// assert!(
+    ///     pet_1.stats == Statistics::new(10, 4).unwrap() &&
+    ///     pet_2.stats == Statistics::new(6, 9).unwrap()
+    /// );
+    /// ```
+    pub fn swap_stats(&mut self, other: &mut Pet) -> &mut Self {
+        std::mem::swap(&mut self.stats, &mut other.stats);
+        self
+    }
+
+    /// Swap a pet with another.
+    /// # Examples
+    /// ```
+    /// use saptest::{Pet, PetName, Team};
+    ///
+    /// let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
+    /// let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
+    /// let (pet_1_copy, pet_2_copy) = (pet_1.clone(), pet_2.clone());
+    /// pet_1.swap(&mut pet_2);
+    ///
+    /// assert_eq!(pet_1_copy, pet_2);
+    /// assert_eq!(pet_2_copy, pet_1);
+    /// ```
+    pub fn swap(&mut self, from: &mut Pet) -> &mut Self {
+        std::mem::swap(self, from);
+        // Additionally, swap the team related fields.
+        std::mem::swap(&mut self.pos, &mut from.pos);
+        std::mem::swap(&mut self.seed, &mut from.seed);
+        self
+    }
 
     /// Helper function to set pet idx for matching on effect triggers.
-    /// * Note: This does not update other pets on the same [`Team`](crate::battle::team::Team).
+    /// * Note: This does not update other pets on the same [`Team`](crate::teams::team::Team).
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         self

@@ -3,12 +3,11 @@ use log::{error, info, warn};
 use std::{convert::TryInto, error::Error, str::FromStr};
 
 use crate::{
-    battle::stats::Statistics,
     db::{pack::Pack, record::PetRecord},
     error::SAPTestError,
     regex_patterns::*,
     wiki_scraper::common::{get_page_info, remove_icon_names},
-    PetName,
+    PetName, Statistics,
 };
 
 const DEFAULT_PET_COST: usize = 3;

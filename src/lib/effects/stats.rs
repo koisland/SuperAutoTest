@@ -10,7 +10,7 @@ use crate::{
     pets::pet::{MAX_PET_STATS, MIN_PET_STATS},
 };
 
-/// Statistics for a [`Pet`](crate::pets::pet::Pet) or an [`Action`](crate::battle::actions::Action).
+/// Statistics for a [`Pet`](crate::pets::pet::Pet) or an [`Action`](crate::effects::actions::Action).
 /// * Generally, a single integer value. ex. `50`
 /// * But also, used as a **percentage** for certain pets.
 ///     * Ex. [`Skunk`](crate::pets::names::PetName::Skunk) or [`Leopard`](crate::pets::names::PetName::Leopard).
@@ -52,6 +52,17 @@ impl Statistics {
         let health: isize = health.try_into().map_err(Into::into)?;
         Ok(Statistics { attack, health })
     }
+
+    /// Multiply stats by percentage values on rhs.
+    pub fn mult_perc(&self, rhs: &Self) -> Self {
+        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
+        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
+
+        Statistics {
+            attack: (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+        }
+    }
 }
 
 impl Add for Statistics {
@@ -80,12 +91,9 @@ impl Mul for Statistics {
     type Output = Statistics;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
-        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
-
         Statistics {
-            attack: (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
-            health: (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            attack: (self.attack * rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS),
+            health: (self.health * rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS),
         }
     }
 }
@@ -106,11 +114,8 @@ impl SubAssign for Statistics {
 
 impl MulAssign for Statistics {
     fn mul_assign(&mut self, rhs: Self) {
-        let new_atk = (self.attack as f32 * (rhs.attack as f32 / 100.0)).round();
-        let new_health = (self.health as f32 * (rhs.health as f32 / 100.0)).round();
-
-        self.attack = (new_atk as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
-        self.health = (new_health as isize).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.attack = (self.attack * rhs.attack).clamp(MIN_PET_STATS, MAX_PET_STATS);
+        self.health = (self.health * rhs.health).clamp(MIN_PET_STATS, MAX_PET_STATS);
     }
 }
 
@@ -143,7 +148,7 @@ impl Statistics {
     /// let gorilla_stats = Statistics::new(6, 9).unwrap();
     ///
     /// // For crab, copy 50% of health. `Mul` impl always treats values as percentages.
-    /// let mut copy_crab_stats = gorilla_stats * Statistics::new(0, 50).unwrap();
+    /// let mut copy_crab_stats = gorilla_stats.mult_perc(&Statistics::new(0, 50).unwrap());
     /// assert_eq!(copy_crab_stats, Statistics::new(0, 5).unwrap());
     ///
     /// // If any field is less less than 1 (attack), use the provided stats instead.
@@ -176,5 +181,76 @@ impl Statistics {
     pub fn invert(&mut self) -> &mut Self {
         std::mem::swap(&mut self.attack, &mut self.health);
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Statistics;
+
+    #[test]
+    fn test_stats_fmt() {
+        let stats = Statistics {
+            attack: 50,
+            health: 50,
+        };
+        assert_eq!(format!("Max stats: {stats}"), "Max stats: (50, 50)");
+    }
+
+    #[test]
+    fn test_stats_add() {
+        let mut s1 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let sum = Statistics {
+            attack: 2,
+            health: 2,
+        };
+        assert_eq!(sum, s1 + s2);
+        s1 += s2;
+        assert_eq!(sum, s1)
+    }
+
+    #[test]
+    fn test_stats_sub() {
+        let mut s1 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 1,
+        };
+        let diff = Statistics {
+            attack: 0,
+            health: 0,
+        };
+        assert_eq!(diff, s1 - s2);
+        s1 -= s2;
+        assert_eq!(diff, s1)
+    }
+
+    #[test]
+    fn test_stats_mult() {
+        let mut s1 = Statistics {
+            attack: 2,
+            health: 1,
+        };
+        let s2 = Statistics {
+            attack: 1,
+            health: 2,
+        };
+        let product = Statistics {
+            attack: 2,
+            health: 2,
+        };
+        assert_eq!(product, s1 * s2);
+        s1 *= s2;
+        assert_eq!(product, s1)
     }
 }

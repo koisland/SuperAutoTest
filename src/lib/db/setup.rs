@@ -4,12 +4,17 @@ use crate::{
     wiki_scraper::{
         parse_food::parse_food_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
     },
+    CONFIG,
 };
 use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
 
-/// Super Auto Pets `SQLite` Database.
+const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
+const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
+const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
+
+/// A Super Auto Pets database.
 pub struct SapDB {
     /// Database file.
     pub file: String,
@@ -41,7 +46,12 @@ impl SapDB {
             file: file.into(),
             pool,
         };
-        db.create_tables()?.update_food_info()?.update_pet_info()?;
+
+        // Update on startup if enabled.
+        if CONFIG.database.update_on_startup {
+            db.create_tables()?.update_food_info()?.update_pet_info()?;
+        }
+
         Ok(db)
     }
 
@@ -133,7 +143,11 @@ impl SapDB {
         let conn = self.pool.get()?;
         let mut n_rows_updated: usize = 0;
 
-        let foods = parse_food_info(crate::FOOD_URL)?;
+        let food_url = CONFIG.database.foods_version.map_or_else(
+            || FOOD_URL.to_owned(),
+            |id| format!("{FOOD_URL}&oldid={id}"),
+        );
+        let foods = parse_food_info(&food_url)?;
         for food in foods.iter() {
             let n_rows = conn.execute(
                 sql_insert_food,
@@ -193,8 +207,18 @@ impl SapDB {
         ";
         let mut n_rows_updated: usize = 0;
 
-        let mut pets = parse_pet_info(crate::PET_URL)?;
-        let tokens = parse_token_info(crate::TOKEN_URL)?;
+        // Use older version if available.
+        let pet_url = CONFIG
+            .database
+            .pets_version
+            .map_or_else(|| PET_URL.to_owned(), |id| format!("{PET_URL}&oldid={id}"));
+        let token_url = CONFIG.database.tokens_version.map_or_else(
+            || TOKEN_URL.to_owned(),
+            |id| format!("{TOKEN_URL}&oldid={id}"),
+        );
+
+        let mut pets = parse_pet_info(&pet_url)?;
+        let tokens = parse_token_info(&token_url)?;
         pets.extend(tokens);
 
         // Add each pet.

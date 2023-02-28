@@ -16,7 +16,7 @@ use crate::{
 
 const TABLE_STR_DELIM: &str = "|-";
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
-const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weakness", "Peanuts"];
+const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
 const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
 const DEFAULT_FOOD_COST: usize = 3;
 
@@ -237,7 +237,7 @@ pub fn parse_one_food_entry(
         // Map tiers that are N/A to 0. ex. Coconut which is summoned.
         tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
 
-        let packs = [turtle_pack, puppy_pack, star_pack]
+        let mut packs = [turtle_pack, puppy_pack, star_pack]
             .iter()
             .filter_map(|(pack, pack_desc)| {
                 if let FoodTableCols::GamePack(pack_name) = pack {
@@ -248,6 +248,10 @@ pub fn parse_one_food_entry(
                 }
             })
             .collect_vec();
+        // If no containing pack, assume weekly.
+        if packs.is_empty() {
+            packs.push(Pack::Weekly)
+        }
 
         let holdable_item = is_holdable_item(name.1, effect.1);
         let (_, single_use) = is_temp_single_use(name.1, effect.1);
@@ -282,7 +286,7 @@ pub fn parse_one_food_entry(
     Ok(())
 }
 
-/// Parse food info into a list of `Food`s.
+/// Parse food info into a list of `FoodRecord`s.
 pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, SAPTestError> {
     let response = get_page_info(url)?;
     let mut foods: Vec<FoodRecord> = vec![];
