@@ -12,20 +12,16 @@ use crate::{
     shop::store::ShopItem,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
-        count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_hyena_team,
-        test_lion_highest_tier_team, test_lion_lowest_tier_team, test_lionfish_team,
-        test_mammoth_team, test_microbe_team, test_rhino_team, test_scorpion_team, test_shark_team,
-        test_skunk_team, test_swordfish_team, test_triceratops_team, test_turkey_team,
-        test_vulture_team,
+        count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_fox_team,
+        test_goat_team, test_hamster_team, test_hyena_team, test_lion_highest_tier_team,
+        test_lion_lowest_tier_team, test_lionfish_team, test_mammoth_team, test_microbe_team,
+        test_monkey_team, test_moose_team, test_polar_bear_team, test_poodle_team, test_rhino_team,
+        test_scorpion_team, test_seal_team, test_shark_team, test_shoebill_team,
+        test_siberian_husky_team, test_skunk_team, test_swordfish_team, test_triceratops_team,
+        test_turkey_team, test_vulture_team,
     },
     Entity, EntityName, Food, ItemCondition, Pet, Shop, ShopItemViewer, ShopViewer, Team,
     TeamEffects, TeamShopping,
-};
-
-use super::common::{
-    test_fox_team, test_goat_team, test_hamster_team, test_monkey_team, test_moose_team,
-    test_polar_bear_team, test_poodle_team, test_seal_team, test_shoebill_team,
-    test_siberian_husky_team,
 };
 
 #[test]

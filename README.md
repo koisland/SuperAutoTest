@@ -55,8 +55,8 @@ team.set_shop_seed(Some(1212))
     .set_shop_packs(&[Pack::Turtle])
     .open_shop().unwrap()
     .buy(
-        &Position::First, // From
-        &Entity::Pet, // Pets
+        &Position::First, // From first.
+        &Entity::Pet, // Pet
         &Position::First // To first position, merging if possible.
     ).unwrap()
     .move_pets(

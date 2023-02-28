@@ -8,6 +8,7 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     db::pack::Pack,
     effects::{
+        actions::Action,
         effect::Entity,
         state::{Status, Target},
         trigger::*,
@@ -23,7 +24,7 @@ use crate::{
         effects::{EffectApplyHelpers, TeamEffects},
         viewer::TeamViewer,
     },
-    Food, FoodName, ItemCondition, Pet, Position, Shop, Team,
+    Food, FoodName, ItemCondition, Pet, PetName, Position, Shop, Team,
 };
 
 use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
@@ -468,6 +469,25 @@ impl TeamShoppingHelpers for Team {
             };
             let affected_pets =
                 self.get_pets_by_pos(curr_pet, &food_ability.target, &target_pos, None, None)?;
+
+            // Hard-coded cat multiplier.
+            // Repeat applying effect if action is to add stats.
+            let cat_multiplier = if matches!(food_ability.action, Action::Add(_)) {
+                self.friends
+                    .iter()
+                    .flatten()
+                    .find_map(|pet| {
+                        if pet.borrow().name == PetName::Cat {
+                            Some(pet.borrow().lvl)
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(0)
+            } else {
+                0
+            };
+
             // For each pet found by the effect of food bought, apply its effect.
             for (_, pet) in affected_pets {
                 food_ability.assign_owner(Some(&pet));
@@ -484,7 +504,9 @@ impl TeamShoppingHelpers for Team {
                 self.triggers
                     .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
 
-                self.apply_single_effect(&pet, &food_ability, None)?;
+                for _ in 0..(1 + cat_multiplier) {
+                    self.apply_single_effect(&pet, &food_ability, None)?;
+                }
             }
         }
         Ok(())
@@ -521,9 +543,12 @@ impl TeamShoppingHelpers for Team {
         if let Some(pet) = purchased_pet {
             let mut buy_trigger = TRIGGER_SELF_PET_BOUGHT;
             let mut buy_any_trigger = TRIGGER_ANY_PET_BOUGHT;
+            let mut buy_any_tier_trigger = trigger_any_pet_bought_tier(pet.borrow().tier);
             buy_trigger.set_affected(&pet);
             buy_any_trigger.set_affected(&pet);
-            self.triggers.extend([buy_trigger, buy_any_trigger]);
+            buy_any_tier_trigger.set_affected(&pet);
+            self.triggers
+                .extend([buy_trigger, buy_any_trigger, buy_any_tier_trigger]);
 
             // For each effect a pet has create a buy trigger to show that a pet with this status purchased.
             // Needed for salamander.

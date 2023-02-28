@@ -177,6 +177,13 @@ pub enum PetName {
     Shoebill,
     SiberianHusky,
     Zebra,
+    Lioness,
+    Chicken,
+    Sauropod,
+    Tyrannosaurus,
+    Hammershark,
+    Komodo,
+    Ostrich,
     // No name.
     None,
     /// A custom [`PetName`].
@@ -359,6 +366,13 @@ impl FromStr for PetName {
             "Shoebill" => Ok(PetName::Shoebill),
             "Siberian Husky" => Ok(PetName::SiberianHusky),
             "Zebra" => Ok(PetName::Zebra),
+            "Lioness" => Ok(PetName::Lioness),
+            "Chicken" => Ok(PetName::Chicken),
+            "Sauropod" => Ok(PetName::Sauropod),
+            "Tyrannosaurus" => Ok(PetName::Tyrannosaurus),
+            "Hammershark" => Ok(PetName::Hammershark),
+            "Komodo" => Ok(PetName::Komodo),
+            "Ostrich" => Ok(PetName::Ostrich),
             _ => Ok(PetName::Custom(s.to_string())),
         }
     }
@@ -537,6 +551,13 @@ impl Display for PetName {
             PetName::Shoebill => write!(f, "Shoebill"),
             PetName::SiberianHusky => write!(f, "Siberian Husky"),
             PetName::Zebra => write!(f, "Zebra"),
+            PetName::Lioness => write!(f, "Lioness"),
+            PetName::Chicken => write!(f, "Chicken"),
+            PetName::Sauropod => write!(f, "Sauropod"),
+            PetName::Tyrannosaurus => write!(f, "Tyrannosaurus"),
+            PetName::Hammershark => write!(f, "Hammershark"),
+            PetName::Komodo => write!(f, "Komodo"),
+            PetName::Ostrich => write!(f, "Ostrich"),
             PetName::None => write!(f, "None"),
             PetName::Custom(name) => write!(f, "{name}"),
         }

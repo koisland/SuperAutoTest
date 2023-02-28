@@ -129,6 +129,8 @@ pub enum Position {
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
+    /// Pets ahead of current pet.
+    Ahead,
     /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].

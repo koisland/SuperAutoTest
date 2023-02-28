@@ -790,6 +790,27 @@ impl TeamViewer for Team {
                     }
                 }
             }
+            (Target::Friend | Target::Enemy, Position::Ahead) => {
+                let Some(Some(curr_pos)) = curr_pet.map(|pet| pet.borrow().pos) else {
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: "No Pet Position Idx".to_string(),
+                        reason: format!("Pet position required for finding pets by {pos:?}")
+                    })
+                };
+                pets.extend(
+                    self.friends
+                        .iter()
+                        .flatten()
+                        .filter_map(|pet| {
+                            if let Some(pos) = pet.borrow().pos {
+                                (pos < curr_pos).then_some((*target, pet.clone()))
+                            } else {
+                                None
+                            }
+                        })
+                        .collect_vec(),
+                )
+            }
             (Target::Friend | Target::Enemy, Position::Adjacent) => {
                 let friends = if *target == Target::Friend {
                     &self.friends

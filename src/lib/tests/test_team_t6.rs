@@ -1,3 +1,7 @@
+use std::ops::RangeFrom;
+
+use itertools::Itertools;
+
 use crate::{
     effects::{
         state::{Position, Status},
@@ -8,14 +12,17 @@ use crate::{
     pets::names::PetName,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
-        count_pets, test_alpaca_team, test_boar_team, test_cricket_horse_team, test_fly_team,
-        test_gorilla_team, test_leopard_team, test_mammoth_team, test_octopus_team, test_orca_team,
-        test_piranha_team, test_reindeer_team, test_sabertooth_team, test_scorpion_team,
+        count_pets, test_alpaca_team, test_boar_team, test_cat_team, test_chicken_team,
+        test_cricket_horse_team, test_dragon_team, test_fly_team, test_gorilla_team,
+        test_hammershark_team, test_komodo_team, test_leopard_team, test_lioness_team,
+        test_mammoth_team, test_octopus_team, test_orca_team, test_ostrich_team, test_piranha_team,
+        test_reindeer_team, test_sabertooth_team, test_sauropod_team, test_scorpion_team,
         test_sheep_team, test_snake_team, test_spinosaurus_team, test_stegosaurus_team,
-        test_tapir_team, test_tiger_team, test_velociraptor_team, test_walrus_team,
-        test_white_tiger_team,
+        test_tapir_team, test_tiger_team, test_tyrannosaurus_team, test_velociraptor_team,
+        test_walrus_team, test_white_tiger_team,
     },
-    Pet, TeamEffects,
+    Entity, ItemCondition, Pet, ShopItem, ShopItemViewer, ShopViewer, Team, TeamEffects,
+    TeamShopping,
 };
 
 #[test]
@@ -489,5 +496,352 @@ fn test_battle_velociraptor_team() {
     assert_eq!(
         team.first().unwrap().borrow().item.as_ref().unwrap().name,
         FoodName::Coconut
+    );
+}
+
+#[test]
+fn test_shop_cat_team() {
+    let mut team = test_cat_team();
+
+    team.set_shop_seed(Some(19)).open_shop().unwrap();
+
+    let (pos, item_type) = (Position::First, Entity::Food);
+    let items = team
+        .get_shop()
+        .get_shop_items_by_pos(&pos, &item_type)
+        .unwrap();
+    // Apple has (1,1) buff.
+    assert!(
+        items.first().unwrap().attack_stat() == Some(1)
+            && items.first().unwrap().health_stat() == Some(1)
+    );
+
+    let cat = team.first().unwrap();
+    let cat_start_stats = cat.borrow().stats;
+    const APPLE_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    const CAT_MULTIPLIER: Statistics = Statistics {
+        attack: 2,
+        health: 2,
+    };
+
+    // Buy apple.
+    team.buy(&pos, &item_type, &Position::First).unwrap();
+
+    // Apple buff doubled.
+    assert_eq!(
+        cat.borrow().stats,
+        cat_start_stats + APPLE_BUFF * CAT_MULTIPLIER
+    );
+}
+
+#[test]
+fn test_shop_dragon_team() {
+    let mut team = test_dragon_team();
+
+    team.set_shop_seed(Some(19))
+        .shop
+        .add_item(ShopItem::new(Pet::try_from(PetName::Badger).unwrap()))
+        .unwrap();
+
+    team.open_shop().unwrap();
+    let pets = team
+        .shop
+        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
+        .unwrap();
+    let (badger, beaver) = (pets.first().unwrap(), pets.get(1).unwrap());
+    let beaver_shop_stats =
+        Statistics::new(beaver.attack_stat().unwrap(), beaver.health_stat().unwrap()).unwrap();
+    // Dog won't proc dragon but beaver will.
+    assert!(badger.tier() == 3 && beaver.tier() == 1);
+    let team_pets = team.all();
+    let (ant, blowfish, dragon) = (
+        team_pets.first().unwrap(),
+        team_pets.get(1).unwrap(),
+        team_pets.last().unwrap(),
+    );
+    let (ant_start_stats, blowfish_start_stats, dragon_start_stats) = (
+        ant.borrow().stats,
+        blowfish.borrow().stats,
+        dragon.borrow().stats,
+    );
+
+    const DRAGON_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+
+    // Buy badger.
+    team.buy(&Position::Relative(-1), &Entity::Pet, &Position::First)
+        .unwrap();
+
+    // Every pet on team gets buffed except dragon.
+    let beaver = team.first().unwrap();
+    assert!(
+        beaver.borrow().stats == beaver_shop_stats + DRAGON_BUFF
+            && ant.borrow().stats == ant_start_stats + DRAGON_BUFF
+            && blowfish.borrow().stats == blowfish_start_stats + DRAGON_BUFF
+            && dragon.borrow().stats == dragon_start_stats
+    );
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    // Buying a non-tier 1 pet does nothing.
+    assert!(
+        beaver.borrow().stats == beaver_shop_stats + DRAGON_BUFF
+            && ant.borrow().stats == ant_start_stats + DRAGON_BUFF
+            && blowfish.borrow().stats == blowfish_start_stats + DRAGON_BUFF
+            && dragon.borrow().stats == dragon_start_stats
+    );
+}
+
+#[test]
+fn test_shop_lioness_team() {
+    let mut team = test_lioness_team();
+    const LIONESS_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 2,
+    };
+    team.open_shop().unwrap();
+
+    fn get_shop_pet_stats(team: &Team) -> Vec<Statistics> {
+        let pets = team
+            .get_shop()
+            .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
+            .unwrap();
+        pets.iter()
+            .map(|shop_pet| {
+                Statistics::new(
+                    shop_pet.attack_stat().unwrap(),
+                    shop_pet.health_stat().unwrap(),
+                )
+                .unwrap()
+            })
+            .collect()
+    }
+    let shop_pet_stats = get_shop_pet_stats(&team);
+    team.freeze_shop(&Position::All(ItemCondition::None), &Entity::Pet)
+        .unwrap();
+
+    // End turn.
+    team.close_shop().unwrap();
+
+    let new_shop_pet_stats = get_shop_pet_stats(&team);
+
+    // Current shop pets get buff.
+    for (prev, new) in shop_pet_stats.iter().zip_eq(new_shop_pet_stats) {
+        assert_eq!(*prev + LIONESS_BUFF, new)
+    }
+    // And future pets get stats.
+    assert_eq!(team.shop.perm_stats, LIONESS_BUFF)
+}
+
+#[test]
+fn test_shop_chicken() {
+    let mut team = test_chicken_team();
+
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+    team.print_shop();
+
+    fn get_shop_stats(team: &Team, range: RangeFrom<usize>) -> (Statistics, Statistics) {
+        let shop_pets = team
+            .shop
+            .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
+            .unwrap();
+        let [pet_1, pet_2] = shop_pets.get(range).unwrap() else {panic!()};
+        (
+            Statistics::new(pet_1.attack_stat().unwrap(), pet_1.health_stat().unwrap()).unwrap(),
+            Statistics::new(pet_2.attack_stat().unwrap(), pet_2.health_stat().unwrap()).unwrap(),
+        )
+    }
+    const CHICKEN_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    let (pig_start_stats, beaver_start_stats) = get_shop_stats(&team, 1..);
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    let (pig_curr_stats, beaver_curr_stats) = get_shop_stats(&team, 0..);
+
+    // Current shop pets get buffed.
+    assert_eq!(pig_start_stats + CHICKEN_BUFF, pig_curr_stats);
+    assert_eq!(beaver_start_stats + CHICKEN_BUFF, beaver_curr_stats);
+    // Shop has perm buff.
+    assert_eq!(team.shop.perm_stats, CHICKEN_BUFF)
+}
+
+#[test]
+fn test_shop_sauropod() {
+    let mut team = test_sauropod_team();
+
+    team.open_shop().unwrap();
+    assert_eq!(team.gold(), 10);
+
+    team.buy(&Position::First, &Entity::Food, &Position::First)
+        .unwrap();
+
+    // Food purchase costs 3 and 1 gold refunded.
+    assert_eq!(team.gold(), 8)
+}
+
+#[test]
+fn test_shop_trex() {
+    let mut team = test_tyrannosaurus_team();
+
+    team.open_shop().unwrap();
+
+    const TREX_GOLD_REQ: usize = 3;
+    const TREX_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 1,
+    };
+    let pet_start_stats = team
+        .all()
+        .into_iter()
+        .map(|pet| pet.borrow().stats)
+        .collect_vec();
+
+    // Gold is sufficient for effect trigger.
+    assert!(team.gold() >= TREX_GOLD_REQ);
+    team.close_shop().unwrap();
+
+    fn check_stats(team: &Team, starting_stats: &[Statistics]) {
+        for (pet, starting_stats) in team.all().into_iter().zip_eq(starting_stats) {
+            // Trex gets no buff
+            if pet.borrow().name == PetName::Tyrannosaurus {
+                assert_eq!(pet.borrow().stats, *starting_stats)
+            } else {
+                assert_eq!(pet.borrow().stats, *starting_stats + TREX_BUFF)
+            }
+        }
+    }
+
+    check_stats(&team, &pet_start_stats);
+
+    team.open_shop().unwrap();
+
+    // No gold
+    team.shop.coins = 0;
+
+    // Start are unchanged.
+    check_stats(&team, &pet_start_stats)
+}
+
+#[test]
+fn test_shop_hammershark() {
+    let mut team = test_hammershark_team();
+
+    // Pet on team is level 3.
+    assert!(team
+        .friends
+        .iter()
+        .flatten()
+        .any(|pet| pet.borrow().lvl == 3));
+    // Start turn.
+    team.open_shop().unwrap();
+    assert_eq!(team.gold(), 13);
+
+    // Remove level 3.
+    team.sell(&Position::First).unwrap();
+    team.close_shop().unwrap();
+    // No level 3.
+    assert!(!team
+        .friends
+        .iter()
+        .flatten()
+        .any(|pet| pet.borrow().lvl == 3));
+
+    // Start turn again.
+    team.open_shop().unwrap();
+    // No gold gained.
+    assert_eq!(team.gold(), 10);
+}
+
+#[test]
+fn test_shop_komodo() {
+    let mut team = test_komodo_team();
+
+    team.set_seed(Some(12)).open_shop().unwrap();
+
+    let team_pets = team.all();
+    let [ant, dog, komodo, tiger] = &team_pets[..] else {
+        panic!()
+    };
+
+    // Ant and dog starting positions.
+    assert!(ant.borrow().pos == Some(0) && ant.borrow().name == PetName::Ant);
+    assert!(dog.borrow().pos == Some(1) && dog.borrow().name == PetName::Dog);
+
+    const KOMODO_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+    let (ant_start_stats, dog_start_stats, komodo_start_stats, tiger_start_stats) = team_pets
+        .iter()
+        .map(|pet| pet.borrow().stats)
+        .collect_tuple()
+        .unwrap();
+
+    team.close_shop().unwrap();
+
+    // Dog and ant get swapped in process and existing references reversed.
+    // Ant and dog in front of komodo swap positions.
+    assert!(ant.borrow().pos == Some(0) && ant.borrow().name == PetName::Dog);
+    assert!(dog.borrow().pos == Some(1) && dog.borrow().name == PetName::Ant);
+
+    // Tiger not buffed as not ahead of komodo.
+    // Komodo does not get a buff.
+    assert!(
+        dog.borrow().stats == ant_start_stats + KOMODO_BUFF
+            && ant.borrow().stats == dog_start_stats + KOMODO_BUFF
+            && komodo.borrow().stats == komodo_start_stats
+            && tiger.borrow().stats == tiger_start_stats
+    );
+}
+
+#[test]
+fn test_shop_ostrich_team() {
+    let mut team = test_ostrich_team();
+
+    team.set_shop_seed(Some(12)).open_shop().unwrap();
+
+    let ostrich = team.first().unwrap();
+    let ostrich_start_stats = ostrich.borrow().stats;
+    const OSTRICH_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 1,
+    };
+
+    let is_tier_5_6 = |item: &ShopItem| {
+        let pet_tier = item.tier();
+        pet_tier == 5 || pet_tier == 6
+    };
+    // No tier 5 or 6.
+    assert!(!team.get_shop().pets.iter().any(is_tier_5_6));
+
+    team.close_shop().unwrap();
+    // No change in stats.
+    assert_eq!(ostrich.borrow().stats, ostrich_start_stats);
+
+    team.set_shop_tier(6).unwrap().open_shop().unwrap();
+
+    // Create new ostrich reference.
+    let ostrich = team.first().unwrap();
+    // Check shop for tier 5+.
+    let shop = team.get_shop();
+    let num_tier_5_6 = shop.pets.iter().filter(|item| is_tier_5_6(&item)).count();
+    // One tier 5 or above pet.
+    assert_eq!(num_tier_5_6, 1);
+
+    team.close_shop().unwrap();
+    // Ostrich gains (1,1) * (1,1) = (1,1)
+    assert_eq!(
+        ostrich.borrow().stats,
+        ostrich_start_stats + OSTRICH_BUFF * Statistics::new(num_tier_5_6, num_tier_5_6).unwrap()
     );
 }

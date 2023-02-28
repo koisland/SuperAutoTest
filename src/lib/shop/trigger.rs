@@ -16,6 +16,19 @@ pub(crate) fn trigger_any_pet_bought_status(status: Status) -> Outcome {
     }
 }
 
+/// Create a trigger for when a pet is bought with a specific tier.
+pub(crate) fn trigger_any_pet_bought_tier(tier: usize) -> Outcome {
+    Outcome {
+        status: Status::BuyPet,
+        affected_pet: None,
+        affected_team: Target::Friend,
+        afflicting_pet: None,
+        afflicting_team: Target::None,
+        position: Position::Any(ItemCondition::Equal(EqualityCondition::Tier(tier))),
+        stat_diff: None,
+    }
+}
+
 /// Create a trigger for when a pet is sold with an effect that triggers with this status.
 pub(crate) fn trigger_any_pet_sold_status(status: Status) -> Outcome {
     Outcome {

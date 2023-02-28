@@ -48,8 +48,8 @@
 //!     .set_shop_packs(&[Pack::Turtle])
 //!     .open_shop().unwrap()
 //!     .buy(
-//!         &Position::First, // From
-//!         &Entity::Pet, // Pets
+//!         &Position::First, // From first.
+//!         &Entity::Pet, // Pet
 //!         &Position::First // To first position, merging if possible.
 //!     ).unwrap()
 //!     .sell(&Position::First).unwrap()

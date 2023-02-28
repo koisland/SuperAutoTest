@@ -377,146 +377,146 @@ fn test_deer_fly_mushroom() {
             && team.nth(2).unwrap().borrow().name == PetName::Bus
     )
 }
-// #[test]
-// fn rhino_vs_summoner() {
-//     // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
-//     let sour_sailors_pets = [
-//         Some(
-//             Pet::new(
-//                 PetName::Rhino,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 19,
-//                     health: 21,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Otter,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 19,
-//                     health: 20,
-//                 }),
-//                 3,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Bison,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 45,
-//                     health: 48,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Swan,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 16,
-//                     health: 18,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Penguin,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 9,
-//                     health: 9,
-//                 }),
-//                 3,
-//             )
-//             .unwrap(),
-//         ),
-//     ];
-//     let mut chunky_wigs_pets = [
-//         Some(
-//             Pet::new(
-//                 PetName::Deer,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 9,
-//                     health: 9,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Cricket,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 6,
-//                     health: 7,
-//                 }),
-//                 3,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Sheep,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 4,
-//                     health: 4,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Turkey,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 5,
-//                     health: 6,
-//                 }),
-//                 2,
-//             )
-//             .unwrap(),
-//         ),
-//         Some(
-//             Pet::new(
-//                 PetName::Shark,
-//                 None,
-//                 Some(Statistics {
-//                     attack: 6,
-//                     health: 6,
-//                 }),
-//                 1,
-//             )
-//             .unwrap(),
-//         ),
-//     ];
-//     for i in [1, 2, 4] {
-//         chunky_wigs_pets[i].as_mut().unwrap().item = Some(Food::try_from(FoodName::Honey).unwrap())
-//     }
-//     chunky_wigs_pets[3].as_mut().unwrap().item = Some(Food::try_from(FoodName::Steak).unwrap());
+#[test]
+fn rhino_vs_summoner() {
+    // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
+    // Tie in attack between shark and cricket causes difference in bee spawn.
+    // * Shark wins in this case.
+    let sour_sailors_pets = [
+        Some(
+            Pet::new(
+                PetName::Rhino,
+                None,
+                Some(Statistics {
+                    attack: 19,
+                    health: 21,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Otter,
+                None,
+                Some(Statistics {
+                    attack: 19,
+                    health: 20,
+                }),
+                3,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Bison,
+                None,
+                Some(Statistics {
+                    attack: 45,
+                    health: 48,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Swan,
+                None,
+                Some(Statistics {
+                    attack: 16,
+                    health: 18,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Penguin,
+                None,
+                Some(Statistics {
+                    attack: 9,
+                    health: 9,
+                }),
+                3,
+            )
+            .unwrap(),
+        ),
+    ];
+    let mut chunky_wigs_pets = [
+        Some(
+            Pet::new(
+                PetName::Deer,
+                None,
+                Some(Statistics {
+                    attack: 9,
+                    health: 9,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Cricket,
+                None,
+                Some(Statistics {
+                    attack: 6,
+                    health: 7,
+                }),
+                3,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Sheep,
+                None,
+                Some(Statistics {
+                    attack: 4,
+                    health: 4,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Turkey,
+                None,
+                Some(Statistics {
+                    attack: 5,
+                    health: 6,
+                }),
+                2,
+            )
+            .unwrap(),
+        ),
+        Some(
+            Pet::new(
+                PetName::Shark,
+                None,
+                Some(Statistics {
+                    attack: 6,
+                    health: 6,
+                }),
+                1,
+            )
+            .unwrap(),
+        ),
+    ];
+    for i in [1, 2, 4] {
+        chunky_wigs_pets[i].as_mut().unwrap().item = Some(Food::try_from(FoodName::Honey).unwrap())
+    }
+    chunky_wigs_pets[3].as_mut().unwrap().item = Some(Food::try_from(FoodName::Steak).unwrap());
 
-//     let mut sour_sailors = Team::new(&sour_sailors_pets, 5).unwrap();
-//     let mut chunk_wigs = Team::new(&chunky_wigs_pets, 5).unwrap();
+    let mut sour_sailors = Team::new(&sour_sailors_pets, 5).unwrap();
+    let mut chunk_wigs = Team::new(&chunky_wigs_pets, 5).unwrap();
 
-//     println!("{chunk_wigs}");
+    println!("{chunk_wigs}");
 
-//     log4rs::init_config(build_log_config()).unwrap();
-//     sour_sailors.fight(&mut chunk_wigs).unwrap();
+    sour_sailors.fight(&mut chunk_wigs).unwrap();
 
-//     println!("{chunk_wigs}");
-
-// }
+    println!("{chunk_wigs}");
+}

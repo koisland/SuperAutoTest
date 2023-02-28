@@ -1465,3 +1465,75 @@ pub fn test_siberian_husky_team() -> Team {
 }
 
 // No team for zebra.
+
+pub fn test_cat_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Cat).unwrap())], 5).unwrap()
+}
+
+pub fn test_dragon_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Blowfish).unwrap()),
+            Some(Pet::try_from(PetName::Dragon).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_lioness_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Lioness).unwrap())], 5).unwrap()
+}
+
+pub fn test_chicken_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Chicken).unwrap())], 5).unwrap()
+}
+
+pub fn test_sauropod_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Sauropod).unwrap())], 5).unwrap()
+}
+
+pub fn test_tyrannosaurus_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Tyrannosaurus).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_hammershark_team() -> Team {
+    let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    ant.set_level(3).unwrap();
+
+    Team::new(
+        &[
+            Some(ant),
+            Some(Pet::try_from(PetName::Hammershark).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_komodo_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+            Some(Pet::try_from(PetName::Komodo).unwrap()),
+            Some(Pet::try_from(PetName::Tiger).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_ostrich_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Ostrich).unwrap())], 5).unwrap()
+}
