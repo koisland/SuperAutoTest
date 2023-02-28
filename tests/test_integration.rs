@@ -514,9 +514,18 @@ fn rhino_vs_summoner() {
     let mut sour_sailors = Team::new(&sour_sailors_pets, 5).unwrap();
     let mut chunk_wigs = Team::new(&chunky_wigs_pets, 5).unwrap();
 
-    println!("{chunk_wigs}");
-
     sour_sailors.fight(&mut chunk_wigs).unwrap();
 
-    println!("{chunk_wigs}");
+    let chunky_wigs_post_battle_pets = chunk_wigs.all();
+    let [bus, zcricket, ram_1, ram_2, bee] = &chunky_wigs_post_battle_pets[..] else { panic!()};
+    // Note: The slight difference is due to a sorting tie between the honeyed shark (6,6) and the honeyed cricket (6,7).
+    // The order is generally correct.
+    assert!(
+        bus.borrow().stats == Statistics::new(10, 10).unwrap() &&
+        // Bee here in post.
+        zcricket.borrow().stats == Statistics::new(3, 3).unwrap() &&
+        ram_1.borrow().stats == Statistics::new(4, 4).unwrap() &&
+        ram_2.borrow().stats == Statistics::new(4, 4).unwrap() &&
+        bee.borrow().stats == Statistics::new(1, 1).unwrap()
+    )
 }
