@@ -105,7 +105,8 @@ pub trait TeamEffects {
     /// * Invocation order does not matter.
     ///     * `team.trigger_start_battle_effects(&mut enemy_team)` or its reverse will not alter the outcome.
     /// * This takes all [`Pet`]s into consideration unlike [`trigger_effects`](TeamEffects::trigger_effects) which only activates effects from a single [`Team`].
-    /// * Triggers are not exhausted after executing the start of battle.
+    /// * This exhausts all effect [`Outcome`] triggers.
+    /// * Fainted [`Pet`]s are not removed.
     /// # Example
     /// ```
     /// use saptest::{
@@ -141,6 +142,7 @@ pub trait TeamEffects {
     ///     * Non-opponent affecting effects can be activated by adding a [`TRIGGER_START_BATTLE`](crate::effects::trigger::TRIGGER_START_BATTLE) to the team.
     /// * Pet effects activate first followed by food effects.
     /// * This exhausts all effect [`Outcome`] triggers.
+    /// * Fainted [`Pet`]s are not removed.
     /// # Example
     /// ```rust
     /// use saptest::{
@@ -329,6 +331,12 @@ impl TeamEffects for Team {
             }
         }
 
+        // Exhaust any produced triggers from start of battle.
+        while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
+            self.trigger_effects(Some(opponent))?;
+            opponent.trigger_effects(Some(self))?;
+        }
+
         Ok(self)
     }
 
@@ -392,6 +400,7 @@ impl TeamEffects for Team {
                     .collect_vec();
 
                 // Check if tiger should activate.
+                // Also checks if effects are valid.
                 let tiger_effects = self.repeat_effects_if_tiger(
                     effect_pet_idx,
                     pet,
@@ -404,20 +413,14 @@ impl TeamEffects for Team {
                 applied_effects.extend(tiger_effects);
             }
 
-            // Pet sold. Remove pet from friends.
-            // Keep reference alive until rest of effects activated.
-            let _sold_pet = if (&trigger.status, &trigger.position, &trigger.affected_team)
+            // Pet sold. Remove pet from friends and add to sold pet.
+            if (&trigger.status, &trigger.position, &trigger.affected_team)
                 == (&Status::Sell, &Position::OnSelf, &Target::Friend)
             {
                 if let Some(pet_pos) = trigger_pet_pos {
-                    let pet = self.friends.remove(pet_pos);
+                    self.sold.push(self.friends.remove(pet_pos));
                     self.friends.insert(pet_pos, None);
-                    Some(pet)
-                } else {
-                    None
                 }
-            } else {
-                None
             };
 
             for effect in applied_effects.into_iter() {
@@ -744,22 +747,21 @@ impl EffectApplyHelpers for Team {
         if let Some(Some(pet_behind)) = self.friends.get(pet_idx + 1) {
             if pet_behind.borrow().name == PetName::Tiger && self.shop.state == ShopState::Closed {
                 // Get effect at level of tiger and repeat it.
-                for mut effect in pet
-                    .borrow()
-                    .get_effect(pet_behind.borrow().lvl)?
-                    .into_iter()
-                    .filter(|effect| {
-                        trigger_activates_effect(effect, trigger)
-                            && !is_pet_effect_exception(
-                                trigger,
-                                trigger_petname,
-                                effect,
-                                same_pet_as_trigger,
-                            )
-                    })
-                {
+                let pet_effect_at_tiger_lvl = pet.borrow().get_effect(pet_behind.borrow().lvl)?;
+                for mut effect in pet_effect_at_tiger_lvl {
+                    // Assign owner so new lvled effect matches owner.
                     effect.assign_owner(Some(pet));
-                    tiger_doubled_effects.push(effect)
+
+                    let triggered_effect = trigger_activates_effect(&effect, trigger);
+                    let valid_effect = !is_pet_effect_exception(
+                        trigger,
+                        trigger_petname,
+                        &effect,
+                        same_pet_as_trigger,
+                    );
+                    if triggered_effect && valid_effect {
+                        tiger_doubled_effects.push(effect)
+                    }
                 }
             }
         };

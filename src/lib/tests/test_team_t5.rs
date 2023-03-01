@@ -38,11 +38,11 @@ fn test_battle_croc_team() {
     // Two zombie crickets are spawned in their place.
     team.fight(&mut enemy_team).unwrap();
 
-    let last_pet = team.last().unwrap();
-    let last_enemy_pet = team.last().unwrap();
+    let last_pet = team.nth(3).unwrap();
+    let last_enemy_pet = enemy_team.nth(3).unwrap();
 
-    assert_eq!(team.friends.len(), 4);
-    assert_eq!(enemy_team.friends.len(), 4);
+    assert_eq!(team.all().len(), 4);
+    assert_eq!(enemy_team.all().len(), 4);
     assert_eq!(last_pet.borrow().name, PetName::ZombieCricket);
     assert_eq!(last_enemy_pet.borrow().name, PetName::ZombieCricket);
 }

@@ -25,7 +25,7 @@ const ALLOWED_FOOD_EFFECT_TRIGGER: [Status; 2] = [Status::AnyDmgCalc, Status::At
 /// Gets the maximum damage a pet can receive.
 fn max_dmg_received(pet: &Pet) -> isize {
     // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
-    if pet.has_active_ability(&Action::Invincible) {
+    if pet.has_food_ability(&Action::Invincible, true) {
         0
     } else {
         MAX_DMG
@@ -53,13 +53,13 @@ fn final_dmg_calculation(pet: &Pet, dmg: isize, enemy: &Pet) -> isize {
     // * Any amount of damage is dealt.
     // * Enemy has death's touch.
     // * Pet being attacked has more health than 1.
-    if dmg != 0 && enemy.has_active_ability(&Action::Kill) && pet.stats.health > 1 {
+    if dmg != 0 && enemy.has_food_ability(&Action::Kill, true) && pet.stats.health > 1 {
         0
     } else {
         let health = pet.stats.health.sub(dmg);
         // If has endure, stay alive at 1 health.
         // Otherwise do normal damage calculation.
-        if pet.has_active_ability(&Action::Endure) {
+        if pet.has_food_ability(&Action::Endure, true) {
             health.clamp(1, MAX_PET_STATS)
         } else {
             health.clamp(MIN_PET_STATS, MAX_PET_STATS)
@@ -178,7 +178,7 @@ pub trait PetCombat {
     fn get_food_stat_modifier(&self) -> Option<Statistics>;
 
     /// Check if a [`Pet`]'s [`Food`](crate::Food) has this [`Action`].
-    /// * Returns `false` if out of uses.
+    /// * Matches only on the enum variant.
     /// # Example
     /// ```
     /// use saptest::{
@@ -188,9 +188,24 @@ pub trait PetCombat {
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::Peanut).unwrap());
     ///
-    /// assert!(ant_1.has_active_ability(&Action::Kill))
+    /// assert!(ant_1.has_food_ability(&Action::Kill, true))
     /// ```
-    fn has_active_ability(&self, ability: &Action) -> bool;
+    fn has_food_ability(&self, ability: &Action, check_uses: bool) -> bool;
+
+    /// Check if a [`Pet`]'s [`Effect`](crate::Effect) has this [`Action`].
+    /// * Matches only on the enum variant.
+    /// # Example
+    /// ```
+    /// use saptest::{
+    ///     Pet, PetName, PetCombat, Statistics,
+    ///     effects::actions::{Action, StatChangeType}
+    /// };
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// let add_action = Action::Add(StatChangeType::StaticValue(Statistics::new(2,1).unwrap()));
+    ///
+    /// assert!(ant_1.has_effect_ability(&add_action, true))
+    /// ```
+    fn has_effect_ability(&self, ability: &Action, check_uses: bool) -> bool;
 }
 
 impl PetCombat for Pet {
@@ -215,7 +230,7 @@ impl PetCombat for Pet {
         let mut new_health = self.stats.health.sub(enemy_dmg);
 
         // Account for endure ability.
-        new_health = if self.has_active_ability(&Action::Endure) {
+        new_health = if self.has_food_ability(&Action::Endure, true) {
             new_health.clamp(1, MAX_PET_STATS)
         } else {
             new_health.clamp(MIN_PET_STATS, MAX_PET_STATS)
@@ -330,12 +345,29 @@ impl PetCombat for Pet {
         }
     }
 
-    fn has_active_ability(&self, ability: &Action) -> bool {
+    fn has_food_ability(&self, ability: &Action, check_uses: bool) -> bool {
         if let Some(food) = self.item.as_ref() {
-            &food.ability.action == ability && food.ability.uses != Some(0)
+            let valid_uses = if check_uses {
+                food.ability.uses != Some(0)
+            } else {
+                true
+            };
+            std::mem::discriminant(&food.ability.action) == std::mem::discriminant(ability)
+                && valid_uses
         } else {
             false
         }
+    }
+
+    fn has_effect_ability(&self, ability: &Action, check_uses: bool) -> bool {
+        self.effect.iter().any(|effect| {
+            let valid_uses = if check_uses {
+                effect.uses != Some(0)
+            } else {
+                true
+            };
+            std::mem::discriminant(&effect.action) == std::mem::discriminant(ability) && valid_uses
+        })
     }
 
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {

@@ -2102,7 +2102,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_BEFORE_ATTACK,
                 target: Target::Enemy,
-                position: Position::Multiple(vec![Position::Any(ItemCondition::None); record.lvl]),
+                position: Position::N(ItemCondition::None, record.lvl, true),
                 action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
                 uses: None,
             }],

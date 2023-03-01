@@ -1003,7 +1003,7 @@ fn test_shop_crow_team() {
 
     // Ant on team is base exp and lvl.
     team.clear_team();
-    let ant = team.first().unwrap();
+    let ant = team.nth(1).unwrap();
     assert!(ant.borrow().lvl == 1 && ant.borrow().exp == 0);
 
     // Buy chocolate for it.
@@ -1045,10 +1045,11 @@ fn test_shop_praying_mantis_team() {
     };
     team.open_shop().unwrap();
     // Two adjacent friends now dead.
-    assert_eq!(team.friends.len(), 1);
+    let pets = team.all();
+    assert_eq!(pets.len(), 1);
     // Mantis gains (2,2)
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        pets.first().unwrap().borrow().stats,
         mantis_start_stats + MANTIS_BUFF
     );
 }

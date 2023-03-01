@@ -40,7 +40,7 @@ pub trait TeamViewer {
     /// ```
     fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>>;
 
-    /// Get the first pet on team.
+    /// Get the first slot on team.
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
@@ -59,7 +59,7 @@ pub trait TeamViewer {
     /// ```
     fn first(&self) -> Option<Rc<RefCell<Pet>>>;
 
-    /// Get the first pet on team.
+    /// Get the first slot on team.
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```

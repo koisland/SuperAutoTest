@@ -295,7 +295,7 @@ fn test_serialize_team() {
     team.set_seed(Some(20));
 
     let json_team: String = (&team).try_into().unwrap();
-    let exp_json = r#"{"seed":20,"name":"","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"fainted":[],"max_size":5,"triggers":[],"stored_friends":[{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null},{"id":null,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null}],"pet_count":4}"#;
+    let exp_json = r#"{"seed":20,"name":"","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"fainted":[],"sold":[],"max_size":5,"triggers":[],"stored_friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"pet_count":4}"#;
     assert_eq!(exp_json, json_team);
 
     let new_team = Team::from_str(&json_team).unwrap();
@@ -305,7 +305,7 @@ fn test_serialize_team() {
 }
 
 #[test]
-fn blowfish_battle() {
+fn test_99_blowfish_battle() {
     // 99 blowfish battle and a hedgehog at the front.
     let mut blowfish = Pet::try_from(PetName::Blowfish).unwrap();
     blowfish.stats.health = 50;
@@ -324,7 +324,7 @@ fn blowfish_battle() {
 }
 
 #[test]
-fn permanent_coconut() {
+fn test_mechanic_permanent_coconut() {
     // This is an forum post on how to get permanent coconut.
     // https://superautopets.fandom.com/f/p/4400000000000044254
     // It relies on the order of pets on ending turn.
@@ -355,7 +355,7 @@ fn permanent_coconut() {
 }
 
 #[test]
-fn test_deer_fly_mushroom() {
+fn test_mechanic_deer_fly_mushroom() {
     // https://youtu.be/NSqjuA32AoA?t=458
     let mut deer_w_mush = Pet::try_from(PetName::Deer).unwrap();
     deer_w_mush.item = Some(Food::try_from(FoodName::Mushroom).unwrap());
@@ -377,8 +377,35 @@ fn test_deer_fly_mushroom() {
             && team.nth(2).unwrap().borrow().name == PetName::Bus
     )
 }
+
 #[test]
-fn rhino_vs_summoner() {
+fn test_mechanic_mushroom_scorpion() {
+    // https://youtu.be/NSqjuA32AoA?t=149
+    let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
+    scorpion.item = Some(Food::try_from(FoodName::Mushroom).unwrap());
+    let mut gorilla = Pet::try_from(PetName::Gorilla).unwrap();
+    gorilla.item = Some(Food::try_from(FoodName::Melon).unwrap());
+
+    let mut team = Team::new(
+        &[Some(scorpion), Some(Pet::try_from(PetName::Dog).unwrap())],
+        5,
+    )
+    .unwrap();
+    let mut enemy_team = Team::new(&[Some(gorilla)], 5).unwrap();
+
+    // Mushroom scorpion attacks gorilla.
+    team.fight(&mut enemy_team).unwrap();
+
+    let respawned_scorpion = team.first().unwrap();
+    // Gain peanut on respawn.
+    assert_eq!(
+        respawned_scorpion.borrow().item.as_ref().unwrap().name,
+        FoodName::Peanut
+    );
+}
+
+#[test]
+fn test_mechanic_mechanic_rhino_vs_summoner() {
     // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
     // Tie in attack between shark and cricket causes difference in bee spawn.
     // * Shark wins in this case.

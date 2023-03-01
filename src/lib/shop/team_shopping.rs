@@ -743,12 +743,8 @@ impl TeamShopping for Team {
     }
 
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError> {
-        // Calculate tier change.
-        let tier_diff =
-            TryInto::<isize>::try_into(tier)? - TryInto::<isize>::try_into(self.shop_tier())?;
-
         // If increasing in tier, for each tier crate shop tier upgrade trigger.
-        if tier_diff.is_positive() {
+        if let Some(tier_diff) = tier.checked_sub(self.shop_tier()) {
             for _ in 0..tier_diff {
                 self.triggers.push_back(TRIGGER_SHOP_TIER_UPGRADED)
             }
@@ -760,6 +756,14 @@ impl TeamShopping for Team {
         self.history.curr_turn = min_turn_to_tier;
         // Update trigger effects.
         self.trigger_effects(None)?;
+        self.clear_team();
+
+        // Store friends if changed in process.
+        self.stored_friends = self
+            .friends
+            .iter()
+            .map(|slot| slot.as_ref().map(|pet| pet.borrow().clone()))
+            .collect_vec();
 
         Ok(self)
     }

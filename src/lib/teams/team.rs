@@ -88,6 +88,8 @@ pub struct Team {
     pub friends: Vec<Option<Rc<RefCell<Pet>>>>,
     /// Fainted pets.
     pub fainted: Vec<Option<Rc<RefCell<Pet>>>>,
+    /// Sold pets.
+    pub sold: Vec<Option<Rc<RefCell<Pet>>>>,
     /// Maximum number of pets that can be added.
     pub max_size: usize,
     /// Stored triggers used to invoke effects.
@@ -123,6 +125,7 @@ impl Default for Team {
             friends: Default::default(),
             stored_friends: Default::default(),
             fainted: Default::default(),
+            sold: Default::default(),
             max_size: 5,
             triggers: VecDeque::new(),
             shop,
@@ -151,6 +154,14 @@ impl Clone for Team {
                 .collect_vec(),
             fainted: self
                 .fainted
+                .iter()
+                .map(|pet| {
+                    pet.as_ref()
+                        .map(|pet| Rc::new(RefCell::new(pet.borrow().clone())))
+                })
+                .collect_vec(),
+            sold: self
+                .sold
                 .iter()
                 .map(|pet| {
                     pet.as_ref()
@@ -220,7 +231,10 @@ impl Team {
                 ),
             })
         } else {
-            let rc_pets = Team::create_rc_pets(pets);
+            // Save a copy as reference.
+            let mut pets_copy = pets.to_vec();
+            // Create reference counted clone passing mut reference to assign ids.
+            let rc_pets = Team::create_rc_pets(&mut pets_copy);
             let n_rc_pets = rc_pets.len();
             let curr_pet = if let Some(Some(first_pet)) = rc_pets.first() {
                 Some(Rc::downgrade(first_pet))
@@ -229,7 +243,7 @@ impl Team {
             };
 
             let mut team = Team {
-                stored_friends: pets.to_vec(),
+                stored_friends: pets_copy,
                 friends: rc_pets,
                 max_size,
                 pet_count: n_rc_pets,
@@ -287,17 +301,17 @@ impl Team {
     }
 
     /// Create reference counted pets.
-    pub(crate) fn create_rc_pets(pets: &[Option<Pet>]) -> Vec<Option<Rc<RefCell<Pet>>>> {
+    pub(crate) fn create_rc_pets(pets: &mut [Option<Pet>]) -> Vec<Option<Rc<RefCell<Pet>>>> {
         // Index pets.
         let mut rc_pets: Vec<Option<Rc<RefCell<Pet>>>> = vec![];
 
-        for (i, slot) in pets.iter().cloned().enumerate() {
-            let rc_pet = if let Some(mut pet) = slot {
+        for (i, slot) in pets.iter_mut().enumerate() {
+            let rc_pet = if let Some(pet) = slot {
                 // Create id if one not assigned.
                 pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
                 pet.set_pos(i);
 
-                let rc_pet = Rc::new(RefCell::new(pet));
+                let rc_pet = Rc::new(RefCell::new(pet.clone()));
 
                 // Assign weak reference to owner for all effects.
                 assign_effect_owner(&rc_pet);

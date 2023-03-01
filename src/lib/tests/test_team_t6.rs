@@ -332,14 +332,34 @@ fn test_battle_white_tiger_team() {
 fn test_battle_octopus_team() {
     let mut team = test_octopus_team();
     let mut enemy_team = test_cricket_horse_team();
-    enemy_team.set_seed(Some(25));
+    team.set_seed(Some(10));
 
     team.fight(&mut enemy_team).unwrap();
 
     // Octopus only takes one damage.
-    assert_eq!(team.first().unwrap().borrow().stats.health, 7);
-    // But kills two crickets with ability + attack.
-    assert_eq!(enemy_team.fainted.len(), 2);
+    const OCTOPUS_HEALTH: Statistics = Statistics {
+        attack: 8,
+        health: 8,
+    };
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        OCTOPUS_HEALTH - Statistics::new(0, 1).unwrap()
+    );
+    // Octopus snipes horse. And octopus direct attacks first cricket.
+    assert_eq!(
+        enemy_team
+            .fainted
+            .iter()
+            .flatten()
+            .map(|pet| pet.borrow().name.clone())
+            .collect_vec(),
+        vec![PetName::Cricket, PetName::Horse]
+    );
+    // Horse killed first by snipe as seen by zombie cricket stats being the default.
+    assert_eq!(
+        enemy_team.first().unwrap().borrow().stats,
+        Pet::try_from(PetName::ZombieCricket).unwrap().stats
+    )
 }
 
 #[test]
