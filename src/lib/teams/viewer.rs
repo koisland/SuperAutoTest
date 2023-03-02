@@ -17,7 +17,7 @@ use super::effects::EffectApplyHelpers;
 
 /// [`Target`] team and reference to [`Pet`].
 /// * Pet itself doesn't store a reference to [`Team`] so this was a workaround.
-pub type TargetPets = Vec<(Target, Rc<RefCell<Pet>>)>;
+pub type TargetPet = (Target, Rc<RefCell<Pet>>);
 
 /// Methods for viewing [`Team`]s.
 pub trait TeamViewer {
@@ -239,7 +239,7 @@ pub trait TeamViewer {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError>;
+    ) -> Result<Vec<TargetPet>, SAPTestError>;
 
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
@@ -270,7 +270,7 @@ pub trait TeamViewer {
         pos: &Position,
         trigger: Option<&Outcome>,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError>;
+    ) -> Result<Vec<TargetPet>, SAPTestError>;
 
     /// Get the number of open [`Pet`] slots on the [`Team`].
     /// # Example
@@ -491,7 +491,7 @@ impl TeamViewer for Team {
         pos: &Position,
         trigger: Option<&Outcome>,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError> {
+    ) -> Result<Vec<TargetPet>, SAPTestError> {
         let mut pets = vec![];
 
         let opponent = match &target {
@@ -864,7 +864,7 @@ impl TeamViewer for Team {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError> {
+    ) -> Result<Vec<TargetPet>, SAPTestError> {
         let curr_pet = if let Some(effect_pet) = &effect.owner {
             effect_pet.upgrade()
         } else {

@@ -8,9 +8,9 @@ use std::{
 
 use crate::{
     effects::{effect::EntityName, stats::Statistics},
-    error::SAPTestError,
     pets::pet::Pet,
     shop::store::ShopState,
+    teams::team::TeamFightOutcome,
     FoodName,
 };
 
@@ -38,35 +38,14 @@ pub enum EqualityCondition {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
-    /// Previous team fight was win.
-    PreviousWon,
-    /// Previous team fight was draw.
-    PreviousDraw,
-    /// Previous team fight was loss.
-    PreviousLoss,
+    /// Previous team fight was some outcome.
+    PreviousBattle(TeamFightOutcome),
     /// Has this many open slots.
     OpenSpaceEqual(usize),
     /// Has this many pets on team.
     NumberPetsEqual(usize),
     /// Has this many or more pets on team.
     NumberPetsGreaterEqual(usize),
-}
-
-impl TryFrom<&TeamCondition> for Status {
-    type Error = SAPTestError;
-
-    fn try_from(value: &TeamCondition) -> Result<Self, Self::Error> {
-        match value {
-            TeamCondition::PreviousWon => Ok(Status::WinBattle),
-            TeamCondition::PreviousDraw => Ok(Status::DrawBattle),
-            TeamCondition::PreviousLoss => Ok(Status::LoseBattle),
-            _ => Err(SAPTestError::InvalidTeamAction {
-                subject: "Convert TeamCondition Failure".to_string(),
-                reason: "Team Condition must match a possible battle status (ex. Win or Lose)"
-                    .to_string(),
-            }),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -150,7 +129,7 @@ pub enum Position {
 }
 
 /// Target team for an effect.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default, Hash)]
 pub enum Target {
     /// Friend team.
     Friend,

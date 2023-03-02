@@ -155,11 +155,11 @@ pub enum Action {
     /// // Get 3 gold.
     /// let multiple_gold = Action::Multiple(vec![Action::Profit; 3]);
     /// ```
-    Profit,
+    Profit(usize),
     /// Reduce cost of shop item.
     Discount(Entity, usize),
     /// Free roll.
-    FreeRoll,
+    FreeRoll(usize),
     /// Summon a `Pet` with an optional `Statistics` arg to replace store `Pet`.
     Summon(SummonType),
     /// Do multiple `Action`s.
@@ -185,10 +185,63 @@ pub enum Action {
     /// * Arg determines the buff multiplier.
     Fox(Entity, usize),
     /// Gain one experience point.
-    Experience,
+    Experience(usize),
     /// Endure damage so health doesn't go below one.
     Endure,
     #[default]
     /// No action to take.
     None,
 }
+
+// impl std::fmt::Display for Action {
+//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+//         match self {
+//             Action::Add(stats) => match stats {
+//                 StatChangeType::StaticValue(s) => write!(f, "Add Static"),
+//                 StatChangeType::SelfMultValue(s) => todo!(),
+//             },
+//             Action::Remove(_) => todo!(),
+//             Action::Debuff(_) => todo!(),
+//             Action::Shuffle(_) => todo!(),
+//             Action::Swap(_) => todo!(),
+//             Action::Push(_) => todo!(),
+//             Action::Copy(_, _, _) => todo!(),
+//             Action::Negate(_) => todo!(),
+//             Action::Critical(_) => todo!(),
+//             Action::Whale(_, _) => todo!(),
+//             Action::Transform(_, _, _) => todo!(),
+//             Action::Kill => todo!(),
+//             Action::Invincible => todo!(),
+//             Action::Gain(_) => todo!(),
+//             Action::AddShopStats(_) => todo!(),
+//             Action::AddShopFood(_) => todo!(),
+//             Action::AddShopPet(_) => todo!(),
+//             Action::ClearShop(_) => todo!(),
+//             Action::Profit(_) => todo!(),
+//             Action::Discount(_, _) => todo!(),
+//             Action::FreeRoll(_) => todo!(),
+//             Action::Summon(_) => todo!(),
+//             Action::Multiple(_) => todo!(),
+//             Action::Conditional(_, _) => todo!(),
+//             Action::Rhino(_) => todo!(),
+//             Action::Lynx => todo!(),
+//             Action::Vulture(_) => todo!(),
+//             Action::Stegosaurus(_) => todo!(),
+//             Action::Tapir => todo!(),
+//             Action::Cockroach => todo!(),
+//             Action::Moose(_) => todo!(),
+//             Action::Fox(_, _) => todo!(),
+//             Action::Experience(_) => todo!(),
+//             Action::Endure => todo!(),
+//             Action::None => todo!(),
+//         }
+//     }
+// }
+
+// #[cfg(test)]
+// mod test {
+//     use super::Action;
+
+//     #[test]
+//     fn test_fmt() {}
+// }

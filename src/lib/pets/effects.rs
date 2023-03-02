@@ -20,6 +20,7 @@ use crate::{
         store::{ShopState, MAX_SHOP_TIER, MIN_SHOP_TIER},
         trigger::*,
     },
+    teams::team::TeamFightOutcome,
     Pet, PetName, Statistics,
 };
 use std::convert::TryInto;
@@ -86,7 +87,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_PET_SOLD,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Multiple(vec![Action::Profit; record.lvl]),
+                action: Action::Profit(record.lvl),
                 uses: Some(record.n_triggers),
                 entity: Entity::Pet,
                 temp: record.temp_effect,
@@ -111,7 +112,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_PET_SOLD,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Multiple(vec![Action::FreeRoll; record.lvl]),
+                action: Action::FreeRoll(record.lvl),
                 uses: Some(record.n_triggers),
                 entity: Entity::Pet,
                 temp: record.temp_effect,
@@ -283,21 +284,19 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 }]
             }
             PetName::Elephant => {
-                vec![Effect {
-                    owner: None,
-                    trigger: TRIGGER_SELF_ATTACK,
-                    target: Target::Friend,
-                    position: Position::Nearest(-1),
-                    action: Action::Multiple(vec![
-                        Action::Remove(StatChangeType::StaticValue(
-                            effect_stats
-                        ));
-                        record.n_triggers
-                    ]),
-                    uses: None,
-                    entity: Entity::Pet,
-                    temp: record.temp_effect,
-                }]
+                vec![
+                    Effect {
+                        owner: None,
+                        trigger: TRIGGER_SELF_ATTACK,
+                        target: Target::Friend,
+                        position: Position::Nearest(-1),
+                        action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
+                        uses: None,
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                    };
+                    record.n_triggers
+                ]
             }
             PetName::Flamingo => vec![Effect {
                 owner: None,
@@ -330,26 +329,25 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Rat => {
-                let rats_summoned = vec![
-                    Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
-                        PetName::DirtyRat,
-                        None,
-                        Some(effect_stats),
-                        record.lvl,
-                    )?)));
+                vec![
+                    Effect {
+                        owner: None,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Enemy,
+                        position: Position::OnSelf,
+                        action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
+                            PetName::DirtyRat,
+                            None,
+                            Some(effect_stats),
+                            record.lvl,
+                        )?))),
+                        // Activates multiple times per trigger.
+                        uses: Some(record.n_triggers),
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                    };
                     record.lvl
-                ];
-                vec![Effect {
-                    owner: None,
-                    trigger: TRIGGER_SELF_FAINT,
-                    target: Target::Enemy,
-                    position: Position::OnSelf,
-                    action: Action::Multiple(rats_summoned),
-                    // Activates multiple times per trigger.
-                    uses: Some(record.n_triggers),
-                    entity: Entity::Pet,
-                    temp: record.temp_effect,
-                }]
+                ]
             }
             PetName::Shrimp => {
                 vec![Effect {
@@ -387,7 +385,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     trigger: TRIGGER_START_TURN,
                     target: Target::Shop,
                     position: Position::None,
-                    action: Action::Multiple(vec![Action::Profit; record.lvl]),
+                    action: Action::Profit(record.lvl),
                     uses: Some(record.n_triggers),
                     entity: Entity::Pet,
                     temp: record.temp_effect,
@@ -611,7 +609,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
                 action: Action::Conditional(
-                    LogicType::If(ConditionType::Team(TeamCondition::PreviousLoss)),
+                    LogicType::If(ConditionType::Team(TeamCondition::PreviousBattle(
+                        TeamFightOutcome::Loss,
+                    ))),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
                 ),
                 uses: Some(record.n_triggers),
@@ -651,7 +651,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     1 | 2 => {}
                     3 => {
                         base_effect.trigger = TRIGGER_START_TURN;
-                        base_effect.action = Action::Experience;
+                        base_effect.action = Action::Experience(1);
                     }
                     _ => {
                         return Err(SAPTestError::QueryFailure {
@@ -770,25 +770,24 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: None,
             }],
             PetName::Sheep => {
-                let ram = Box::new(Pet::new(
-                    PetName::Ram,
-                    None,
-                    Some(effect_stats),
-                    record.lvl,
-                )?);
-                vec![Effect {
-                    owner: None,
-                    entity: Entity::Pet,
-                    temp: record.temp_effect,
-                    trigger: TRIGGER_SELF_FAINT,
-                    target: Target::Friend,
-                    position: Position::OnSelf,
-                    action: Action::Multiple(vec![
-                        Action::Summon(SummonType::StoredPet(ram.clone())),
-                        Action::Summon(SummonType::StoredPet(ram)),
-                    ]),
-                    uses: Some(record.n_triggers),
-                }]
+                vec![
+                    Effect {
+                        owner: None,
+                        entity: Entity::Pet,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
+                            PetName::Ram,
+                            None,
+                            Some(effect_stats),
+                            record.lvl,
+                        )?))),
+                        uses: Some(record.n_triggers),
+                    };
+                    2
+                ]
             }
             PetName::Bison => vec![Effect {
                 owner: None,
@@ -936,8 +935,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Crow => {
                 let mut free_chocolate = Food::try_from(FoodName::Chocolate)?;
                 // Amount of experience tied to level of crow.
-                free_chocolate.ability.action =
-                    Action::Multiple(vec![Action::Experience; record.lvl]);
+                free_chocolate.ability.action = Action::Experience(record.lvl);
                 // Clear shop, add chocolate, and then discount it.
                 let actions = vec![
                     Action::ClearShop(Entity::Food),
@@ -1236,7 +1234,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_PET_BOUGHT,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Multiple(vec![Action::Profit; record.lvl]),
+                action: Action::Profit(record.lvl),
                 uses: Some(record.n_triggers),
             }],
             PetName::Poodle => {
@@ -1277,7 +1275,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ROLL,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit,
+                action: Action::Profit(1),
                 uses: Some(record.n_triggers),
             }],
             PetName::PolarBear => vec![Effect {
@@ -1606,7 +1604,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::Relative(1),
-                action: Action::Multiple(vec![Action::Experience; record.lvl]),
+                action: Action::Experience(record.lvl),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
             }],
@@ -1723,7 +1721,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Nearest(-1),
-                action: Action::Experience,
+                action: Action::Experience(1),
                 uses: Some(record.n_triggers),
             }],
             PetName::Clownfish => vec![Effect {
@@ -1830,7 +1828,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     trigger: TRIGGER_START_TURN,
                     target: Target::Friend,
                     position: Position::OnSelf,
-                    action: Action::Experience,
+                    action: Action::Experience(1),
                     uses: None,
                 }],
                 3 => {
@@ -2063,7 +2061,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 position: Position::Any(ItemCondition::NotEqual(EqualityCondition::Name(
                     EntityName::Pet(PetName::Alpaca),
                 ))),
-                action: Action::Multiple(vec![Action::Experience; record.lvl]),
+                action: Action::Experience(record.lvl),
                 uses: None,
             }],
             PetName::Tapir => vec![Effect {
@@ -2093,7 +2091,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::Nearest(-record.lvl.try_into()?),
-                action: Action::Multiple(vec![Action::Experience; 3]),
+                action: Action::Experience(3),
                 uses: Some(record.n_triggers),
             }],
             PetName::Octopus => vec![Effect {
@@ -2245,7 +2243,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_FOOD_BOUGHT,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Multiple(vec![Action::Profit; record.lvl]),
+                action: Action::Profit(record.lvl),
                 uses: Some(record.n_triggers),
             }],
             PetName::Tyrannosaurus => vec![Effect {
@@ -2270,7 +2268,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Target::Friend,
                         ItemCondition::Equal(EqualityCondition::Level(3)),
                     )),
-                    Box::new(Action::Multiple(vec![Action::Profit; record.lvl * 3])),
+                    Box::new(Action::Profit(record.lvl * 3)),
                 ),
                 uses: Some(record.n_triggers),
             }],

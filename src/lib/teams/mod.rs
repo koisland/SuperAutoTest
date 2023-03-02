@@ -10,3 +10,5 @@ pub mod serialize;
 pub mod team;
 /// View a [`Team`](crate::Team)'s [`Pet`](crate::Pet)s.
 pub mod viewer;
+
+pub(crate) mod history;

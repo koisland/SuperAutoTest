@@ -4,9 +4,9 @@ use crate::{
         trigger::*,
     },
     error::SAPTestError,
-    graph::effect_graph::History,
     pets::pet::{assign_effect_owner, Pet},
     shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
+    teams::history::History,
     teams::viewer::TeamViewer,
     Food, Shop,
 };
@@ -129,7 +129,7 @@ impl Default for Team {
             max_size: 5,
             triggers: VecDeque::new(),
             shop,
-            history: History::new(),
+            history: History::default(),
             pet_count: Default::default(),
             seed,
             curr_pet: None,
@@ -618,6 +618,7 @@ impl Team {
         }
 
         self.friends.insert(pos, Some(rc_pet));
+        self.pet_count += 1;
 
         // Set current pet to always be first in line.
         if let Some(Some(pet)) = self.friends.first() {
@@ -625,14 +626,6 @@ impl Team {
         }
 
         Ok(self)
-    }
-
-    /// Create a node logging an effect's result for a [`Team`]'s history.
-    pub(crate) fn create_node(&mut self, trigger: &Outcome) -> &mut Self {
-        let node_idx = self.history.effect_graph.add_node(trigger.clone());
-        self.history.prev_node = self.history.curr_node;
-        self.history.curr_node = Some(node_idx);
-        self
     }
 }
 

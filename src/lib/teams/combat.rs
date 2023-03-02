@@ -4,11 +4,11 @@ use std::rc::Rc;
 use crate::{
     effects::{
         actions::{Action, SummonType},
-        state::{Outcome, Status},
         trigger::*,
     },
     error::SAPTestError,
     shop::store::ShopState,
+    teams::history::TeamHistory,
     teams::team::TeamFightOutcome,
     PetCombat, Team, TeamEffects, TeamViewer,
 };
@@ -124,6 +124,9 @@ impl TeamCombat for Team {
         self.clear_team();
         opponent.clear_team();
 
+        self.update_pet_nodes(opponent);
+        opponent.update_pet_nodes(self);
+
         // If current phase is 1, perform start of battle.
         // Only one team is required to activate this.
         if self.history.curr_phase == 1 {
@@ -141,10 +144,6 @@ impl TeamCombat for Team {
         if opponent.history.curr_phase == 1 {
             opponent.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
         }
-
-        // Increment battle phase counter.
-        self.history.curr_phase += 1;
-        opponent.history.curr_phase += 1;
 
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
             self.curr_pet = Some(Rc::downgrade(&pet));
@@ -196,22 +195,22 @@ impl TeamCombat for Team {
                 trigger.set_affected(&opponent_pet).set_afflicting(&pet);
             }
 
-            // Create node for hurt and attack status.
-            if let Some(trigger) = outcome
-                .friends
-                .iter()
-                .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
-            {
-                self.create_node(trigger);
-            }
+            // // Create node for hurt and attack status.
+            // if let Some(trigger) = outcome
+            //     .friends
+            //     .iter()
+            //     .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
+            // {
+            //     // self.create_node(trigger);
+            // }
 
-            if let Some(trigger) = outcome
-                .opponents
-                .iter()
-                .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
-            {
-                opponent.create_node(trigger);
-            }
+            // if let Some(trigger) = outcome
+            //     .opponents
+            //     .iter()
+            //     .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
+            // {
+            //     // opponent.create_node(trigger);
+            // }
 
             // Add triggers to team from outcome of battle.
             self.triggers.extend(outcome.friends.into_iter());
@@ -245,6 +244,11 @@ impl TeamCombat for Team {
             opponent.clear_team();
         }
 
+        // Increment battle phase counter.
+        // A battle phase is a single direct attack between pets.
+        self.history.curr_phase += 1;
+        opponent.history.curr_phase += 1;
+
         // Clear any fainted pets in case where first slot on either team is empty and battle phase interrupted.
         self.clear_team();
         opponent.clear_team();
@@ -264,21 +268,10 @@ impl TeamCombat for Team {
                     info!(target: "run", "Your team won!");
                     TeamFightOutcome::Win
                 };
-                let outcome_trigger: Outcome = (&outcome).into();
-                let opponent_outcome_trigger: Outcome = (&outcome.inverse()).into();
-                // Add end of battle node.
-                let outcome_node = self.history.effect_graph.add_node(outcome_trigger);
-                let opponent_outcome_node = opponent
-                    .history
-                    .effect_graph
-                    .add_node(opponent_outcome_trigger);
-                self.history.prev_node = self.history.curr_node;
-                self.history.curr_node = Some(outcome_node);
-                self.history.last_outcome = Some(outcome_node);
 
-                opponent.history.prev_node = opponent.history.curr_node;
-                opponent.history.curr_node = Some(opponent_outcome_node);
-                opponent.history.last_outcome = Some(opponent_outcome_node);
+                opponent.history.fight_outcomes.push(outcome.inverse());
+                self.history.fight_outcomes.push(outcome.clone());
+
                 // On outcome, increase turn count.
                 self.history.curr_turn += 1;
                 opponent.history.curr_turn += 1;

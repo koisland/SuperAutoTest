@@ -458,7 +458,7 @@ impl TeamShoppingHelpers for Team {
         } else if food.borrow().name == FoodName::CannedFood {
             // Applying any effect requires an owner so assign current pet.
             food.borrow_mut().ability.assign_owner(curr_pet.as_ref());
-            self.apply_shop_effect(&food.borrow().ability)?;
+            self.apply_shop_effect(&food.borrow_mut().ability)?;
         } else {
             let mut food_ability = food.borrow().ability.clone();
             // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
@@ -504,8 +504,9 @@ impl TeamShoppingHelpers for Team {
                 self.triggers
                     .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
 
+                let target_pets = &(Target::Friend, pet.clone());
                 for _ in 0..(1 + cat_multiplier) {
-                    self.apply_single_effect(&pet, &food_ability, None)?;
+                    self.apply_single_effect(target_pets, target_pets, &food_ability, None)?;
                 }
             }
         }

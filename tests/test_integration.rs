@@ -6,6 +6,7 @@ use saptest::{
         trigger::*,
     },
     teams::{combat::TeamCombat, team::TeamFightOutcome},
+    visualization::dag::to_dag,
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, TeamViewer, SAPDB,
 };
@@ -404,8 +405,7 @@ fn test_mechanic_mushroom_scorpion() {
     );
 }
 
-#[test]
-fn test_mechanic_mechanic_rhino_vs_summoner() {
+fn rhino_vs_summoner_teams() -> (Team, Team) {
     // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
     // Tie in attack between shark and cricket causes difference in bee spawn.
     // * Shark wins in this case.
@@ -538,8 +538,16 @@ fn test_mechanic_mechanic_rhino_vs_summoner() {
     }
     chunky_wigs_pets[3].as_mut().unwrap().item = Some(Food::try_from(FoodName::Steak).unwrap());
 
-    let mut sour_sailors = Team::new(&sour_sailors_pets, 5).unwrap();
-    let mut chunk_wigs = Team::new(&chunky_wigs_pets, 5).unwrap();
+    (
+        Team::new(&sour_sailors_pets, 5).unwrap(),
+        Team::new(&chunky_wigs_pets, 5).unwrap(),
+    )
+}
+
+#[test]
+fn test_mechanic_mechanic_rhino_vs_summoner() {
+    // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
+    let (mut sour_sailors, mut chunk_wigs) = rhino_vs_summoner_teams();
 
     sour_sailors.fight(&mut chunk_wigs).unwrap();
 
@@ -554,5 +562,8 @@ fn test_mechanic_mechanic_rhino_vs_summoner() {
         ram_1.borrow().stats == Statistics::new(4, 4).unwrap() &&
         ram_2.borrow().stats == Statistics::new(4, 4).unwrap() &&
         bee.borrow().stats == Statistics::new(1, 1).unwrap()
-    )
+    );
+
+    println!("{}", to_dag(&chunk_wigs));
+    // println!("{}", to_dag(&sour_sailors));
 }

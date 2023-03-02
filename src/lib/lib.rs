@@ -145,6 +145,7 @@ pub mod logging;
 pub mod pets;
 pub mod shop;
 pub mod teams;
+pub mod visualization;
 
 #[doc(inline)]
 pub use crate::effects::{
@@ -170,7 +171,6 @@ pub use crate::shop::{
 };
 
 mod config;
-mod graph;
 mod regex_patterns;
 #[cfg(test)]
 mod tests;
