@@ -8,10 +8,16 @@ use crate::{
     },
     error::SAPTestError,
     shop::store::ShopState,
-    teams::history::TeamHistory,
     teams::team::TeamFightOutcome,
+    teams::{effects::EffectApplyHelpers, history::TeamHistoryHelpers},
     PetCombat, Team, TeamEffects, TeamViewer,
 };
+
+const BATTLE_PHASE_COMPLETE_OUTCOMES: [TeamFightOutcome; 3] = [
+    TeamFightOutcome::Win,
+    TeamFightOutcome::Loss,
+    TeamFightOutcome::Draw,
+];
 
 /// Enables combat between two [`Team`]s.
 /// ```rust no_run
@@ -82,7 +88,7 @@ pub trait TeamCombat {
     /// ```
     fn restore(&mut self) -> &mut Self;
 
-    /// Clear team of empty slots and/or fainted pets and reset indices.
+    /// Clear team of empty slots and/or fainted pets moving up pets until the next healthiest pet.
     /// # Examples
     /// ```
     /// use saptest::{
@@ -107,178 +113,10 @@ pub trait TeamCombat {
 
 impl TeamCombat for Team {
     fn fight(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError> {
-        // Exit while any shop is open.
-        if self.shop.state == ShopState::Open || opponent.shop.state == ShopState::Open {
-            return Err(SAPTestError::InvalidTeamAction {
-                subject: "Shop Not Closed".to_string(),
-                reason:
-                    "Cannot fight while one or more teams has an open shop. Call shop.close_shop()"
-                        .to_string(),
-            });
-        }
-
-        info!(target: "run", "(\"{}\")\n{}", self.name, self);
-        info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
-
-        // Clear empty slots at front. pushing pets forward.
-        self.clear_team();
-        opponent.clear_team();
-
-        self.update_pet_nodes(opponent);
-        opponent.update_pet_nodes(self);
-
-        // If current phase is 1, perform start of battle.
-        // Only one team is required to activate this.
-        if self.history.curr_phase == 1 {
-            self.trigger_start_battle_effects(opponent)?;
-        }
-
-        self.clear_team();
-        opponent.clear_team();
-
-        // If current phase is 1, add before first battle triggers.
-        // Used for butterfly.
-        if self.history.curr_phase == 1 {
-            self.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
-        }
-        if opponent.history.curr_phase == 1 {
-            opponent.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
-        }
-
-        if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
-            self.curr_pet = Some(Rc::downgrade(&pet));
-            opponent.curr_pet = Some(Rc::downgrade(&opponent_pet));
-
-            self.triggers.extend([
-                TRIGGER_SELF_BEFORE_ATTACK
-                    .clone()
-                    .set_affected(&pet)
-                    .to_owned(),
-                TRIGGER_ANY_BEFORE_ATTACK
-                    .clone()
-                    .set_affected(&pet)
-                    .to_owned(),
-            ]);
-            opponent.triggers.extend([
-                TRIGGER_SELF_BEFORE_ATTACK
-                    .clone()
-                    .set_affected(&opponent_pet)
-                    .to_owned(),
-                TRIGGER_ANY_BEFORE_ATTACK
-                    .clone()
-                    .set_affected(&opponent_pet)
-                    .to_owned(),
-            ]);
-
-            while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(Some(opponent))?;
-                opponent.trigger_effects(Some(self))?;
-            }
-            // Turn will end prematurely if no pet at front.
-            // Should not clear team yet.
-        }
-
-        // Check that two pets exist and attack.
-        // Attack will result in triggers being added.
-        if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
-            // Attack and get outcome of fight.
-            info!(target: "run", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-            let mut outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
-            info!(target: "run", "(\"{}\")\n{}", self.name, self);
-            info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
-
-            // Update outcomes with weak references.
-            for trigger in outcome.friends.iter_mut() {
-                trigger.set_affected(&pet).set_afflicting(&opponent_pet);
-            }
-            for trigger in outcome.opponents.iter_mut() {
-                trigger.set_affected(&opponent_pet).set_afflicting(&pet);
-            }
-
-            // // Create node for hurt and attack status.
-            // if let Some(trigger) = outcome
-            //     .friends
-            //     .iter()
-            //     .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
-            // {
-            //     // self.create_node(trigger);
-            // }
-
-            // if let Some(trigger) = outcome
-            //     .opponents
-            //     .iter()
-            //     .find(|trigger| trigger.status == Status::Hurt || trigger.status == Status::Attack)
-            // {
-            //     // opponent.create_node(trigger);
-            // }
-
-            // Add triggers to team from outcome of battle.
-            self.triggers.extend(outcome.friends.into_iter());
-            opponent.triggers.extend(outcome.opponents.into_iter());
-
-            // Add triggers for pet behind.
-            if let Some(pet_behind) = opponent.nth(1) {
-                opponent.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
-            }
-            if let Some(pet_behind) = self.nth(1) {
-                self.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
-            }
-
-            // Apply effect triggers from combat phase.
-            while !self.triggers.is_empty() || !opponent.triggers.is_empty() {
-                self.trigger_effects(Some(opponent))?;
-                opponent.trigger_effects(Some(self))?;
-            }
-
-            self.clear_team();
-            opponent.clear_team();
-        }
-
-        // Increment battle phase counter.
-        // A battle phase is a single direct attack between pets.
-        self.history.curr_phase += 1;
-        opponent.history.curr_phase += 1;
-
-        // Clear any fainted pets in case where first slot on either team is empty and battle phase interrupted.
-        self.clear_team();
-        opponent.clear_team();
-
-        // Check if battle complete.
-        Ok(
-            if !self.friends.is_empty() && !opponent.friends.is_empty() {
-                TeamFightOutcome::None
-            } else {
-                let outcome = if self.friends.is_empty() && opponent.friends.is_empty() {
-                    info!(target: "run", "Draw!");
-                    TeamFightOutcome::Draw
-                } else if !opponent.friends.is_empty() {
-                    info!(target: "run", "Enemy team won...");
-                    TeamFightOutcome::Loss
-                } else {
-                    info!(target: "run", "Your team won!");
-                    TeamFightOutcome::Win
-                };
-
-                opponent.history.fight_outcomes.push(outcome.inverse());
-                self.history.fight_outcomes.push(outcome.clone());
-
-                // On outcome, increase turn count.
-                self.history.curr_turn += 1;
-                opponent.history.curr_turn += 1;
-                // Return outcome.
-                outcome
-            },
-        )
+        self.start_battle_phase(opponent)?
+            .before_battle_phase(opponent)?
+            .battle_phase(opponent)?
+            .end_battle_phase(opponent)
     }
 
     fn restore(&mut self) -> &mut Self {
@@ -315,7 +153,7 @@ impl TeamCombat for Team {
             .iter()
             .enumerate()
             .filter_map(|(i, slot)| slot.is_none().then_some(i));
-        // Sort by idx.
+        // Sort by idx to ensure slots and pets are separated.
         self.friends
             .sort_by(|slot_1, slot_2| match (slot_1, slot_2) {
                 (None, None) => std::cmp::Ordering::Equal,
@@ -334,7 +172,7 @@ impl TeamCombat for Team {
 
         // Set current battle phase to 1.
         self.history.curr_phase = 1;
-        self.pet_count = self.stored_friends.len();
+        self.history.pet_count = self.stored_friends.len();
         self
     }
 
@@ -376,6 +214,212 @@ impl TeamCombat for Team {
                 }
             }
         });
+        // Trim any empty slots at the end.
+        let last_idx = self.friends.iter().enumerate().rev().find_map(|(i, slot)| {
+            if slot.is_some() {
+                Some(i)
+            } else {
+                None
+            }
+        });
+        if let Some(last_idx) = last_idx {
+            self.friends.truncate(last_idx + 1)
+        }
         self
+    }
+}
+
+trait BattlePhases {
+    fn start_battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError>;
+    fn before_battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError>;
+    fn battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError>;
+    fn end_battle_phase(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError>;
+    fn get_battle_outcome(&self, opponent: &Team) -> TeamFightOutcome;
+}
+
+impl BattlePhases for Team {
+    fn start_battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
+        // Exit while any shop is open.
+        if self.shop.state == ShopState::Open || opponent.shop.state == ShopState::Open {
+            return Err(SAPTestError::InvalidTeamAction {
+                subject: "Shop Not Closed".to_string(),
+                reason:
+                    "Cannot fight while one or more teams has an open shop. Call shop.close_shop()"
+                        .to_string(),
+            });
+        }
+        if self.name == opponent.name {
+            return Err(SAPTestError::InvalidTeamAction {
+                subject: "Duplicate Team Name".to_string(),
+                reason: "Team names cannot be identical.".to_string(),
+            });
+        }
+        // If already complete, allow to continue to next phases. Nothing will happen.
+        if BATTLE_PHASE_COMPLETE_OUTCOMES.contains(&self.get_battle_outcome(opponent)) {
+            return Ok(self);
+        }
+
+        // Set which team's history should be the primary one.
+        self.history.primary_team = true;
+        opponent.history.primary_team = false;
+
+        // Move up if not start of battle.
+        if self.history.curr_phase != 1 {
+            self.clear_team();
+            opponent.clear_team();
+        }
+
+        info!(target: "run", "(\"{}\")\n{}", self.name, self);
+        info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
+
+        // If current phase is 1, perform start of battle and update graph.
+        // Only one team is required to activate this.
+        if self.history.curr_phase == 1 {
+            self.history.graph.update(&self.friends, &opponent.friends);
+            self.trigger_start_battle_effects(opponent)?;
+        }
+
+        // If current phase is 1, add before first battle triggers.
+        // Used for butterfly.
+        if self.history.curr_phase == 1 {
+            self.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
+        }
+        if opponent.history.curr_phase == 1 {
+            opponent.triggers.push_front(TRIGGER_BEFORE_FIRST_BATTLE)
+        }
+
+        Ok(self)
+    }
+
+    fn before_battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
+        // Trigger before attack.
+        if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
+            self.curr_pet = Some(Rc::downgrade(&pet));
+            opponent.curr_pet = Some(Rc::downgrade(&opponent_pet));
+
+            self.triggers.extend([
+                TRIGGER_SELF_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&pet)
+                    .to_owned(),
+                TRIGGER_ANY_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&pet)
+                    .to_owned(),
+            ]);
+            opponent.triggers.extend([
+                TRIGGER_SELF_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&opponent_pet)
+                    .to_owned(),
+                TRIGGER_ANY_BEFORE_ATTACK
+                    .clone()
+                    .set_affected(&opponent_pet)
+                    .to_owned(),
+            ]);
+
+            self.trigger_all_effects(opponent)?;
+        }
+
+        Ok(self)
+    }
+
+    fn battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
+        // Check that two pets exist and attack.
+        // * Turn will end prematurely if no pet at front.
+        // * Should not clear/move up teams yet.
+        if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
+            // Attack and get outcome of fight.
+            info!(target: "run", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
+            let mut atk_outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
+
+            // Check for battle food effects like chili.
+            self.apply_battle_food_effect(&pet, opponent)?;
+            opponent.apply_battle_food_effect(&opponent_pet, self)?;
+
+            info!(target: "run", "(\"{}\")\n{}", self.name, self);
+            info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
+
+            // Update outcomes with weak references.
+            for trigger in atk_outcome.friends.iter_mut() {
+                trigger.set_affected(&pet).set_afflicting(&opponent_pet);
+            }
+            for trigger in atk_outcome.opponents.iter_mut() {
+                trigger.set_affected(&opponent_pet).set_afflicting(&pet);
+            }
+
+            self.add_hurt_and_attack_edges(&pet, &opponent_pet, &atk_outcome)?;
+
+            // Add triggers to team from outcome of battle.
+            self.triggers.extend(atk_outcome.friends.into_iter());
+            opponent.triggers.extend(atk_outcome.opponents.into_iter());
+
+            // Add triggers for pet behind.
+            if let Some(pet_behind) = opponent.nth(1) {
+                opponent.triggers.push_back(
+                    TRIGGER_AHEAD_ATTACK
+                        .clone()
+                        .set_affected(&pet_behind)
+                        .to_owned(),
+                )
+            }
+            if let Some(pet_behind) = self.nth(1) {
+                self.triggers.push_back(
+                    TRIGGER_AHEAD_ATTACK
+                        .clone()
+                        .set_affected(&pet_behind)
+                        .to_owned(),
+                )
+            }
+
+            // Apply effect triggers from combat phase.
+            self.trigger_all_effects(opponent)?;
+        }
+
+        Ok(self)
+    }
+
+    fn end_battle_phase(&mut self, opponent: &mut Team) -> Result<TeamFightOutcome, SAPTestError> {
+        // Increment battle phase counter.
+        // A battle phase is a single direct attack between pets.
+        self.history.curr_phase += 1;
+        opponent.history.curr_phase += 1;
+
+        // Clear any fainted pets in case where first slot on either team is empty or battle phase interrupted.
+        self.clear_team();
+        opponent.clear_team();
+
+        // Replace opponent graph.
+        opponent.history.graph = self.history.graph.clone();
+
+        // Check outcome.
+        let outcome = self.get_battle_outcome(opponent);
+        // Update history.
+        if BATTLE_PHASE_COMPLETE_OUTCOMES.contains(&outcome) {
+            opponent.history.fight_outcomes.push(outcome.inverse());
+            self.history.fight_outcomes.push(outcome.clone());
+
+            // On outcome, increase turn count.
+            self.history.curr_turn += 1;
+            opponent.history.curr_turn += 1;
+        };
+
+        Ok(outcome)
+    }
+
+    fn get_battle_outcome(&self, opponent: &Team) -> TeamFightOutcome {
+        let alive_friends = self.all();
+        let alive_opponents = opponent.all();
+
+        // Still friends alive, battle outcome not decided.
+        if !alive_friends.is_empty() && !alive_opponents.is_empty() {
+            TeamFightOutcome::None
+        } else if alive_friends.is_empty() && alive_opponents.is_empty() {
+            TeamFightOutcome::Draw
+        } else if !opponent.friends.is_empty() {
+            TeamFightOutcome::Loss
+        } else {
+            TeamFightOutcome::Win
+        }
     }
 }

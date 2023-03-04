@@ -291,6 +291,8 @@ pub enum Status {
     BeforeAttack,
     /// Pet is attacking.
     Attack,
+    /// A battle food effect. ex. Chili
+    BattleFoodEffect,
     /// Any damage calculation
     AnyDmgCalc,
     /// Indirect dmg attack calculation.
@@ -315,7 +317,7 @@ pub enum Status {
     Hurt,
     /// Pet fainted.
     Faint,
-    /// Pet knocked out during an attack.
+    /// Pet knocks out another pet during an attack.
     /// * After [`attack`](crate::pets::combat::PetCombat::attack) or [`indirect_attack`](crate::pets::combat::PetCombat::indirect_attack)
     KnockOut,
     /// Pet summoned.

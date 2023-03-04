@@ -4,6 +4,9 @@
 # 3. Hovering over the "prev" link.
 
 [database]
+# https://superautopets.fandom.com/wiki/Team_Names
+# names_version = ?
+
 # https://superautopets.fandom.com/wiki/Pets
 # pets_version = ?
 

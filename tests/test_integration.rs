@@ -6,7 +6,7 @@ use saptest::{
         trigger::*,
     },
     teams::{combat::TeamCombat, team::TeamFightOutcome},
-    visualization::dag::to_dag,
+    visualization::dag::battle_to_dag,
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, TeamViewer, SAPDB,
 };
@@ -22,6 +22,12 @@ fn test_query_db() {
 
     assert!(food_query.is_ok());
     assert!(pet_query.is_ok());
+}
+
+#[test]
+fn test_get_random_team_name() {
+    let name = Team::get_random_name(5).unwrap();
+    assert_eq!(&name, "The Submissive Stickers");
 }
 
 #[test]
@@ -94,8 +100,8 @@ fn test_create_custom_pet() {
     let mut enemy_team = team.clone();
 
     // Trigger start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     let front_ant = team.friends[0].as_ref().unwrap();
     let behind_ant = team.friends[2].as_ref().unwrap();
@@ -272,7 +278,7 @@ fn test_serialize_pet() {
     pet.seed = Some(20);
 
     let json_pet = serde_json::to_string(&pet).unwrap();
-    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":1},"effect":[{"entity":"Pet","trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"StaticValue":{"attack":2,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null}"#;
+    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":1},"effect":[{"entity":"Pet","trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"StaticValue":{"attack":2,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null,"team":null}"#;
     assert_eq!(json_pet, exp_json);
 
     // Restore pet from json string.
@@ -282,6 +288,8 @@ fn test_serialize_pet() {
 
 #[test]
 fn test_serialize_team() {
+    let seed = 20;
+    let name = Team::get_random_name(seed).unwrap();
     // Create a team.
     let mut team = Team::new(
         &[
@@ -293,10 +301,10 @@ fn test_serialize_team() {
         5,
     )
     .unwrap();
-    team.set_seed(Some(20));
+    team.set_seed(Some(seed)).set_name(&name).unwrap();
 
     let json_team: String = (&team).try_into().unwrap();
-    let exp_json = r#"{"seed":20,"name":"","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"fainted":[],"sold":[],"max_size":5,"triggers":[],"stored_friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3}],"pet_count":4}"#;
+    let exp_json = r#"{"seed":20,"name":"The Wavy Monks","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}],"fainted":[],"sold":[],"max_size":5,"triggers":[],"stored_friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"Any":"None"},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}]}"#;
     assert_eq!(exp_json, json_team);
 
     let new_team = Team::from_str(&json_team).unwrap();
@@ -316,7 +324,6 @@ fn test_99_blowfish_battle() {
 
     let mut team = Team::new(&pets, 100).unwrap();
     let mut enemy_team = team.clone();
-    team.name = "Self".to_string();
 
     let mut outcome = team.fight(&mut enemy_team).unwrap();
     while let TeamFightOutcome::None = outcome {
@@ -367,7 +374,8 @@ fn test_mechanic_deer_fly_mushroom() {
     ];
 
     let mut team = Team::new(&pets, 5).unwrap();
-    let mut enemy_team = team.clone();
+    let mut enemy_team = Team::new(&pets, 5).unwrap();
+    enemy_team.set_name("The Super Auto Pets").unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -376,7 +384,7 @@ fn test_mechanic_deer_fly_mushroom() {
         team.first().unwrap().borrow().name == PetName::Deer
             && team.nth(1).unwrap().borrow().name == PetName::ZombieFly
             && team.nth(2).unwrap().borrow().name == PetName::Bus
-    )
+    );
 }
 
 #[test]
@@ -548,22 +556,18 @@ fn rhino_vs_summoner_teams() -> (Team, Team) {
 fn test_mechanic_mechanic_rhino_vs_summoner() {
     // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
     let (mut sour_sailors, mut chunk_wigs) = rhino_vs_summoner_teams();
+    sour_sailors.set_name("The Sour Sailors").unwrap();
+    chunk_wigs.set_name("The Chunk Wigs").unwrap();
 
-    sour_sailors.fight(&mut chunk_wigs).unwrap();
+    chunk_wigs.fight(&mut sour_sailors).unwrap();
 
     let chunky_wigs_post_battle_pets = chunk_wigs.all();
-    let [bus, zcricket, ram_1, ram_2, bee] = &chunky_wigs_post_battle_pets[..] else { panic!()};
-    // Note: The slight difference is due to a sorting tie between the honeyed shark (6,6) and the honeyed cricket (6,7).
-    // The order is generally correct.
+    let [bus, bee, zcricket, ram_1, ram_2] = &chunky_wigs_post_battle_pets[..] else { panic!()};
     assert!(
-        bus.borrow().stats == Statistics::new(10, 10).unwrap() &&
-        // Bee here in post.
-        zcricket.borrow().stats == Statistics::new(3, 3).unwrap() &&
-        ram_1.borrow().stats == Statistics::new(4, 4).unwrap() &&
-        ram_2.borrow().stats == Statistics::new(4, 4).unwrap() &&
-        bee.borrow().stats == Statistics::new(1, 1).unwrap()
+        bus.borrow().stats == Statistics::new(10, 10).unwrap()
+            && bee.borrow().stats == Statistics::new(1, 1).unwrap()
+            && zcricket.borrow().stats == Statistics::new(3, 3).unwrap()
+            && ram_1.borrow().stats == Statistics::new(4, 4).unwrap()
+            && ram_2.borrow().stats == Statistics::new(4, 4).unwrap()
     );
-
-    println!("{}", to_dag(&chunk_wigs));
-    // println!("{}", to_dag(&sour_sailors));
 }

@@ -147,14 +147,7 @@ pub enum Action {
     AddShopPet(SummonType),
     /// Clear shop items.
     ClearShop(Entity),
-    /// Get `1` gold.
-    /// * To chain multiple:
-    ///
-    /// ```no_run
-    /// use saptest::effects::actions::Action;
-    /// // Get 3 gold.
-    /// let multiple_gold = Action::Multiple(vec![Action::Profit; 3]);
-    /// ```
+    /// Get gold.
     Profit(usize),
     /// Reduce cost of shop item.
     Discount(Entity, usize),
@@ -167,7 +160,7 @@ pub enum Action {
     /// Perform a conditional `Action`.
     Conditional(LogicType, Box<Action>),
     /// Hardcoded rhino ability.
-    Rhino(Statistics),
+    Rhino(Statistics, usize),
     /// Hardcoded lynx ability.
     Lynx,
     /// Hardcoded vulture ability.

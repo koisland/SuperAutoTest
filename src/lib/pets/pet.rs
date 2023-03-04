@@ -56,6 +56,8 @@ pub struct Pet {
     pub(crate) exp: usize,
     /// Pet position on a [`Team`](crate::teams::team::Team).
     pub(crate) pos: Option<usize>,
+    /// Team name.
+    pub(crate) team: Option<String>,
 }
 
 impl PartialEq for Pet {
@@ -75,16 +77,14 @@ impl PartialEq for Pet {
 
 impl Display for Pet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let item_str = self
+            .item
+            .as_ref()
+            .map_or_else(|| "None".to_string(), |item| item.to_string());
         write!(
             f,
-            "[{}: ({},{}) (Level: {} Exp: {}) (Pos: {:?}) (Item: {:?})]",
-            self.name,
-            self.stats.attack,
-            self.stats.health,
-            self.lvl,
-            self.exp,
-            self.pos,
-            self.item
+            "[{}: ({},{}) (Level: {} Exp: {}) (Pos: {:?}) (Item: {})]",
+            self.name, self.stats.attack, self.stats.health, self.lvl, self.exp, self.pos, item_str
         )
     }
 }
@@ -119,6 +119,7 @@ impl TryFrom<PetRecord> for Pet {
             pos: None,
             cost,
             seed: random(),
+            team: None,
         })
     }
 }
@@ -226,6 +227,7 @@ impl Pet {
             pos: None,
             cost: 3,
             seed: random(),
+            team: None,
         }
     }
 

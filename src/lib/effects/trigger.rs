@@ -1,6 +1,11 @@
-use crate::effects::{
-    state::{ItemCondition, Outcome, Position, Status, Target},
-    stats::Statistics,
+use std::{cell::RefCell, rc::Weak};
+
+use crate::{
+    effects::{
+        state::{ItemCondition, Outcome, Position, Status, Target},
+        stats::Statistics,
+    },
+    Pet,
 };
 
 use super::state::EqualityCondition;
@@ -23,6 +28,20 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
     ahead_faint.stat_diff = *health_diff_stats;
 
     [self_faint, any_faint, ahead_faint]
+}
+
+/// Get faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team is summoned.
+pub fn get_summon_triggers(pet: Weak<RefCell<Pet>>) -> [Outcome; 3] {
+    let mut self_trigger = TRIGGER_SELF_SUMMON;
+    let mut any_trigger = TRIGGER_ANY_SUMMON;
+    let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;
+
+    (
+        self_trigger.affected_pet,
+        any_trigger.affected_pet,
+        any_enemy_trigger.affected_pet,
+    ) = (Some(pet.clone()), Some(pet.clone()), Some(pet));
+    [self_trigger, any_trigger, any_enemy_trigger]
 }
 
 /// Start of battle trigger.
@@ -70,40 +89,8 @@ pub const TRIGGER_END_TURN: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Won battle trigger.
-pub const TRIGGER_WIN_BATTLE: Outcome = Outcome {
-    status: Status::WinBattle,
-    position: Position::None,
-    affected_pet: None,
-    afflicting_pet: None,
-    stat_diff: None,
-    affected_team: Target::None,
-    afflicting_team: Target::None,
-};
-
-/// Won battle trigger.
-pub const TRIGGER_LOSE_BATTLE: Outcome = Outcome {
-    status: Status::LoseBattle,
-    position: Position::None,
-    affected_pet: None,
-    afflicting_pet: None,
-    stat_diff: None,
-    affected_team: Target::None,
-    afflicting_team: Target::None,
-};
-
-/// Draw battle trigger.
-pub const TRIGGER_DRAW_BATTLE: Outcome = Outcome {
-    status: Status::DrawBattle,
-    position: Position::None,
-    affected_pet: None,
-    afflicting_pet: None,
-    stat_diff: None,
-    affected_team: Target::None,
-    afflicting_team: Target::None,
-};
-
 /// Triggers for either attack or indirect attack damage calculation.
+/// * Will not activate anything during other phases.
 pub const TRIGGER_DMG_CALC: Outcome = Outcome {
     status: Status::AnyDmgCalc,
     affected_pet: None,
@@ -115,6 +102,7 @@ pub const TRIGGER_DMG_CALC: Outcome = Outcome {
 };
 
 /// Triggers for only attack dmg calculation.
+/// * Will not activate anything during other phases.
 pub const TRIGGER_ATK_DMG_CALC: Outcome = Outcome {
     status: Status::AttackDmgCalc,
     affected_pet: None,
@@ -126,6 +114,7 @@ pub const TRIGGER_ATK_DMG_CALC: Outcome = Outcome {
 };
 
 /// Triggers for only indirect attack calculation.
+/// * Will not activate anything during other phases.
 pub const TRIGGER_INDIR_DMG_CALC: Outcome = Outcome {
     status: Status::IndirectAttackDmgCalc,
     affected_pet: None,
@@ -205,10 +194,10 @@ pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when an enemy [`Pet`](crate::pets::pet::Pet) is knocked out.
+/// Trigger for when a [`Pet`](crate::pets::pet::Pet) knocks out another pet.
 pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
     status: Status::KnockOut,
-    position: Position::Relative(0),
+    position: Position::OnSelf,
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
@@ -270,6 +259,21 @@ pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
     afflicting_pet: None,
     stat_diff: None,
     affected_team: Target::Enemy,
+    afflicting_team: Target::None,
+};
+
+/// Trigger for a [`Food`](crate::Food) battle effect.
+/// * This causes the effect to activate **during the attack** and can **alter other pets aside from the owner**.
+///     * Ex. [`Garlic`](crate::FoodName::Garlic) only alters the owner.
+///     * Ex. [`Chili`](crate::FoodName::Chili) can alter the pet behind the attacking pet.
+/// * Its behavior also differs from other triggers/effects as this is unaffected by pet attack order/position.
+pub const TRIGGER_BATTLE_FOOD: Outcome = Outcome {
+    status: Status::BattleFoodEffect,
+    position: Position::OnSelf,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
 

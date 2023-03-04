@@ -157,54 +157,41 @@ fn test_team_shop_freeze() {
     .unwrap();
     let mut enemy_team = Team::default();
 
-    let original_shop_foods = team
-        .shop
-        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
-        .unwrap()
-        .into_iter()
-        .cloned()
-        .collect_vec();
-    let original_shop_pets = team
-        .shop
-        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
-        .unwrap()
-        .into_iter()
-        .cloned()
-        .collect_vec();
-    // Nothing frozen.
-    assert!(original_shop_foods.iter().all(|food| !food.is_frozen()));
-    assert!(original_shop_pets.iter().all(|food| !food.is_frozen()));
+    // Everything frozen.
+    fn is_all_frozen(team: &Team) -> bool {
+        let foods = team
+            .shop
+            .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
+            .unwrap();
+        let pets = team
+            .shop
+            .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
+            .unwrap();
+        foods.into_iter().all(|food| food.is_frozen())
+            && pets.into_iter().all(|food| food.is_frozen())
+    }
 
-    team.open_shop()
-        .unwrap()
-        .freeze_shop(&Position::All(ItemCondition::None), &Entity::Pet)
+    team.open_shop().unwrap();
+
+    // Nothing frozen
+    assert!(!is_all_frozen(&team));
+
+    team.freeze_shop(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap()
         .freeze_shop(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap()
         .close_shop()
         .unwrap();
 
-    // team.print_shop();
-
-    // Everything frozen.
-    let post_shop_foods = team
-        .shop
-        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
-        .unwrap();
-    let post_shop_pets = team
-        .shop
-        .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
-        .unwrap();
-    assert!(post_shop_foods.into_iter().all(|food| food.is_frozen()));
-    assert!(post_shop_pets.into_iter().all(|food| food.is_frozen()));
+    // All frozen.
+    assert!(is_all_frozen(&team));
 
     // Battle.
     team.fight(&mut enemy_team).unwrap();
 
-    // Reopen shop.
+    // Reopen shop. Still frozen.
     team.open_shop().unwrap();
-
-    team.print_shop();
+    assert!(is_all_frozen(&team));
 }
 
 #[test]

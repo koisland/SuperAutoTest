@@ -36,7 +36,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_SELF_ATTACK,
+                trigger: TRIGGER_BATTLE_FOOD,
                 temp: record.end_of_battle,
             },
             FoodName::Coconut => Effect {

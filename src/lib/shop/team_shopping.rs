@@ -439,7 +439,7 @@ impl TeamShoppingHelpers for Team {
             let affected_pets =
                 self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
-            for (_, pet) in affected_pets {
+            for pet in affected_pets {
                 food.borrow_mut().ability.assign_owner(Some(&pet));
                 pet.borrow_mut().item = Some(food.borrow().clone());
 
@@ -489,7 +489,7 @@ impl TeamShoppingHelpers for Team {
             };
 
             // For each pet found by the effect of food bought, apply its effect.
-            for (_, pet) in affected_pets {
+            for pet in affected_pets {
                 food_ability.assign_owner(Some(&pet));
 
                 // Pet triggers for eating food.
@@ -504,9 +504,8 @@ impl TeamShoppingHelpers for Team {
                 self.triggers
                     .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
 
-                let target_pets = &(Target::Friend, pet.clone());
                 for _ in 0..(1 + cat_multiplier) {
-                    self.apply_single_effect(target_pets, target_pets, &food_ability, None)?;
+                    self.apply_single_effect(&pet, &pet, &food_ability, None)?;
                 }
             }
         }
@@ -521,7 +520,7 @@ impl TeamShoppingHelpers for Team {
     ) -> Result<(), SAPTestError> {
         let affected_pets = self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
-        let purchased_pet = if let Some((_, affected_pet)) = affected_pets.first() {
+        let purchased_pet = if let Some(affected_pet) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.borrow().name == pet.borrow().name {
                 self.merge_behavior(affected_pet, &pet)?;
@@ -644,7 +643,10 @@ impl TeamShopping for Team {
             };
         }
 
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         self.clear_team();
         Ok(self)
     }
@@ -660,7 +662,7 @@ impl TeamShopping for Team {
         let affected_pets = self.get_pets_by_pos(self.first(), &Target::Friend, pos, None, None)?;
 
         if !affected_pets.is_empty() {
-            for (_, pet) in affected_pets {
+            for pet in affected_pets {
                 // Add coins for sold pet.
                 self.shop.coins += pet.borrow().lvl;
 
@@ -702,7 +704,10 @@ impl TeamShopping for Team {
         }
 
         // Trigger effects here.
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         self.clear_team();
 
         Ok(self)
@@ -718,7 +723,10 @@ impl TeamShopping for Team {
 
         self.shop.roll()?;
         self.triggers.push_back(TRIGGER_ROLL);
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         Ok(self)
     }
 
@@ -756,7 +764,10 @@ impl TeamShopping for Team {
 
         self.history.curr_turn = min_turn_to_tier;
         // Update trigger effects.
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         self.clear_team();
 
         // Store friends if changed in process.
@@ -831,7 +842,10 @@ impl TeamShopping for Team {
         // Trigger start of turn.
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         self.clear_team();
 
         Ok(self)
@@ -856,7 +870,10 @@ impl TeamShopping for Team {
 
         // Trigger end of turn.
         self.triggers.push_front(TRIGGER_END_TURN);
-        self.trigger_effects(None)?;
+        while let Some(trigger) = self.triggers.pop_front() {
+            self.trigger_effects(&trigger, None)?;
+            self.trigger_items(&trigger, None)?;
+        }
         self.clear_team();
 
         // Store friends.
@@ -872,6 +889,7 @@ impl TeamShopping for Team {
 
         Ok(self)
     }
+
     fn replace_shop(&mut self, shop: Shop) -> Result<&mut Self, SAPTestError> {
         // If shop has invalid tier, return err.
         let adj_turn = Shop::tier_to_num_turns(shop.tier())?;
@@ -945,7 +963,10 @@ impl TeamShopping for Team {
                 self.friends.insert(to_pos, from_pet)
             }
 
-            self.trigger_effects(None)?;
+            while let Some(trigger) = self.triggers.pop_front() {
+                self.trigger_effects(&trigger, None)?;
+                self.trigger_items(&trigger, None)?;
+            }
             self.clear_team();
         }
         Ok(self)

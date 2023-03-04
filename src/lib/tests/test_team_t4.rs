@@ -32,10 +32,9 @@ fn test_battle_deer_team() {
 
     // Only one deer.
     assert!(team.first().unwrap().borrow().name == PetName::Deer && team.all().len() == 1);
-    let mut fight = team.fight(&mut enemy_team).unwrap();
-    while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team).unwrap()
-    }
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
+
     // 1st attack kills dear and summons bus.
     // 2nd attack kills dog and ox before its effect triggers.
     // After completion, only bus remains with 2 health.
@@ -44,7 +43,8 @@ fn test_battle_deer_team() {
         bus.borrow().name == PetName::Bus
             && bus.borrow().stats.health == 2
             && team.all().len() == 1
-    )
+    );
+    assert_eq!(enemy_team.fainted.len(), 2)
 }
 
 #[test]
@@ -233,10 +233,11 @@ fn test_battle_skunk_team() {
     );
 
     // Apply start of battle effects. No fighting.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
-    enemy_team.trigger_effects(Some(&mut team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
+    enemy_team
+        .trigger_effects(&TRIGGER_START_BATTLE, Some(&mut team))
+        .unwrap();
 
     // Health reduced by 33% (2) from 5 -> 3.
     assert_eq!(
@@ -411,8 +412,8 @@ fn test_battle_lynx_team() {
     );
 
     // Retrigger start of battle effects
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Hippo takes 4 dmg.
     assert_eq!(
@@ -430,10 +431,7 @@ fn test_battle_porcupine_team() {
     enemy_team.first().unwrap().borrow_mut().stats.health += 8;
 
     // Trigger start of battle effects. Then clear fainted pets.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    enemy_team.triggers.push_front(TRIGGER_START_BATTLE);
-    enemy_team.trigger_effects(Some(&mut team)).unwrap();
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
     enemy_team.clear_team();
 
     // 2 Mosquitoes faint from returned fire from porcupine
@@ -531,8 +529,8 @@ fn test_battle_eel_team() {
 
     let eel_stats = team.first().unwrap().borrow().stats;
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Eel at lvl.1 gains 50% of original health.
     assert_eq!(
@@ -559,8 +557,8 @@ fn test_battle_hawk_team() {
         );
     }
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     {
         // Gorilla takes 7 dmg.
@@ -589,8 +587,8 @@ fn test_battle_pelican_team() {
         assert_eq!(ant_item.as_ref().unwrap().name, FoodName::Strawberry)
     }
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Pelican at lvl.1 give strawberry ant (2,1)
     assert_eq!(

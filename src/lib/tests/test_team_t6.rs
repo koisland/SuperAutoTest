@@ -320,8 +320,8 @@ fn test_battle_white_tiger_team() {
     let mut team = test_white_tiger_team();
     let mut enemy_team = test_gorilla_team();
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Deer behind gets 3 exp leveling to 2.
     let deer = team.nth(1).unwrap();
@@ -474,8 +474,8 @@ fn test_battle_stegosaurus_team() {
     assert!(team.history.curr_turn == 1);
 
     // Activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -489,8 +489,8 @@ fn test_battle_stegosaurus_team() {
     team.history.curr_turn += 2;
 
     // Re-activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,

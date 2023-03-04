@@ -1129,7 +1129,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_KNOCKOUT,
                 target: Target::Enemy,
                 position: Position::First,
-                action: Action::Rhino(effect_stats),
+                action: Action::Rhino(effect_stats, 1),
                 uses: None,
             }],
             // No shops so start of turn.
@@ -1887,7 +1887,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 entity: Entity::Pet,
                 temp: record.temp_effect,
-                trigger: TRIGGER_ANY_ENEMY_FAINT,
+                trigger: TRIGGER_ANY_FAINT,
                 target: Target::Enemy,
                 position: Position::Last,
                 action: Action::Push(Position::First),

@@ -6,6 +6,7 @@ pub(crate) const DEFAULT_CONFIG: LibConfig = LibConfig {
         pets_version: None,
         foods_version: None,
         tokens_version: None,
+        names_version: None,
         filename: None,
         update_on_startup: true,
     },
@@ -23,6 +24,7 @@ pub(crate) struct DatabaseConfig {
     pub pets_version: Option<u16>,
     pub foods_version: Option<u16>,
     pub tokens_version: Option<u16>,
+    pub names_version: Option<u16>,
     pub filename: Option<String>,
     pub update_on_startup: bool,
 }
