@@ -295,7 +295,7 @@ fn test_battle_tapir_team() {
 
     team.fight(&mut enemy_team).unwrap();
 
-    // Same lobster spawns but at lvl 2.
+    // Same tiger spawns but at lvl 2.
     let spawned_pet = team.first().unwrap();
     assert!(spawned_pet.borrow().name == PetName::Tiger && spawned_pet.borrow().lvl == 2);
 }

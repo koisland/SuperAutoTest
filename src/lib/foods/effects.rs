@@ -93,10 +93,14 @@ impl TryFrom<&FoodRecord> for Effect {
                 owner: None,
                 target: Target::Friend,
                 position: Position::TriggerAffected,
-                action: Action::Summon(SummonType::SelfPet(Statistics {
-                    attack: 1,
-                    health: 1,
-                })),
+                action: Action::Summon(SummonType::SelfPet(
+                    Some(Statistics {
+                        attack: 1,
+                        health: 1,
+                    }),
+                    None,
+                    false,
+                )),
                 uses,
                 entity: Entity::Food,
                 trigger: TRIGGER_SELF_FAINT,
@@ -289,7 +293,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(SummonType::SelfTierPet),
+                action: Action::Summon(SummonType::SelfTierPet(None, None)),
                 uses,
                 temp: record.end_of_battle,
             },

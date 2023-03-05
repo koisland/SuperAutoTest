@@ -10,7 +10,7 @@ use crate::{
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
     teams::{effects::EffectApplyHelpers, history::TeamHistoryHelpers},
-    PetCombat, Team, TeamEffects, TeamViewer,
+    PetCombat, PetName, Team, TeamEffects, TeamViewer,
 };
 
 const BATTLE_PHASE_COMPLETE_OUTCOMES: [TeamFightOutcome; 3] = [
@@ -185,7 +185,7 @@ impl TeamCombat for Team {
                 info!(target: "run", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
                 // Check if pet summons a pet. Remove slot if does.
                 // The argument of summon action is not checked only action variant.
-                let summon_action = Action::Summon(SummonType::SelfTierPet);
+                let summon_action = Action::Summon(SummonType::DefaultPet(PetName::None));
                 let summons_pets = pet.borrow().has_food_ability(&summon_action, false)
                     || pet.borrow().has_effect_ability(&summon_action, false);
 

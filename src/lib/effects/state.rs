@@ -35,6 +35,12 @@ pub enum EqualityCondition {
     Frozen,
 }
 
+impl std::fmt::Display for EqualityCondition {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
@@ -46,6 +52,8 @@ pub enum TeamCondition {
     NumberPetsEqual(usize),
     /// Has this many or more pets on team.
     NumberPetsGreaterEqual(usize),
+    /// Number of fainted pets is a multiple of this value.
+    NumberFaintedMultiple(usize),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -108,7 +116,7 @@ pub enum Position {
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
-    /// Pets ahead of current pet.
+    /// All [`Pet`]s ahead of current pet.
     Ahead,
     /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
@@ -128,7 +136,7 @@ pub enum Position {
     None,
 }
 
-/// Target team for an effect.
+/// Target for an [`Effect`](crate::Effect).
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default, Hash)]
 pub enum Target {
     /// Friend team.
@@ -326,4 +334,10 @@ pub enum Status {
     Pushed,
     /// No status change.
     None,
+}
+
+impl std::fmt::Display for Status {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
 }

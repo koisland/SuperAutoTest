@@ -170,7 +170,7 @@ impl Display for Effect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{:?} Effect (Uses: {:?}): Action: {:?} on {:?} ({:?}), Trigger: {}]",
+            "[{:?} Effect (Uses: {:?}): Action: {} on {:?} ({:?}), Trigger: {}]",
             self.entity, self.uses, self.action, self.target, self.position, self.trigger
         )
     }

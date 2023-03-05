@@ -447,7 +447,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     trigger: TRIGGER_SELF_PET_BOUGHT,
                     target: Target::Friend,
                     position: Position::OnSelf,
-                    action: Action::Summon(SummonType::SelfPet(effect_stats)),
+                    action: Action::Summon(SummonType::SelfPet(Some(effect_stats), None, false)),
                     uses: Some(record.n_triggers),
                     entity: Entity::Pet,
                     temp: record.temp_effect,
@@ -609,10 +609,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
                 action: Action::Conditional(
-                    LogicType::If(ConditionType::Team(TeamCondition::PreviousBattle(
-                        TeamFightOutcome::Loss,
-                    ))),
+                    LogicType::If(ConditionType::Team(
+                        Target::Friend,
+                        TeamCondition::PreviousBattle(TeamFightOutcome::Loss),
+                    )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -682,6 +684,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Conditional(
                     LogicType::If(ConditionType::Shop(ShopCondition::GoldGreaterEqual(2))),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -720,6 +723,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ))),
                     )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -802,6 +806,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ItemCondition::Equal(EqualityCondition::Level(3)),
                     )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -914,8 +919,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Conditional(
-                    LogicType::IfNot(ConditionType::Team(TeamCondition::OpenSpaceEqual(0))),
+                    LogicType::IfNot(ConditionType::Team(
+                        Target::Friend,
+                        TeamCondition::OpenSpaceEqual(0),
+                    )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -929,6 +938,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Conditional(
                     LogicType::If(ConditionType::Shop(ShopCondition::InState(ShopState::Open))),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: None,
             }],
@@ -1129,7 +1139,21 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_KNOCKOUT,
                 target: Target::Enemy,
                 position: Position::First,
-                action: Action::Rhino(effect_stats, 1),
+                // action: Action::Rhino(effect_stats, 1),
+                action: Action::Conditional(
+                    LogicType::If(ConditionType::Pet(
+                        Target::Friend,
+                        ItemCondition::Equal(EqualityCondition::Tier(1)),
+                    )),
+                    Box::new(Action::Remove(StatChangeType::StaticValue(
+                        effect_stats
+                            * Statistics {
+                                attack: 2,
+                                health: 0,
+                            },
+                    ))),
+                    Box::new(Action::Remove(StatChangeType::StaticValue(effect_stats))),
+                ),
                 uses: None,
             }],
             // No shops so start of turn.
@@ -1423,6 +1447,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ItemCondition::Equal(EqualityCondition::Trigger(Status::Faint)),
                     )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
@@ -1541,6 +1566,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                                 )))
                             )),
                             Box::new(Action::Remove(StatChangeType::StaticValue(effect_stats))),
+                            Box::new(Action::None),
                         );
                         record.lvl
                     ]),
@@ -1797,6 +1823,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Action::Gain(GainType::DefaultItem(FoodName::Coconut)),
                         Action::Add(StatChangeType::StaticValue(effect_stats)),
                     ])),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -2013,6 +2040,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ItemCondition::HighestTier,
                     )),
                     Box::new(Action::Add(StatChangeType::SelfMultValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -2049,7 +2077,14 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_FAINT,
                 target: Target::Enemy,
                 position: Position::Any(ItemCondition::None),
-                action: Action::Vulture(effect_stats),
+                action: Action::Conditional(
+                    LogicType::If(ConditionType::Team(
+                        Target::Enemy,
+                        TeamCondition::NumberFaintedMultiple(2),
+                    )),
+                    Box::new(Action::Remove(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
+                ),
                 uses: None,
             }],
             PetName::Alpaca => vec![Effect {
@@ -2071,7 +2106,11 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Tapir,
+                action: Action::Summon(SummonType::SelfTeamPet(
+                    None,
+                    Some(record.lvl),
+                    record.name,
+                )),
                 uses: Some(record.n_triggers),
             }],
             PetName::Walrus => vec![Effect {
@@ -2269,6 +2308,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ItemCondition::Equal(EqualityCondition::Level(3)),
                     )),
                     Box::new(Action::Profit(record.lvl * 3)),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -2310,6 +2350,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ]),
                     )),
                     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],

@@ -250,7 +250,13 @@ impl PetCombat for Pet {
         self.item.as_mut().map(|item| item.ability.remove_uses(1));
 
         // Use health difference to determine outcome.
-        let outcome = self.get_atk_outcomes(new_health);
+        let mut outcome = self.get_atk_outcomes(new_health);
+
+        // If kill by indirect, still counts as knockout.
+        if new_health == 0 {
+            outcome.opponents.insert(0, TRIGGER_KNOCKOUT)
+        }
+
         // Set new health.
         self.stats.health = new_health.clamp(MIN_PET_STATS, MAX_PET_STATS);
         outcome
@@ -492,10 +498,17 @@ impl AttackOutcome {
         afflicting: Option<Weak<RefCell<Pet>>>,
     ) {
         // Update triggers from where they came from.
+        // Knockout a special exception as affected pet is pet causing knockout.
         for trigger in self.friends.iter_mut().chain(self.opponents.iter_mut()) {
-            trigger.set_affected(affected);
-            trigger.afflicting_pet = afflicting.clone();
+            if trigger.status == Status::KnockOut {
+                trigger.affected_pet = afflicting.clone();
+                trigger.set_afflicting(affected);
+            } else {
+                trigger.set_affected(affected);
+                trigger.afflicting_pet = afflicting.clone();
+            }
         }
+
         // Collect triggers for both teams.
         team.triggers.extend(self.friends.drain(..));
         if let Some(opponent) = opponent {

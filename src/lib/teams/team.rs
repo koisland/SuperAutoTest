@@ -165,13 +165,32 @@ impl Clone for Team {
             .graph
             .update_nodes_with_team_name(&self.name, &copied_team_name);
 
+        // Copy triggers and update them if a pet is affected.
+        let mut copied_triggers = self.triggers.clone();
+        'trigger_loop: for trigger in copied_triggers.iter_mut() {
+            let pet_id = trigger
+                .affected_pet
+                .as_ref()
+                .and_then(|pet| pet.upgrade())
+                .and_then(|pet| pet.borrow().id.clone());
+            // If found id in trigger is same as pet then set trigger to copied friend.
+            if let Some(pet_id) = pet_id.as_ref() {
+                for friend in copied_friends.iter().flatten() {
+                    if friend.borrow().id.as_ref() == Some(pet_id) {
+                        trigger.affected_pet = Some(Rc::downgrade(friend));
+                        continue 'trigger_loop;
+                    }
+                }
+            }
+        }
+
         let mut copied_team = Self {
             name: copied_team_name,
             friends: copied_friends,
             fainted: copied_fainted,
             sold: copied_sold,
             max_size: self.max_size,
-            triggers: self.triggers.clone(),
+            triggers: copied_triggers,
             history: updated_history,
             seed: self.seed,
             stored_friends: copied_stored_friends,
@@ -222,41 +241,39 @@ impl Team {
     /// ```
     pub fn new(pets: &[Option<Pet>], max_size: usize) -> Result<Team, SAPTestError> {
         if pets.len() > max_size {
-            Err(SAPTestError::InvalidTeamAction {
+            return Err(SAPTestError::InvalidTeamAction {
                 subject: "Init Team".to_string(),
                 reason: format!(
-                    "Pets provided exceed specified max size. {} > {}",
+                    "Pets provided exceed specified max size. {} > {max_size}",
                     pets.len(),
-                    max_size
                 ),
-            })
+            });
+        };
+        let seed = random();
+        let name = Team::get_random_name(seed)?;
+        // Save a copy as reference.
+        let mut pets_copy = pets.to_vec();
+        let rc_pets = Team::create_rc_pets(&mut pets_copy, &name);
+        let curr_pet = if let Some(Some(first_pet)) = rc_pets.first() {
+            Some(Rc::downgrade(first_pet))
         } else {
-            let seed = random();
-            let name = Team::get_random_name(seed)?;
-            // Save a copy as reference.
-            let mut pets_copy = pets.to_vec();
-            let rc_pets = Team::create_rc_pets(&mut pets_copy, &name);
-            let curr_pet = if let Some(Some(first_pet)) = rc_pets.first() {
-                Some(Rc::downgrade(first_pet))
-            } else {
-                None
-            };
-            // Create reference counted clone passing mut reference to assign ids.
-            let mut team = Team {
-                name,
-                stored_friends: pets_copy,
-                friends: rc_pets,
-                max_size,
-                curr_pet,
-                ..Default::default()
-            };
+            None
+        };
+        // Create reference counted clone passing mut reference to assign ids.
+        let mut team = Team {
+            name,
+            stored_friends: pets_copy,
+            friends: rc_pets,
+            max_size,
+            curr_pet,
+            ..Default::default()
+        };
 
-            // Update pet count.
-            team.history.pet_count = team.all().len();
-            // By default shop is closed when team created using new().
-            team.shop.state = ShopState::Closed;
-            Ok(team)
-        }
+        // Update pet count.
+        team.history.pet_count = team.all().len();
+        // By default shop is closed when team created using new().
+        team.shop.state = ShopState::Closed;
+        Ok(team)
     }
 
     /// Reassign owners for pets.
