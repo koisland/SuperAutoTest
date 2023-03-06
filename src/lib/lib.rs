@@ -33,6 +33,21 @@
 //! println!("{}", create_battle_dag(&team, false));
 //! ```
 //!
+//! ```bash
+//! digraph {
+//!     rankdir=LR
+//!     node [shape=box, style="rounded, filled", fontname="Arial"]
+//!     edge [fontname="Arial"]
+//!     0 [ label = "Ant_0 - The Fragile Truckers_copy" ]
+//!     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
+//!     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
+//!     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
+//!     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+//!     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+//!     1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//!     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//! }
+//! ```
 //! ### Shops
 //! Add shop functionality to a [`Team`] and roll, freeze, buy/sell pets and foods.
 //! ```
