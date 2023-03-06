@@ -13,7 +13,7 @@ use crate::{
 };
 
 pub type PhaseCycle = (usize, usize);
-pub type PetEffectGraph = Graph<PetNode, (Status, PhaseCycle, Action), Directed>;
+pub type PetEffectGraph = Graph<PetNode, (Status, Action, PhaseCycle), Directed>;
 
 /// Track history of a `Team`'s effects.
 #[derive(Debug, Clone)]
@@ -174,21 +174,20 @@ impl TeamHistoryHelpers for Team {
                             affected_node_idx,
                             (
                                 status.clone(),
-                                (self.history.curr_phase, self.history.curr_cycle),
                                 action.clone(),
+                                (self.history.curr_phase, self.history.curr_cycle),
                             ),
                         );
                     }
                 }
             };
         }
-
         Ok(())
     }
 }
 
 impl Display for PetNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{} ({:?})", self.id, self.team)
+        write!(f, "{} - {}", self.id, self.team)
     }
 }

@@ -16,7 +16,6 @@ lazy_static = "1.4.0"
 r2d2_sqlite = "0.21.0"
 r2d2 = "0.8.10"
 toml = "0.7.2"
-graphviz-rust = "0.6.1"
 
 [dev-dependencies]
 criterion = {version = "0.3", features = ["html_reports"]}

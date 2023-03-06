@@ -93,7 +93,7 @@ impl TryFrom<PetName> for Pet {
     type Error = SAPTestError;
 
     fn try_from(value: PetName) -> Result<Pet, SAPTestError> {
-        Pet::new(value, None, None, 1)
+        Pet::new(value, None, 1)
     }
 }
 
@@ -136,13 +136,11 @@ impl Pet {
     ///
     /// let pet = Pet::new(
     ///     PetName::Ant,
-    ///     Some("Ant".to_string()),
     ///     Some(Statistics::new(2, 1).unwrap()),
     ///     1
     /// );
     /// let pet_with_no_stats = Pet::new(
     ///     PetName::Ant,
-    ///     Some("Ant".to_string()),
     ///     None,
     ///     1
     /// );
@@ -152,12 +150,7 @@ impl Pet {
     ///     pet_with_no_stats.unwrap().stats
     /// )
     /// ```
-    pub fn new(
-        name: PetName,
-        id: Option<String>,
-        stats: Option<Statistics>,
-        lvl: usize,
-    ) -> Result<Pet, SAPTestError> {
+    pub fn new(name: PetName, stats: Option<Statistics>, lvl: usize) -> Result<Pet, SAPTestError> {
         let conn = SAPDB.pool.get()?;
         let mut stmt = conn.prepare("SELECT * FROM pets WHERE name = ? AND lvl = ?")?;
         let pet_record: PetRecord = stmt
@@ -177,9 +170,6 @@ impl Pet {
             pet.stats.health = pet_stats.health.clamp(MIN_PET_STATS, MAX_PET_STATS);
         };
 
-        // Assign id if any.
-        pet.id = id;
-
         Ok(pet)
     }
 
@@ -197,7 +187,7 @@ impl Pet {
     ///     Effect, Food, FoodName, Pet, Statistics,
     /// };
     /// let custom_pet = Pet::custom(
-    ///     "MelonBear", Some("id_custom_pet_1".to_string()),
+    ///     "MelonBear",
     ///     Statistics::new(50, 50).unwrap(),
     ///     &[
     ///         Effect::new(
@@ -211,12 +201,12 @@ impl Pet {
     ///     )],
     /// );
     /// ```
-    pub fn custom(name: &str, id: Option<String>, stats: Statistics, effect: &[Effect]) -> Pet {
+    pub fn custom(name: &str, stats: Statistics, effect: &[Effect]) -> Pet {
         let mut adj_stats = stats;
         adj_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
 
         Pet {
-            id,
+            id: None,
             tier: 0,
             name: PetName::Custom(name.to_string()),
             stats: adj_stats,

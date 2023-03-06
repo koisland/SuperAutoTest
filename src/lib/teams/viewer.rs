@@ -238,7 +238,6 @@ pub trait TeamViewer {
 
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
-    /// * [`TargetPets`] is a tuple with the belonging Target group ([`Target::Shop`], [`Target::Friend`], [`Target::Enemy`]) and the pets found.
     /// * May [`panic`] under certain [`ItemCondition`]s.
     ///     * See [`TeamViewer::get_pets_by_cond`].
     /// # Example

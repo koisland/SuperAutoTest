@@ -232,7 +232,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Cricket => {
                 let zombie_cricket = Box::new(Pet::new(
                     PetName::ZombieCricket,
-                    None,
                     Some(effect_stats),
                     record.lvl,
                 )?);
@@ -337,7 +336,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         position: Position::OnSelf,
                         action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
                             PetName::DirtyRat,
-                            None,
                             Some(effect_stats),
                             record.lvl,
                         )?))),
@@ -784,7 +782,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         position: Position::OnSelf,
                         action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
                             PetName::Ram,
-                            None,
                             Some(effect_stats),
                             record.lvl,
                         )?))),
@@ -985,8 +982,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: Some(record.n_triggers),
             }],
             PetName::Platypus => {
-                let duck = Pet::new(PetName::Duck, None, None, record.lvl)?;
-                let beaver = Pet::new(PetName::Beaver, None, None, record.lvl)?;
+                let duck = Pet::new(PetName::Duck, None, record.lvl)?;
+                let beaver = Pet::new(PetName::Beaver, None, record.lvl)?;
 
                 let summon_actions = vec![
                     Action::Summon(SummonType::StoredPet(Box::new(beaver))),
@@ -1026,7 +1023,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 },
             ],
             PetName::Deer => {
-                let mut bus = Pet::new(PetName::Bus, None, Some(effect_stats), record.lvl)?;
+                let mut bus = Pet::new(PetName::Bus, Some(effect_stats), record.lvl)?;
                 bus.item = Some(Food::try_from(FoodName::Chili)?);
                 vec![Effect {
                     owner: None,
@@ -1380,7 +1377,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     position: Position::TriggerAffected,
                     action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
                         PetName::ZombieFly,
-                        None,
                         Some(effect_stats),
                         record.lvl,
                     )?))),
@@ -1903,7 +1899,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     position: Position::OnSelf,
                     action: Action::Multiple(vec![
                         Action::Summon(SummonType::StoredPet(Box::new(
-                            Pet::new(PetName::Ant, None, None, record.lvl)?
+                            Pet::new(PetName::Ant, None, record.lvl)?
                         )));
                         2
                     ]),

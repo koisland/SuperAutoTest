@@ -9,7 +9,7 @@ use crate::{
     teams::history::History,
     teams::viewer::TeamViewer,
     wiki_scraper::parse_names::WordType,
-    Food, Shop, SAPDB,
+    Food, Shop, CONFIG, SAPDB,
 };
 
 use itertools::Itertools;
@@ -161,9 +161,11 @@ impl Clone for Team {
         }
         // Change pet history to reflect name change.
         let mut updated_history = self.history.clone();
-        updated_history
-            .graph
-            .update_nodes_with_team_name(&self.name, &copied_team_name);
+        if CONFIG.general.build_graph {
+            updated_history
+                .graph
+                .update_nodes_with_team_name(&self.name, &copied_team_name);
+        }
 
         // Copy triggers and update them if a pet is affected.
         let mut copied_triggers = self.triggers.clone();
@@ -386,7 +388,7 @@ impl Team {
     }
 
     /// Gets a random [`Team`] name.
-    /// * This pulls a random adjective and noun from the `names` table in [`SAPDB`].
+    /// * This pulls a random adjective and noun from the `names` table in [`SapDB`](crate::SapDB).
     /// ```
     /// use saptest::Team;
     /// let name = Team::get_random_name(5).unwrap();

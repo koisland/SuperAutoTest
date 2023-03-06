@@ -16,7 +16,7 @@ use crate::{
     shop::trigger::TRIGGER_SELF_FOOD_EATEN,
 };
 
-/// May need to be similar to Pet effects as Vec<Effect> at some point.
+/// May need to be similar to Pet effects as `Vec<Effect>` at some point.
 impl TryFrom<&FoodRecord> for Effect {
     type Error = SAPTestError;
 

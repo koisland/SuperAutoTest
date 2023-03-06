@@ -9,7 +9,6 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
-    fmt::Display,
     rc::{Rc, Weak},
 };
 
@@ -163,16 +162,6 @@ impl Effect {
         self.owner = owner_ref.clone();
         self.trigger.affected_pet = owner_ref;
         self
-    }
-}
-
-impl Display for Effect {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[{:?} Effect (Uses: {:?}): Action: {} on {:?} ({:?}), Trigger: {}]",
-            self.entity, self.uses, self.action, self.target, self.position, self.trigger
-        )
     }
 }
 

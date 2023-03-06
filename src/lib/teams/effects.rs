@@ -20,8 +20,8 @@ use crate::{
         team_shopping::TeamShoppingHelpers,
         trigger::*,
     },
-    teams::{team::Team, viewer::TeamViewer},
-    Food, Pet, PetCombat, ShopItem, ShopItemViewer, ShopViewer, TeamShopping, SAPDB,
+    teams::{history::TeamHistoryHelpers, team::Team, viewer::TeamViewer},
+    Food, Pet, PetCombat, ShopItem, ShopItemViewer, ShopViewer, TeamShopping, CONFIG, SAPDB,
 };
 
 use itertools::Itertools;
@@ -33,8 +33,6 @@ use rand::{
 };
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
-
-use super::history::TeamHistoryHelpers;
 
 const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
     TRIGGER_ANY_LEVELUP,
@@ -177,6 +175,8 @@ pub trait TeamEffects {
     /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
     /// let mut team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
     /// let mut enemy_team = team.clone();
+    /// team.set_seed(Some(12));
+    /// enemy_team.set_seed(Some(12));
     ///
     /// // Trigger start of battle effects.
     /// team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team)).unwrap();
@@ -384,10 +384,6 @@ impl TeamEffects for Team {
                     break;
                 };
             }
-
-            // Reset cycles.
-            self.history.curr_cycle = 1;
-            opponent.history.curr_cycle = 1;
         };
 
         Ok(self)
@@ -1039,7 +1035,6 @@ impl EffectApplyHelpers for Team {
                 };
                 Pet::new(
                     name.clone(),
-                    None,
                     Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
                     *lvl,
                 )?
@@ -1085,7 +1080,7 @@ impl EffectApplyHelpers for Team {
                 // NOTE: Allow to fail silently if no pet found.
                 // Will only fail if friends empty or no valid friends found.
                 if let Some(chosen_friend_name) = chosen_friend_name {
-                    Pet::new(chosen_friend_name, None, *stats, lvl.unwrap_or(1))?
+                    Pet::new(chosen_friend_name, *stats, lvl.unwrap_or(1))?
                 } else {
                     return Err(SAPTestError::FallibleAction);
                 }
@@ -1664,9 +1659,6 @@ impl EffectApplyHelpers for Team {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
                         let mult_stats = afflicting_pet.borrow().stats.mult_perc(stats);
-                        // Update action for dag with static value.
-                        modified_effect.action =
-                            Action::Remove(StatChangeType::StaticValue(mult_stats));
                         mult_stats
                     }
                 };
@@ -1686,8 +1678,16 @@ impl EffectApplyHelpers for Team {
                         }
                     }
                 }
+                // Update with remaining modifiers.
+                modified_effect.action = Action::Remove(StatChangeType::StaticValue(remove_stats));
+
                 let mut atk_outcome = affected_pet.borrow_mut().indirect_attack(&remove_stats);
                 info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, affected_pet.borrow());
+
+                // Update for DAG to show health loss.
+                modified_effect.action =
+                    Action::Remove(StatChangeType::StaticValue(atk_outcome.friend_stat_change));
+
                 // Update triggers from where they came from.
                 if let Some(opponent) = opponent.as_mut() {
                     atk_outcome.unload_atk_outcomes(
@@ -1837,7 +1837,7 @@ impl EffectApplyHelpers for Team {
             }
             Action::Transform(pet_name, stats, lvl) => {
                 if let Some(target_idx) = affected_pet.borrow().pos {
-                    let mut transformed_pet = Pet::new(pet_name.clone(), None, *stats, *lvl)?;
+                    let mut transformed_pet = Pet::new(pet_name.clone(), *stats, *lvl)?;
                     transformed_pet.set_pos(target_idx);
                     transformed_pet.team = Some(self.name.to_owned());
 
@@ -1920,7 +1920,8 @@ impl EffectApplyHelpers for Team {
                         None,
                     )?
                 };
-                affected_pets.extend(pets);
+                // Return early as ^ calls apply_single_effects() and will duplicate graph edges.
+                return Ok(pets);
             }
             Action::Kill => {
                 affected_pet.borrow_mut().stats.health = 0;
@@ -2051,23 +2052,26 @@ impl EffectApplyHelpers for Team {
             }
         }
 
-        if self.history.primary_team {
-            for pet in affected_pets.iter() {
-                self.add_action_edge(
-                    pet,
-                    afflicting_pet,
-                    &modified_effect.trigger.status,
-                    &modified_effect.action,
-                )?;
-            }
-        } else if let Some(opponent) = opponent.as_mut() {
-            for pet in affected_pets.iter() {
-                opponent.add_action_edge(
-                    pet,
-                    afflicting_pet,
-                    &modified_effect.trigger.status,
-                    &modified_effect.action,
-                )?;
+        // Build graph edges if toggled.
+        if CONFIG.general.build_graph {
+            if self.history.primary_team {
+                for pet in affected_pets.iter() {
+                    self.add_action_edge(
+                        pet,
+                        afflicting_pet,
+                        &modified_effect.trigger.status,
+                        &modified_effect.action,
+                    )?;
+                }
+            } else if let Some(opponent) = opponent.as_mut() {
+                for pet in affected_pets.iter() {
+                    opponent.add_action_edge(
+                        pet,
+                        afflicting_pet,
+                        &modified_effect.trigger.status,
+                        &modified_effect.action,
+                    )?;
+                }
             }
         }
 

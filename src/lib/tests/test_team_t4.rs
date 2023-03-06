@@ -954,13 +954,7 @@ fn test_battle_lobster_team() {
     // Create enemy team.
     let mut enemy_team = Team::new(
         &[Some(
-            Pet::new(
-                PetName::Hippo,
-                None,
-                Some(Statistics::new(50, 50).unwrap()),
-                3,
-            )
-            .unwrap(),
+            Pet::new(PetName::Hippo, Some(Statistics::new(50, 50).unwrap()), 3).unwrap(),
         )],
         5,
     )

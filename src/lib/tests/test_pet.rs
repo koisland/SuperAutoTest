@@ -158,7 +158,6 @@ fn test_invalid_levelup() {
 fn test_create_pet() {
     let mut test_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -204,7 +203,6 @@ fn test_create_pet() {
 fn create_pet_token() {
     let mut test_bee = Pet::new(
         PetName::Bee,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,

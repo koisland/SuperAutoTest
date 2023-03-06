@@ -10,7 +10,7 @@ use crate::{
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
     teams::{effects::EffectApplyHelpers, history::TeamHistoryHelpers},
-    PetCombat, PetName, Team, TeamEffects, TeamViewer,
+    PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
 };
 
 const BATTLE_PHASE_COMPLETE_OUTCOMES: [TeamFightOutcome; 3] = [
@@ -272,10 +272,12 @@ impl BattlePhases for Team {
         info!(target: "run", "(\"{}\")\n{}", self.name, self);
         info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
-        // If current phase is 1, perform start of battle and update graph.
+        // If current phase is 1, perform start of battle and update graph (if enabled).
         // Only one team is required to activate this.
         if self.history.curr_phase == 1 {
-            self.history.graph.update(&self.friends, &opponent.friends);
+            if CONFIG.general.build_graph {
+                self.history.graph.update(&self.friends, &opponent.friends);
+            }
             self.trigger_start_battle_effects(opponent)?;
         }
 
@@ -348,7 +350,9 @@ impl BattlePhases for Team {
                 trigger.set_affected(&opponent_pet).set_afflicting(&pet);
             }
 
-            self.add_hurt_and_attack_edges(&pet, &opponent_pet, &atk_outcome)?;
+            if CONFIG.general.build_graph {
+                self.add_hurt_and_attack_edges(&pet, &opponent_pet, &atk_outcome)?;
+            }
 
             // Add triggers to team from outcome of battle.
             self.triggers.extend(atk_outcome.friends.into_iter());
@@ -390,7 +394,9 @@ impl BattlePhases for Team {
         opponent.clear_team();
 
         // Replace opponent graph.
-        opponent.history.graph = self.history.graph.clone();
+        if CONFIG.general.build_graph {
+            opponent.history.graph = self.history.graph.clone();
+        }
 
         // Check outcome.
         let outcome = self.get_battle_outcome(opponent);

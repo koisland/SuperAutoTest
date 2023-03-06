@@ -10,3 +10,6 @@ pub mod state;
 pub mod stats;
 /// [`Effect`](crate::Effect) triggers.
 pub mod trigger;
+
+/// Formatting effects enums/structs.
+mod formatting;

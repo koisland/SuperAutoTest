@@ -18,3 +18,7 @@
 
 filename = "./sap.db"
 update_on_startup = true
+
+[general]
+# Store battle data and build digraphs. If speed is necessary, this can be toggled off.
+build_graph = true

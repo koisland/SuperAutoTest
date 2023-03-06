@@ -1,7 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
-    fmt::Display,
     ops::RangeInclusive,
     rc::{Rc, Weak},
 };
@@ -33,12 +32,6 @@ pub enum EqualityCondition {
     Trigger(Status),
     /// Is frozen. Only available for shops.
     Frozen,
-}
-
-impl std::fmt::Display for EqualityCondition {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -204,15 +197,6 @@ impl Default for Outcome {
         }
     }
 }
-impl Display for Outcome {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[Status: {:?}, Position: {:?}, Affected: {:?}, From: {:?}]",
-            self.status, self.position, self.affected_pet, self.afflicting_pet
-        )
-    }
-}
 
 impl Outcome {
     /// Attach the affected pet to this trigger.
@@ -334,10 +318,4 @@ pub enum Status {
     Pushed,
     /// No status change.
     None,
-}
-
-impl std::fmt::Display for Status {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{self:?}")
-    }
 }

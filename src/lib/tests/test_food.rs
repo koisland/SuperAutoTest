@@ -223,7 +223,6 @@ fn test_attack_melon() {
 
     let mut big_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 20,
             health: 20,
@@ -257,7 +256,6 @@ fn test_attack_steak() {
 
     let mut smol_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 1,
             health: 23,
@@ -291,7 +289,6 @@ fn test_attack_coconut() {
 
     let mut big_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -316,7 +313,6 @@ fn test_attack_peanuts() {
 
     let mut big_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -370,7 +366,6 @@ fn test_attack_peanuts_melon() {
 fn test_attack_peanuts_melon_overflow() {
     let mut dog_w_melon = Pet::new(
         PetName::Dog,
-        Some("big_dog".to_string()),
         Some(Statistics {
             attack: 1,
             health: 50,
@@ -383,7 +378,6 @@ fn test_attack_peanuts_melon_overflow() {
     // Scorpion has just enough attack (> 20) to deliver death's touch.
     let mut scorpion = Pet::new(
         PetName::Scorpion,
-        Some("scorpion".to_string()),
         Some(Statistics {
             attack: 21,
             health: 2,
@@ -712,7 +706,6 @@ fn test_direct_attack_pepper_peanut_1hp() {
 fn test_direct_attack_pepper_peanut() {
     let mut big_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -737,7 +730,6 @@ fn test_direct_attack_pepper_peanut() {
 fn test_direct_attack_cheese() {
     let mut ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 5,
             health: 10,
@@ -765,7 +757,6 @@ fn test_direct_attack_cheese() {
 fn test_direct_attack_fortune_cookie() {
     let mut ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 5,
             health: 10,
