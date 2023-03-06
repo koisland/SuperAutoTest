@@ -424,7 +424,6 @@ pub fn test_filled_sheep_team() -> Team {
 pub fn test_blowfish_rally_team() -> Team {
     let blowfish = Pet::new(
         PetName::Blowfish,
-        None,
         Some(Statistics {
             attack: 1,
             health: 50,
@@ -624,7 +623,6 @@ pub fn test_caterpillar_team() -> Team {
 
     let big_dog = Pet::new(
         PetName::Dog,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -864,7 +862,6 @@ pub fn test_lion_lowest_tier_team() -> Team {
 pub fn test_swordfish_team() -> Team {
     let swordfish = Pet::new(
         PetName::Swordfish,
-        None,
         Some(Statistics {
             attack: 25,
             health: 25,
@@ -874,7 +871,6 @@ pub fn test_swordfish_team() -> Team {
     .unwrap();
     let gorilla = Pet::new(
         PetName::Gorilla,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -1256,7 +1252,7 @@ pub fn test_starfish_team() -> Team {
 }
 
 pub fn test_bison_team() -> Team {
-    let lvl_3_duck = Pet::new(PetName::Duck, None, None, 3).unwrap();
+    let lvl_3_duck = Pet::new(PetName::Duck, None, 3).unwrap();
     Team::new(
         &[
             Some(lvl_3_duck),
@@ -1268,7 +1264,7 @@ pub fn test_bison_team() -> Team {
 }
 
 pub fn test_penguin_team() -> Team {
-    let lvl_3_duck = Pet::new(PetName::Duck, None, None, 3).unwrap();
+    let lvl_3_duck = Pet::new(PetName::Duck, None, 3).unwrap();
     Team::new(
         &[
             Some(lvl_3_duck),
@@ -1300,7 +1296,7 @@ pub fn test_orangutan_team() -> Team {
 }
 
 pub fn test_dragonfly_team() -> Team {
-    let lvl_3_duck = Pet::new(PetName::Duck, None, None, 3).unwrap();
+    let lvl_3_duck = Pet::new(PetName::Duck, None, 3).unwrap();
     Team::new(
         &[
             Some(lvl_3_duck),

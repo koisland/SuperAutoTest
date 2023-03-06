@@ -1,12 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
-    effects::{
-        actions::{Action, StatChangeType},
-        state::Position,
-        stats::Statistics,
-        trigger::TRIGGER_START_BATTLE,
-    },
+    effects::{state::Position, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::names::FoodName,
     pets::names::PetName,
     shop::store::ShopItem,
@@ -38,19 +33,17 @@ fn test_battle_croc_team() {
     // Two zombie crickets are spawned in their place.
     team.fight(&mut enemy_team).unwrap();
 
-    let last_pet = team.last().unwrap();
-    let last_enemy_pet = team.last().unwrap();
+    let last_pet = team.nth(3).unwrap();
+    let last_enemy_pet = enemy_team.nth(3).unwrap();
 
-    assert_eq!(team.friends.len(), 4);
-    assert_eq!(enemy_team.friends.len(), 4);
+    assert_eq!(team.all().len(), 4);
+    assert_eq!(enemy_team.all().len(), 4);
     assert_eq!(last_pet.borrow().name, PetName::ZombieCricket);
     assert_eq!(last_enemy_pet.borrow().name, PetName::ZombieCricket);
 }
 
 #[test]
 fn test_battle_rhino_team() {
-    // log4rs::init_file("./config/log_config.yaml", Default::default()).unwrap();
-
     let mut team = test_rhino_team();
     let mut enemy_team = test_cricket_horse_team();
 
@@ -128,49 +121,26 @@ fn test_battle_shark_team() {
     let mut team = test_shark_team();
     let mut enemy_team = test_shark_team();
 
-    // Removed
-    enemy_team.friends.remove(0);
-
-    let n_team_crickets = count_pets(&team.friends, PetName::Cricket);
-    let n_enemy_team_crickets = count_pets(&enemy_team.friends, PetName::Cricket);
+    let shark = team.last().unwrap();
+    let shark_start_stats = shark.borrow().stats;
+    let n_team_crickets = count_pets(&team.friends, PetName::Cricket) as isize;
 
     // Lvl. 1 shark gains (1,2) on any faint.
-    // (self) 4 crickets so 8 total faint triggers.
+    // 4 crickets so 8 total faint triggers.
     // 8 attack and 16 health gained.
-    // (enemy) 3 crickets so 6 total faint triggers.
-    // 6 attack and 12 health gained.
-    let exp_shark_gained_stats = Statistics {
-        attack: (1 * n_team_crickets * 2).try_into().unwrap(),
-        health: (2 * n_team_crickets * 2).try_into().unwrap(),
-    };
-    let exp_enemy_shark_gained_stats = Statistics {
-        attack: (1 * n_enemy_team_crickets * 2).try_into().unwrap(),
-        health: (2 * n_enemy_team_crickets * 2).try_into().unwrap(),
+    const SHARK_BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 2,
     };
 
-    let mut outcome = team.fight(&mut enemy_team).unwrap();
-
-    while let TeamFightOutcome::None = outcome {
-        outcome = team.fight(&mut enemy_team).unwrap();
+    for _ in 0..12 {
+        team.fight(&mut enemy_team).unwrap();
     }
 
-    let mut added_shark_stats = Statistics::default();
-    let mut added_enemy_shark_stats = Statistics::default();
-    for node in team.history.effect_graph.raw_edges() {
-        let (_, _, action, _) = &node.weight;
-        if let Action::Add(StatChangeType::StaticValue(stats)) = action {
-            added_shark_stats += stats.clone()
-        }
-    }
-    for node in enemy_team.history.effect_graph.raw_edges() {
-        let (_, _, action, _) = &node.weight;
-        if let Action::Add(StatChangeType::StaticValue(stats)) = action {
-            added_enemy_shark_stats += stats.clone()
-        }
-    }
-
-    assert_eq!(added_shark_stats, exp_shark_gained_stats);
-    assert_eq!(added_enemy_shark_stats, exp_enemy_shark_gained_stats);
+    let mut final_stats = SHARK_BUFF;
+    final_stats.attack *= n_team_crickets * 2;
+    final_stats.health *= n_team_crickets * 2;
+    assert_eq!(shark_start_stats + final_stats, shark.borrow().stats);
 }
 
 #[test]
@@ -217,8 +187,8 @@ fn test_battle_hyena_team() {
         .map(|pet| pet.borrow().stats)
         .collect_vec();
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // At lvl. 1 hyena swaps stats of all pets.
     for (mut og, new) in team
@@ -246,8 +216,8 @@ fn test_battle_hyena_team() {
 
     // Level up hyena.
     team.set_level(&hyena_pos, 2).unwrap();
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Hyena at lvl. 2 swaps positions of pets.
     assert_eq!(team.first().unwrap().borrow().name, PetName::Gorilla);
@@ -259,8 +229,8 @@ fn test_battle_hyena_team() {
 
     // Level up hyena.
     team.set_level(&hyena_pos, 3).unwrap();
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Hyena at lvl. 3 swaps positions and stats of pets.
     let gorilla = team.first().unwrap();
@@ -341,8 +311,8 @@ fn test_battle_lion_lowest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Stats are unchanged.
     assert_eq!(lion_original_stats, team.first().unwrap().borrow().stats)
@@ -364,8 +334,8 @@ fn test_battle_lion_highest_tier_team() {
     let lion_original_stats = lion.borrow().stats;
 
     // Activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Adds 50% of attack and health to original stats.
     assert_eq!(
@@ -386,8 +356,8 @@ fn test_battle_swordfish_team() {
     assert!(swordfish.borrow().stats.health == 25);
 
     // Activate start of battle effect.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Both swordfish and enemy eagle are hit and take 25 dmg.
     assert!(swordfish.borrow().stats.health == 0);

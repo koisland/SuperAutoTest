@@ -2,7 +2,8 @@ use crate::{
     db::record::{FoodRecord, PetRecord},
     error::SAPTestError,
     wiki_scraper::{
-        parse_food::parse_food_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
+        parse_food::parse_food_info, parse_names::parse_names_info, parse_pet::parse_pet_info,
+        parse_tokens::parse_token_info,
     },
     CONFIG,
 };
@@ -13,6 +14,7 @@ use std::path::Path;
 const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
 const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
 const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
+const NAMES_URL: &str = "https://superautopets.fandom.com/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.
 pub struct SapDB {
@@ -49,7 +51,10 @@ impl SapDB {
 
         // Update on startup if enabled.
         if CONFIG.database.update_on_startup {
-            db.create_tables()?.update_food_info()?.update_pet_info()?;
+            db.create_tables()?
+                .update_food_info()?
+                .update_pet_info()?
+                .update_name_info()?;
         }
 
         Ok(db)
@@ -69,6 +74,12 @@ impl SapDB {
     fn create_tables(&self) -> Result<&Self, SAPTestError> {
         self.pool.get()?.execute_batch(
             "
+            CREATE TABLE IF NOT EXISTS names (
+                id INTEGER PRIMARY KEY,
+                word_category TEXT NOT NULL,
+                word TEXT NOT NULL,
+                CONSTRAINT unq UNIQUE (word_category, word)
+            );
             CREATE TABLE IF NOT EXISTS pets (
                 id INTEGER PRIMARY KEY,
                 name TEXT NOT NULL,
@@ -251,6 +262,26 @@ impl SapDB {
         Ok(self)
     }
 
+    fn update_name_info(&self) -> Result<&Self, SAPTestError> {
+        let conn = self.pool.get()?;
+        // Read in insert or replace SQL.
+        let sql_insert_names = "
+            INSERT OR IGNORE INTO names (word_category, word) VALUES (?1, ?2);
+        ";
+
+        let names_url = CONFIG.database.names_version.map_or_else(
+            || NAMES_URL.to_owned(),
+            |id| format!("{NAMES_URL}&oldid={id}"),
+        );
+        let words = parse_names_info(&names_url)?;
+        let n_words = words.len();
+        for word in words.into_iter() {
+            conn.execute(sql_insert_names, [word.word_type.to_string(), word.word])?;
+        }
+        info!(target: "db", "{} rows updated in \"names\" table.", n_words);
+        Ok(self)
+    }
+
     /// Query database for [`PetRecord`](crate::db::record::PetRecord)s.
     /// # Example
     /// ```
@@ -327,5 +358,10 @@ mod test {
     #[test]
     fn test_update_pets() {
         assert!(SAPDB.update_food_info().is_ok())
+    }
+
+    #[test]
+    fn test_update_names() {
+        assert!(SAPDB.update_name_info().is_ok())
     }
 }

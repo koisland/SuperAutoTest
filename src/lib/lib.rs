@@ -4,10 +4,12 @@
 //!
 //! ### Teams
 //! Build a [`Team`] and simulate battles between them.
+//!
+//! Then visualize the results in `.dot` format!
 //!  ```
 //! use saptest::{
 //!     Pet, PetName, Food, FoodName,
-//!     Team, TeamCombat, Position
+//!     Team, TeamCombat, Position, create_battle_dag
 //! };
 //!
 //! // Create a team.
@@ -25,7 +27,26 @@
 //! enemy_team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok());
 //!
 //! // And fight!
-//! team.fight(&mut enemy_team);
+//! team.fight(&mut enemy_team).unwrap();
+//!
+//! // Create a graph of the fight.
+//! println!("{}", create_battle_dag(&team, false));
+//! ```
+//!
+//! ```bash
+//! digraph {
+//!     rankdir=LR
+//!     node [shape=box, style="rounded, filled", fontname="Arial"]
+//!     edge [fontname="Arial"]
+//!     0 [ label = "Ant_0 - The Fragile Truckers_copy" ]
+//!     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
+//!     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
+//!     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
+//!     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+//!     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+//!     1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//!     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//! }
 //! ```
 //! ### Shops
 //! Add shop functionality to a [`Team`] and roll, freeze, buy/sell pets and foods.
@@ -101,7 +122,6 @@
 //! );
 //! let mut custom_pet = Pet::custom(
 //!     "MelonBear",
-//!     Some("melonbear_1".to_string()),
 //!     Statistics::new(50, 50).unwrap(),
 //!     &[custom_effect],
 //! );
@@ -145,6 +165,7 @@ pub mod logging;
 pub mod pets;
 pub mod shop;
 pub mod teams;
+pub mod visualization;
 
 #[doc(inline)]
 pub use crate::effects::{
@@ -169,8 +190,10 @@ pub use crate::shop::{
     viewer::{ShopItemViewer, ShopViewer},
 };
 
+#[doc(inline)]
+pub use crate::visualization::dag::create_battle_dag;
+
 mod config;
-mod graph;
 mod regex_patterns;
 #[cfg(test)]
 mod tests;

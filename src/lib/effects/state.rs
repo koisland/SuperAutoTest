@@ -1,16 +1,15 @@
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
-    fmt::Display,
     ops::RangeInclusive,
     rc::{Rc, Weak},
 };
 
 use crate::{
     effects::{effect::EntityName, stats::Statistics},
-    error::SAPTestError,
     pets::pet::Pet,
     shop::store::ShopState,
+    teams::team::TeamFightOutcome,
     FoodName,
 };
 
@@ -38,35 +37,16 @@ pub enum EqualityCondition {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
-    /// Previous team fight was win.
-    PreviousWon,
-    /// Previous team fight was draw.
-    PreviousDraw,
-    /// Previous team fight was loss.
-    PreviousLoss,
+    /// Previous team fight was some outcome.
+    PreviousBattle(TeamFightOutcome),
     /// Has this many open slots.
     OpenSpaceEqual(usize),
     /// Has this many pets on team.
     NumberPetsEqual(usize),
     /// Has this many or more pets on team.
     NumberPetsGreaterEqual(usize),
-}
-
-impl TryFrom<&TeamCondition> for Status {
-    type Error = SAPTestError;
-
-    fn try_from(value: &TeamCondition) -> Result<Self, Self::Error> {
-        match value {
-            TeamCondition::PreviousWon => Ok(Status::WinBattle),
-            TeamCondition::PreviousDraw => Ok(Status::DrawBattle),
-            TeamCondition::PreviousLoss => Ok(Status::LoseBattle),
-            _ => Err(SAPTestError::InvalidTeamAction {
-                subject: "Convert TeamCondition Failure".to_string(),
-                reason: "Team Condition must match a possible battle status (ex. Win or Lose)"
-                    .to_string(),
-            }),
-        }
-    }
+    /// Number of fainted pets is a multiple of this value.
+    NumberFaintedMultiple(usize),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -129,7 +109,7 @@ pub enum Position {
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
-    /// Pets ahead of current pet.
+    /// All [`Pet`]s ahead of current pet.
     Ahead,
     /// A specified range on a [`Team`](crate::teams::team::Team).
     Range(RangeInclusive<isize>),
@@ -149,8 +129,8 @@ pub enum Position {
     None,
 }
 
-/// Target team for an effect.
-#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
+/// Target for an [`Effect`](crate::Effect).
+#[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default, Hash)]
 pub enum Target {
     /// Friend team.
     Friend,
@@ -215,15 +195,6 @@ impl Default for Outcome {
             position: Position::None,
             stat_diff: Default::default(),
         }
-    }
-}
-impl Display for Outcome {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "[Status: {:?}, Position: {:?}, Affected: {:?}, From: {:?}]",
-            self.status, self.position, self.affected_pet, self.afflicting_pet
-        )
     }
 }
 
@@ -312,6 +283,8 @@ pub enum Status {
     BeforeAttack,
     /// Pet is attacking.
     Attack,
+    /// A battle food effect. ex. Chili
+    BattleFoodEffect,
     /// Any damage calculation
     AnyDmgCalc,
     /// Indirect dmg attack calculation.
@@ -336,7 +309,7 @@ pub enum Status {
     Hurt,
     /// Pet fainted.
     Faint,
-    /// Pet knocked out during an attack.
+    /// Pet knocks out another pet during an attack.
     /// * After [`attack`](crate::pets::combat::PetCombat::attack) or [`indirect_attack`](crate::pets::combat::PetCombat::indirect_attack)
     KnockOut,
     /// Pet summoned.

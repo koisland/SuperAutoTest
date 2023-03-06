@@ -295,7 +295,7 @@ fn test_battle_tapir_team() {
 
     team.fight(&mut enemy_team).unwrap();
 
-    // Same lobster spawns but at lvl 2.
+    // Same tiger spawns but at lvl 2.
     let spawned_pet = team.first().unwrap();
     assert!(spawned_pet.borrow().name == PetName::Tiger && spawned_pet.borrow().lvl == 2);
 }
@@ -320,8 +320,8 @@ fn test_battle_white_tiger_team() {
     let mut team = test_white_tiger_team();
     let mut enemy_team = test_gorilla_team();
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Deer behind gets 3 exp leveling to 2.
     let deer = team.nth(1).unwrap();
@@ -332,14 +332,34 @@ fn test_battle_white_tiger_team() {
 fn test_battle_octopus_team() {
     let mut team = test_octopus_team();
     let mut enemy_team = test_cricket_horse_team();
-    enemy_team.set_seed(Some(25));
+    team.set_seed(Some(10));
 
     team.fight(&mut enemy_team).unwrap();
 
     // Octopus only takes one damage.
-    assert_eq!(team.first().unwrap().borrow().stats.health, 7);
-    // But kills two crickets with ability + attack.
-    assert_eq!(enemy_team.fainted.len(), 2);
+    const OCTOPUS_HEALTH: Statistics = Statistics {
+        attack: 8,
+        health: 8,
+    };
+    assert_eq!(
+        team.first().unwrap().borrow().stats,
+        OCTOPUS_HEALTH - Statistics::new(0, 1).unwrap()
+    );
+    // Octopus snipes horse. And octopus direct attacks first cricket.
+    assert_eq!(
+        enemy_team
+            .fainted
+            .iter()
+            .flatten()
+            .map(|pet| pet.borrow().name.clone())
+            .collect_vec(),
+        vec![PetName::Cricket, PetName::Horse]
+    );
+    // Horse killed first by snipe as seen by zombie cricket stats being the default.
+    assert_eq!(
+        enemy_team.first().unwrap().borrow().stats,
+        Pet::try_from(PetName::ZombieCricket).unwrap().stats
+    )
 }
 
 #[test]
@@ -454,8 +474,8 @@ fn test_battle_stegosaurus_team() {
     assert!(team.history.curr_turn == 1);
 
     // Activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -469,8 +489,8 @@ fn test_battle_stegosaurus_team() {
     team.history.curr_turn += 2;
 
     // Re-activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,

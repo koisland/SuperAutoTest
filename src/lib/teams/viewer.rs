@@ -15,10 +15,6 @@ use std::{cell::RefCell, rc::Rc};
 
 use super::effects::EffectApplyHelpers;
 
-/// [`Target`] team and reference to [`Pet`].
-/// * Pet itself doesn't store a reference to [`Team`] so this was a workaround.
-pub type TargetPets = Vec<(Target, Rc<RefCell<Pet>>)>;
-
 /// Methods for viewing [`Team`]s.
 pub trait TeamViewer {
     /// Get a pet at the specified index.
@@ -40,7 +36,7 @@ pub trait TeamViewer {
     /// ```
     fn nth(&self, idx: usize) -> Option<Rc<RefCell<Pet>>>;
 
-    /// Get the first pet on team.
+    /// Get the first slot on team.
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
@@ -59,7 +55,7 @@ pub trait TeamViewer {
     /// ```
     fn first(&self) -> Option<Rc<RefCell<Pet>>>;
 
-    /// Get the first pet on team.
+    /// Get the first slot on team.
     /// * Fainted pets are ignored.
     /// # Examples
     /// ```
@@ -227,8 +223,7 @@ pub trait TeamViewer {
     /// // Search for pets.
     /// let pets_found = team.get_pets_by_effect(&TRIGGER_NONE, &croc_effect, Some(&enemy_team)).unwrap();
     /// // As expected, the last enemy pet is the target of the effect.
-    /// let (target, pet_found) = pets_found.first().unwrap();
-    /// assert_eq!(Target::Enemy, *target);
+    /// let pet_found = pets_found.first().unwrap();
     /// assert!(
     ///     pets_found.len() == 1 &&
     ///     &enemy_team.last().unwrap() == pet_found
@@ -239,11 +234,10 @@ pub trait TeamViewer {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError>;
+    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
 
     /// Get a pet by a [`Position`].
     /// * Specific [`Position`] variants like [`Position::Relative`] and [`Position::Range`] require a starting pet hence the optional `curr_pet`.
-    /// * [`TargetPets`] is a tuple with the belonging Target group ([`Target::Shop`], [`Target::Friend`], [`Target::Enemy`]) and the pets found.
     /// * May [`panic`] under certain [`ItemCondition`]s.
     ///     * See [`TeamViewer::get_pets_by_cond`].
     /// # Example
@@ -270,7 +264,7 @@ pub trait TeamViewer {
         pos: &Position,
         trigger: Option<&Outcome>,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError>;
+    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
 
     /// Get the number of open [`Pet`] slots on the [`Team`].
     /// # Example
@@ -491,7 +485,7 @@ impl TeamViewer for Team {
         pos: &Position,
         trigger: Option<&Outcome>,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError> {
+    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
         let mut pets = vec![];
 
         let opponent = match &target {
@@ -527,48 +521,41 @@ impl TeamViewer for Team {
                     .into_iter()
                     .choose(&mut rng)
                 {
-                    pets.push((*target, random_pet))
+                    pets.push(random_pet)
                 }
             }
             (Target::Either, Position::Any(condition)) => {
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
                 let self_pets = self.get_pets_by_cond(condition);
                 let opponent_pets = opponent.get_pets_by_cond(condition);
-                if let Some((target, random_pet)) = vec![Target::Friend; self_pets.len()]
-                    .into_iter()
-                    .zip_eq(self_pets)
-                    .chain(
-                        vec![Target::Enemy; opponent_pets.len()]
-                            .into_iter()
-                            .zip_eq(opponent_pets),
-                    )
-                    .choose(&mut rng)
+                if let Some(random_pet) =
+                    self_pets.into_iter().chain(opponent_pets).choose(&mut rng)
                 {
-                    pets.push((target, random_pet))
+                    pets.push(random_pet)
                 }
             }
             (Target::Friend | Target::Enemy, Position::All(condition)) => {
                 for pet in team.get_pets_by_cond(condition) {
-                    pets.push((*target, pet))
+                    pets.push(pet)
                 }
             }
             (Target::Either, Position::All(condition)) => {
-                for (target_team, team) in [(Target::Friend, self), (Target::Enemy, opponent)] {
+                for team in [self, opponent] {
                     for pet in team.get_pets_by_cond(condition) {
-                        pets.push((target_team, pet))
+                        pets.push(pet)
                     }
                 }
             }
             (Target::Friend | Target::Enemy, Position::Opposite) => {
                 if let Some(Some(pos)) = &curr_pet.map(|pet| pet.borrow().pos) {
                     if let Some(opposite_pet) = team.nth(*pos) {
-                        pets.push((*target, opposite_pet))
+                        pets.push(opposite_pet)
                     }
                 }
             }
             (_, Position::OnSelf) => {
                 if let Some(self_pet) = &curr_pet {
-                    pets.push((*target, self_pet.clone()))
+                    pets.push(self_pet.clone())
                 }
             }
             (_, Position::TriggerAfflicting) | (_, Position::TriggerAffected) => {
@@ -585,7 +572,7 @@ impl TeamViewer for Team {
                     trigger.afflicting_pet.as_ref()
                 };
                 if let Some(Some(trigger_pet)) = trigger_pet.map(|pet_ref| pet_ref.upgrade()) {
-                    pets.push((trigger.affected_team, trigger_pet))
+                    pets.push(trigger_pet)
                 }
             }
             (Target::Friend | Target::Enemy, Position::Relative(rel_pos)) => {
@@ -596,7 +583,7 @@ impl TeamViewer for Team {
                     // Pet can only be on same team.
                     if target_team == Target::Friend {
                         if let Some(rel_pet) = team.nth(adj_idx) {
-                            pets.push((*target, rel_pet))
+                            pets.push(rel_pet)
                         }
                     }
                 }
@@ -612,7 +599,7 @@ impl TeamViewer for Team {
                         opponent
                     };
                     if let Some(rel_pet) = team.nth(adj_idx) {
-                        pets.push((target_team, rel_pet))
+                        pets.push(rel_pet)
                     }
                 }
             }
@@ -655,7 +642,7 @@ impl TeamViewer for Team {
 
                         for _ in 0..num_pets {
                             if let Some(pet) = pets_in_range.next() {
-                                pets.push((*target, pet.clone()))
+                                pets.push(pet.clone())
                             }
                         }
                     }
@@ -687,11 +674,7 @@ impl TeamViewer for Team {
                         None,
                         Some(opponent),
                     )?;
-                    pets.extend(
-                        opponents_pets
-                            .into_iter()
-                            .map(|(_, pet)| (Target::Enemy, pet)),
-                    );
+                    pets.extend(opponents_pets);
                 }
                 // Add pets found on team to opponent's pets.
                 pets.extend(pets_in_range);
@@ -705,7 +688,7 @@ impl TeamViewer for Team {
                             team.cvt_rel_idx_to_adj_idx(effect_pet_idx, idx)?;
                         if target_team == Target::Friend {
                             if let Some(rel_pet) = team.nth(adj_idx) {
-                                pets.push((target_team, rel_pet))
+                                pets.push(rel_pet)
                             }
                         }
                     }
@@ -724,19 +707,19 @@ impl TeamViewer for Team {
                             opponent
                         };
                         if let Some(rel_pet) = team.nth(adj_idx) {
-                            pets.push((target_team, rel_pet.clone()))
+                            pets.push(rel_pet.clone())
                         }
                     }
                 }
             }
             (Target::Friend | Target::Enemy, Position::First) => {
                 if let Some(first_pet) = team.all().first() {
-                    pets.push((*target, first_pet.clone()))
+                    pets.push(first_pet.clone())
                 }
             }
             (Target::Friend | Target::Enemy, Position::Last) => {
                 if let Some(last_pet) = team.all().last() {
-                    pets.push((*target, last_pet.clone()))
+                    pets.push(last_pet.clone())
                 }
             }
             (_, Position::Multiple(positions)) => {
@@ -768,10 +751,10 @@ impl TeamViewer for Team {
                     // Alternate between teams.
                     if n % 2 == 0 {
                         if let Some(pet) = self_pets.next() {
-                            pets.push((Target::Friend, pet))
+                            pets.push(pet)
                         }
                     } else if let Some(pet) = opponent_pets.next() {
-                        pets.push((Target::Enemy, pet))
+                        pets.push(pet)
                     }
                 }
             }
@@ -786,7 +769,7 @@ impl TeamViewer for Team {
                 // Get n values of indices.
                 for _ in 0..*n {
                     if let Some(pet) = found_pets.next() {
-                        pets.push((*target, pet))
+                        pets.push(pet)
                     }
                 }
             }
@@ -803,7 +786,7 @@ impl TeamViewer for Team {
                         .flatten()
                         .filter_map(|pet| {
                             if let Some(pos) = pet.borrow().pos {
-                                (pos < curr_pos).then_some((*target, pet.clone()))
+                                (pos < curr_pos).then_some(pet.clone())
                             } else {
                                 None
                             }
@@ -830,21 +813,21 @@ impl TeamViewer for Team {
                         .flatten()
                         .find(|friend| friend.borrow().pos == Some(idx))
                 }) {
-                    pets.push((*target, prev_pet.clone()))
+                    pets.push(prev_pet.clone())
                 };
                 if let Some(ahead_pet) = friends
                     .iter()
                     .flatten()
                     .find(|friend| friend.borrow().pos == Some(pos + 1))
                 {
-                    pets.push((*target, ahead_pet.clone()))
+                    pets.push(ahead_pet.clone())
                 }
             }
             (Target::Shop, pos) => {
                 let items = self.shop.get_shop_items_by_pos(pos, &Entity::Pet)?;
                 for item in items {
                     if let ItemSlot::Pet(shop_pet) = &item.item {
-                        pets.push((*target, shop_pet.clone()))
+                        pets.push(shop_pet.clone())
                     }
                 }
             }
@@ -864,7 +847,7 @@ impl TeamViewer for Team {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
-    ) -> Result<TargetPets, SAPTestError> {
+    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
         let curr_pet = if let Some(effect_pet) = &effect.owner {
             effect_pet.upgrade()
         } else {

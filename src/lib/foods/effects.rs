@@ -16,7 +16,7 @@ use crate::{
     shop::trigger::TRIGGER_SELF_FOOD_EATEN,
 };
 
-/// May need to be similar to Pet effects as Vec<Effect> at some point.
+/// May need to be similar to Pet effects as `Vec<Effect>` at some point.
 impl TryFrom<&FoodRecord> for Effect {
     type Error = SAPTestError;
 
@@ -36,7 +36,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
                 uses,
                 entity: Entity::Food,
-                trigger: TRIGGER_SELF_ATTACK,
+                trigger: TRIGGER_BATTLE_FOOD,
                 temp: record.end_of_battle,
             },
             FoodName::Coconut => Effect {
@@ -93,10 +93,14 @@ impl TryFrom<&FoodRecord> for Effect {
                 owner: None,
                 target: Target::Friend,
                 position: Position::TriggerAffected,
-                action: Action::Summon(SummonType::SelfPet(Statistics {
-                    attack: 1,
-                    health: 1,
-                })),
+                action: Action::Summon(SummonType::SelfPet(
+                    Some(Statistics {
+                        attack: 1,
+                        health: 1,
+                    }),
+                    None,
+                    false,
+                )),
                 uses,
                 entity: Entity::Food,
                 trigger: TRIGGER_SELF_FAINT,
@@ -165,7 +169,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 trigger: TRIGGER_START_TURN,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit,
+                action: Action::Profit(1),
                 uses,
                 temp: record.end_of_battle,
             },
@@ -175,7 +179,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Experience,
+                action: Action::Experience(1),
                 uses,
                 temp: record.end_of_battle,
             },
@@ -289,7 +293,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(SummonType::SelfTierPet),
+                action: Action::Summon(SummonType::SelfTierPet(None, None)),
                 uses,
                 temp: record.end_of_battle,
             },

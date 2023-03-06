@@ -11,9 +11,16 @@ use crate::{
     },
     foods::names::FoodName,
     pets::pet::{Pet, MAX_PET_STATS, MIN_PET_STATS},
+    Team,
 };
 
-use std::{fmt::Display, ops::Sub};
+use std::{
+    cell::RefCell,
+    collections::VecDeque,
+    fmt::Display,
+    ops::Sub,
+    rc::{Rc, Weak},
+};
 
 /// The minimum damage any attack can do.
 pub const MIN_DMG: isize = 1;
@@ -25,7 +32,7 @@ const ALLOWED_FOOD_EFFECT_TRIGGER: [Status; 2] = [Status::AnyDmgCalc, Status::At
 /// Gets the maximum damage a pet can receive.
 fn max_dmg_received(pet: &Pet) -> isize {
     // If has coconut, maximum dmg is 0. Otherwise, the normal 150.
-    if pet.has_active_ability(&Action::Invincible) {
+    if pet.has_food_ability(&Action::Invincible, true) {
         0
     } else {
         MAX_DMG
@@ -53,13 +60,13 @@ fn final_dmg_calculation(pet: &Pet, dmg: isize, enemy: &Pet) -> isize {
     // * Any amount of damage is dealt.
     // * Enemy has death's touch.
     // * Pet being attacked has more health than 1.
-    if dmg != 0 && enemy.has_active_ability(&Action::Kill) && pet.stats.health > 1 {
+    if dmg != 0 && enemy.has_food_ability(&Action::Kill, true) && pet.stats.health > 1 {
         0
     } else {
         let health = pet.stats.health.sub(dmg);
         // If has endure, stay alive at 1 health.
         // Otherwise do normal damage calculation.
-        if pet.has_active_ability(&Action::Endure) {
+        if pet.has_food_ability(&Action::Endure, true) {
             health.clamp(1, MAX_PET_STATS)
         } else {
             health.clamp(MIN_PET_STATS, MAX_PET_STATS)
@@ -132,7 +139,7 @@ pub trait PetCombat {
     /// let outcome = ant_1.get_atk_outcomes(1);
     /// // Unhurt trigger for friends.
     /// assert_eq!(
-    ///     outcome.friends.first().unwrap(),
+    ///     outcome.friends.front().unwrap(),
     ///     &TRIGGER_SELF_UNHURT
     /// );
     /// ```
@@ -178,7 +185,7 @@ pub trait PetCombat {
     fn get_food_stat_modifier(&self) -> Option<Statistics>;
 
     /// Check if a [`Pet`]'s [`Food`](crate::Food) has this [`Action`].
-    /// * Returns `false` if out of uses.
+    /// * Matches only on the enum variant.
     /// # Example
     /// ```
     /// use saptest::{
@@ -188,9 +195,27 @@ pub trait PetCombat {
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// ant_1.item = Some(Food::try_from(FoodName::Peanut).unwrap());
     ///
-    /// assert!(ant_1.has_active_ability(&Action::Kill))
+    /// assert!(ant_1.has_food_ability(&Action::Kill, true))
     /// ```
-    fn has_active_ability(&self, ability: &Action) -> bool;
+    fn has_food_ability(&self, ability: &Action, check_uses: bool) -> bool;
+
+    /// Check if a [`Pet`]'s [`Effect`](crate::Effect) has this [`Action`].
+    /// * Matches only on the enum variant.
+    /// # Example
+    /// ```
+    /// use saptest::{
+    ///     Pet, PetName, PetCombat, Statistics,
+    ///     effects::actions::{Action, StatChangeType}
+    /// };
+    /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
+    /// let add_action = Action::Add(StatChangeType::StaticValue(Statistics::new(2,1).unwrap()));
+    ///
+    /// assert!(ant_1.has_effect_ability(&add_action, true))
+    /// ```
+    fn has_effect_ability(&self, ability: &Action, check_uses: bool) -> bool;
+
+    /// Check if pet effect has effect trigger.
+    fn has_effect_trigger(&self, trigger: &Status, check_uses: bool) -> bool;
 }
 
 impl PetCombat for Pet {
@@ -215,7 +240,7 @@ impl PetCombat for Pet {
         let mut new_health = self.stats.health.sub(enemy_dmg);
 
         // Account for endure ability.
-        new_health = if self.has_active_ability(&Action::Endure) {
+        new_health = if self.has_food_ability(&Action::Endure, true) {
             new_health.clamp(1, MAX_PET_STATS)
         } else {
             new_health.clamp(MIN_PET_STATS, MAX_PET_STATS)
@@ -225,7 +250,13 @@ impl PetCombat for Pet {
         self.item.as_mut().map(|item| item.ability.remove_uses(1));
 
         // Use health difference to determine outcome.
-        let outcome = self.get_atk_outcomes(new_health);
+        let mut outcome = self.get_atk_outcomes(new_health);
+
+        // If kill by indirect, still counts as knockout.
+        if new_health == 0 {
+            outcome.opponents.insert(0, TRIGGER_KNOCKOUT)
+        }
+
         // Set new health.
         self.stats.health = new_health.clamp(MIN_PET_STATS, MAX_PET_STATS);
         outcome
@@ -237,42 +268,47 @@ impl PetCombat for Pet {
             .health
             .sub(new_health)
             .clamp(MIN_PET_STATS, MAX_PET_STATS);
-        let health_diff_stats = Some(Statistics {
+        let health_diff_stats = Statistics {
             health: health_diff,
             attack: 0,
-        });
-        let mut outcomes: Vec<Outcome> = vec![];
-        let mut enemy_outcomes: Vec<Outcome> = vec![];
+        };
+        let mut outcomes: VecDeque<Outcome> = VecDeque::new();
+        let mut enemy_outcomes: VecDeque<Outcome> = VecDeque::new();
 
         // If difference between health before and after battle is equal the before battle health,
         // pet lost all health during fight and has fainted.
         if health_diff == self.stats.health {
-            let [self_faint, any_faint, ahead_faint] = get_self_faint_triggers(&health_diff_stats);
-            let [enemy_faint, enemy_any_faint] = get_self_enemy_faint_triggers(&health_diff_stats);
+            let [self_faint, any_faint, ahead_faint] =
+                get_self_faint_triggers(&Some(health_diff_stats));
+            let [mut spec_enemy_faint, enemy_any_faint] =
+                get_self_enemy_faint_triggers(&Some(health_diff_stats));
+            spec_enemy_faint.position = Position::Relative(self.pos.unwrap_or(0) as isize);
 
             outcomes.extend([self_faint, any_faint, ahead_faint]);
-            enemy_outcomes.extend([enemy_faint, enemy_any_faint]);
+            enemy_outcomes.extend([spec_enemy_faint, enemy_any_faint]);
         } else if health_diff == 0 {
             // If original health - new health is 0, pet wasn't hurt.
             let mut self_unhurt = TRIGGER_SELF_UNHURT;
-            self_unhurt.stat_diff = health_diff_stats;
+            self_unhurt.stat_diff = Some(health_diff_stats);
 
-            outcomes.push(self_unhurt)
+            outcomes.push_back(self_unhurt)
         } else {
             // Otherwise, pet was hurt.
             let mut self_hurt = TRIGGER_SELF_HURT;
             let mut any_hurt = TRIGGER_ANY_HURT;
-            self_hurt.stat_diff = health_diff_stats;
-            any_hurt.stat_diff = health_diff_stats;
+            self_hurt.stat_diff = Some(health_diff_stats);
+            any_hurt.stat_diff = Some(health_diff_stats);
 
             let enemy_any_hurt = TRIGGER_ANY_ENEMY_HURT;
 
             outcomes.extend([self_hurt, any_hurt]);
-            enemy_outcomes.push(enemy_any_hurt)
+            enemy_outcomes.push_back(enemy_any_hurt)
         };
         AttackOutcome {
             friends: outcomes,
             opponents: enemy_outcomes,
+            friend_stat_change: health_diff_stats,
+            enemy_stat_change: Statistics::default(),
         }
     }
 
@@ -330,12 +366,41 @@ impl PetCombat for Pet {
         }
     }
 
-    fn has_active_ability(&self, ability: &Action) -> bool {
+    fn has_food_ability(&self, ability: &Action, check_uses: bool) -> bool {
         if let Some(food) = self.item.as_ref() {
-            &food.ability.action == ability && food.ability.uses != Some(0)
+            let valid_uses = if check_uses {
+                food.ability.uses != Some(0)
+            } else {
+                true
+            };
+            std::mem::discriminant(&food.ability.action) == std::mem::discriminant(ability)
+                && valid_uses
         } else {
             false
         }
+    }
+
+    fn has_effect_trigger(&self, trigger: &Status, check_uses: bool) -> bool {
+        self.effect.iter().any(|effect| {
+            let valid_uses = if check_uses {
+                effect.uses != Some(0)
+            } else {
+                true
+            };
+            std::mem::discriminant(&effect.trigger.status) == std::mem::discriminant(trigger)
+                && valid_uses
+        })
+    }
+
+    fn has_effect_ability(&self, ability: &Action, check_uses: bool) -> bool {
+        self.effect.iter().any(|effect| {
+            let valid_uses = if check_uses {
+                effect.uses != Some(0)
+            } else {
+                true
+            };
+            std::mem::discriminant(&effect.action) == std::mem::discriminant(ability) && valid_uses
+        })
     }
 
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {
@@ -381,17 +446,17 @@ impl PetCombat for Pet {
         let mut outcome = self.get_atk_outcomes(new_health);
         let mut enemy_outcome = enemy.get_atk_outcomes(new_enemy_health);
 
-        // Add specific trigger if directly knockout.
-        if new_health == 0 {
-            enemy_outcome.friends.push(TRIGGER_KNOCKOUT)
-        }
-        if new_enemy_health == 0 {
-            outcome.friends.push(TRIGGER_KNOCKOUT)
-        }
-
         // Add outcome for attacking pet.
         enemy_outcome.friends.insert(0, TRIGGER_SELF_ATTACK);
         outcome.friends.insert(0, TRIGGER_SELF_ATTACK);
+
+        // Add specific trigger if directly knockout.
+        if new_health == 0 {
+            enemy_outcome.friends.insert(0, TRIGGER_KNOCKOUT)
+        }
+        if new_enemy_health == 0 {
+            outcome.friends.insert(0, TRIGGER_KNOCKOUT)
+        }
 
         // Set the new health of a pet.
         self.stats.health = new_health;
@@ -402,8 +467,10 @@ impl PetCombat for Pet {
         enemy_outcome.friends.extend(outcome.opponents);
 
         AttackOutcome {
-            friends: Vec::from_iter(outcome.friends),
-            opponents: Vec::from_iter(enemy_outcome.friends),
+            friends: VecDeque::from_iter(outcome.friends),
+            opponents: VecDeque::from_iter(enemy_outcome.friends),
+            friend_stat_change: outcome.friend_stat_change,
+            enemy_stat_change: enemy_outcome.friend_stat_change,
         }
     }
 }
@@ -412,9 +479,42 @@ impl PetCombat for Pet {
 #[derive(Debug, PartialEq, Default)]
 pub struct AttackOutcome {
     /// [`Outcome`] for friends.
-    pub friends: Vec<Outcome>,
+    pub friends: VecDeque<Outcome>,
     /// [`Outcome`] for opponents.
-    pub opponents: Vec<Outcome>,
+    pub opponents: VecDeque<Outcome>,
+    /// Friend [`Statisitics`](crate::Statistics) change.
+    pub friend_stat_change: Statistics,
+    /// Enemy [`Statisitics`](crate::Statistics) change.
+    pub enemy_stat_change: Statistics,
+}
+
+impl AttackOutcome {
+    /// Dump attack outcomes into their respective teams, marking which pets were affected and afflict damage or lethal attacks.
+    pub(crate) fn unload_atk_outcomes(
+        &mut self,
+        team: &mut Team,
+        opponent: Option<&mut Team>,
+        affected: &Rc<RefCell<Pet>>,
+        afflicting: Option<Weak<RefCell<Pet>>>,
+    ) {
+        // Update triggers from where they came from.
+        // Knockout a special exception as affected pet is pet causing knockout.
+        for trigger in self.friends.iter_mut().chain(self.opponents.iter_mut()) {
+            if trigger.status == Status::KnockOut {
+                trigger.affected_pet = afflicting.clone();
+                trigger.set_afflicting(affected);
+            } else {
+                trigger.set_affected(affected);
+                trigger.afflicting_pet = afflicting.clone();
+            }
+        }
+
+        // Collect triggers for both teams.
+        team.triggers.extend(self.friends.drain(..));
+        if let Some(opponent) = opponent {
+            opponent.triggers.extend(self.opponents.drain(..));
+        }
+    }
 }
 
 impl Display for AttackOutcome {

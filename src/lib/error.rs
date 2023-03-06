@@ -74,4 +74,8 @@ pub enum SAPTestError {
         /// Reason for failure.
         reason: String,
     },
+
+    /// Fallible action used in trigger_effects. Never invoked otherwise.
+    #[error("Fallible action.")]
+    FallibleAction,
 }

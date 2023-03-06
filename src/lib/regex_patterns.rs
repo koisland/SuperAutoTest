@@ -1,7 +1,10 @@
 pub type LRegex = lazy_regex::Lazy<lazy_regex::Regex>;
 
 // General
+pub static RGX_COL_DESC_CATEG: &LRegex = regex!(r#"\|\+\w+"#);
+pub static RGX_COL_WORD: &LRegex = regex!(r#"\|([A-Za-z][A-Za-z ]+[A-Za-z])"#);
 pub static RGX_ICON_NAME: &LRegex = regex!(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|]*=[\w\.]+)*"#);
+pub static RGX_MULT_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*?\|\}"#);
 
 // Food
 pub static RGX_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*\|\}"#);

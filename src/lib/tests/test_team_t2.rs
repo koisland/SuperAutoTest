@@ -173,8 +173,6 @@ fn test_battle_rat_lvl_1_team() {
 fn test_battle_rat_lvl_2_team() {
     let mut team_lvl_2 = test_rat_team(2);
     let mut enemy_team_lvl_2 = test_rat_team(2);
-    team_lvl_2.name = "self".to_owned();
-    enemy_team_lvl_2.name = "enemy".to_owned();
 
     // Both rats are level 2.
     assert_eq!(team_lvl_2.first().unwrap().borrow().lvl, 2);
@@ -255,8 +253,8 @@ fn test_battle_atlantic_puffin_team() {
         2
     );
     // Activate start of battle effects.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
     // Dog took 4 damage from puffin. 2 dmg x 2 strawberries.
     let targeted_dog = enemy_team.friends.get(4).unwrap();
     let dog_health = targeted_dog.as_ref().unwrap().borrow().stats.health;
@@ -325,8 +323,8 @@ fn test_battle_panda_team() {
     // Initial dog stats.
     let original_stats = team.first().unwrap().borrow().stats;
 
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     assert_eq!(
         team.first().unwrap().borrow().stats,
@@ -352,8 +350,8 @@ fn test_battle_pug_team() {
         Statistics::new(3, 2).unwrap()
     );
     // Activate start of battle effect of pug.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Ant levels up.
     assert_eq!(team.first().unwrap().borrow().exp, 2);
@@ -438,8 +436,8 @@ fn test_battle_wombat_team() {
     let mammoth_effect = enemy_team.first().unwrap().borrow().get_effect(1).unwrap();
 
     // Activate start of battle.
-    team.triggers.push_front(TRIGGER_START_BATTLE);
-    team.trigger_effects(Some(&mut enemy_team)).unwrap();
+    team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
+        .unwrap();
 
     // Wombat gains mammoth's effect.
     let wombat_effect = team

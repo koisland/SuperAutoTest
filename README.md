@@ -16,10 +16,12 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 
 ### Teams
 Build a `Team` and simulate battles between them.
+
+Then visualize the results in `.dot` format!
 ```rust
 use saptest::{
     Pet, PetName, Food, FoodName,
-    Team, TeamCombat, Position
+    Team, TeamCombat, Position, create_battle_dag
 };
 // Create a team.
 let mut team = Team::new(
@@ -32,12 +34,38 @@ let mut enemy_team = team.clone();
 team.set_seed(Some(25));
 
 // Give food to pets.
-team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
-enemy_team.set_item(Position::First, Food::try_from(FoodName::Garlic).ok());
+team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok()).unwrap();
+enemy_team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok()).unwrap();
 
 // And fight!
-team.fight(&mut enemy_team);
+team.fight(&mut enemy_team).unwrap();
+
+// Create a graph of the fight.
+println!("{}", create_battle_dag(&team, false));
 ```
+
+```
+digraph {
+    rankdir=LR
+    node [shape=box, style="rounded, filled", fontname="Arial"]
+    edge [fontname="Arial"]
+    0 [ label = "Ant_0 - The Fragile Truckers_copy" ]
+    1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
+    2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
+    3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
+    1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+    0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+}
+```
+
+Graphs can be as simple as the example above... or extremely complex.
+
+<p float="left">
+    <img align="middle" src="docs/images/ants.svg" width="40%">
+    <img align="middle" src="docs/images/blowfish_5.svg" width="30%">
+</p>
 
 ### Shops
 Add shop functionality to a `Team` and roll, freeze, buy/sell pets and foods.
@@ -108,7 +136,6 @@ let custom_effect = Effect::new(
 );
 let mut custom_pet = Pet::custom(
     "MelonBear",
-    Some("melonbear_1".to_string()),
     Statistics::new(50, 50).unwrap(),
     &[custom_effect],
 );
@@ -144,6 +171,11 @@ filename = "./sap.db"
 update_on_startup = false
 ```
 
+Graph building can also be disabled in `[general]` with `build_graph`.
+```toml
+[general]
+build_graph = false
+```
 ---
 
 ## Benchmarks
@@ -153,6 +185,8 @@ Benchmarks for `saptest` are located in `benches/battle_benchmarks.rs` and run u
 
 ```bash
 # saptest
+git clone git@github.com:koisland/SuperAutoTest.git --depth 1
+cargo add cargo-tarpaulin
 cargo bench && open target/criterion/sapai_example/report/index.html
 ```
 
@@ -164,10 +198,22 @@ python setup.py install
 # Then run `battle_benchmarks_sapai.ipynb`.
 ```
 
-### saptest
-* **166.84 ns ± 1.0369 µs** with **100 measurements**.
+### saptest (No Graphs)
+* **48.763 ns ± 149.36 ns** with **100 measurements**.
+* Logging disabled.
+* Raw data available in `benches/saptest_raw_no_graphs.csv`.
 
-![](docs/images//pdf.svg)
+![](docs/images/pdf_sapai_example_no_graphs.svg)
+
+
+### saptest (Graphs)
+* **2.6677 µs ± 208.77 ns** with **100 measurements**.
+    * This is a **5370% regression in speed** compared to no graphs.
+    * Consider disabling `graphs` if speed is required.
+* Logging disabled.
+* Raw data available in `benches/saptest_raw_graphs.csv`.
+
+![](docs/images/pdf_sapai_example_graphs.svg)
 
 ### sapai
 * **4.29 ms ± 51.8 µs** per loop (mean ± std. dev. of 7 runs, **100 loops each**)

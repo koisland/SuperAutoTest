@@ -241,7 +241,7 @@ fn test_clear_team() {
                 .borrow()
                 .pos
                 == Some(2)
-            && empty_pos_front_team.friends.len() == 4
+            && empty_pos_front_team.friends.len() == 3
     );
 
     let mut dead_pet_second_pos_team =
@@ -257,7 +257,7 @@ fn test_clear_team() {
             .borrow()
             .pos
             == Some(0)
-            && dead_pet_second_pos_team.friends.len() == 2
+            && dead_pet_second_pos_team.friends.len() == 1
     );
 
     let mut all_dead_pets_team =

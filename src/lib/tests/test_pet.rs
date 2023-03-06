@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use crate::{
     effects::{
         actions::{Action, StatChangeType},
@@ -25,21 +27,29 @@ fn test_attack_pet() {
     assert_eq!(
         outcome,
         AttackOutcome {
-            friends: vec![
+            friends: VecDeque::from_iter([
                 TRIGGER_SELF_ATTACK,
                 TRIGGER_SELF_FAINT,
                 TRIGGER_ANY_FAINT,
                 TRIGGER_AHEAD_FAINT,
                 TRIGGER_ANY_ENEMY_HURT
-            ],
-            opponents: vec![
+            ]),
+            opponents: VecDeque::from_iter([
+                TRIGGER_KNOCKOUT,
                 TRIGGER_SELF_ATTACK,
                 TRIGGER_SELF_HURT,
                 TRIGGER_ANY_HURT,
-                TRIGGER_KNOCKOUT,
                 TRIGGER_SPEC_ENEMY_FAINT,
                 TRIGGER_ANY_ENEMY_FAINT,
-            ]
+            ]),
+            friend_stat_change: Statistics {
+                attack: 0,
+                health: 1
+            },
+            enemy_stat_change: Statistics {
+                attack: 0,
+                health: 2
+            }
         }
     )
 }
@@ -74,7 +84,8 @@ fn test_create_def_pet() {
             },],
             item: None,
             pos: None,
-            seed: Some(0)
+            seed: Some(0),
+            team: None
         }
     )
 }
@@ -147,7 +158,6 @@ fn test_invalid_levelup() {
 fn test_create_pet() {
     let mut test_ant = Pet::new(
         PetName::Ant,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -183,7 +193,8 @@ fn test_create_pet() {
             },],
             item: None,
             pos: None,
-            seed: Some(0)
+            seed: Some(0),
+            team: None
         }
     )
 }
@@ -192,7 +203,6 @@ fn test_create_pet() {
 fn create_pet_token() {
     let mut test_bee = Pet::new(
         PetName::Bee,
-        None,
         Some(Statistics {
             attack: 50,
             health: 50,
@@ -218,7 +228,8 @@ fn create_pet_token() {
             effect: vec![],
             item: None,
             pos: None,
-            seed: Some(0)
+            seed: Some(0),
+            team: None
         }
     );
 }
