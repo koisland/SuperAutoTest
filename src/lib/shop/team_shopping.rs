@@ -20,8 +20,7 @@ use crate::{
         viewer::ShopViewer,
     },
     teams::{
-        combat::TeamCombat,
-        effects::{EffectApplyHelpers, TeamEffects},
+        combat::TeamCombat, effect_helpers::EffectApplyHelpers, effects::TeamEffects,
         viewer::TeamViewer,
     },
     Food, FoodName, ItemCondition, Pet, PetName, Position, Shop, Team,

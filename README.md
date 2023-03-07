@@ -72,7 +72,8 @@ Add shop functionality to a `Team` and roll, freeze, buy/sell pets and foods.
 ```rust
 use saptest::{
     Shop, ShopItem, TeamShopping, Team,
-    Position, Entity, EntityName, FoodName
+    Position, Entity, EntityName, FoodName,
+    db::pack::Pack
 };
 
 // All teams are constructed with a shop at tier 1.
@@ -222,6 +223,7 @@ python setup.py install
 
 ## TODO:
 * Add trait for randomly generating teams.
+* Make structs thread-safe.
 
 ---
 ## Sources

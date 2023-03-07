@@ -21,7 +21,7 @@ use crate::{
         test_porcupine_team, test_praying_mantis_team, test_rooster_team, test_skunk_team,
         test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team, test_worm_team,
     },
-    Effect, EntityName, ItemCondition, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Team,
+    Effect, EntityName, Food, ItemCondition, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Team,
     TeamShopping,
 };
 
@@ -82,6 +82,43 @@ fn test_battle_hippo_team() {
                 attack: 13,
                 health: 4
             }
+    );
+}
+
+#[test]
+fn test_battle_chili_hippo() {
+    let mut team = Team::new(&[Some(Pet::new(PetName::Hippo, None, 1).unwrap())], 5).unwrap();
+    team.set_item(
+        &Position::First,
+        Some(Food::try_from(FoodName::Chili).unwrap()),
+    )
+    .unwrap();
+    let hippo = team.first().unwrap();
+    let hippo_start_stats = hippo.borrow().stats;
+    const HIPPO_BUFF: Statistics = Statistics {
+        attack: 3,
+        health: 3,
+    };
+
+    let mut enemy_team = Team::new(
+        &[
+            Pet::new(PetName::Mammoth, None, 1).ok(),
+            Pet::new(PetName::Ant, None, 1).ok(),
+        ],
+        5,
+    )
+    .unwrap();
+    let mammoth_dmg = Statistics {
+        attack: 0,
+        health: -enemy_team.first().unwrap().borrow().stats.attack,
+    };
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Hippo effect trigger because ant behind mammoth faints.
+    assert_eq!(
+        hippo_start_stats + HIPPO_BUFF + mammoth_dmg,
+        hippo.borrow().stats
     );
 }
 

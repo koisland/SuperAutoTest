@@ -3,12 +3,14 @@ mod deer_mushroom_zombie_fly;
 mod mushroom_scorpion;
 mod permanent_coconut;
 mod rhino;
+mod pet_combinations;
 
 use blowfish_99::ninety_nine_blowfish_battle;
 use deer_mushroom_zombie_fly::deer_fly_mushroom;
 use mushroom_scorpion::mushroom_scorpion;
 use permanent_coconut::permanent_coconut;
 use rhino::rhino;
+use pet_combinations::five_pet_combinations;
 
 fn main() {
     // Rhino ability.
@@ -21,4 +23,7 @@ fn main() {
     let permanent_coconut_team = permanent_coconut();
     // Battle mechanics
     let scorpion_team = mushroom_scorpion();
+
+    // Generate all 5-pet combinations from the Turtle pack.
+    let teams = five_pet_combinations();
 }

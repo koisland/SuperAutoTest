@@ -3,9 +3,6 @@ use saptest::{
 };
 
 fn rhino_vs_summoner_teams() -> (Team, Team) {
-    // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
-    // Tie in attack between shark and cricket causes difference in bee spawn.
-    // * Shark wins in this case.
     let sour_sailors_pets = [
         Some(
             Pet::new(
@@ -131,8 +128,9 @@ fn rhino_vs_summoner_teams() -> (Team, Team) {
     )
 }
 
+/// [`Rhino`](saptest::PetName::Rhino) countering a summon team.
+/// * https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
 pub fn rhino() -> Team {
-    // https://www.reddit.com/r/superautopets/comments/u06kr7/not_sure_if_rhino_good_or_he_just_got_way_too_far/
     let (mut sour_sailors, mut chunk_wigs) = rhino_vs_summoner_teams();
     // sour_sailors.set_name("The Sour Sailors").unwrap();
     // chunk_wigs.set_name("The Chunk Wigs").unwrap();

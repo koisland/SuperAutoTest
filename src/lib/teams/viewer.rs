@@ -2,6 +2,7 @@ use crate::{
     effects::state::{EqualityCondition, Outcome, Target},
     error::SAPTestError,
     shop::store::ItemSlot,
+    teams::effect_helpers::EffectApplyHelpers,
     Effect, Entity, EntityName, FoodName, ItemCondition, Pet, Position, ShopViewer, Team,
 };
 use itertools::Itertools;
@@ -12,8 +13,6 @@ use rand::{
 };
 use rand_chacha::ChaCha12Rng;
 use std::{cell::RefCell, rc::Rc};
-
-use super::effects::EffectApplyHelpers;
 
 /// Methods for viewing [`Team`]s.
 pub trait TeamViewer {
@@ -115,7 +114,11 @@ pub trait TeamViewer {
     /// Filter pets that match an [`EqualityCondition`](crate::effects::state::EqualityCondition).
     /// * Used by [`TeamViewer::get_pets_by_cond`].
     /// * Will [`panic`] if used using a condition specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
-    fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
+    fn filter_matching_pets<T>(
+        &self,
+        all_pets: T,
+        eq_cond: &EqualityCondition,
+    ) -> Vec<Rc<RefCell<Pet>>>
     where
         T: IntoIterator<Item = Rc<RefCell<Pet>>>;
 
@@ -343,7 +346,11 @@ impl TeamViewer for Team {
             .collect_vec()
     }
 
-    fn check_eq_cond<T>(&self, all_pets: T, eq_cond: &EqualityCondition) -> Vec<Rc<RefCell<Pet>>>
+    fn filter_matching_pets<T>(
+        &self,
+        all_pets: T,
+        eq_cond: &EqualityCondition,
+    ) -> Vec<Rc<RefCell<Pet>>>
     where
         T: IntoIterator<Item = Rc<RefCell<Pet>>>,
     {
@@ -458,9 +465,9 @@ impl TeamViewer for Team {
                             .cmp(&pet_2.borrow().stats.attack)
                     })
                     .map_or(vec![], |found| vec![found]),
-                ItemCondition::Equal(eq_cond) => self.check_eq_cond(all_pets, eq_cond),
+                ItemCondition::Equal(eq_cond) => self.filter_matching_pets(all_pets, eq_cond),
                 ItemCondition::NotEqual(eq_cond) => {
-                    let eqiv_pets = self.check_eq_cond(all_pets.clone(), eq_cond);
+                    let eqiv_pets = self.filter_matching_pets(all_pets.clone(), eq_cond);
                     all_pets
                         .into_iter()
                         .filter(|pet| !eqiv_pets.contains(pet))

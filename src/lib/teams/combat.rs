@@ -9,7 +9,7 @@ use crate::{
     error::SAPTestError,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
-    teams::{effects::EffectApplyHelpers, history::TeamHistoryHelpers},
+    teams::{effect_helpers::EffectApplyHelpers, history::TeamHistoryHelpers},
     PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
 };
 

@@ -1,8 +1,8 @@
 use saptest::{Food, FoodName, Pet, PetName, Team, TeamCombat, TeamViewer};
 
-
+/// Summon ordering. Pet effects activate first then food item effects.
+/// * https://youtu.be/NSqjuA32AoA?t=458
 pub fn deer_fly_mushroom() -> Team {
-    // https://youtu.be/NSqjuA32AoA?t=458
     let mut deer_w_mush = Pet::try_from(PetName::Deer).unwrap();
     deer_w_mush.item = Some(Food::try_from(FoodName::Mushroom).unwrap());
     let pets = [
@@ -13,7 +13,6 @@ pub fn deer_fly_mushroom() -> Team {
 
     let mut team = Team::new(&pets, 5).unwrap();
     let mut enemy_team = Team::new(&pets, 5).unwrap();
-    // enemy_team.set_name("The Super Auto Pets").unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 

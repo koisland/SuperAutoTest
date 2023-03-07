@@ -163,14 +163,38 @@ impl Effect {
         self.trigger.affected_pet = owner_ref;
         self
     }
+
+    /// Used to check if can be triggered by the provided [`Outcome`].
+    ///
+    /// Must be:
+    /// * Exact match of trigger or a non-specific position and matches exactly on position, affected [`Target`], and [`Status`](crate::effects::state::Status).
+    /// * Not out of uses.
+    /// # Example
+    /// ```
+    /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_START_BATTLE};
+    ///
+    /// let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
+    /// let mosquito_effect = mosquito.effect.first().unwrap();
+    /// assert!(mosquito_effect.check_activates(&TRIGGER_START_BATTLE));
+    /// ```
+    pub fn check_activates(&self, trigger: &Outcome) -> bool {
+        let exact_match = self.trigger == *trigger;
+        // Allows triggers for effects that activate on any position/positions. ex. Horse.
+        let non_specific_match = self.trigger.position.is_non_specific()
+            && self.trigger.position == trigger.position
+            && self.trigger.affected_team == trigger.affected_team
+            && self.trigger.status == trigger.status;
+        // Either match and not out of uses.
+        exact_match || non_specific_match && self.uses != Some(0)
+    }
 }
 
 /// Allow modification of an [`Effect`].
-pub trait Modify {
+pub trait EffectModify {
     /// Add `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::EffectModify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();
@@ -179,12 +203,12 @@ pub trait Modify {
     /// dolphin_effect.add_uses(1);
     /// assert_eq!(dolphin_effect.uses, Some(2));
     /// ```
-    fn add_uses(&mut self, n: usize) -> &Self;
+    fn add_uses(&mut self, n: usize) -> &mut Self;
 
     /// Remove `n` uses to a [`Effect`] if possible.
     /// # Example
     /// ```
-    /// use saptest::{Pet, PetName, Effect, effects::effect::Modify};
+    /// use saptest::{Pet, PetName, Effect, effects::effect::EffectModify};
     ///
     /// let mut dolphin = Pet::try_from(PetName::Dolphin).unwrap();
     /// let dolphin_effect = dolphin.effect.first_mut().unwrap();
@@ -193,18 +217,18 @@ pub trait Modify {
     /// dolphin_effect.remove_uses(1);
     /// assert_eq!(dolphin_effect.uses, Some(0));
     /// ```
-    fn remove_uses(&mut self, n: usize) -> &Self;
+    fn remove_uses(&mut self, n: usize) -> &mut Self;
 }
 
-impl Modify for Effect {
-    fn add_uses(&mut self, n: usize) -> &Self {
+impl EffectModify for Effect {
+    fn add_uses(&mut self, n: usize) -> &mut Self {
         if let Some(uses) = self.uses.as_mut() {
             *uses += n
         };
         self
     }
 
-    fn remove_uses(&mut self, n: usize) -> &Self {
+    fn remove_uses(&mut self, n: usize) -> &mut Self {
         if let Some(uses) = self.uses.as_mut() {
             if *uses >= n {
                 *uses -= n

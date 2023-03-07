@@ -216,10 +216,10 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the friend ahead [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when the friend directly one position ahead [`Pet`](crate::pets::pet::Pet) faints.
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
-    position: Position::Relative(1),
+    position: Position::Nearest(1),
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,

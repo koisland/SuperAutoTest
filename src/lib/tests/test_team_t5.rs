@@ -66,6 +66,44 @@ fn test_battle_rhino_team() {
 }
 
 #[test]
+fn test_battle_chili_rhino() {
+    const RHINO_DMG: Statistics = Statistics {
+        attack: 0,
+        health: -5,
+    };
+    const RHINO_KNOCKOUT_DMG: Statistics = Statistics {
+        attack: 0,
+        health: -4,
+    };
+
+    let mut team = Team::new(&[Some(Pet::new(PetName::Rhino, None, 1).unwrap())], 5).unwrap();
+    team.set_item(
+        &Position::First,
+        Some(Food::try_from(FoodName::Chili).unwrap()),
+    )
+    .unwrap();
+
+    let mut enemy_team = Team::new(
+        &[
+            Pet::new(PetName::Mammoth, None, 1).ok(),
+            Pet::new(PetName::Dog, None, 1).ok(),
+        ],
+        5,
+    )
+    .unwrap();
+    let mammoth = enemy_team.first().unwrap();
+    let mammoth_start_stats = mammoth.borrow().stats;
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Rhino knockout dmg triggers because dog dies behind mammoth.
+    assert_eq!(
+        mammoth_start_stats + RHINO_DMG + RHINO_KNOCKOUT_DMG,
+        mammoth.borrow().stats
+    );
+}
+
+#[test]
 fn test_shop_scorpion_team() {
     let mut team = Team::default();
     team.open_shop().unwrap();

@@ -4,7 +4,7 @@ use rand_chacha::ChaCha12Rng;
 use crate::{
     effects::{
         actions::{Action, StatChangeType},
-        effect::Modify,
+        effect::EffectModify,
         state::{Outcome, Position, Status},
         stats::Statistics,
         trigger::*,

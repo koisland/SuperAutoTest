@@ -1038,14 +1038,15 @@ checksum = "f91339c0467de62360649f8d3e185ca8de4224ff281f66000de5eb2a77a79041"
 name = "sap_examples"
 version = "0.1.0"
 dependencies = [
+ "itertools",
  "saptest",
 ]
 
 [[package]]
 name = "saptest"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5360266789abe8643f0aaac14ed3b9b05d02635fe447991bbd3ca38420b95278"
+checksum = "7ad6aa93348ed830b18001cc2fe70ddecdc0ad127a6af662637c97bcef84b189"
 dependencies = [
  "itertools",
  "lazy-regex",

@@ -1,11 +1,11 @@
 use saptest::{FoodName, Pet, PetName, Statistics, Team, TeamShopping, TeamViewer};
 
 
+/// Demonstrating how to get permanent [`Coconut`](saptest::FoodName::Coconut) using the [`Leech`](saptest::PetName::Leech), [`Gorilla`](saptest::PetName::Gorilla) and [`Parrot`](saptest::PetName::Parrot).
+/// * Shop mechanics and effect order.
+/// * https://superautopets.fandom.com/f/p/4400000000000044254
+/// * The [`Parrot`](saptest::PetName::Parrot) must have higher attack than the [`Leech`](saptest::PetName::Leech) in order for this to work.
 pub fn permanent_coconut() -> Team {
-    // This is an forum post on how to get permanent coconut.
-    // https://superautopets.fandom.com/f/p/4400000000000044254
-    // It relies on the order of pets on ending turn.
-    // The parrot must have higher attack than the leech in order for this to work.
     let pets = [
         Some(Pet::try_from(PetName::Seagull).unwrap()),
         Some(Pet::try_from(PetName::Gorilla).unwrap()),

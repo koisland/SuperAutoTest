@@ -129,6 +129,28 @@ pub enum Position {
     None,
 }
 
+impl Position {
+    /// Check if position is a non-specific to current pet.
+    /// * [`Position::Any`]
+    /// * [`Position::All`]
+    /// * [`Position::Nearest`]
+    /// * [`Position::Relative`]
+    /// * [`Position::Ahead`]
+    /// * [`Position::None`]
+    pub fn is_non_specific(&self) -> bool {
+        matches!(
+            self,
+            Position::Any(_)
+                | Position::All(_)
+                | Position::Relative(_)
+                | Position::N(_, _, _)
+                | Position::Nearest(_)
+                | Position::Ahead
+                | Position::None
+        )
+    }
+}
+
 /// Target for an [`Effect`](crate::Effect).
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default, Hash)]
 pub enum Target {
