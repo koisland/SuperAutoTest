@@ -371,7 +371,9 @@ fn test_battle_toad_team() {
     let mut enemy_team = test_cricket_horse_team();
 
     // Seed ensures that target always cricket at pos 1.
+    team.set_seed(Some(2));
     enemy_team.set_seed(Some(2));
+
     assert_eq!(
         enemy_team.nth(1).unwrap().borrow().stats,
         Statistics::new(1, 2).unwrap()
@@ -382,13 +384,13 @@ fn test_battle_toad_team() {
 
     // Cricket hit by mosquito and takes 1 dmg
     assert_eq!(
-        enemy_team.nth(0).unwrap().borrow().stats,
+        enemy_team.nth(1).unwrap().borrow().stats,
         Statistics::new(1, 1).unwrap()
     );
     // Frog triggers and cricket now has weakness.
     assert_eq!(
         enemy_team
-            .nth(0)
+            .nth(1)
             .unwrap()
             .borrow()
             .item

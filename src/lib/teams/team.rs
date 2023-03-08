@@ -362,12 +362,12 @@ impl Team {
     /// let mut enemy_team = team.clone();
     ///
     /// // Set seed for enemy_team and trigger StartBattle effects.
-    /// enemy_team.set_seed(Some(0));
+    /// team.set_seed(Some(0));
     /// team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team));
     ///
-    /// // Mosquitoes always hit second pet with seed set to 0.
+    /// // Mosquitoes always hit first pet with seed set to 0.
     /// assert!(
-    ///     enemy_team.friends.get(1).map_or(false, |pet| pet.as_ref().unwrap().borrow().stats.health == 0),
+    ///     enemy_team.friends.first().map_or(false, |pet| pet.as_ref().unwrap().borrow().stats.health == 0),
     /// )
     /// ```
     pub fn set_seed(&mut self, seed: Option<u64>) -> &mut Self {

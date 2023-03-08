@@ -223,7 +223,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::Any(ItemCondition::None),
+                position: Position::N(ItemCondition::None, record.lvl, true),
                 action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
                 uses: Some(record.n_triggers),
                 entity: Entity::Pet,

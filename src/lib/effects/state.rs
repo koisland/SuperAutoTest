@@ -91,7 +91,11 @@ pub enum ItemCondition {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Position {
     /// Some number of [`Pet`]s based on a given [`ItemCondition`].
-    /// * 3rd argument will shuffle any found pets.
+    /// 1. [`ItemCondition`]s to select pets by.
+    /// 2. Number of pets to select.
+    /// 3. Shuffle any found pets.
+    ///
+    /// Note: These positions are non-overlapping.
     N(ItemCondition, usize, bool),
     /// Any [`Pet`] that matches a given [`ItemCondition`].
     Any(ItemCondition),

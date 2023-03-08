@@ -181,7 +181,7 @@ pub trait TeamEffects {
     /// // Init teams.
     /// let mut team = Team::new(&vec![Some(mosquito.clone()); 5], 5).unwrap();
     /// let mut enemy_team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
-    /// enemy_team.set_seed(Some(0));
+    /// team.set_seed(Some(0));
     ///
     /// // Without a reference to the pet owning the effect, this will fail.
     /// assert!(team.apply_effect(&TRIGGER_START_BATTLE, &no_ref_mosquito_effect, Some(&mut enemy_team)).is_err());
@@ -193,7 +193,7 @@ pub trait TeamEffects {
     ///
     /// // Last enemy mosquito takes one damage and opponent triggers gets updated.
     /// assert_eq!(
-    ///     enemy_team.nth(4).unwrap().borrow().stats,
+    ///     enemy_team.nth(1).unwrap().borrow().stats,
     ///     Statistics::new(2, 1).unwrap()
     /// );
     /// assert!(
