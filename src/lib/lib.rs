@@ -191,7 +191,7 @@ pub use crate::shop::{
 };
 
 #[doc(inline)]
-pub use crate::visualization::dag::create_battle_dag;
+pub use crate::visualization::{dag::create_battle_dag, tsv::create_battle_df};
 
 mod config;
 mod regex_patterns;

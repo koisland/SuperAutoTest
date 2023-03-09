@@ -522,7 +522,7 @@ impl TeamViewer for Team {
 
         match (target, &pos) {
             (Target::Friend | Target::Enemy, Position::Any(condition)) => {
-                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
+                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
                 if let Some(random_pet) = team
                     .get_pets_by_cond(condition)
                     .into_iter()

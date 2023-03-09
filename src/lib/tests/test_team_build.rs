@@ -69,6 +69,15 @@ fn test_create_team_invalid_size() {
 }
 
 #[test]
+fn test_set_team_name() {
+    let mut team = Team::default();
+    assert!(team.set_name("").is_err());
+    assert!(team.set_name("           ").is_err());
+    assert!(team.set_name("The Super Auto Pets").is_ok());
+    assert!(team.set_name("The Super Auto Pets\n").is_err());
+}
+
+#[test]
 fn test_team_restore() {
     let mut team = test_ant_team();
     let original_team = team.clone();

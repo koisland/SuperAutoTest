@@ -9,11 +9,12 @@ use crate::{
     error::SAPTestError,
     pets::combat::AttackOutcome,
     teams::team::TeamFightOutcome,
-    Pet, Team,
+    Pet, Statistics, Team,
 };
 
 pub type PhaseCycle = (usize, usize);
-pub type PetEffectGraph = Graph<PetNode, (Status, Action, PhaseCycle), Directed>;
+pub type PetEffectGraph =
+    Graph<PetNode, (Status, Action, PhaseCycle, Statistics, Statistics), Directed>;
 
 /// Track history of a `Team`'s effects.
 #[derive(Debug, Clone)]
@@ -176,6 +177,8 @@ impl TeamHistoryHelpers for Team {
                                 status.clone(),
                                 action.clone(),
                                 (self.history.curr_phase, self.history.curr_cycle),
+                                affected.borrow().stats,
+                                afflicting.borrow().stats,
                             ),
                         );
                     }

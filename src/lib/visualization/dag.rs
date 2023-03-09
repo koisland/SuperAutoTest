@@ -14,6 +14,7 @@ const DOT_PARAMS: &str = r#"
 ///     * Pets and teams are nodes
 ///     * Triggers, battle phases + triggers consumed, and the action performed are edges.
 /// * Use the `verbose` argument to print out the entire unformatted [`Action`](crate::effects::actions::Action) enum.
+///
 /// # Example
 /// ```
 /// use saptest::{
@@ -23,7 +24,6 @@ const DOT_PARAMS: &str = r#"
 ///     &vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5
 /// ).unwrap();
 /// team.set_name("Ants").unwrap();
-///
 /// let mut enemy_team = team.clone();
 ///
 /// team.set_seed(Some(25));
@@ -114,7 +114,7 @@ fn simple_dag(team: &Team) -> String {
                         new_string_nodes.get(&node_1_str),
                         new_string_nodes.get(&node_2_str),
                     ) {
-                        let (status, action, phase_cycle) = edge_weight;
+                        let (status, action, phase_cycle, _, _) = edge_weight;
                         new_graph.add_edge(
                             *idx_1,
                             *idx_2,
@@ -138,7 +138,7 @@ mod tests {
     use crate::{tests::common::test_mammoth_team, TeamCombat};
 
     #[test]
-    fn test_multi_phase_dag() {
+    fn test_simple_dag() {
         let mut team = test_mammoth_team();
         team.set_name("The Super Auto Pets").unwrap();
         let mut enemy_team = team.clone();
@@ -186,7 +186,7 @@ mod tests {
 }
 
 #[test]
-fn test() {
+fn test_verbose_dag() {
     use crate::{create_battle_dag, Pet, PetName, Team, TeamCombat};
     let mut team = Team::new(&vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5).unwrap();
     team.set_name("Ants").unwrap();
@@ -197,19 +197,25 @@ fn test() {
     enemy_team.set_seed(Some(25));
 
     team.fight(&mut enemy_team).unwrap();
-    let dag = create_battle_dag(&team, false);
+    let dag = create_battle_dag(&team, true);
     let exp_dag = r#"digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
     edge [fontname="Arial"]
-    0 [ label = "Ant_0 - Ants_copy" ]
-    1 [ label = "Ant_0 - Ants", fillcolor = "yellow" ]
-    2 [ label = "Ant_3 - Ants", fillcolor = "yellow" ]
-    3 [ label = "Ant_3 - Ants_copy" ]
-    0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-    0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+    0 [ label = "PetNode { id: Ant_0, team: Ants }", fillcolor = "yellow" ]
+    1 [ label = "PetNode { id: Ant_1, team: Ants }", fillcolor = "yellow" ]
+    2 [ label = "PetNode { id: Ant_2, team: Ants }", fillcolor = "yellow" ]
+    3 [ label = "PetNode { id: Ant_3, team: Ants }", fillcolor = "yellow" ]
+    4 [ label = "PetNode { id: Ant_4, team: Ants }", fillcolor = "yellow" ]
+    5 [ label = "PetNode { id: Ant_0, team: Ants_copy }" ]
+    6 [ label = "PetNode { id: Ant_1, team: Ants_copy }" ]
+    7 [ label = "PetNode { id: Ant_2, team: Ants_copy }" ]
+    8 [ label = "PetNode { id: Ant_3, team: Ants_copy }" ]
+    9 [ label = "PetNode { id: Ant_4, team: Ants_copy }" ]
+    5 -> 0 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 5 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 3 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 8 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
 }
 "#;
     assert_eq!(dag, exp_dag)

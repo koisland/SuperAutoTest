@@ -297,10 +297,6 @@ impl TeamEffects for Team {
                     break;
                 };
             }
-
-            // Reset cycles.
-            self.history.curr_cycle = 1;
-            opponent.history.curr_cycle = 1;
         } else {
             loop {
                 self.history.curr_cycle += 1;
@@ -355,11 +351,6 @@ impl TeamEffects for Team {
             })
             .rev()
         {
-            let effect_pet_idx = pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
-                subject: "No Pet Position Index.".to_string(),
-                reason: format!("Pet {} must have an index set at this point.", pet.borrow()),
-            })?;
-
             // Do not need to mutate to reduce uses as start of battle should only occur once.
             let start_of_battle_effects = pet
                 .borrow()
@@ -376,20 +367,12 @@ impl TeamEffects for Team {
 
             // Check for tiger effects.
             let tiger_effects = match team {
-                Target::Friend => self.repeat_effects_if_tiger(
-                    effect_pet_idx,
-                    pet,
-                    &TRIGGER_START_BATTLE,
-                    None,
-                    false,
-                )?,
-                Target::Enemy => opponent.repeat_effects_if_tiger(
-                    effect_pet_idx,
-                    pet,
-                    &TRIGGER_START_BATTLE,
-                    None,
-                    false,
-                )?,
+                Target::Friend => {
+                    self.repeat_effects_if_tiger(pet, &TRIGGER_START_BATTLE, None, false)?
+                }
+                Target::Enemy => {
+                    opponent.repeat_effects_if_tiger(pet, &TRIGGER_START_BATTLE, None, false)?
+                }
                 _ => unreachable!("Not possible to get other targets."),
             };
 
@@ -471,10 +454,6 @@ impl TeamEffects for Team {
 
         // Iterate through pets in descending order by attack strength to collect valid effects.
         for pet in ordered_pets.iter() {
-            let effect_pet_idx = pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
-                subject: "No Pet Position Index.".to_string(),
-                reason: format!("Pet {} must have an index set at this point.", pet.borrow()),
-            })?;
             let same_pet_as_trigger = trigger
                 .clone()
                 .affected_pet
@@ -505,7 +484,6 @@ impl TeamEffects for Team {
             // Check if tiger should activate.
             // Also checks if effects are valid.
             let tiger_effects = self.repeat_effects_if_tiger(
-                effect_pet_idx,
                 pet,
                 trigger,
                 trigger_pet_name.as_ref(),

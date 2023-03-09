@@ -1,8 +1,8 @@
 .vscode
-
 /target
 /log
 *.db
 *.profraw
 *.html
 *.csv
+*.tsv

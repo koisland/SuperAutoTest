@@ -234,7 +234,7 @@ fn test_battle_bat_team() {
 fn test_battle_atlantic_puffin_team() {
     let mut team = test_atlantic_puffin_team();
     let mut enemy_team = test_mammoth_team();
-    enemy_team.set_seed(Some(0));
+    team.set_seed(Some(0));
 
     // Dog at 4th position is 4.
     assert_eq!(enemy_team.nth(4).unwrap().borrow().stats.health, 4);

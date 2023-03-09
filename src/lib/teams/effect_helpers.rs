@@ -156,7 +156,6 @@ pub(crate) trait EffectApplyHelpers {
     /// * Creates effects of `pet` at given tiger level.
     fn repeat_effects_if_tiger(
         &self,
-        pet_idx: usize,
         pet: &Rc<RefCell<Pet>>,
         trigger: &Outcome,
         trigger_petname: Option<&PetName>,
@@ -333,15 +332,19 @@ impl EffectApplyHelpers for Team {
 
     fn repeat_effects_if_tiger(
         &self,
-        pet_idx: usize,
         pet: &Rc<RefCell<Pet>>,
         trigger: &Outcome,
         trigger_petname: Option<&PetName>,
         same_pet_as_trigger: bool,
     ) -> Result<Vec<Effect>, SAPTestError> {
+        let effect_pet_idx = pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
+            subject: "No Pet Position Index.".to_string(),
+            reason: format!("Pet {} must have an index set at this point.", pet.borrow()),
+        })?;
+
         let mut tiger_doubled_effects = vec![];
         // For Tiger. Check if behind.
-        if let Some(Some(pet_behind)) = self.friends.get(pet_idx + 1) {
+        if let Some(Some(pet_behind)) = self.friends.get(effect_pet_idx + 1) {
             if pet_behind.borrow().name == PetName::Tiger && self.shop.state == ShopState::Closed {
                 // Get effect at level of tiger and repeat it.
                 let pet_effect_at_tiger_lvl = pet.borrow().get_effect(pet_behind.borrow().lvl)?;

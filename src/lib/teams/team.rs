@@ -422,28 +422,46 @@ impl Team {
         }
     }
 
-    /// Assign a name for the team.
+    /// Assign a name for the team and all of its pets.
+    /// * By default, team names are constructed randomly.
+    /// * Names must not be empty and cannot contain non-alphanumeric characters.
+    /// # Example
+    /// ```
+    /// use saptest::Team;
+    /// // This constructs a random team name.
+    /// let mut team = Team::default();
+    /// let new_name = "The Super Auto Pets";
+    /// // New name is set for the team and its contained pets.
+    /// assert!(team.set_name(new_name).is_ok());
+    /// assert_eq!(
+    ///     team.get_name(),
+    ///     new_name
+    /// );
+    /// ```
     pub fn set_name(&mut self, name: &str) -> Result<&mut Self, SAPTestError> {
-        if name.is_empty() {
+        if name.trim().is_empty()
+            || !name
+                .chars()
+                .all(|char| char.is_alphanumeric() || char == ' ')
+        {
             return Err(SAPTestError::InvalidTeamAction {
-                subject: "Invalid Name".to_string(),
-                reason: "Team must have a non-empty name. Use get_random_name() otherwise."
-                    .to_string(),
+                subject: format!("Invalid Name ({name})"),
+                reason: "Team must have a non-empty, alphanumeric name.".to_string(),
             });
-        } else {
-            for friend in self.stored_friends.iter_mut().flatten() {
-                friend.team = Some(name.to_owned())
-            }
-            for friend in self
-                .friends
-                .iter()
-                .chain(self.fainted.iter().chain(self.sold.iter()))
-                .flatten()
-            {
-                friend.borrow_mut().team = Some(name.to_owned())
-            }
-            self.name = name.to_owned();
+        };
+
+        for friend in self.stored_friends.iter_mut().flatten() {
+            friend.team = Some(name.to_owned())
         }
+        for friend in self
+            .friends
+            .iter()
+            .chain(self.fainted.iter().chain(self.sold.iter()))
+            .flatten()
+        {
+            friend.borrow_mut().team = Some(name.to_owned())
+        }
+        self.name = name.to_owned();
 
         Ok(self)
     }

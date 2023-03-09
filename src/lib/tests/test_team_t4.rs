@@ -543,6 +543,7 @@ fn test_battle_donkey_team() {
     let mut team = test_donkey_team();
     let mut enemy_team = test_snake_team();
     team.set_seed(Some(2));
+    enemy_team.set_seed(Some(2));
 
     assert_eq!(enemy_team.nth(1).unwrap().borrow().name, PetName::Snake);
 

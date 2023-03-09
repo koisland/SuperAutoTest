@@ -10,7 +10,7 @@ use saptest::{
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, SAPDB,
 };
-use std::{str::FromStr, thread};
+use std::{io::Write, str::FromStr, thread};
 
 #[test]
 fn test_query_db() {
@@ -310,4 +310,27 @@ fn test_serialize_team() {
 
     // Note this creates a clone of the pets in a new rc ptr. They aren't equivalent.
     assert_ne!(new_team, team)
+}
+
+#[test]
+fn test_battle_to_tsv() {
+    let mosquito = Pet::try_from(PetName::Mosquito).unwrap();
+
+    // Init teams.
+    let mut team = Team::new(&vec![Some(mosquito.clone()); 5], 5).unwrap();
+    let mut enemy_team = Team::new(&vec![Some(mosquito); 5], 5).unwrap();
+    team.set_seed(Some(99));
+    enemy_team.set_seed(Some(100));
+
+    team.fight(&mut enemy_team).unwrap();
+
+    let tsv = saptest::create_battle_df(&team);
+
+    let out = std::path::Path::new("test_battle_mosq.tsv");
+    std::fs::write(out, tsv).unwrap();
+
+    // File created.
+    assert!(out.try_exists().unwrap());
+    // Cleanup.
+    std::fs::remove_file(out).unwrap();
 }
