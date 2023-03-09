@@ -1032,7 +1032,7 @@ impl EffectApplyHelpers for Team {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
                         let mult_stats = afflicting_pet.borrow().stats.mult_perc(stats);
-                        // Update action for dag with static value.
+                        // Update action for digraph with static value.
                         modified_effect.action =
                             Action::Add(StatChangeType::StaticValue(mult_stats));
                         mult_stats
@@ -1083,7 +1083,7 @@ impl EffectApplyHelpers for Team {
                 let mut atk_outcome = affected_pet.borrow_mut().indirect_attack(&remove_stats);
                 info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, affected_pet.borrow());
 
-                // Update for DAG to show health loss.
+                // Update for digraph to show health loss.
                 modified_effect.action =
                     Action::Remove(StatChangeType::StaticValue(atk_outcome.friend_stat_change));
 

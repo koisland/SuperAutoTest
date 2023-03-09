@@ -9,7 +9,7 @@
 //!  ```
 //! use saptest::{
 //!     Pet, PetName, Food, FoodName,
-//!     Team, TeamCombat, Position, create_battle_dag
+//!     Team, TeamCombat, Position, create_battle_digraph
 //! };
 //!
 //! // Create a team.
@@ -30,7 +30,7 @@
 //! team.fight(&mut enemy_team).unwrap();
 //!
 //! // Create a graph of the fight.
-//! println!("{}", create_battle_dag(&team, false));
+//! println!("{}", create_battle_digraph(&team, false));
 //! ```
 //!
 //! ```bash
@@ -191,7 +191,7 @@ pub use crate::shop::{
 };
 
 #[doc(inline)]
-pub use crate::visualization::{dag::create_battle_dag, tsv::create_battle_df};
+pub use crate::visualization::{digraph::create_battle_digraph, tsv::create_battle_df};
 
 mod config;
 mod regex_patterns;

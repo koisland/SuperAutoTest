@@ -8,8 +8,8 @@
 //! build_graph = false
 //! ```
 
-/// Build and format directed acrylic graphs of a [`Team`](crate::Team)'s battle phases.
-pub mod dag;
+/// Build and format directed graphs of a [`Team`](crate::Team)'s battle phases.
+pub mod digraph;
 
 /// Convert a [`Team`](crate::Team)'s battle phases into a TSV string.
 pub mod tsv;

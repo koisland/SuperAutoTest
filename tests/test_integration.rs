@@ -1,5 +1,4 @@
 use saptest::{
-    create_battle_dag,
     effects::{
         actions::{Action, GainType, StatChangeType},
         effect::Entity,
@@ -10,7 +9,7 @@ use saptest::{
     Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, SAPDB,
 };
-use std::{io::Write, str::FromStr, thread};
+use std::{str::FromStr, thread};
 
 #[test]
 fn test_query_db() {

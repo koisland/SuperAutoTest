@@ -21,7 +21,7 @@ Then visualize the results in `.dot` format!
 ```rust
 use saptest::{
     Pet, PetName, Food, FoodName,
-    Team, TeamCombat, Position, create_battle_dag
+    Team, TeamCombat, Position, create_battle_digraph
 };
 // Create a team.
 let mut team = Team::new(
@@ -41,7 +41,7 @@ enemy_team.set_item(&Position::First, Food::try_from(FoodName::Garlic).ok()).unw
 team.fight(&mut enemy_team).unwrap();
 
 // Create a graph of the fight.
-println!("{}", create_battle_dag(&team, false));
+println!("{}", create_battle_digraph(&team, false));
 ```
 
 ```

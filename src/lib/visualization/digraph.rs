@@ -9,7 +9,7 @@ const DOT_PARAMS: &str = r#"
     node [shape=box, style="rounded, filled", fontname="Arial"]
     edge [fontname="Arial"]"#;
 
-/// Generate [`Team`]'s battle history as a [directed acrylic graph](https://en.wikipedia.org/wiki/Directed_acyclic_graph).
+/// Generate [`Team`]'s battle history as a [directed graph](https://en.wikipedia.org/wiki/Directed_graph).
 /// * Structure:
 ///     * Pets and teams are nodes
 ///     * Triggers, battle phases + triggers consumed, and the action performed are edges.
@@ -18,7 +18,7 @@ const DOT_PARAMS: &str = r#"
 /// # Example
 /// ```
 /// use saptest::{
-///     Pet, PetName, Team, TeamCombat, create_battle_dag
+///     Pet, PetName, Team, TeamCombat, create_battle_digraph
 /// };
 /// let mut team = Team::new(
 ///     &vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5
@@ -30,8 +30,8 @@ const DOT_PARAMS: &str = r#"
 /// enemy_team.set_seed(Some(25));
 ///
 /// team.fight(&mut enemy_team).unwrap();
-/// let dag = create_battle_dag(&team, false);
-/// let exp_dag = r#"digraph {
+/// let digraph = create_battle_digraph(&team, false);
+/// let exp_digraph = r#"digraph {
 ///     rankdir=LR
 ///     node [shape=box, style="rounded, filled", fontname="Arial"]
 ///     edge [fontname="Arial"]
@@ -45,18 +45,18 @@ const DOT_PARAMS: &str = r#"
 ///     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
 ///}
 /// "#;
-/// assert_eq!(dag, exp_dag);
+/// assert_eq!(digraph, exp_digraph);
 /// ```
-pub fn create_battle_dag(team: &Team, verbose: bool) -> String {
-    let mut raw_dag = if verbose {
+pub fn create_battle_digraph(team: &Team, verbose: bool) -> String {
+    let mut raw_digraph = if verbose {
         format!("{:?}", Dot::new(&team.history.graph.phase_graph))
     } else {
-        simple_dag(team)
+        simple_digraph(team)
     };
 
     // Find start of graph and insert dot params.
-    if let Some(digraph_start_idx) = raw_dag.find(|chr| chr == '{') {
-        raw_dag.insert_str(digraph_start_idx + 1, DOT_PARAMS);
+    if let Some(digraph_start_idx) = raw_digraph.find(|chr| chr == '{') {
+        raw_digraph.insert_str(digraph_start_idx + 1, DOT_PARAMS);
     };
 
     // Add fillcolor to distinguish teams.
@@ -75,15 +75,15 @@ pub fn create_battle_dag(team: &Team, verbose: bool) -> String {
     };
 
     // Remove \\\ from debug printing.
-    raw_dag = raw_dag.replace("\\\"", "").replace(&from, &to);
-    raw_dag
+    raw_digraph = raw_digraph.replace("\\\"", "").replace(&from, &to);
+    raw_digraph
 }
 
-/// Create a simplified DAG diagram from a PetGraph DiGraph data structure.
+/// Create a simplified digraph diagram from a PetGraph DiGraph data structure.
 /// * Normal conversion to string uses the Debug representation of the PetNode and Action structs.
 /// * This makes the graph difficult to read and cluttered.
 /// * Here, we reconstruct the graph where these structs are replaced by formatted strings.
-fn simple_dag(team: &Team) -> String {
+fn simple_digraph(team: &Team) -> String {
     let graph = &team.history.graph.phase_graph;
     let mut new_graph = SimpleBattleGraph::new();
     let mut new_string_nodes = HashMap::new();
@@ -134,11 +134,11 @@ fn simple_dag(team: &Team) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::create_battle_dag;
+    use super::create_battle_digraph;
     use crate::{tests::common::test_mammoth_team, TeamCombat};
 
     #[test]
-    fn test_simple_dag() {
+    fn test_simple_digraph() {
         let mut team = test_mammoth_team();
         team.set_name("The Super Auto Pets").unwrap();
         let mut enemy_team = team.clone();
@@ -148,8 +148,8 @@ mod tests {
         team.fight(&mut enemy_team).unwrap();
         team.fight(&mut enemy_team).unwrap();
 
-        let simple_dag = create_battle_dag(&team, false);
-        let exp_dag = r#"digraph {
+        let simple_digraph = create_battle_digraph(&team, false);
+        let exp_digraph = r#"digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
     edge [fontname="Arial"]
@@ -181,13 +181,13 @@ mod tests {
     0 -> 9 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
 }
 "#;
-        assert_eq!(exp_dag, format!("{simple_dag}"))
+        assert_eq!(exp_digraph, format!("{simple_digraph}"))
     }
 }
 
 #[test]
-fn test_verbose_dag() {
-    use crate::{create_battle_dag, Pet, PetName, Team, TeamCombat};
+fn test_verbose_digraph() {
+    use crate::{create_battle_digraph, Pet, PetName, Team, TeamCombat};
     let mut team = Team::new(&vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5).unwrap();
     team.set_name("Ants").unwrap();
 
@@ -197,8 +197,8 @@ fn test_verbose_dag() {
     enemy_team.set_seed(Some(25));
 
     team.fight(&mut enemy_team).unwrap();
-    let dag = create_battle_dag(&team, true);
-    let exp_dag = r#"digraph {
+    let digraph = create_battle_digraph(&team, true);
+    let exp_digraph = r#"digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
     edge [fontname="Arial"]
@@ -218,5 +218,5 @@ fn test_verbose_dag() {
     5 -> 8 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
 }
 "#;
-    assert_eq!(dag, exp_dag)
+    assert_eq!(digraph, exp_digraph)
 }
