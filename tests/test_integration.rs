@@ -13,11 +13,10 @@ use std::{str::FromStr, thread};
 
 #[test]
 fn test_query_db() {
-    let food_stmt = "SELECT * FROM foods";
-    let pet_stmt = "SELECT * FROM pets";
-
-    let food_query = SAPDB.execute_food_query(food_stmt, &[]);
-    let pet_query = SAPDB.execute_pet_query(pet_stmt, &[]);
+    // Essentially "SELECT * FROM foods"
+    let food_query = SAPDB.execute_query(Entity::Food, &[]);
+    // Essentially "SELECT * FROM pets"
+    let pet_query = SAPDB.execute_query(Entity::Pet, &[]);
 
     assert!(food_query.is_ok());
     assert!(pet_query.is_ok());

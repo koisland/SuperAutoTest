@@ -1,10 +1,60 @@
-use crate::{db::pack::Pack, FoodName, PetName};
+use crate::{db::pack::Pack, error::SAPTestError, Effect, FoodName, PetName};
 use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone)]
+/// Possible record types.
+pub enum SAPRecord {
+    /// A [`FoodRecord`].
+    Food(FoodRecord),
+    /// A [`PetRecord`].
+    Pet(PetRecord),
+}
+
+impl TryFrom<SAPRecord> for Vec<Effect> {
+    type Error = SAPTestError;
+
+    fn try_from(value: SAPRecord) -> Result<Self, Self::Error> {
+        match value {
+            SAPRecord::Food(food_record) => Ok(vec![Effect::try_from(&food_record)?]),
+            SAPRecord::Pet(pet_record) => pet_record.try_into(),
+        }
+    }
+}
+
+impl TryFrom<SAPRecord> for FoodRecord {
+    type Error = SAPTestError;
+
+    fn try_from(value: SAPRecord) -> Result<Self, Self::Error> {
+        if let SAPRecord::Food(record) = value {
+            Ok(record)
+        } else {
+            Err(SAPTestError::QueryFailure {
+                subject: "Invalid Record Type".to_string(),
+                reason: format!("Record {value:?} doesn't contain FoodRecord"),
+            })
+        }
+    }
+}
+
+impl TryFrom<SAPRecord> for PetRecord {
+    type Error = SAPTestError;
+
+    fn try_from(value: SAPRecord) -> Result<Self, Self::Error> {
+        if let SAPRecord::Pet(record) = value {
+            Ok(record)
+        } else {
+            Err(SAPTestError::QueryFailure {
+                subject: "Invalid Record Type".to_string(),
+                reason: format!("Record {value:?} doesn't contain PetRecord"),
+            })
+        }
+    }
+}
 
 /// A record with information about a food from Super Auto Pets.
 ///
 /// This information is queried and parsed from the Super Auto Pets Fandom wiki.
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct FoodRecord {
     /// Name of food.
     pub name: FoodName,
@@ -44,7 +94,7 @@ pub struct FoodRecord {
 /// A record with information about a pet from Super Auto Pets.
 ///
 /// This information is queried and parsed from the Super Auto Pets Fandom wiki.
-#[derive(Debug, Serialize, Clone, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct PetRecord {
     /// Name of pet.
     pub name: PetName,

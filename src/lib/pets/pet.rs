@@ -3,12 +3,12 @@ use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, fmt::Display, rc::Rc};
 
 use crate::{
-    db::record::PetRecord,
+    db::record::{PetRecord, SAPRecord},
     effects::{effect::Effect, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
     pets::names::PetName,
-    SAPDB,
+    Entity, SAPDB,
 };
 
 /// Minimum pet level.
@@ -237,12 +237,22 @@ impl Pet {
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
         SAPDB
-            .execute_pet_query(
-                "SELECT * FROM pets WHERE name = ? AND lvl = ?",
-                &[self.name.to_string(), lvl.to_string()],
+            .execute_query(
+                Entity::Pet,
+                &[
+                    ("name", &vec![self.name.to_string()]),
+                    ("lvl", &vec![lvl.to_string()]),
+                ],
             )?
             .into_iter()
             .next()
+            .and_then(|record| {
+                if let SAPRecord::Pet(record) = record {
+                    Some(record)
+                } else {
+                    None
+                }
+            })
             .ok_or(SAPTestError::QueryFailure {
                 subject: "No Pet Effect".to_string(),
                 reason: format!("No effect for {} at level {lvl}.", self.name),

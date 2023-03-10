@@ -6,7 +6,11 @@ use rand_chacha::ChaCha12Rng;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    db::{pack::Pack, utils::setup_param_query},
+    db::{
+        pack::Pack,
+        record::{FoodRecord, PetRecord, SAPRecord},
+        utils::setup_param_query,
+    },
     effects::{effect::Entity, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
@@ -436,12 +440,12 @@ impl Shop {
         if self.pets.len() == MAX_SHOP_PETS {
             return Ok(self);
         }
-        let records = SAPDB.execute_pet_query(
+        let records = SAPDB.execute_sql_query(
             "SELECT * FROM pets where tier = ? and lvl = ?",
             &[(self.tier + 1).clamp(1, 6).to_string(), 1.to_string()],
         )?;
 
-        if let Some(added_pet) = records.first().cloned() {
+        if let Some(SAPRecord::Pet(added_pet)) = records.first().cloned() {
             let pet: Pet = added_pet.try_into()?;
             self.add_item(pet.into())?;
         }
@@ -539,7 +543,11 @@ impl Shop {
     /// Fill pets based on current tier of shop.
     pub(crate) fn fill_pets(&mut self) -> Result<&mut Self, SAPTestError> {
         let (sql, params) = self.shop_query(Entity::Pet, 1..self.tier + 1);
-        let possible_pets = SAPDB.execute_pet_query(&sql, &params)?;
+        let possible_pets: Vec<PetRecord> = SAPDB
+            .execute_sql_query(&sql, &params)?
+            .into_iter()
+            .filter_map(|record| record.try_into().ok())
+            .collect_vec();
         let mut rng = self.get_rng();
 
         // Iterate through slots choose a random pet or sloth.
@@ -580,7 +588,11 @@ impl Shop {
     /// Fill the shop with foods based on current tier of shop.
     pub(crate) fn fill_foods(&mut self) -> Result<&mut Self, SAPTestError> {
         let (sql, params) = self.shop_query(Entity::Food, 1..self.tier + 1);
-        let possible_foods = SAPDB.execute_food_query(&sql, &params)?;
+        let possible_foods: Vec<FoodRecord> = SAPDB
+            .execute_sql_query(&sql, &params)?
+            .into_iter()
+            .filter_map(|record| record.try_into().ok())
+            .collect_vec();
         let mut rng = self.get_rng();
 
         // Iterate through slots choose a random food.

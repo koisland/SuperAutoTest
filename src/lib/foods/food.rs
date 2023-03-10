@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     db::record::FoodRecord, effects::effect::Effect, error::SAPTestError, foods::names::FoodName,
-    SAPDB,
+    Entity, SAPDB,
 };
 
 /// A Super Auto Pets food.
@@ -71,13 +71,15 @@ impl Food {
                 )
             } else {
                 let food_record: FoodRecord = SAPDB
-                    .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
+                    .execute_query(Entity::Food, &[("name", &vec![name.to_string()])])?
+                    // .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
                     .into_iter()
                     .next()
                     .ok_or(SAPTestError::QueryFailure {
                         subject: "No Food Effect".to_string(),
                         reason: format!("No food record for {name}"),
-                    })?;
+                    })?
+                    .try_into()?;
 
                 // Allow custom effect for food if provided.
                 let effect = if let Some(custom_effect) = effect {

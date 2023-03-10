@@ -22,6 +22,12 @@ pub enum Entity {
     Food,
 }
 
+impl std::fmt::Display for Entity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
 /// [`Entity`] names.
 pub enum EntityName {

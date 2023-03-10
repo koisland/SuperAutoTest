@@ -381,7 +381,11 @@ impl EffectApplyHelpers for Team {
                 self.convert_gain_type_to_food(&GainType::QueryItem(sql, params), target_pet)?
             }
             GainType::QueryItem(query, params) => {
-                let food_records: Vec<FoodRecord> = SAPDB.execute_food_query(query, params)?;
+                let food_records: Vec<FoodRecord> = SAPDB
+                    .execute_sql_query(query, params)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .collect_vec();
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
                 // Only select one pet.
                 let food_record =
@@ -403,7 +407,11 @@ impl EffectApplyHelpers for Team {
     ) -> Result<Pet, SAPTestError> {
         let mut new_pet = match summon_type {
             SummonType::QueryPet(sql, params, stats) => {
-                let pet_records: Vec<PetRecord> = SAPDB.execute_pet_query(sql, params)?;
+                let pet_records: Vec<PetRecord> = SAPDB
+                    .execute_sql_query(sql, params)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .collect_vec();
                 let mut rng =
                     ChaCha12Rng::seed_from_u64(target_pet.borrow().seed.unwrap_or_else(random));
                 // Only select one pet.

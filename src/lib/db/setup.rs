@@ -1,12 +1,16 @@
 use crate::{
-    db::record::{FoodRecord, PetRecord},
+    db::{
+        record::{FoodRecord, PetRecord, SAPRecord},
+        utils::setup_param_query,
+    },
     error::SAPTestError,
     wiki_scraper::{
         parse_food::parse_food_info, parse_names::parse_names_info, parse_pet::parse_pet_info,
         parse_tokens::parse_token_info,
     },
-    CONFIG,
+    Entity, CONFIG,
 };
+use itertools::Itertools;
 use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
@@ -282,72 +286,161 @@ impl SapDB {
         Ok(self)
     }
 
-    /// Query database for [`PetRecord`](crate::db::record::PetRecord)s.
-    /// # Example
-    /// ```
-    /// use saptest::SAPDB;
+    /// Execute `SELECT` query in the Super Auto Pets database.
+    /// 1. A Super Auto Pets [`Entity`]
+    /// 2. Parameters
+    ///     * Format: `[(field, [param, param]), ... ]`
+    ///     * Example: `[("name", ["Cat", "Dog"]), ("lvl", ["1", "2"])]`
     ///
-    /// let stmt = "SELECT * FROM pets";
-    /// let query = SAPDB.execute_pet_query(stmt, &[]);
-    /// assert!(query.is_ok())
+    /// # Examples
+    /// ---
+    /// Pet Query
     /// ```
-    pub fn execute_pet_query(
+    /// use saptest::{SAPDB, Entity, PetName, db::{pack::Pack, record::SAPRecord}};
+    ///
+    /// let pets = vec![PetName::Tiger.to_string()];
+    /// let levels = vec![2.to_string()];
+    /// let packs = vec![Pack::Turtle.to_string()];
+    /// let params = vec![("name", &pets), ("lvl", &levels), ("pack", &packs)];
+    ///
+    /// let pets = SAPDB.execute_query(Entity::Pet, &params).unwrap();
+    /// let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
+    /// assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
+    /// ```
+    /// ---
+    /// Food Query
+    /// ```
+    /// use saptest::{SAPDB, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
+    ///
+    /// let foods = vec!["Apple".to_string()];
+    /// let packs = vec![Pack::Turtle.to_string()];
+    /// let params = vec![("name", &foods), ("pack", &packs)];
+    /// let foods = SAPDB.execute_query(Entity::Food, &params).unwrap();
+    ///
+    /// let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
+    /// assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
+    /// ```
+    pub fn execute_query(
         &self,
-        sql: &str,
-        params: &[String],
-    ) -> Result<Vec<PetRecord>, SAPTestError> {
+        entity: Entity,
+        params: &[(&str, &Vec<String>)],
+    ) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;
-        let mut stmt = conn.prepare(sql)?;
-        let mut pets_found: Vec<PetRecord> = vec![];
+        let mut records: Vec<SAPRecord> = vec![];
 
-        let mut query = stmt.query(rusqlite::params_from_iter(params))?;
-        while let Some(pet_row) = query.next()? {
-            pets_found.push(pet_row.try_into()?);
+        let mut tbl = entity.to_string().to_lowercase();
+        // Table names suffixed with 's'.
+        tbl.push('s');
+        // If no params, select all items.
+        let sql = if params.is_empty() {
+            format!("SELECT * FROM {tbl}")
+        } else {
+            setup_param_query(&tbl, params)
+        };
+        let flat_params = params
+            .iter()
+            .flat_map(|(_, params)| params.to_owned())
+            .collect_vec();
+        let mut stmt = conn.prepare(&sql)?;
+        let mut query = stmt.query(rusqlite::params_from_iter(flat_params))?;
+        while let Some(row) = query.next()? {
+            let record = match entity {
+                Entity::Pet => SAPRecord::Pet(row.try_into()?),
+                Entity::Food => SAPRecord::Food(row.try_into()?),
+            };
+            records.push(record);
         }
-        Ok(pets_found)
+        Ok(records)
     }
 
-    /// Query database for [`FoodRecord`](crate::db::record::FoodRecord)s.
-    /// # Example
-    /// ```
-    /// use saptest::SAPDB;
-    /// let stmt = "SELECT * FROM foods";
-    /// let query = SAPDB.execute_food_query(stmt, &[]);
-    /// assert!(query.is_ok())
-    /// ```
-    pub fn execute_food_query(
+    pub(crate) fn execute_sql_query(
         &self,
         sql: &str,
         params: &[String],
-    ) -> Result<Vec<FoodRecord>, SAPTestError> {
+    ) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;
         let mut stmt = conn.prepare(sql)?;
-        let mut foods_found: Vec<FoodRecord> = vec![];
+        let mut records: Vec<SAPRecord> = vec![];
 
         let mut query = stmt.query(rusqlite::params_from_iter(params))?;
-        while let Some(food_row) = query.next()? {
-            foods_found.push(food_row.try_into()?);
+        while let Some(row) = query.next()? {
+            // Try converting records to valid types.
+            let record = if let Ok(record) = TryInto::<PetRecord>::try_into(row) {
+                SAPRecord::Pet(record)
+            } else if let Ok(record) = TryInto::<FoodRecord>::try_into(row) {
+                SAPRecord::Food(record)
+            } else {
+                return Err(SAPTestError::QueryFailure {
+                    subject: "Invalid Record Conversion".to_string(),
+                    reason: format!("Cannot form query ({sql}) with params {params:?} results into a valid record type.")
+                })?;
+            };
+            records.push(record);
         }
-        Ok(foods_found)
+        Ok(records)
     }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::SAPDB;
+    use crate::{
+        db::{
+            pack::Pack,
+            record::{FoodRecord, PetRecord, SAPRecord},
+        },
+        Entity, FoodName, PetName, SAPDB,
+    };
 
     #[test]
-    fn test_query_foods() {
-        let sql = "SELECT * FROM foods";
-        let params: Vec<String> = vec![];
-        assert!(SAPDB.execute_food_query(sql, &params).is_ok())
+    fn test_query_no_params() {
+        let params = vec![];
+        let foods = SAPDB.execute_query(Entity::Food, &params);
+        let pets = SAPDB.execute_query(Entity::Pet, &params);
+        assert!(foods.is_ok());
+        assert!(pets.is_ok());
     }
 
     #[test]
-    fn test_query_pets() {
+    fn test_query_params_food() {
+        let foods = vec!["Apple".to_string()];
+        let packs = vec![Pack::Turtle.to_string()];
+        let params = vec![("name", &foods), ("pack", &packs)];
+        let foods = SAPDB.execute_query(Entity::Food, &params).unwrap();
+
+        let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
+        assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
+    }
+
+    #[test]
+    fn test_query_params_pets() {
+        let pets = vec![PetName::Tiger.to_string()];
+        let levels = vec![2.to_string()];
+        let packs = vec![Pack::Turtle.to_string()];
+        let params = vec![("name", &pets), ("lvl", &levels), ("pack", &packs)];
+
+        let pets = SAPDB.execute_query(Entity::Pet, &params).unwrap();
+        let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
+        assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
+    }
+
+    #[test]
+    fn test_query_sql_foods() {
+        let sql = "SELECT * FROM foods";
+        let params: Vec<String> = vec![];
+        let records = SAPDB.execute_sql_query(sql, &params).unwrap();
+        let first_record = &records[0];
+        assert!(TryInto::<FoodRecord>::try_into(first_record.clone()).is_ok());
+        assert!(TryInto::<PetRecord>::try_into(first_record.clone()).is_err())
+    }
+
+    #[test]
+    fn test_query_sql_pets() {
         let sql = "SELECT * FROM pets";
         let params: Vec<String> = vec![];
-        assert!(SAPDB.execute_pet_query(sql, &params).is_ok())
+        let records = SAPDB.execute_sql_query(sql, &params).unwrap();
+        let first_record = &records[0];
+        assert!(TryInto::<FoodRecord>::try_into(first_record.clone()).is_err());
+        assert!(TryInto::<PetRecord>::try_into(first_record.clone()).is_ok())
     }
 
     #[test]
