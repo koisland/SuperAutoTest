@@ -202,7 +202,7 @@ fn test_parse_invalid_token_cols() {
 
 #[test]
 fn test_parse_token_cols() {
-    let table = get_largest_table(&TOKEN_TABLE).unwrap();
+    let table = get_largest_table(TOKEN_TABLE).unwrap();
     let cols = TokenTableCols::get_cols(&table).unwrap();
     assert_eq!(
         cols,

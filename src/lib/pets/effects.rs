@@ -1260,7 +1260,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             PetName::Poodle => {
                 let target_positions = (MIN_SHOP_TIER..=MAX_SHOP_TIER)
-                    .into_iter()
                     .map(|tier| {
                         Position::Any(ItemCondition::MultipleAll(vec![
                             ItemCondition::NotEqual(EqualityCondition::IsSelf),

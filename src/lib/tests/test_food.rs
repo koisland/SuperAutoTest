@@ -219,7 +219,7 @@ fn test_attack_melon() {
 
     assert_eq!(dog_w_melon.item.as_ref().unwrap().ability.uses, Some(1));
 
-    let original_stats = dog_w_melon.stats.clone();
+    let original_stats = dog_w_melon.stats;
 
     let mut big_ant = Pet::new(
         PetName::Ant,
@@ -283,7 +283,7 @@ fn test_attack_steak() {
 fn test_attack_coconut() {
     let mut dog_w_coconut = Pet::try_from(PetName::Dog).unwrap();
     dog_w_coconut.item = Some(Food::try_from(FoodName::Coconut).unwrap());
-    let original_dog_w_coconut_stats = dog_w_coconut.stats.clone();
+    let original_dog_w_coconut_stats = dog_w_coconut.stats;
 
     assert_eq!(dog_w_coconut.item.as_ref().unwrap().ability.uses, Some(1));
 
@@ -336,7 +336,7 @@ fn test_attack_peanuts() {
 fn test_attack_peanuts_coconut() {
     let mut dog_w_coconut = Pet::try_from(PetName::Dog).unwrap();
     dog_w_coconut.item = Some(Food::try_from(FoodName::Coconut).unwrap());
-    let original_dog_w_coconut_stats = dog_w_coconut.stats.clone();
+    let original_dog_w_coconut_stats = dog_w_coconut.stats;
 
     let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
     scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
@@ -351,7 +351,7 @@ fn test_attack_peanuts_coconut() {
 fn test_attack_peanuts_melon() {
     let mut dog_w_melon = Pet::try_from(PetName::Dog).unwrap();
     dog_w_melon.item = Some(Food::try_from(FoodName::Melon).unwrap());
-    let original_dog_w_melon_stats = dog_w_melon.stats.clone();
+    let original_dog_w_melon_stats = dog_w_melon.stats;
 
     let mut scorpion = Pet::try_from(PetName::Scorpion).unwrap();
     scorpion.item = Some(Food::try_from(FoodName::Peanut).unwrap());
@@ -826,7 +826,7 @@ fn test_shop_canned_food() {
 
     team.replace_shop(custom_shop).unwrap().open_shop().unwrap();
 
-    fn first_shop_pet_query<'a>(team: &'a Team) -> &'a ShopItem {
+    fn first_shop_pet_query(team: &Team) -> &ShopItem {
         let shop_pets = team
             .shop
             .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)

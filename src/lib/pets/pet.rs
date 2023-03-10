@@ -432,10 +432,10 @@ impl Pet {
 
             Ok(self)
         } else {
-            return Err(SAPTestError::InvalidPetAction {
+            Err(SAPTestError::InvalidPetAction {
                 subject: "Incompatible Pets".to_string(),
                 reason: format!("Cannot merge {self} with {from}."),
-            });
+            })
         }
     }
 

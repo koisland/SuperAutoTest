@@ -177,18 +177,14 @@ impl ShopViewer for Shop {
                 EqualityCondition::Name(name) => {
                     found_items.extend(all_items.filter(|item| &item.name() == name))
                 }
-                EqualityCondition::Trigger(trigger) => found_items.extend(
-                    all_items
-                        .filter(|item| item.triggers().contains(trigger))
-                        .into_iter(),
-                ),
-                EqualityCondition::Action(action) => found_items.extend(
-                    all_items
-                        .filter(|item| item.actions().contains(action))
-                        .into_iter(),
-                ),
+                EqualityCondition::Trigger(trigger) => {
+                    found_items.extend(all_items.filter(|item| item.triggers().contains(trigger)))
+                }
+                EqualityCondition::Action(action) => {
+                    found_items.extend(all_items.filter(|item| item.actions().contains(action)))
+                }
                 EqualityCondition::Frozen => {
-                    found_items.extend(all_items.filter(|item| item.is_frozen()).into_iter())
+                    found_items.extend(all_items.filter(|item| item.is_frozen()))
                 }
                 _ => {
                     return Err(SAPTestError::InvalidShopAction {
@@ -295,7 +291,6 @@ impl ShopViewer for Shop {
             Position::Range(range_idx) => {
                 let end_idx = range_idx
                     .clone()
-                    .into_iter()
                     .filter_map(|idx| TryInto::<usize>::try_into(idx).ok())
                     .max();
                 let found_found_items = if let Entity::Food = item {

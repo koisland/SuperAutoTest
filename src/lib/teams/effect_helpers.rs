@@ -819,22 +819,18 @@ impl EffectApplyHelpers for Team {
 
                             Ok(matching_outcomes)
                         }
-                        _ => {
-                            return Err(SAPTestError::InvalidTeamAction {
-                                subject: "Not Implemented".to_string(),
-                                reason: format!("{cond:?} not implemented for {cond_type:?}."),
-                            })
-                        }
+                        _ => Err(SAPTestError::InvalidTeamAction {
+                            subject: "Not Implemented".to_string(),
+                            reason: format!("{cond:?} not implemented for {cond_type:?}."),
+                        }),
                     }
                 }
-                _ => {
-                    return Err(SAPTestError::InvalidTeamAction {
-                        subject: "Not Implemented".to_string(),
-                        reason: format!(
-                            "ConditionType {cond_type:?} not implemented for LogicType::ForEach."
-                        ),
-                    })
-                }
+                _ => Err(SAPTestError::InvalidTeamAction {
+                    subject: "Not Implemented".to_string(),
+                    reason: format!(
+                        "ConditionType {cond_type:?} not implemented for LogicType::ForEach."
+                    ),
+                }),
             }
         }
 

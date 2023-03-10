@@ -51,7 +51,7 @@ fn test_add_shop_item() {
         shop.pets.len(),
         shop.max_pet_slots() + shop.max_food_slots()
     );
-    assert!(shop.add_item(pet.clone()).is_err())
+    assert!(shop.add_item(pet).is_err())
 }
 
 #[test]
@@ -434,7 +434,7 @@ fn test_view_by_pos() {
         .get_shop_items_by_pos(&Position::Adjacent, &Entity::Food)
         .is_err());
     // Returns empty becase out of bounds.
-    assert!(rng_out_of_bounds_food.len() == 0);
+    assert!(rng_out_of_bounds_food.is_empty());
 
     assert!(all_pets.len() == 5 && any_pet.len() == 1);
     assert!(

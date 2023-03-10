@@ -323,23 +323,17 @@ fn food_cost() {
 
 #[test]
 fn test_holdable_item() {
-    assert_eq!(
-        true,
-        is_holdable_item("Steak", &clean_link_text(STEAK_ENTRY))
-    );
-    assert_eq!(
-        false,
-        is_holdable_item("Broccoli", &clean_link_text(BROCCOLI_ENTRY))
-    );
+    assert!(is_holdable_item("Steak", &clean_link_text(STEAK_ENTRY)));
+    assert!(!is_holdable_item(
+        "Broccoli",
+        &clean_link_text(BROCCOLI_ENTRY)
+    ));
     // Exception. Only correct because matches name.
-    assert_eq!(
-        true,
-        is_holdable_item("Peanut", &clean_link_text(PEANUTS_ENTRY))
-    );
-    assert_eq!(
-        false,
-        is_holdable_item("Not Peanuts", &clean_link_text(PEANUTS_ENTRY))
-    );
+    assert!(is_holdable_item("Peanut", &clean_link_text(PEANUTS_ENTRY)));
+    assert!(!is_holdable_item(
+        "Not Peanuts",
+        &clean_link_text(PEANUTS_ENTRY)
+    ));
 }
 
 #[test]
@@ -392,11 +386,11 @@ fn test_random_and_n_effect() {
 #[test]
 fn test_turn_based_effect() {
     // Sleeping pill is not turn-based.
-    assert_eq!(false, is_turn_effect(&clean_link_text(SLEEPING_PILL_ENTRY)));
+    assert!(!is_turn_effect(&clean_link_text(SLEEPING_PILL_ENTRY)));
     // Carrot activates at the end of a turn.
-    assert_eq!(true, is_turn_effect(&clean_link_text(CARROT_ENTRY)));
+    assert!(is_turn_effect(&clean_link_text(CARROT_ENTRY)));
     // While grape activates at the start of a turn.
-    assert_eq!(true, is_turn_effect(&clean_link_text(GRAPES_ENTRY)));
+    assert!(is_turn_effect(&clean_link_text(GRAPES_ENTRY)));
 }
 
 #[test]

@@ -431,7 +431,7 @@ pub fn test_blowfish_rally_team() -> Team {
         1,
     )
     .unwrap();
-    Team::new(&[Some(blowfish.clone())], 5).unwrap()
+    Team::new(&[Some(blowfish)], 5).unwrap()
 }
 
 pub fn test_aardvark_team() -> Team {

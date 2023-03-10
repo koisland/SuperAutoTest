@@ -854,7 +854,7 @@ fn test_shop_ostrich_team() {
     let ostrich = team.first().unwrap();
     // Check shop for tier 5+.
     let shop = team.get_shop();
-    let num_tier_5_6 = shop.pets.iter().filter(|item| is_tier_5_6(&item)).count();
+    let num_tier_5_6 = shop.pets.iter().filter(|item| is_tier_5_6(item)).count();
     // One tier 5 or above pet.
     assert_eq!(num_tier_5_6, 1);
 

@@ -538,7 +538,7 @@ mod test {
         let pet = Pet::try_from(PetName::Badger).unwrap();
 
         let copy_effect_action = Action::Copy(
-            CopyType::Effect(pet.effect.clone(), Some(2)),
+            CopyType::Effect(pet.effect, Some(2)),
             Target::Friend,
             Position::All(ItemCondition::None),
         );

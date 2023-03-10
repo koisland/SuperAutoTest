@@ -265,8 +265,7 @@ fn test_apply_effect() {
     assert!(enemy_team
         .triggers
         .iter()
-        .find(|trigger| trigger.status == Status::Hurt)
-        .is_some());
+        .any(|trigger| trigger.status == Status::Hurt));
 }
 
 #[test]

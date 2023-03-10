@@ -314,7 +314,7 @@ fn test_battle_seagull_team() {
     // Seagull ability only activates once. Bee does not get honey.
     assert!(
         team.first().unwrap().borrow().name == PetName::Bee
-            && team.first().unwrap().borrow().item == None
+            && team.first().unwrap().borrow().item.is_none()
     );
 }
 

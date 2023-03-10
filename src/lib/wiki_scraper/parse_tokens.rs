@@ -80,10 +80,7 @@ pub fn clean_token_block(block: &str) -> Result<String, SAPTestError> {
 
         if let (Some(cols), Some(stats)) = (num_sub_cols, summon_stats) {
             let num_cols = cols.parse::<usize>()?;
-            let mut stats_per_lvl = (0..num_cols)
-                .into_iter()
-                .map(|_| format!("|{stats}"))
-                .join("\n");
+            let mut stats_per_lvl = (0..num_cols).map(|_| format!("|{stats}")).join("\n");
             stats_per_lvl.push('\n');
             RGX_SUMMON_STATS.replace(block, stats_per_lvl)
         } else {

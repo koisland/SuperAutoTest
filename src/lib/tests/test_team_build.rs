@@ -151,7 +151,7 @@ fn test_team_push() {
 
     // Get weak references to pets.
     let dog = Rc::downgrade(team.friends.get(0).unwrap().as_ref().unwrap());
-    let snake = Rc::downgrade(&team.friends.get(2).unwrap().as_ref().unwrap());
+    let snake = Rc::downgrade(team.friends.get(2).unwrap().as_ref().unwrap());
 
     // Snake
     assert!(
@@ -254,7 +254,7 @@ fn test_clear_team() {
     );
 
     let mut dead_pet_second_pos_team =
-        Team::new(&[None, dead_pet.clone(), None, pet.clone(), None], 5).unwrap();
+        Team::new(&[None, dead_pet.clone(), None, pet, None], 5).unwrap();
     dead_pet_second_pos_team.clear_team();
     assert!(
         dead_pet_second_pos_team
@@ -272,18 +272,18 @@ fn test_clear_team() {
     let mut all_dead_pets_team =
         Team::new(&[None, dead_pet.clone(), None, dead_pet.clone(), None], 5).unwrap();
     all_dead_pets_team.clear_team();
-    assert!(all_dead_pets_team.friends.len() == 0);
+    assert!(all_dead_pets_team.friends.is_empty());
 
     let mut empty_team = Team::new(&[None, None, None, None, None], 5).unwrap();
     empty_team.clear_team();
-    assert!(empty_team.friends.len() == 0);
+    assert!(empty_team.friends.is_empty());
 }
 
 #[test]
 fn test_get_nearest_pet() {
     let pet = Some(Pet::try_from(PetName::Ant).unwrap());
 
-    let team = Team::new(&[pet.clone(), pet.clone(), None, pet.clone(), None], 5).unwrap();
+    let team = Team::new(&[pet.clone(), pet.clone(), None, pet, None], 5).unwrap();
     {
         let pets = team
             .get_pets_by_pos(
