@@ -1044,9 +1044,9 @@ dependencies = [
 
 [[package]]
 name = "saptest"
-version = "0.4.0"
+version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7ad6aa93348ed830b18001cc2fe70ddecdc0ad127a6af662637c97bcef84b189"
+checksum = "292255e77e650d3e9785675935f6ff02a66b6e341ed56a74eaf45d958003efc1"
 dependencies = [
  "itertools",
  "lazy-regex",

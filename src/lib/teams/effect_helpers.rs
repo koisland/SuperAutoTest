@@ -543,15 +543,13 @@ impl EffectApplyHelpers for Team {
         targets: Vec<Rc<RefCell<Pet>>>,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
-        let chosen_pet = targets.first().ok_or(SAPTestError::InvalidTeamAction {
-            subject: "Evolve Pet".to_string(),
-            reason: "No pet found to evolve.".to_string(),
-        })?;
+        let chosen_pet = targets.first().ok_or(SAPTestError::FallibleAction)?;
 
-        // Clone the pet, upgrade the chosen pet's abilities, and remove its item.
-        let mut leveled_pet = chosen_pet.borrow().clone();
+        // Create a default pet, upgrade its level, and scale its health and attack.
+        let mut leveled_pet = Pet::try_from(chosen_pet.borrow().name.clone())?;
         leveled_pet.set_level(lvl)?;
-        leveled_pet.item = None;
+        leveled_pet.stats.attack *= TryInto::<isize>::try_into(lvl)?;
+        leveled_pet.stats.health *= TryInto::<isize>::try_into(lvl)?;
 
         // Kill the original pet.
         let mut kill_effect = Effect {
@@ -1395,11 +1393,18 @@ impl EffectApplyHelpers for Team {
                 };
 
                 let pets = if let Some(opponent) = opponent.as_mut() {
-                    self.evolve_pet(affected_pet, afflicting_pet, *lvl, targets, Some(*opponent))?
+                    self.evolve_pet(affected_pet, afflicting_pet, *lvl, targets, Some(*opponent))
                 } else {
-                    self.evolve_pet(affected_pet, afflicting_pet, *lvl, targets, None)?
+                    self.evolve_pet(affected_pet, afflicting_pet, *lvl, targets, None)
                 };
-                affected_pets.extend(pets);
+
+                // Allow to fail if no pets found.
+                if let Err(SAPTestError::FallibleAction) = pets {
+                } else if let Ok(pets) = pets {
+                    affected_pets.extend(pets);
+                } else {
+                    pets?;
+                }
             }
             Action::Stegosaurus(stats) => {
                 let mut turn_mult_stats = *stats;

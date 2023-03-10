@@ -319,11 +319,8 @@ fn test_battle_whale_team() {
 
     // Only one cricket at start.
     assert_eq!(count_pets(&team.friends, PetName::Cricket), 1);
-    // Copy cricket for comparison and set idx of trigger + owner of effect to None. (Reset on swallow)
-    for effect in team.first().unwrap().borrow_mut().effect.iter_mut() {
-        effect.assign_owner(None);
-    }
-    let cricket_copy = team.first().unwrap().borrow().clone();
+    // Copy at lvl 1.
+    let cricket_copy = Pet::try_from(team.first().unwrap().borrow().name.clone()).unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -334,6 +331,34 @@ fn test_battle_whale_team() {
     assert_eq!(
         whale_effect.first().unwrap().action,
         Action::Summon(SummonType::StoredPet(Box::new(cricket_copy)))
+    );
+    assert_eq!(count_pets(&team.friends, PetName::Cricket), 0);
+}
+
+#[test]
+fn test_battle_front_whale_team() {
+    let mut team = Team::new(&[Some(Pet::try_from(PetName::Whale).unwrap())], 5).unwrap();
+    let mut enemy_team = test_hippo_team();
+
+    let whale = team.first().unwrap();
+    let hippo = enemy_team.first().unwrap();
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Whale has no target. Pets battle as normal.
+    assert_eq!(
+        whale.borrow().stats,
+        Statistics {
+            attack: 3,
+            health: 4
+        }
+    );
+    assert_eq!(
+        hippo.borrow().stats,
+        Statistics {
+            attack: 4,
+            health: 2
+        }
     );
 }
 

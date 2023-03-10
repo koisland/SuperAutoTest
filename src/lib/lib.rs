@@ -131,15 +131,7 @@
 //! ```
 //!
 //! ### Logging
-//! Enable logging with [`log4rs`](https://docs.rs/log4rs/latest/log4rs/) with [`build_log_config`](crate::logging::build_log_config) to view battle logic and more.
-//! ```
-//! use saptest::logging::build_log_config;
-//!
-//! let config = build_log_config();
-//! log4rs::init_config(config).unwrap();
-//!
-//! // Code below.
-//! ```
+//! Enable logging with a crate like [`simple_logger`](https://docs.rs/simple_logger/latest/simple_logger/#).
 //!
 //! ### Config
 //! To configure the global [`SapDB`]'s startup, create a `.saptest.toml` file in the root of your project.
@@ -161,7 +153,6 @@ pub mod db;
 pub mod effects;
 pub mod error;
 pub mod foods;
-pub mod logging;
 pub mod pets;
 pub mod shop;
 pub mod teams;
