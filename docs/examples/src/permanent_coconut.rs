@@ -25,7 +25,7 @@ pub fn permanent_coconut() -> Team {
 
     let parrot = team.nth(2).unwrap();
     assert_eq!(
-        parrot.borrow().item.as_ref().unwrap().name,
+        parrot.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Coconut
     );
     team
