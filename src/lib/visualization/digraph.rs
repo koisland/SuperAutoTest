@@ -132,91 +132,91 @@ fn simple_digraph(team: &Team) -> String {
     format!("{:?}", Dot::new(&new_graph))
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::create_battle_digraph;
-//     use crate::{tests::common::test_mammoth_team, TeamCombat};
+#[cfg(test)]
+mod tests {
+    use super::create_battle_digraph;
+    use crate::{tests::common::test_mammoth_team, TeamCombat};
 
-//     #[test]
-//     fn test_simple_digraph() {
-//         let mut team = test_mammoth_team();
-//         team.set_name("The Super Auto Pets").unwrap();
-//         let mut enemy_team = team.clone();
+    #[test]
+    fn test_simple_digraph() {
+        let mut team = test_mammoth_team();
+        team.set_name("The Super Auto Pets").unwrap();
+        let mut enemy_team = team.clone();
 
-//         team.fight(&mut enemy_team).unwrap();
-//         team.fight(&mut enemy_team).unwrap();
-//         team.fight(&mut enemy_team).unwrap();
-//         team.fight(&mut enemy_team).unwrap();
+        team.fight(&mut enemy_team).unwrap();
+        team.fight(&mut enemy_team).unwrap();
+        team.fight(&mut enemy_team).unwrap();
+        team.fight(&mut enemy_team).unwrap();
 
-//         let simple_digraph = create_battle_digraph(&team, false);
-//         let exp_digraph = r#"digraph {
-//     rankdir=LR
-//     node [shape=box, style="rounded, filled", fontname="Arial"]
-//     edge [fontname="Arial"]
-//     0 [ label = "Mammoth_0 - The Super Auto Pets_copy" ]
-//     1 [ label = "Mammoth_0 - The Super Auto Pets", fillcolor = "yellow" ]
-//     2 [ label = "Dog_1 - The Super Auto Pets", fillcolor = "yellow" ]
-//     3 [ label = "Dog_2 - The Super Auto Pets", fillcolor = "yellow" ]
-//     4 [ label = "Dog_3 - The Super Auto Pets", fillcolor = "yellow" ]
-//     5 [ label = "Dog_4 - The Super Auto Pets", fillcolor = "yellow" ]
-//     6 [ label = "Dog_1 - The Super Auto Pets_copy" ]
-//     7 [ label = "Dog_2 - The Super Auto Pets_copy" ]
-//     8 [ label = "Dog_3 - The Super Auto Pets_copy" ]
-//     9 [ label = "Dog_4 - The Super Auto Pets_copy" ]
-//     0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 1)" ]
-//     1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 1)" ]
-//     0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 2)" ]
-//     1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 2)" ]
-//     0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 3)" ]
-//     1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 3)" ]
-//     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 4)" ]
-//     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 4)" ]
-//     1 -> 2 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     1 -> 3 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     1 -> 4 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     1 -> 5 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     0 -> 6 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     0 -> 7 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     0 -> 8 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-//     0 -> 9 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
-// }
-// "#;
-//         assert_eq!(exp_digraph, format!("{simple_digraph}"))
-//     }
-// }
+        let simple_digraph = create_battle_digraph(&team, false);
+        let exp_digraph = r#"digraph {
+    rankdir=LR
+    node [shape=box, style="rounded, filled", fontname="Arial"]
+    edge [fontname="Arial"]
+    0 [ label = "Mammoth_0 - The Super Auto Pets_copy" ]
+    1 [ label = "Mammoth_0 - The Super Auto Pets", fillcolor = "yellow" ]
+    2 [ label = "Dog_1 - The Super Auto Pets", fillcolor = "yellow" ]
+    3 [ label = "Dog_2 - The Super Auto Pets", fillcolor = "yellow" ]
+    4 [ label = "Dog_3 - The Super Auto Pets", fillcolor = "yellow" ]
+    5 [ label = "Dog_4 - The Super Auto Pets", fillcolor = "yellow" ]
+    6 [ label = "Dog_1 - The Super Auto Pets_copy" ]
+    7 [ label = "Dog_2 - The Super Auto Pets_copy" ]
+    8 [ label = "Dog_3 - The Super Auto Pets_copy" ]
+    9 [ label = "Dog_4 - The Super Auto Pets_copy" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 1)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 1)" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 2)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 2)" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 3), Phase: 3)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 3), Phase: 3)" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 4)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 4)" ]
+    1 -> 2 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    1 -> 3 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    1 -> 4 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    1 -> 5 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    0 -> 6 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    0 -> 7 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    0 -> 8 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+    0 -> 9 [ label = "(Faint, Add (2, 2), Phase: 4)" ]
+}
+"#;
+        assert_eq!(exp_digraph, format!("{simple_digraph}"))
+    }
+}
 
-// #[test]
-// fn test_verbose_digraph() {
-//     use crate::{create_battle_digraph, Pet, PetName, Team, TeamCombat};
-//     let mut team = Team::new(&vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5).unwrap();
-//     team.set_name("Ants").unwrap();
+#[test]
+fn test_verbose_digraph() {
+    use crate::{create_battle_digraph, Pet, PetName, Team, TeamCombat};
+    let mut team = Team::new(&vec![Some(Pet::try_from(PetName::Ant).unwrap()); 5], 5).unwrap();
+    team.set_name("Ants").unwrap();
 
-//     let mut enemy_team = team.clone();
+    let mut enemy_team = team.clone();
 
-//     team.set_seed(Some(25));
-//     enemy_team.set_seed(Some(25));
+    team.set_seed(Some(25));
+    enemy_team.set_seed(Some(25));
 
-//     team.fight(&mut enemy_team).unwrap();
-//     let digraph = create_battle_digraph(&team, true);
-//     let exp_digraph = r#"digraph {
-//     rankdir=LR
-//     node [shape=box, style="rounded, filled", fontname="Arial"]
-//     edge [fontname="Arial"]
-//     0 [ label = "PetNode { id: Ant_0, team: Ants }", fillcolor = "yellow" ]
-//     1 [ label = "PetNode { id: Ant_1, team: Ants }", fillcolor = "yellow" ]
-//     2 [ label = "PetNode { id: Ant_2, team: Ants }", fillcolor = "yellow" ]
-//     3 [ label = "PetNode { id: Ant_3, team: Ants }", fillcolor = "yellow" ]
-//     4 [ label = "PetNode { id: Ant_4, team: Ants }", fillcolor = "yellow" ]
-//     5 [ label = "PetNode { id: Ant_0, team: Ants_copy }" ]
-//     6 [ label = "PetNode { id: Ant_1, team: Ants_copy }" ]
-//     7 [ label = "PetNode { id: Ant_2, team: Ants_copy }" ]
-//     8 [ label = "PetNode { id: Ant_3, team: Ants_copy }" ]
-//     9 [ label = "PetNode { id: Ant_4, team: Ants_copy }" ]
-//     5 -> 0 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-//     0 -> 5 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-//     0 -> 3 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
-//     5 -> 8 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
-// }
-// "#;
-//     assert_eq!(digraph, exp_digraph)
-// }
+    team.fight(&mut enemy_team).unwrap();
+    let digraph = create_battle_digraph(&team, true);
+    let exp_digraph = r#"digraph {
+    rankdir=LR
+    node [shape=box, style="rounded, filled", fontname="Arial"]
+    edge [fontname="Arial"]
+    0 [ label = "PetNode { id: Ant_0, team: Ants }", fillcolor = "yellow" ]
+    1 [ label = "PetNode { id: Ant_1, team: Ants }", fillcolor = "yellow" ]
+    2 [ label = "PetNode { id: Ant_2, team: Ants }", fillcolor = "yellow" ]
+    3 [ label = "PetNode { id: Ant_3, team: Ants }", fillcolor = "yellow" ]
+    4 [ label = "PetNode { id: Ant_4, team: Ants }", fillcolor = "yellow" ]
+    5 [ label = "PetNode { id: Ant_0, team: Ants_copy }" ]
+    6 [ label = "PetNode { id: Ant_1, team: Ants_copy }" ]
+    7 [ label = "PetNode { id: Ant_2, team: Ants_copy }" ]
+    8 [ label = "PetNode { id: Ant_3, team: Ants_copy }" ]
+    9 [ label = "PetNode { id: Ant_4, team: Ants_copy }" ]
+    5 -> 0 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 5 [ label = "(Attack, Remove(StaticValue(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 3 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 8 [ label = "(Faint, Add(StaticValue(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+}
+"#;
+    assert_eq!(digraph, exp_digraph)
+}
