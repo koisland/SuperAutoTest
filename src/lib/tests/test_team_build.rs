@@ -1,4 +1,4 @@
-use std::{rc::Rc, sync::Arc};
+use std::sync::Arc;
 
 use itertools::Itertools;
 
@@ -136,7 +136,7 @@ fn test_team_push() {
     .unwrap();
 
     let snake = team.nth(0).unwrap();
-    let hippo = team.nth(1).unwrap();
+    let _hippo = team.nth(1).unwrap();
     let dog = team.nth(2).unwrap();
 
     // Push pet at pos 0 (Snake) a space back to pos 1.
