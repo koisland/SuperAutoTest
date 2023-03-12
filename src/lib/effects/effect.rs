@@ -7,10 +7,7 @@ use crate::{
     FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
+use std::sync::{Arc, RwLock, Weak};
 
 /// A Super Auto Pets entity.
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
@@ -44,7 +41,7 @@ pub struct Effect {
     pub entity: Entity,
     #[serde(skip)]
     /// Idx of owner.
-    pub(crate) owner: Option<Weak<RefCell<Pet>>>,
+    pub(crate) owner: Option<Weak<RwLock<Pet>>>,
     /// Effect trigger.
     pub trigger: Outcome,
     /// Target of the effect.
@@ -72,7 +69,7 @@ impl PartialEq for Effect {
     }
 }
 
-impl TryFrom<&Effect> for Rc<RefCell<Pet>> {
+impl TryFrom<&Effect> for Arc<RwLock<Pet>> {
     type Error = SAPTestError;
 
     fn try_from(effect: &Effect) -> Result<Self, Self::Error> {
@@ -143,7 +140,7 @@ impl Effect {
     /// let mut effect = Effect::default();
     /// assert!(effect.get_owner().is_none());
     /// ```
-    pub fn get_owner(&self) -> Option<Weak<RefCell<Pet>>> {
+    pub fn get_owner(&self) -> Option<Weak<RwLock<Pet>>> {
         self.owner.as_ref().cloned()
     }
 
@@ -151,20 +148,20 @@ impl Effect {
     /// * Used in [`Team`](crate::Team) to assign and track owners of [`Effect`]s.
     /// # Example
     /// ```rust
-    /// use std::{rc::Rc, cell::RefCell};
+    /// use std::sync::{Arc, RwLock};
     /// use saptest::{Pet, PetName, Effect};
     ///
     /// let ant = Pet::try_from(PetName::Ant).unwrap();
-    /// let rc_ant = Rc::new(RefCell::new(ant));
+    /// let rc_ant = Arc::new(RwLock::new(ant));
     ///
     /// // Create an example effect.
     /// let mut effect = Effect::default();
     /// // ^ and its trigger now belongs to ant.
     /// effect.assign_owner(Some(&rc_ant));
-    /// assert!(effect.get_owner().unwrap().ptr_eq(&Rc::downgrade(&rc_ant)))
+    /// assert!(effect.get_owner().unwrap().ptr_eq(&Arc::downgrade(&rc_ant)))
     /// ```
-    pub fn assign_owner(&mut self, owner: Option<&Rc<RefCell<Pet>>>) -> &mut Self {
-        let owner_ref = owner.map(Rc::downgrade);
+    pub fn assign_owner(&mut self, owner: Option<&Arc<RwLock<Pet>>>) -> &mut Self {
+        let owner_ref = owner.map(Arc::downgrade);
         self.owner = owner_ref.clone();
         self.trigger.affected_pet = owner_ref;
         self

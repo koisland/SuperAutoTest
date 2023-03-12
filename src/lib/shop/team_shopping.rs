@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, RwLock};
 
 use itertools::Itertools;
 use log::info;
@@ -31,20 +31,20 @@ use super::store::{MAX_SHOP_TIER, MIN_SHOP_TIER};
 pub(crate) trait TeamShoppingHelpers {
     fn merge_behavior(
         &mut self,
-        from_pet: &Rc<RefCell<Pet>>,
-        to_pet: &Rc<RefCell<Pet>>,
+        from_pet: &Arc<RwLock<Pet>>,
+        to_pet: &Arc<RwLock<Pet>>,
     ) -> Result<(), SAPTestError>;
     fn buy_food_behavior(
         &mut self,
-        food: Rc<RefCell<Food>>,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
+        food: Arc<RwLock<Food>>,
+        curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError>;
     fn buy_pet_behavior(
         &mut self,
-        pet: Rc<RefCell<Pet>>,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
+        pet: Arc<RwLock<Pet>>,
+        curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError>;
 }
@@ -337,13 +337,13 @@ pub trait TeamShopping {
     ///     5
     /// ).unwrap();
     /// let last_ant = team.last().unwrap();
-    /// assert_eq!(last_ant.borrow().get_level(), 1);
+    /// assert_eq!(last_ant.read().unwrap().get_level(), 1);
     ///
     /// // Move first pet consecutively merging them into the last ant.
     /// team.move_pets(&Position::First, &Position::Relative(-2), true).unwrap();
     /// team.move_pets(&Position::First, &Position::Relative(-1), true).unwrap();
     ///
-    /// assert_eq!(last_ant.borrow().get_level(), 2);
+    /// assert_eq!(last_ant.read().unwrap().get_level(), 2);
     /// ```
     fn move_pets(
         &mut self,
@@ -378,14 +378,14 @@ pub trait TeamShopping {
 impl TeamShoppingHelpers for Team {
     fn merge_behavior(
         &mut self,
-        from_pet: &Rc<RefCell<Pet>>,
-        to_pet: &Rc<RefCell<Pet>>,
+        from_pet: &Arc<RwLock<Pet>>,
+        to_pet: &Arc<RwLock<Pet>>,
     ) -> Result<(), SAPTestError> {
         // Get previous level. This will increase for every levelup.
-        let mut prev_lvl = to_pet.borrow().lvl;
+        let mut prev_lvl = to_pet.read().unwrap().lvl;
 
         // Stack pets.
-        to_pet.borrow_mut().merge(&from_pet.borrow())?;
+        to_pet.write().unwrap().merge(&from_pet.read().unwrap())?;
 
         // Check if pet leveled up. For EACH levelup:
         // * Activate pet effects if trigger is a levelup.
@@ -393,12 +393,12 @@ impl TeamShoppingHelpers for Team {
         //      * Ex. Fish levelup must use lvl. 1 effect not its current effect at lvl. 2.
         // * Add shop pet on level
         // * Add team levelup triggers.
-        for _ in 0..(to_pet.borrow().lvl - prev_lvl) {
+        for _ in 0..(to_pet.read().unwrap().lvl - prev_lvl) {
             let mut levelup_trigger = TRIGGER_SELF_LEVELUP;
             levelup_trigger.set_affected(to_pet);
 
             // For pet effect of leveled up pet.
-            for mut effect in to_pet.borrow().get_effect(prev_lvl)? {
+            for mut effect in to_pet.read().unwrap().get_effect(prev_lvl)? {
                 effect.assign_owner(Some(to_pet));
                 if effect.trigger.status == Status::Levelup {
                     // Apply pet effect directly here if trigger is levelup.
@@ -422,8 +422,8 @@ impl TeamShoppingHelpers for Team {
     }
     fn buy_food_behavior(
         &mut self,
-        food: Rc<RefCell<Food>>,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
+        food: Arc<RwLock<Food>>,
+        curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError> {
@@ -434,19 +434,19 @@ impl TeamShoppingHelpers for Team {
         }
 
         // Give food to a single pet.
-        if food.borrow().holdable {
+        if food.read().unwrap().holdable {
             let affected_pets =
                 self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
             for pet in affected_pets {
-                food.borrow_mut().ability.assign_owner(Some(&pet));
-                pet.borrow_mut().item = Some(food.borrow().clone());
+                food.write().unwrap().ability.assign_owner(Some(&pet));
+                pet.write().unwrap().item = Some(food.read().unwrap().clone());
 
                 // Create trigger if food eaten.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
                 let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.borrow().name.clone());
+                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
                 trigger_self_food.set_affected(&pet);
                 trigger_any_food.set_affected(&pet);
                 trigger_self_food_name.set_affected(&pet);
@@ -454,14 +454,17 @@ impl TeamShoppingHelpers for Team {
                 self.triggers
                     .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
             }
-        } else if food.borrow().name == FoodName::CannedFood {
+        } else if food.read().unwrap().name == FoodName::CannedFood {
             // Applying any effect requires an owner so assign current pet.
-            food.borrow_mut().ability.assign_owner(curr_pet.as_ref());
-            self.apply_shop_effect(&food.borrow_mut().ability)?;
+            food.write()
+                .unwrap()
+                .ability
+                .assign_owner(self.first().as_ref());
+            self.apply_shop_effect(&food.read().unwrap().ability)?;
         } else {
-            let mut food_ability = food.borrow().ability.clone();
+            let mut food_ability = food.read().unwrap().ability.clone();
             // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
-            let target_pos = if food.borrow().n_targets == 1 {
+            let target_pos = if food.read().unwrap().n_targets == 1 {
                 to_pos.clone()
             } else {
                 food_ability.position.clone()
@@ -476,8 +479,8 @@ impl TeamShoppingHelpers for Team {
                     .iter()
                     .flatten()
                     .find_map(|pet| {
-                        if pet.borrow().name == PetName::Cat {
-                            Some(pet.borrow().lvl)
+                        if pet.read().unwrap().name == PetName::Cat {
+                            Some(pet.read().unwrap().lvl)
                         } else {
                             None
                         }
@@ -495,7 +498,7 @@ impl TeamShoppingHelpers for Team {
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
                 let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.borrow().name.clone());
+                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
                 trigger_self_food.set_affected(&pet);
                 trigger_any_food.set_affected(&pet);
                 trigger_self_food_name.set_affected(&pet);
@@ -513,36 +516,36 @@ impl TeamShoppingHelpers for Team {
 
     fn buy_pet_behavior(
         &mut self,
-        pet: Rc<RefCell<Pet>>,
-        curr_pet: Option<Rc<RefCell<Pet>>>,
+        pet: Arc<RwLock<Pet>>,
+        curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError> {
         let affected_pets = self.get_pets_by_pos(curr_pet, &Target::Friend, to_pos, None, None)?;
 
         let purchased_pet = if let Some(affected_pet) = affected_pets.first() {
             // If affected pet same as purchased pet.
-            if affected_pet.borrow().name == pet.borrow().name {
+            if affected_pet.read().unwrap().name == pet.read().unwrap().name {
                 self.merge_behavior(affected_pet, &pet)?;
                 Some(affected_pet.clone())
             } else {
                 // Pet target exists. If position is last, make sure put after pet.
                 // Otherwise, add pet in front of position.
                 let adj_idx = if let Position::Last = to_pos { 1 } else { 0 };
-                let pos = affected_pet.borrow().pos.unwrap_or(0) + adj_idx;
-                self.add_pet(pet.borrow().clone(), pos, None)?;
+                let pos = affected_pet.read().unwrap().pos.unwrap_or(0) + adj_idx;
+                self.add_pet(pet.read().unwrap().clone(), pos, None)?;
                 self.nth(pos)
             }
         } else {
             // No pets at all, summon at specific position, defaulting to 0 if not specific.
             let idx = self.cvt_pos_to_idx(to_pos).unwrap_or(0);
-            self.add_pet(pet.borrow().clone(), idx, None)?;
+            self.add_pet(pet.read().unwrap().clone(), idx, None)?;
             self.nth(idx)
         };
 
         if let Some(pet) = purchased_pet {
             let mut buy_trigger = TRIGGER_SELF_PET_BOUGHT;
             let mut buy_any_trigger = TRIGGER_ANY_PET_BOUGHT;
-            let mut buy_any_tier_trigger = trigger_any_pet_bought_tier(pet.borrow().tier);
+            let mut buy_any_tier_trigger = trigger_any_pet_bought_tier(pet.read().unwrap().tier);
             buy_trigger.set_affected(&pet);
             buy_any_trigger.set_affected(&pet);
             buy_any_tier_trigger.set_affected(&pet);
@@ -551,7 +554,7 @@ impl TeamShoppingHelpers for Team {
 
             // For each effect a pet has create a buy trigger to show that a pet with this status purchased.
             // Needed for salamander.
-            for effect in pet.borrow().effect.iter() {
+            for effect in pet.read().unwrap().effect.iter() {
                 let mut buy_any_trigger =
                     trigger_any_pet_bought_status(effect.trigger.status.clone());
                 buy_any_trigger.set_affected(&pet);
@@ -663,7 +666,7 @@ impl TeamShopping for Team {
         if !affected_pets.is_empty() {
             for pet in affected_pets {
                 // Add coins for sold pet.
-                self.shop.coins += pet.borrow().lvl;
+                self.shop.coins += pet.read().unwrap().lvl;
 
                 let mut sell_trigger = TRIGGER_SELF_PET_SOLD;
                 sell_trigger.set_affected(&pet);
@@ -676,7 +679,7 @@ impl TeamShopping for Team {
 
                 // Check for an any trigger that shouldn't activate.
                 let mut any_trigger_on_self = false;
-                for effect in pet.borrow().effect.iter() {
+                for effect in pet.read().unwrap().effect.iter() {
                     let mut sell_w_status_trigger =
                         trigger_any_pet_sold_status(effect.trigger.status.clone());
                     sell_w_status_trigger.set_affected(&pet);
@@ -773,7 +776,7 @@ impl TeamShopping for Team {
         self.stored_friends = self
             .friends
             .iter()
-            .map(|slot| slot.as_ref().map(|pet| pet.borrow().clone()))
+            .map(|slot| slot.as_ref().map(|pet| pet.read().unwrap().clone()))
             .collect_vec();
 
         Ok(self)
@@ -833,9 +836,9 @@ impl TeamShopping for Team {
                 .friends
                 .iter()
                 .flatten()
-                .find(|pet| pet.borrow().id.as_ref() == Some(pet_id))
+                .find(|pet| pet.read().unwrap().id.as_ref() == Some(pet_id))
             {
-                pet.borrow_mut().stats -= *stats
+                pet.write().unwrap().stats -= *stats
             }
         }
         // Trigger start of turn.
@@ -860,11 +863,14 @@ impl TeamShopping for Team {
 
         // Reset effects.
         for friend in self.friends.iter().flatten() {
-            let mut reset_effect = friend.borrow().get_effect(friend.borrow().lvl)?;
+            let mut reset_effect = friend
+                .read()
+                .unwrap()
+                .get_effect(friend.read().unwrap().lvl)?;
             for effect in reset_effect.iter_mut() {
                 effect.assign_owner(Some(friend));
             }
-            friend.borrow_mut().effect = reset_effect;
+            friend.write().unwrap().effect = reset_effect;
         }
 
         // Trigger end of turn.
@@ -879,7 +885,7 @@ impl TeamShopping for Team {
         self.stored_friends = self
             .friends
             .iter()
-            .map(|slot| slot.as_ref().map(|pet| pet.borrow().clone()))
+            .map(|slot| slot.as_ref().map(|pet| pet.read().unwrap().clone()))
             .collect_vec();
 
         // Reset coins.
@@ -936,24 +942,29 @@ impl TeamShopping for Team {
         }
         if let (Some(from_pet), Some(to_pet)) = (&pets[0], &pets[1]) {
             // Same pet so just return.
-            if Rc::ptr_eq(from_pet, to_pet) {
+            if Arc::ptr_eq(from_pet, to_pet) {
                 return Ok(self);
             }
             let from_pos = from_pet
-                .borrow()
+                .read()
+                .unwrap()
                 .pos
                 .ok_or(SAPTestError::InvalidTeamAction {
                     subject: "Missing Position".to_string(),
                     reason: format!("Pet {from_pet:?} has no position."),
                 })?;
-            let to_pos = to_pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
-                subject: "Missing Position".to_string(),
-                reason: format!("Pet {to_pet:?} has no position."),
-            })?;
+            let to_pos = to_pet
+                .read()
+                .unwrap()
+                .pos
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "Missing Position".to_string(),
+                    reason: format!("Pet {to_pet:?} has no position."),
+                })?;
 
             // If same pet name, merge.
             // Otherwise move from_pet to to_pet position.
-            if from_pet.borrow().name == to_pet.borrow().name && merge {
+            if from_pet.read().unwrap().name == to_pet.read().unwrap().name && merge {
                 self.merge_behavior(from_pet, to_pet)?;
                 // Remove pet.
                 self.friends.remove(from_pos);

@@ -16,7 +16,10 @@ use crate::{
 };
 use itertools::Itertools;
 
-use std::{cell::RefCell, collections::VecDeque, rc::Rc};
+use std::{
+    collections::VecDeque,
+    sync::{Arc, RwLock},
+};
 
 const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
     TRIGGER_ANY_LEVELUP,
@@ -32,13 +35,16 @@ const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
     TRIGGER_SHOP_TIER_UPGRADED,
 ];
 
-fn knockout_pet_caused_knockout(team: &Team, pet: &Rc<RefCell<Pet>>) -> bool {
+fn knockout_pet_caused_knockout(team: &Team, pet: &Arc<RwLock<Pet>>) -> bool {
     team.triggers.iter().any(|trigger| {
         if trigger.status == Status::KnockOut
-            && pet.borrow().has_effect_trigger(&Status::KnockOut, true)
+            && pet
+                .read()
+                .unwrap()
+                .has_effect_trigger(&Status::KnockOut, true)
         {
             if let Some(affected_pet) = &trigger.affected_pet {
-                affected_pet.ptr_eq(&Rc::downgrade(pet))
+                affected_pet.ptr_eq(&Arc::downgrade(pet))
             } else {
                 false
             }
@@ -86,8 +92,8 @@ pub trait TeamEffects {
     ///
     /// let butterfly = team.first().unwrap();
     /// assert!(
-    ///     butterfly.borrow().stats == Statistics {attack: 1, health: 1} &&
-    ///     butterfly.borrow().name == PetName::Butterfly
+    ///     butterfly.read().unwrap().stats == Statistics {attack: 1, health: 1} &&
+    ///     butterfly.read().unwrap().name == PetName::Butterfly
     /// )
     /// ```
     fn trigger_start_battle_effects(
@@ -153,7 +159,7 @@ pub trait TeamEffects {
     ///
     /// let first_pet = team.first().unwrap();
     /// assert_eq!(
-    ///     first_pet.borrow().name,
+    ///     first_pet.read().unwrap().name,
     ///     PetName::Bee
     /// );
     /// ```
@@ -188,12 +194,12 @@ pub trait TeamEffects {
     ///
     /// // Get mosquito_effect with reference.
     /// // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    /// let mosquito_effect = team.first().unwrap().borrow().effect.first().cloned().unwrap();
+    /// let mosquito_effect = team.first().unwrap().read().unwrap().effect.first().cloned().unwrap();
     /// team.apply_effect(&TRIGGER_START_BATTLE, &mosquito_effect, Some(&mut enemy_team)).unwrap();
     ///
     /// // Last enemy mosquito takes one damage and opponent triggers gets updated.
     /// assert_eq!(
-    ///     enemy_team.nth(1).unwrap().borrow().stats,
+    ///     enemy_team.nth(1).unwrap().read().unwrap().stats,
     ///     Statistics::new(2, 1).unwrap()
     /// );
     /// assert!(
@@ -208,27 +214,28 @@ pub trait TeamEffects {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     /// Get effect order for a single [`Team`].
     /// * Order is found by going from highest to lowest [`Pet`] attack.
     /// * If in battle:
     ///     * The first pet on the team is always first in effect priority.
-    fn get_pet_effect_order(&self, in_battle: bool) -> Vec<Rc<RefCell<Pet>>>;
+    fn get_pet_effect_order(&self, in_battle: bool) -> Vec<Arc<RwLock<Pet>>>;
 }
 
 impl TeamEffects for Team {
-    fn get_pet_effect_order(&self, in_battle: bool) -> Vec<Rc<RefCell<Pet>>> {
+    fn get_pet_effect_order(&self, in_battle: bool) -> Vec<Arc<RwLock<Pet>>> {
         let mut ordered_pets = self
             .friends
             .iter()
             .flatten()
             .sorted_by(|pet_1, pet_2| {
                 pet_1
-                    .borrow()
+                    .read()
+                    .unwrap()
                     .stats
                     .attack
-                    .cmp(&pet_2.borrow().stats.attack)
+                    .cmp(&pet_2.read().unwrap().stats.attack)
             })
             .rev()
             .cloned()
@@ -239,7 +246,7 @@ impl TeamEffects for Team {
         if let Some(Some(first_pet)) = curr_pet {
             if in_battle {
                 // Remove first pet from ordered pets.
-                ordered_pets.retain(|pet| !Rc::ptr_eq(pet, &first_pet));
+                ordered_pets.retain(|pet| !Arc::ptr_eq(pet, &first_pet));
                 // And insert as first. Current pet always activates effect first.
                 ordered_pets.insert(0, first_pet);
             }
@@ -261,7 +268,7 @@ impl TeamEffects for Team {
                 } else if knockout_pet_caused_knockout(opponent, enemy) {
                     true
                 } else {
-                    friend.borrow().stats.attack > enemy.borrow().stats.attack
+                    friend.read().unwrap().stats.attack > enemy.read().unwrap().stats.attack
                 }
             } else {
                 return Err(SAPTestError::InvalidTeamAction {
@@ -344,16 +351,18 @@ impl TeamEffects for Team {
             .chain(opponent_pets)
             .sorted_by(|(_, pet_1), (_, pet_2)| {
                 pet_1
-                    .borrow()
+                    .read()
+                    .unwrap()
                     .stats
                     .attack
-                    .cmp(&pet_2.borrow().stats.attack)
+                    .cmp(&pet_2.read().unwrap().stats.attack)
             })
             .rev()
         {
             // Do not need to mutate to reduce uses as start of battle should only occur once.
             let start_of_battle_effects = pet
-                .borrow()
+                .read()
+                .unwrap()
                 .effect
                 .iter()
                 .filter_map(|effect| {
@@ -408,7 +417,8 @@ impl TeamEffects for Team {
         for pet in ordered_pets.iter() {
             // Get food and pet effect based on if its trigger is equal to current trigger, if any.
             if let Some(food) = pet
-                .borrow_mut()
+                .write()
+                .unwrap()
                 .item
                 .as_mut()
                 .filter(|food| food.ability.check_activates(trigger))
@@ -441,10 +451,8 @@ impl TeamEffects for Team {
         let (trigger_pet_name, trigger_pet_pos) = if let Some(Some(trigger_pet)) =
             trigger.affected_pet.as_ref().map(|pet| pet.upgrade())
         {
-            (
-                Some(trigger_pet.borrow().name.clone()),
-                trigger_pet.borrow().pos,
-            )
+            let pet = trigger_pet.read().unwrap();
+            (Some(pet.name.clone()), pet.pos)
         } else {
             (None, None)
         };
@@ -454,13 +462,13 @@ impl TeamEffects for Team {
 
         // Iterate through pets in descending order by attack strength to collect valid effects.
         for pet in ordered_pets.iter() {
-            let same_pet_as_trigger = trigger
-                .clone()
-                .affected_pet
-                .map_or(false, |trigger_pet| trigger_pet.ptr_eq(&Rc::downgrade(pet)));
+            let same_pet_as_trigger = trigger.clone().affected_pet.map_or(false, |trigger_pet| {
+                trigger_pet.ptr_eq(&Arc::downgrade(pet))
+            });
 
             let valid_effects = pet
-                .borrow_mut()
+                .write()
+                .unwrap()
                 .effect
                 .iter_mut()
                 .filter_map(|effect| {
@@ -519,7 +527,7 @@ impl TeamEffects for Team {
         trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         // Set current pet.
         self.curr_pet = effect.owner.clone();
         let mut affected_pets = vec![];
@@ -550,14 +558,14 @@ impl TeamEffects for Team {
                 if let Some(opponent) = opponent {
                     for target_pet in target_pets.into_iter() {
                         // Match against team name.
-                        let pets = if target_pet.borrow().team.as_ref() == Some(&self.name) {
+                        let pets = if target_pet.read().unwrap().team.as_ref() == Some(&self.name) {
                             self.apply_single_effect(
                                 &target_pet,
                                 &afflicting_pet,
                                 effect,
                                 Some(opponent),
                             )?
-                        } else if target_pet.borrow().team.as_ref() == Some(&opponent.name) {
+                        } else if target_pet.read().unwrap().team.as_ref() == Some(&opponent.name) {
                             opponent.apply_single_effect(
                                 &target_pet,
                                 &afflicting_pet,
@@ -569,7 +577,7 @@ impl TeamEffects for Team {
                                 subject: "Invalid Team Name".to_string(),
                                 reason: format!(
                                     "Pet {} has a team name that doesn't match the current fighting teams ({} vs. {})",
-                                    target_pet.borrow(), self.name, opponent.name
+                                    target_pet.read().unwrap(), self.name, opponent.name
                                 )
                             });
                         };

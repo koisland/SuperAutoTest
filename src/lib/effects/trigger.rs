@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Weak};
+use std::sync::{RwLock, Weak};
 
 use crate::{
     effects::{
@@ -31,7 +31,7 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
 }
 
 /// Get faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team is summoned.
-pub fn get_summon_triggers(pet: Weak<RefCell<Pet>>) -> [Outcome; 3] {
+pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
     let mut self_trigger = TRIGGER_SELF_SUMMON;
     let mut any_trigger = TRIGGER_ANY_SUMMON;
     let mut any_enemy_trigger = TRIGGER_ANY_ENEMY_SUMMON;

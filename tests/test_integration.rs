@@ -103,8 +103,8 @@ fn test_create_custom_pet() {
     let front_ant = team.friends[0].as_ref().unwrap();
     let behind_ant = team.friends[2].as_ref().unwrap();
     assert!(
-        front_ant.borrow().item.as_ref().unwrap().name == FoodName::Melon
-            && behind_ant.borrow().item.as_ref().unwrap().name == FoodName::Melon
+        front_ant.read().unwrap().item.as_ref().unwrap().name == FoodName::Melon
+            && behind_ant.read().unwrap().item.as_ref().unwrap().name == FoodName::Melon
     )
 }
 
@@ -249,7 +249,8 @@ fn test_apply_effect() {
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    let mosquito_effect = team.friends[0].as_ref().unwrap().borrow().effect[0].clone();
+    let mosquito = team.friends[0].as_ref().unwrap();
+    let mosquito_effect = mosquito.read().unwrap().effect[0].clone();
     team.apply_effect(
         &TRIGGER_START_BATTLE,
         &mosquito_effect,
@@ -259,7 +260,12 @@ fn test_apply_effect() {
 
     // Last enemy mosquito takes one damage and opponent triggers gets updated.
     assert_eq!(
-        enemy_team.friends[1].as_ref().unwrap().borrow().stats,
+        enemy_team.friends[1]
+            .as_ref()
+            .unwrap()
+            .read()
+            .unwrap()
+            .stats,
         Statistics::new(2, 1).unwrap()
     );
     assert!(enemy_team

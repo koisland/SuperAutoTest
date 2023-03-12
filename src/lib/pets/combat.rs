@@ -15,11 +15,10 @@ use crate::{
 };
 
 use std::{
-    cell::RefCell,
     collections::VecDeque,
     fmt::Display,
     ops::Sub,
-    rc::{Rc, Weak},
+    sync::{Arc, RwLock, Weak},
 };
 
 /// The minimum damage any attack can do.
@@ -494,8 +493,8 @@ impl AttackOutcome {
         &mut self,
         team: &mut Team,
         opponent: Option<&mut Team>,
-        affected: &Rc<RefCell<Pet>>,
-        afflicting: Option<Weak<RefCell<Pet>>>,
+        affected: &Arc<RwLock<Pet>>,
+        afflicting: Option<Weak<RwLock<Pet>>>,
     ) {
         // Update triggers from where they came from.
         // Knockout a special exception as affected pet is pet causing knockout.

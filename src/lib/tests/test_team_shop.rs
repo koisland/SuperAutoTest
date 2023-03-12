@@ -1,7 +1,4 @@
-use std::{
-    cell::RefCell,
-    rc::{Rc, Weak},
-};
+use std::sync::{Arc, RwLock, Weak};
 
 use itertools::Itertools;
 
@@ -204,12 +201,12 @@ fn test_shop_move() {
         .friends
         .iter()
         .flatten()
-        .map(Rc::downgrade)
+        .map(|pet| Arc::downgrade(&pet))
         .collect_tuple::<(
-            Weak<RefCell<Pet>>,
-            Weak<RefCell<Pet>>,
-            Weak<RefCell<Pet>>,
-            Weak<RefCell<Pet>>,
+            Weak<RwLock<Pet>>,
+            Weak<RwLock<Pet>>,
+            Weak<RwLock<Pet>>,
+            Weak<RwLock<Pet>>,
         )>()
         .unwrap();
 
@@ -219,7 +216,7 @@ fn test_shop_move() {
     team.move_pets(&Position::First, &Position::Last, false)
         .unwrap();
 
-    assert!(ant_0.upgrade().unwrap().borrow().pos == Some(3));
+    assert!(ant_0.upgrade().unwrap().read().unwrap().pos == Some(3));
     /*
     JFish_0, Ant_2, Ant_1, Ant_0
     */
@@ -227,7 +224,7 @@ fn test_shop_move() {
     team.move_pets(&Position::Last, &Position::First, false)
         .unwrap();
 
-    assert!(ant_0.upgrade().unwrap().borrow().pos == Some(0));
+    assert!(ant_0.upgrade().unwrap().read().unwrap().pos == Some(0));
 
     /*
     JFish_0, Ant_2, Ant_1 (+1)
@@ -237,7 +234,7 @@ fn test_shop_move() {
 
     // Pet has merged (+1 exp) and has been dropped.
     assert!(ant_0.upgrade().is_none());
-    assert!(ant_1.upgrade().unwrap().borrow().exp == 1);
+    assert!(ant_1.upgrade().unwrap().read().unwrap().exp == 1);
 
     // Position::Any is okay.
     assert!(team

@@ -1,5 +1,5 @@
 use log::info;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::{
     effects::{
@@ -103,7 +103,7 @@ pub trait TeamCombat {
     ///
     /// assert_eq!(default_team.friends.len(), 1);
     ///
-    /// default_team.first().unwrap().borrow_mut().stats.health = 0;
+    /// default_team.first().unwrap().write().unwrap().stats.health = 0;
     /// default_team.clear_team();
     ///
     /// assert_eq!(default_team.friends.len(), 0);
@@ -128,16 +128,17 @@ impl TeamCombat for Team {
         self.friends.retain(|slot| {
             if let Some(friend) = slot {
                 self.stored_friends.iter().flatten().any(|stored_friend| {
-                    if friend.borrow().eq(stored_friend) {
+                    let mut friend = friend.write().unwrap();
+                    if friend.eq(stored_friend) {
                         true
-                    } else if stored_friend.id == friend.borrow().id {
+                    } else if stored_friend.id == friend.id {
                         // Replace current attr with stored friends.
-                        friend.borrow_mut().stats = stored_friend.stats;
-                        friend.borrow_mut().exp = stored_friend.exp;
-                        friend.borrow_mut().effect = stored_friend.effect.clone();
-                        friend.borrow_mut().lvl = stored_friend.lvl;
-                        friend.borrow_mut().item = stored_friend.item.clone();
-                        friend.borrow_mut().pos = stored_friend.pos;
+                        friend.stats = stored_friend.stats;
+                        friend.exp = stored_friend.exp;
+                        friend.effect = stored_friend.effect.clone();
+                        friend.lvl = stored_friend.lvl;
+                        friend.item = stored_friend.item.clone();
+                        friend.pos = stored_friend.pos;
                         true
                     } else {
                         false
@@ -159,7 +160,9 @@ impl TeamCombat for Team {
                 (None, None) => std::cmp::Ordering::Equal,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (Some(_), None) => std::cmp::Ordering::Less,
-                (Some(pet_1), Some(pet_2)) => pet_1.borrow().pos.cmp(&pet_2.borrow().pos),
+                (Some(pet_1), Some(pet_2)) => {
+                    pet_1.read().unwrap().pos.cmp(&pet_2.read().unwrap().pos)
+                }
             });
         // Fill empty slots at specific positions accounting for slots already added.
         for slot_idx in empty_slots {
@@ -168,7 +171,7 @@ impl TeamCombat for Team {
         self.reset_pet_references(None);
 
         // Set current pet to first in line.
-        self.curr_pet = self.friends.iter().flatten().next().map(Rc::downgrade);
+        self.curr_pet = self.friends.iter().flatten().next().map(Arc::downgrade);
 
         // Set current battle phase to 1.
         self.history.curr_phase = 1;
@@ -180,14 +183,20 @@ impl TeamCombat for Team {
         let mut idx = 0;
         self.friends.retain_mut(|slot| {
             // Pet in slot.
-            if let Some(pet) = slot.as_ref().filter(|pet| pet.borrow().stats.health == 0) {
+            if let Some(pet) = slot
+                .as_ref()
+                .filter(|pet| pet.read().unwrap().stats.health == 0)
+            {
                 // Pet is dead, remove from slot.
-                info!(target: "run", "(\"{}\")\n{} fainted.", self.name, pet.borrow());
+                info!(target: "run", "(\"{}\")\n{} fainted.", self.name, pet.read().unwrap());
                 // Check if pet summons a pet. Remove slot if does.
                 // The argument of summon action is not checked only action variant.
                 let summon_action = Action::Summon(SummonType::DefaultPet(PetName::None));
-                let summons_pets = pet.borrow().has_food_ability(&summon_action, false)
-                    || pet.borrow().has_effect_ability(&summon_action, false);
+                let summons_pets = pet.read().unwrap().has_food_ability(&summon_action, false)
+                    || pet
+                        .read()
+                        .unwrap()
+                        .has_effect_ability(&summon_action, false);
 
                 self.fainted.push(slot.take());
                 // Remove slot if at first position and not in shop.
@@ -200,7 +209,7 @@ impl TeamCombat for Team {
                 }
             } else if let Some(pet) = slot {
                 // Otherwise, reindex pet.
-                pet.borrow_mut().pos = Some(idx);
+                pet.write().unwrap().pos = Some(idx);
                 idx += 1;
                 true
             } else {
@@ -296,8 +305,8 @@ impl BattlePhases for Team {
     fn before_battle_phase(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError> {
         // Trigger before attack.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
-            self.curr_pet = Some(Rc::downgrade(&pet));
-            opponent.curr_pet = Some(Rc::downgrade(&opponent_pet));
+            self.curr_pet = Some(Arc::downgrade(&pet));
+            opponent.curr_pet = Some(Arc::downgrade(&opponent_pet));
 
             self.triggers.extend([
                 TRIGGER_SELF_BEFORE_ATTACK
@@ -332,8 +341,11 @@ impl BattlePhases for Team {
         // * Should not clear/move up teams yet.
         if let (Some(pet), Some(opponent_pet)) = (self.first(), opponent.first()) {
             // Attack and get outcome of fight.
-            info!(target: "run", "Fight!\nPet: {}\nOpponent: {}", pet.borrow(), opponent_pet.borrow());
-            let mut atk_outcome = pet.borrow_mut().attack(&mut opponent_pet.borrow_mut());
+            info!(target: "run", "Fight!\nPet: {}\nOpponent: {}", pet.read().unwrap(), opponent_pet.read().unwrap());
+            let mut atk_outcome = pet
+                .write()
+                .unwrap()
+                .attack(&mut opponent_pet.write().unwrap());
 
             // Check for battle food effects like chili.
             self.apply_battle_food_effect(&pet, opponent)?;

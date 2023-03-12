@@ -1,6 +1,6 @@
 use rand::random;
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, fmt::Display, rc::Rc};
+use std::sync::{Arc, RwLock};
 
 use crate::{
     db::record::{PetRecord, SAPRecord},
@@ -19,16 +19,6 @@ pub const MAX_PET_LEVEL: usize = 3;
 pub const MIN_PET_STATS: isize = 0;
 /// Maximum pet stats value.
 pub const MAX_PET_STATS: isize = 50;
-
-/// Assign effect owner.
-pub(crate) fn assign_effect_owner(pet: &Rc<RefCell<Pet>>) {
-    for effect in pet.borrow_mut().effect.iter_mut() {
-        effect.assign_owner(Some(pet));
-    }
-    if let Some(food_item) = pet.borrow_mut().item.as_mut() {
-        food_item.ability.assign_owner(Some(pet));
-    }
-}
 
 /// A Super Auto Pet.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,6 +50,16 @@ pub struct Pet {
     pub(crate) team: Option<String>,
 }
 
+/// Assign effect owner.
+pub(crate) fn reassign_effects(pet: &Arc<RwLock<Pet>>) {
+    for effect in pet.write().unwrap().effect.iter_mut() {
+        effect.assign_owner(Some(pet));
+    }
+    if let Some(food_item) = pet.write().unwrap().item.as_mut() {
+        food_item.ability.assign_owner(Some(pet));
+    }
+}
+
 impl PartialEq for Pet {
     fn eq(&self, other: &Self) -> bool {
         self.id == other.id
@@ -75,7 +75,7 @@ impl PartialEq for Pet {
     }
 }
 
-impl Display for Pet {
+impl std::fmt::Display for Pet {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let item_str = self
             .item

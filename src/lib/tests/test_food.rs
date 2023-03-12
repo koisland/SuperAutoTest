@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     effects::{
         actions::{Action, GainType, StatChangeType},
@@ -48,11 +50,11 @@ fn test_set_food_item() {
     let pizza = Food::try_from(FoodName::Pizza).unwrap();
 
     let first_pet = team.first().unwrap();
-    let first_pet_start_stats = first_pet.borrow().stats;
+    let first_pet_start_stats = first_pet.read().unwrap().stats;
     // Give first pet garlic.
     team.set_item(&first_pos, Some(garlic)).unwrap();
     assert_eq!(
-        first_pet.borrow().item.as_ref().unwrap().name,
+        first_pet.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Garlic
     );
 
@@ -64,16 +66,19 @@ fn test_set_food_item() {
     team.set_item(&first_pos, Some(apple)).unwrap();
     // First pet still has garlic.
     assert_eq!(
-        first_pet.borrow().item.as_ref().unwrap().name,
+        first_pet.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Garlic
     );
     // And gets apple buff.
-    assert_eq!(first_pet.borrow().stats, first_pet_start_stats + APPLE_BUFF);
+    assert_eq!(
+        first_pet.read().unwrap().stats,
+        first_pet_start_stats + APPLE_BUFF
+    );
 
     // Give pizza.
     let (third_pet, last_pet) = (team.nth(2).unwrap(), team.last().unwrap());
-    let third_pet_start_stats = third_pet.borrow().stats;
-    let last_pet_start_stats = last_pet.borrow().stats;
+    let third_pet_start_stats = third_pet.read().unwrap().stats;
+    let last_pet_start_stats = last_pet.read().unwrap().stats;
     const PIZZA_BUFF: Statistics = Statistics {
         attack: 2,
         health: 2,
@@ -81,8 +86,14 @@ fn test_set_food_item() {
     team.set_item(&first_pos, Some(pizza)).unwrap();
 
     // Two random pets got buff as expected. Set position does not matter.
-    assert_eq!(last_pet.borrow().stats, third_pet_start_stats + PIZZA_BUFF);
-    assert_eq!(third_pet.borrow().stats, last_pet_start_stats + PIZZA_BUFF);
+    assert_eq!(
+        last_pet.read().unwrap().stats,
+        third_pet_start_stats + PIZZA_BUFF
+    );
+    assert_eq!(
+        third_pet.read().unwrap().stats,
+        last_pet_start_stats + PIZZA_BUFF
+    );
 }
 
 #[test]
@@ -488,7 +499,7 @@ fn test_battle_honey_team() {
 
     // Ant team completes by team has honey so bee spawns.
     assert_eq!(fight, TeamFightOutcome::Win);
-    assert_eq!(team.first().unwrap().borrow().name, PetName::Bee)
+    assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Bee)
 }
 
 #[test]
@@ -510,9 +521,9 @@ fn test_battle_mushroom_team() {
 
     // Team wins over enemy by summoning ant with (1,1).
     assert_eq!(fight, TeamFightOutcome::Win);
-    assert_eq!(team.first().unwrap().borrow().name, PetName::Ant);
+    assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Ant);
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -583,7 +594,7 @@ fn test_shop_end_turn_foods() {
     // All have normal stats.
     for ant in [&first_ant, &second_ant, &third_ant] {
         assert_eq!(
-            ant.borrow().stats,
+            ant.read().unwrap().stats,
             Statistics {
                 attack: 2,
                 health: 1
@@ -596,7 +607,7 @@ fn test_shop_end_turn_foods() {
 
     // First ant got carrot
     assert_eq!(
-        first_ant.borrow().stats,
+        first_ant.read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 2
@@ -605,7 +616,7 @@ fn test_shop_end_turn_foods() {
 
     // Second ant got cucumber.
     assert_eq!(
-        second_ant.borrow().stats,
+        second_ant.read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 2
@@ -614,7 +625,7 @@ fn test_shop_end_turn_foods() {
 
     // Third ant got croissant
     assert_eq!(
-        third_ant.borrow().stats,
+        third_ant.read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 1
@@ -794,7 +805,7 @@ fn test_battle_pineapple() {
     let mammoth = enemy_team.first().unwrap();
     // Starting mammoth stats.
     assert_eq!(
-        mammoth.borrow().stats,
+        mammoth.read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 10
@@ -806,7 +817,7 @@ fn test_battle_pineapple() {
 
     // Mammoth takes 2 additional damage than normal thanks to pineapple.
     assert_eq!(
-        mammoth.borrow().stats,
+        mammoth.read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 7
@@ -874,7 +885,7 @@ fn test_shop_lollipop() {
     let ant = team.first().unwrap();
 
     assert_eq!(
-        ant.borrow().stats,
+        ant.read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -886,7 +897,7 @@ fn test_shop_lollipop() {
 
     // Stats are swapped.
     assert_eq!(
-        ant.borrow().stats,
+        ant.read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -915,8 +926,12 @@ fn test_battle_popcorns() {
     let first_ant = team.first().unwrap();
     team.fight(&mut enemy_team).unwrap();
 
-    assert_eq!(team.fainted.first().unwrap(), &Some(first_ant.clone()));
+    let first_fainted = team.fainted.first().unwrap().as_ref().unwrap();
+    assert!(Arc::ptr_eq(first_fainted, &first_ant));
     // Summoned pet is same tier as ant.
     let summoned_pet = team.first().unwrap();
-    assert_eq!(summoned_pet.borrow().tier, first_ant.borrow().tier);
+    assert_eq!(
+        summoned_pet.read().unwrap().tier,
+        first_ant.read().unwrap().tier
+    );
 }
