@@ -23,7 +23,7 @@ pub fn mushroom_scorpion() -> Team {
     let respawned_scorpion = team.first().unwrap();
     // Gain peanut on respawn.
     assert_eq!(
-        respawned_scorpion.borrow().item.as_ref().unwrap().name,
+        respawned_scorpion.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Peanut
     );
     team

@@ -140,11 +140,11 @@ pub fn rhino() -> Team {
     let chunky_wigs_post_battle_pets = chunk_wigs.all();
     let [bus, bee, zcricket, ram_1, ram_2] = &chunky_wigs_post_battle_pets[..] else { panic!()};
     assert!(
-        bus.borrow().stats == Statistics::new(10, 10).unwrap()
-            && bee.borrow().stats == Statistics::new(1, 1).unwrap()
-            && zcricket.borrow().stats == Statistics::new(3, 3).unwrap()
-            && ram_1.borrow().stats == Statistics::new(4, 4).unwrap()
-            && ram_2.borrow().stats == Statistics::new(4, 4).unwrap()
+        bus.read().unwrap().stats == Statistics::new(10, 10).unwrap()
+            && bee.read().unwrap().stats == Statistics::new(1, 1).unwrap()
+            && zcricket.read().unwrap().stats == Statistics::new(3, 3).unwrap()
+            && ram_1.read().unwrap().stats == Statistics::new(4, 4).unwrap()
+            && ram_2.read().unwrap().stats == Statistics::new(4, 4).unwrap()
     );
     chunk_wigs
 }

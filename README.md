@@ -9,6 +9,11 @@
 Database and testing framework for Super Auto Pets.
 
 Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite` database.
+* [x] [Turtle](https://superautopets.fandom.com/wiki/Turtle_Pack)
+* [x] [Puppy](https://superautopets.fandom.com/wiki/Puppy_Pack)
+* [x] [Weekly](https://superautopets.fandom.com/wiki/Weekly_Pack)
+* [x] [Star](https://superautopets.fandom.com/wiki/Star_Pack)
+* [ ] Golden
 
 ---
 

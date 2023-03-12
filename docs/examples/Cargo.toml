@@ -6,5 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-saptest = "0.4.3"
+saptest = "0.4.4"
 itertools = "*"

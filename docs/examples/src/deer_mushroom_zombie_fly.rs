@@ -18,9 +18,9 @@ pub fn deer_fly_mushroom() -> Team {
 
     // Correct spawn order.
     assert!(
-        team.first().unwrap().borrow().name == PetName::Deer
-            && team.nth(1).unwrap().borrow().name == PetName::ZombieFly
-            && team.nth(2).unwrap().borrow().name == PetName::Bus
+        team.first().unwrap().read().unwrap().name == PetName::Deer
+            && team.nth(1).unwrap().read().unwrap().name == PetName::ZombieFly
+            && team.nth(2).unwrap().read().unwrap().name == PetName::Bus
     );
     team
 }
