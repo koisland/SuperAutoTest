@@ -1,4 +1,9 @@
-use std::{cell::RefCell, fmt::Display, fmt::Write, ops::Range, rc::Rc};
+use std::{
+    fmt::Display,
+    fmt::Write,
+    ops::Range,
+    sync::{Arc, RwLock},
+};
 
 use itertools::Itertools;
 use rand::prelude::*;
@@ -48,12 +53,22 @@ pub enum ItemState {
 }
 
 /// Item slot in [`Shop`].
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub(crate) enum ItemSlot {
     /// A shop pet.
-    Pet(Rc<RefCell<Pet>>),
+    Pet(Arc<RwLock<Pet>>),
     /// A shop food.
-    Food(Rc<RefCell<Food>>),
+    Food(Arc<RwLock<Food>>),
+}
+
+impl PartialEq for ItemSlot {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Pet(l0), Self::Pet(r0)) => Arc::ptr_eq(l0, r0),
+            (Self::Food(l0), Self::Food(r0)) => Arc::ptr_eq(l0, r0),
+            _ => false,
+        }
+    }
 }
 
 /// A [`Shop`] item.
@@ -91,7 +106,7 @@ impl From<Food> for ShopItem {
     fn from(value: Food) -> Self {
         let cost = value.cost;
         ShopItem {
-            item: ItemSlot::Food(Rc::new(RefCell::new(value))),
+            item: ItemSlot::Food(Arc::new(RwLock::new(value))),
             state: ItemState::Normal,
             cost,
             pos: None,
@@ -103,7 +118,7 @@ impl From<Pet> for ShopItem {
     fn from(value: Pet) -> Self {
         let cost = value.cost;
         ShopItem {
-            item: ItemSlot::Pet(Rc::new(RefCell::new(value))),
+            item: ItemSlot::Pet(Arc::new(RwLock::new(value))),
             state: ItemState::Normal,
             cost,
             pos: None,
@@ -114,8 +129,8 @@ impl From<Pet> for ShopItem {
 impl Display for ItemSlot {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ItemSlot::Pet(pet) => write!(f, "{}", pet.borrow()),
-            ItemSlot::Food(food) => write!(f, "{}", food.borrow()),
+            ItemSlot::Pet(pet) => write!(f, "{}", pet.read().unwrap()),
+            ItemSlot::Food(food) => write!(f, "{}", food.read().unwrap()),
         }
     }
 }
@@ -575,7 +590,7 @@ impl Shop {
             // Add permanent pet stats.
             pet.stats += self.perm_stats;
             self.pets.push(ShopItem {
-                item: ItemSlot::Pet(Rc::new(RefCell::new(pet))),
+                item: ItemSlot::Pet(Arc::new(RwLock::new(pet))),
                 state: ItemState::Normal,
                 cost,
                 pos: Some(i),
@@ -615,7 +630,7 @@ impl Shop {
                     })?;
             let food = Food::try_from(food_record.name.clone())?;
             self.foods.push(ShopItem {
-                item: ItemSlot::Food(Rc::new(RefCell::new(food))),
+                item: ItemSlot::Food(Arc::new(RwLock::new(food))),
                 state: ItemState::Normal,
                 cost: food_record.cost,
                 pos: Some(i),

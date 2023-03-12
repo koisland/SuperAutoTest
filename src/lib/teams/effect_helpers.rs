@@ -13,7 +13,7 @@ use crate::{
     error::SAPTestError,
     pets::{
         names::PetName,
-        pet::{MAX_PET_STATS, MIN_PET_STATS},
+        pet::{reassign_effects, MAX_PET_STATS, MIN_PET_STATS},
     },
     shop::{
         store::{ItemSlot, ItemState, ShopState, MAX_SHOP_TIER},
@@ -32,7 +32,7 @@ use rand::{
     SeedableRng,
 };
 use rand_chacha::ChaCha12Rng;
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, RwLock};
 
 /// Used to ignore an effect if its trigger fits a set of conditions.
 ///  * Trigger for an [`Effect`] with an [`Action::Summon`] is a [`ZombieFly`](crate::PetName::ZombieFly).
@@ -63,18 +63,18 @@ pub(crate) trait EffectApplyHelpers {
     /// * ex. Chili
     fn apply_battle_food_effect(
         &mut self,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError>;
 
     /// Apply an [`Action`] to a target pet on a [`Team`].
     fn apply_single_effect(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         effect: &Effect,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     /// Apply [`Shop`](crate::Shop) effects.
     fn apply_shop_effect(&mut self, effect: &Effect) -> Result<(), SAPTestError>;
@@ -82,20 +82,20 @@ pub(crate) trait EffectApplyHelpers {
     fn copy_effect(
         &self,
         attr_to_copy: &CopyType,
-        targets: Vec<Rc<RefCell<Pet>>>,
-        receiving_pet: &Rc<RefCell<Pet>>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+        targets: Vec<Arc<RwLock<Pet>>>,
+        receiving_pet: &Arc<RwLock<Pet>>,
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     fn convert_gain_type_to_food(
         &self,
         gain_type: &GainType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Option<Food>, SAPTestError>;
 
     fn convert_summon_type_to_pet(
         &self,
         summon_type: &SummonType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Pet, SAPTestError>;
 
     fn swap_pets(
@@ -104,7 +104,7 @@ pub(crate) trait EffectApplyHelpers {
         effect: &Effect,
         trigger: &Outcome,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     fn shuffle_pets(
         &mut self,
@@ -113,14 +113,14 @@ pub(crate) trait EffectApplyHelpers {
         effect: &Effect,
         trigger: &Outcome,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     fn summon_pet(
         &mut self,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
         summon_type: &SummonType,
         opponent: Option<&mut Team>,
-    ) -> Result<Rc<RefCell<Pet>>, SAPTestError>;
+    ) -> Result<Arc<RwLock<Pet>>, SAPTestError>;
 
     /// Get matching pets by [`ItemCondition`].
     fn get_matching_pets(
@@ -128,13 +128,13 @@ pub(crate) trait EffectApplyHelpers {
         target: &Target,
         condition: &ItemCondition,
         opponent: &Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     /// Check if [`ConditionType`] is `true`.
     fn check_condition(
         &self,
         condition_type: &ConditionType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
         opponent: &Option<&mut Team>,
     ) -> Result<bool, SAPTestError>;
 
@@ -142,13 +142,13 @@ pub(crate) trait EffectApplyHelpers {
     /// * action_set first arg is run if condition met. Otherwise, second arg run.
     fn apply_conditional_action(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         condition_type: &LogicType,
         effect: &Effect,
         action_set: (&Action, &Action),
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     /// Hard-coded [`Tiger`](crate::PetName::Tiger) behavior.
     /// * Checks that pet behind current pet is a tiger.
@@ -156,7 +156,7 @@ pub(crate) trait EffectApplyHelpers {
     /// * Creates effects of `pet` at given tiger level.
     fn repeat_effects_if_tiger(
         &self,
-        pet: &Rc<RefCell<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         trigger: &Outcome,
         trigger_petname: Option<&PetName>,
         same_pet_as_trigger: bool,
@@ -165,12 +165,12 @@ pub(crate) trait EffectApplyHelpers {
     /// Hard-coded [`Whale`](crate::PetName::Whale) behavior.
     fn evolve_pet(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         lvl: usize,
-        targets: Vec<Rc<RefCell<Pet>>>,
+        targets: Vec<Arc<RwLock<Pet>>>,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError>;
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
     /// Calculates an adjusted index based on the current index and a relative index.
     /// * `:param curr_idx:` The current index.
@@ -191,21 +191,26 @@ pub(crate) trait EffectApplyHelpers {
 impl EffectApplyHelpers for Team {
     fn apply_battle_food_effect(
         &mut self,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         opponent: &mut Team,
     ) -> Result<(), SAPTestError> {
         // Check for food uses.
         // Then copy food to avoid potential mut borrow.
-        let item = afflicting_pet.borrow_mut().item.as_mut().and_then(|food| {
-            if food.ability.uses != Some(0)
-                && food.ability.trigger.status == Status::BattleFoodEffect
-            {
-                food.ability.remove_uses(1);
-                Some(food.to_owned())
-            } else {
-                None
-            }
-        });
+        let item = afflicting_pet
+            .write()
+            .unwrap()
+            .item
+            .as_mut()
+            .and_then(|food| {
+                if food.ability.uses != Some(0)
+                    && food.ability.trigger.status == Status::BattleFoodEffect
+                {
+                    food.ability.remove_uses(1);
+                    Some(food.to_owned())
+                } else {
+                    None
+                }
+            });
         if let Some(valid_food) = item {
             // Use effect on affected pets.
             let affected_pets = self.get_pets_by_effect(
@@ -214,7 +219,7 @@ impl EffectApplyHelpers for Team {
                 Some(opponent),
             )?;
             for affected_pet in affected_pets.iter() {
-                if affected_pet.borrow().team.as_ref() == Some(&self.name) {
+                if affected_pet.read().unwrap().team.as_ref() == Some(&self.name) {
                     self.apply_single_effect(
                         affected_pet,
                         afflicting_pet,
@@ -241,7 +246,7 @@ impl EffectApplyHelpers for Team {
         effect: &Effect,
         trigger: &Outcome,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let target_pets = if let Some(opponent) = opponent.as_ref() {
             self.get_pets_by_effect(trigger, effect, Some(opponent))?
         } else {
@@ -262,10 +267,13 @@ impl EffectApplyHelpers for Team {
         let (pet_1, pet_2) = (target_pets.first().unwrap(), target_pets.get(1).unwrap());
         match swap_type {
             RandomizeType::Positions => {
-                pet_1.borrow_mut().swap(&mut pet_2.borrow_mut());
+                pet_1.write().unwrap().swap(&mut pet_2.write().unwrap());
             }
             RandomizeType::Stats => {
-                pet_1.borrow_mut().swap_stats(&mut pet_2.borrow_mut());
+                pet_1
+                    .write()
+                    .unwrap()
+                    .swap_stats(&mut pet_2.write().unwrap());
             }
         }
         Ok(vec![pet_1.clone(), pet_2.clone()])
@@ -278,7 +286,7 @@ impl EffectApplyHelpers for Team {
         effect: &Effect,
         trigger: &Outcome,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let teams = match target_team {
             Target::Friend => vec![Some(self)],
             Target::Enemy => vec![opponent],
@@ -288,11 +296,12 @@ impl EffectApplyHelpers for Team {
         let mut affected_pets = vec![];
         for team in teams.into_iter().flatten() {
             let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
-            let curr_pet = team
-                .curr_pet
-                .as_ref()
-                .map(|pet| pet.upgrade())
-                .unwrap_or_else(|| team.first());
+            let curr_pet =
+                if let Some(Some(curr_pet)) = team.curr_pet.as_ref().map(|pet| pet.upgrade()) {
+                    Some(curr_pet)
+                } else {
+                    team.first()
+                };
             let mut found_pets = team.get_pets_by_pos(
                 curr_pet,
                 // Find pets on current team.
@@ -311,7 +320,10 @@ impl EffectApplyHelpers for Team {
                         let (Some(first_pet), Some(second_pet)) = (chunk.next(), chunk.next()) else {
                             continue;
                         };
-                        first_pet.borrow_mut().swap(&mut second_pet.borrow_mut());
+                        first_pet
+                            .write()
+                            .unwrap()
+                            .swap(&mut second_pet.write().unwrap());
                         affected_pets.extend([first_pet.clone(), second_pet.clone()])
                     }
                     // Then reset indices in-place.
@@ -320,7 +332,7 @@ impl EffectApplyHelpers for Team {
                 RandomizeType::Stats => {
                     // Invert stats. (2,1) -> (1,2)
                     for pet in found_pets.iter() {
-                        pet.borrow_mut().stats.invert();
+                        pet.write().unwrap().stats.invert();
                         affected_pets.push(pet.clone())
                     }
                 }
@@ -332,22 +344,30 @@ impl EffectApplyHelpers for Team {
 
     fn repeat_effects_if_tiger(
         &self,
-        pet: &Rc<RefCell<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         trigger: &Outcome,
         trigger_petname: Option<&PetName>,
         same_pet_as_trigger: bool,
     ) -> Result<Vec<Effect>, SAPTestError> {
-        let effect_pet_idx = pet.borrow().pos.ok_or(SAPTestError::InvalidTeamAction {
-            subject: "No Pet Position Index.".to_string(),
-            reason: format!("Pet {} must have an index set at this point.", pet.borrow()),
-        })?;
+        let effect_pet_idx = {
+            let pet = pet.read().unwrap();
+            pet.pos.ok_or(SAPTestError::InvalidTeamAction {
+                subject: "No Pet Position Index.".to_string(),
+                reason: format!("Pet {} must have an index set at this point.", pet),
+            })?
+        };
 
         let mut tiger_doubled_effects = vec![];
         // For Tiger. Check if behind.
         if let Some(Some(pet_behind)) = self.friends.get(effect_pet_idx + 1) {
-            if pet_behind.borrow().name == PetName::Tiger && self.shop.state == ShopState::Closed {
+            if pet_behind.read().unwrap().name == PetName::Tiger
+                && self.shop.state == ShopState::Closed
+            {
                 // Get effect at level of tiger and repeat it.
-                let pet_effect_at_tiger_lvl = pet.borrow().get_effect(pet_behind.borrow().lvl)?;
+                let pet_effect_at_tiger_lvl = pet
+                    .read()
+                    .unwrap()
+                    .get_effect(pet_behind.read().unwrap().lvl)?;
                 for mut effect in pet_effect_at_tiger_lvl {
                     // Assign owner so new lvled effect matches owner.
                     effect.assign_owner(Some(pet));
@@ -370,10 +390,10 @@ impl EffectApplyHelpers for Team {
     fn convert_gain_type_to_food(
         &self,
         gain_type: &GainType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Option<Food>, SAPTestError> {
         Ok(match gain_type {
-            GainType::SelfItem => target_pet.borrow().item.clone(),
+            GainType::SelfItem => target_pet.read().unwrap().item.clone(),
             GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
             GainType::StoredItem(food) => Some(*food.clone()),
             GainType::RandomShopItem => {
@@ -403,7 +423,7 @@ impl EffectApplyHelpers for Team {
     fn convert_summon_type_to_pet(
         &self,
         summon_type: &SummonType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Pet, SAPTestError> {
         let mut new_pet = match summon_type {
             SummonType::QueryPet(sql, params, stats) => {
@@ -412,8 +432,9 @@ impl EffectApplyHelpers for Team {
                     .into_iter()
                     .filter_map(|record| record.try_into().ok())
                     .collect_vec();
-                let mut rng =
-                    ChaCha12Rng::seed_from_u64(target_pet.borrow().seed.unwrap_or_else(random));
+                let mut rng = ChaCha12Rng::seed_from_u64(
+                    target_pet.read().unwrap().seed.unwrap_or_else(random),
+                );
                 // Only select one pet.
                 let pet_record =
                     pet_records
@@ -437,7 +458,7 @@ impl EffectApplyHelpers for Team {
                 let mut stats = match stat_types {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
-                        target_pet.borrow().stats.mult_perc(stats)
+                        target_pet.read().unwrap().stats.mult_perc(stats)
                     }
                 };
                 Pet::new(
@@ -448,14 +469,14 @@ impl EffectApplyHelpers for Team {
             }
             SummonType::SelfPet(new_stats, new_level, keep_item) => {
                 // Current pet. Remove item
-                let mut pet = target_pet.borrow().clone();
+                let mut pet = target_pet.read().unwrap().clone();
                 pet.item = if *keep_item {
-                    target_pet.borrow().item.clone()
+                    target_pet.read().unwrap().item.clone()
                 } else {
                     None
                 };
-                pet.stats =
-                    new_stats.map_or_else(|| target_pet.borrow().stats, |set_stats| set_stats);
+                pet.stats = new_stats
+                    .map_or_else(|| target_pet.read().unwrap().stats, |set_stats| set_stats);
                 if let Some(new_level) = new_level {
                     pet.set_level(*new_level)?;
                 }
@@ -465,7 +486,7 @@ impl EffectApplyHelpers for Team {
                 let summon_query_type = SummonType::QueryPet(
                     "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
                     vec![
-                        target_pet.borrow().tier.to_string(),
+                        target_pet.read().unwrap().tier.to_string(),
                         level.unwrap_or(1).to_string(),
                     ],
                     *stats,
@@ -480,7 +501,7 @@ impl EffectApplyHelpers for Team {
                     .iter()
                     .flatten()
                     .filter_map(|pet| {
-                        let pet_name = pet.borrow().name.clone();
+                        let pet_name = pet.read().unwrap().name.clone();
                         (pet_name != *ignore_pet).then_some(pet_name)
                     })
                     .choose(&mut rng);
@@ -500,19 +521,17 @@ impl EffectApplyHelpers for Team {
 
     fn summon_pet(
         &mut self,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
         summon_type: &SummonType,
         opponent: Option<&mut Team>,
-    ) -> Result<Rc<RefCell<Pet>>, SAPTestError> {
+    ) -> Result<Arc<RwLock<Pet>>, SAPTestError> {
         // Can't impl TryFrom because requires target pet.
-        let pet = self.convert_summon_type_to_pet(summon_type, target_pet)?;
-        let target_idx = target_pet
-            .borrow()
-            .pos
-            .ok_or(SAPTestError::InvalidTeamAction {
-                subject: "Missing Summon Position".to_string(),
-                reason: format!("Target pet {} has no position.", target_pet.borrow()),
-            })?;
+        let summoned_pet = self.convert_summon_type_to_pet(summon_type, target_pet)?;
+        let target_pet = target_pet.read().unwrap();
+        let target_idx = target_pet.pos.ok_or(SAPTestError::InvalidTeamAction {
+            subject: "Missing Summon Position".to_string(),
+            reason: format!("Target pet {} has no position.", target_pet),
+        })?;
 
         // Handle case where pet in front faints and vector is empty.
         // Would panic attempting to insert at any position not at 0.
@@ -523,10 +542,10 @@ impl EffectApplyHelpers for Team {
             target_idx
         };
 
-        self.add_pet(pet, adj_target_idx, opponent)?;
+        self.add_pet(summoned_pet, adj_target_idx, opponent)?;
         // Should be safe to unwrap at this point.
-        if let Some(Some(pet)) = self.friends.get(adj_target_idx) {
-            Ok(pet.clone())
+        if let Some(Some(summoned_pet)) = self.friends.get(adj_target_idx) {
+            Ok(summoned_pet.clone())
         } else {
             Err(SAPTestError::InvalidTeamAction {
                 subject: "Missing Summoned Pet".to_string(),
@@ -537,16 +556,16 @@ impl EffectApplyHelpers for Team {
 
     fn evolve_pet(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         lvl: usize,
-        targets: Vec<Rc<RefCell<Pet>>>,
+        targets: Vec<Arc<RwLock<Pet>>>,
         opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let chosen_pet = targets.first().ok_or(SAPTestError::FallibleAction)?;
 
         // Create a default pet, upgrade its level, and scale its health and attack.
-        let mut leveled_pet = Pet::try_from(chosen_pet.borrow().name.clone())?;
+        let mut leveled_pet = Pet::try_from(chosen_pet.read().unwrap().name.clone())?;
         leveled_pet.set_level(lvl)?;
         leveled_pet.stats.attack *= TryInto::<isize>::try_into(lvl)?;
         leveled_pet.stats.health *= TryInto::<isize>::try_into(lvl)?;
@@ -560,10 +579,11 @@ impl EffectApplyHelpers for Team {
         self.apply_single_effect(chosen_pet, afflicting_pet, &kill_effect, opponent)?;
 
         // Set the target's pet ability to summon the pet.
-        let target_pet_ref = Rc::downgrade(affected_pet);
+        let target_pet_ref = Arc::downgrade(affected_pet);
         let mut target_pet_trigger = TRIGGER_SELF_FAINT;
         target_pet_trigger.affected_pet = Some(target_pet_ref.clone());
-        affected_pet.borrow_mut().effect = vec![Effect {
+        let mut affected_pet_guard = affected_pet.write().unwrap();
+        affected_pet_guard.effect = vec![Effect {
             owner: Some(target_pet_ref),
             entity: Entity::Pet,
             trigger: target_pet_trigger,
@@ -574,16 +594,16 @@ impl EffectApplyHelpers for Team {
             temp: true,
         }];
         info!(target: "run", "(\"{}\")\nEvolving {}.", self.name, leveled_pet);
-        info!(target: "run", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", self.name, affected_pet.borrow());
+        info!(target: "run", "(\"{}\")\nSet pet {} to summon evolved pet on faint.", self.name, affected_pet_guard);
         Ok(vec![chosen_pet.clone(), affected_pet.clone()])
     }
 
     fn copy_effect(
         &self,
         attr_to_copy: &CopyType,
-        targets: Vec<Rc<RefCell<Pet>>>,
-        receiving_pet: &Rc<RefCell<Pet>>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+        targets: Vec<Arc<RwLock<Pet>>>,
+        receiving_pet: &Arc<RwLock<Pet>>,
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let mut affected_pets = vec![];
         // Choose the first pet.
         let copied_attr = if let Some(pet_to_copy) = targets.first() {
@@ -591,27 +611,32 @@ impl EffectApplyHelpers for Team {
 
             match attr_to_copy.clone() {
                 CopyType::Stats(replacement_stats) => Some(CopyType::Stats(
-                    replacement_stats.map_or(Some(pet_to_copy.borrow().stats), Some),
+                    replacement_stats.map_or(Some(pet_to_copy.read().unwrap().stats), Some),
                 )),
                 CopyType::PercentStats(perc_stats_mult) => {
                     // Multiply the stats of a chosen pet by some multiplier
-                    let mut new_stats = pet_to_copy.borrow().stats.mult_perc(&perc_stats_mult);
+                    let mut new_stats = pet_to_copy
+                        .read()
+                        .unwrap()
+                        .stats
+                        .mult_perc(&perc_stats_mult);
                     new_stats.clamp(MIN_PET_STATS, MAX_PET_STATS);
                     info!(
                         target: "run", "(\"{}\")\nCopied {}% atk and {}% health from {}.",
                         self.name,
                         perc_stats_mult.attack,
                         perc_stats_mult.health,
-                        receiving_pet.borrow()
+                        receiving_pet.read().unwrap()
                     );
                     Some(CopyType::Stats(Some(new_stats)))
                 }
                 CopyType::Effect(_, lvl) => Some(CopyType::Effect(
-                    pet_to_copy.borrow().get_effect(lvl.unwrap_or(1))?,
+                    pet_to_copy.read().unwrap().get_effect(lvl.unwrap_or(1))?,
                     lvl,
                 )),
                 CopyType::Item(_) => pet_to_copy
-                    .borrow()
+                    .read()
+                    .unwrap()
                     .item
                     .as_ref()
                     .map(|food| CopyType::Item(Some(Box::new(food.clone())))),
@@ -623,37 +648,38 @@ impl EffectApplyHelpers for Team {
 
         // Chose the target of recipient of copied pet stats/effect.
         // Calculate stats or set ability.
+        let mut receiving_pet_guard = receiving_pet.write().unwrap();
         match copied_attr.unwrap_or(CopyType::None) {
             CopyType::Stats(new_stats) => {
                 // If some stats given use those as base.
                 let new_stats = if let Some(mut new_stats) = new_stats {
                     // If any stat value is 0, use the target's original stats, otherwise, use the new stats.
-                    *new_stats.comp_set_value(&receiving_pet.borrow().stats, 0)
+                    *new_stats.comp_set_value(&receiving_pet_guard.stats, 0)
                 } else {
                     // Otherwise, copy stats from target.
-                    receiving_pet.borrow().stats
+                    receiving_pet_guard.stats
                 };
 
-                receiving_pet.borrow_mut().stats = new_stats;
+                receiving_pet_guard.stats = new_stats;
 
                 info!(
                     target: "run", "(\"{}\")\nSet stats for {} to {}.",
                     self.name,
-                    receiving_pet.borrow(),
-                    receiving_pet.borrow().stats
+                    receiving_pet_guard,
+                    receiving_pet_guard.stats
                 );
             }
             CopyType::Effect(mut effects, _) => {
                 for effect in effects.iter_mut() {
                     effect.assign_owner(Some(receiving_pet));
                 }
-                receiving_pet.borrow_mut().effect = effects;
+                receiving_pet_guard.effect = effects;
 
                 info!(
                     target: "run", "(\"{}\")\nSet effect for {} to {:?}.",
                     self.name,
-                    receiving_pet.borrow(),
-                    receiving_pet.borrow().effect
+                    receiving_pet_guard,
+                    receiving_pet_guard.effect
                 );
             }
             CopyType::Item(item) => {
@@ -661,12 +687,12 @@ impl EffectApplyHelpers for Team {
                     // Assign ability owner to target_pet.
                     food.ability.assign_owner(Some(receiving_pet));
 
-                    receiving_pet.borrow_mut().item = Some(*food);
+                    receiving_pet_guard.item = Some(*food);
                     info!(
                         target: "run", "(\"{}\")\nCopyied item for {} to {:?}.",
                         self.name,
-                        receiving_pet.borrow(),
-                        receiving_pet.borrow().item
+                        receiving_pet_guard,
+                        receiving_pet_guard.item
                     );
                 }
             }
@@ -681,7 +707,7 @@ impl EffectApplyHelpers for Team {
     fn check_condition(
         &self,
         condition_type: &ConditionType,
-        target_pet: &Rc<RefCell<Pet>>,
+        target_pet: &Arc<RwLock<Pet>>,
         opponent: &Option<&mut Team>,
     ) -> Result<bool, SAPTestError> {
         fn match_team_cond(team: &Team, cond: &TeamCondition) -> bool {
@@ -708,7 +734,8 @@ impl EffectApplyHelpers for Team {
         match condition_type {
             ConditionType::Pet(target, cond) => Ok(self
                 .get_matching_pets(target, cond, opponent)?
-                .contains(target_pet)),
+                .iter()
+                .any(|pet| Arc::ptr_eq(pet, target_pet))),
             ConditionType::Team(target, cond) => {
                 if let Target::Friend = target {
                     Ok(match_team_cond(self, cond))
@@ -734,7 +761,7 @@ impl EffectApplyHelpers for Team {
         target: &Target,
         condition: &ItemCondition,
         opponent: &Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         Ok(if *target == Target::Friend {
             self.get_pets_by_cond(condition)
         } else if *target == Target::Shop {
@@ -762,13 +789,13 @@ impl EffectApplyHelpers for Team {
 
     fn apply_conditional_action(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         logic_type: &LogicType,
         effect: &Effect,
         action_set: (&Action, &Action),
         mut opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let mut affected_pets = vec![];
 
         // /// TODO: Maybe change to execute difference from total?
@@ -872,7 +899,7 @@ impl EffectApplyHelpers for Team {
         let mut effect_copy = effect.clone();
         let mut execute_actions = move |num_actions: usize,
                                         effect_copy: &Effect,
-                                        affected_pets: &mut Vec<Rc<RefCell<Pet>>>|
+                                        affected_pets: &mut Vec<Arc<RwLock<Pet>>>|
               -> Result<(), SAPTestError> {
             for _ in 0..num_actions {
                 match effect_copy.target {
@@ -913,14 +940,14 @@ impl EffectApplyHelpers for Team {
     }
 
     fn apply_shop_effect(&mut self, effect: &Effect) -> Result<(), SAPTestError> {
-        let effect_owner: Rc<RefCell<Pet>> = effect.try_into()?;
+        let effect_owner: Arc<RwLock<Pet>> = effect.try_into()?;
         // let mut affected_team_pets = vec![];
 
         match &effect.action {
             Action::AddShopStats(stats) => {
                 for pet_slot in self.shop.pets.iter() {
                     if let ItemSlot::Pet(pet) = &pet_slot.item {
-                        pet.borrow_mut().stats += *stats;
+                        pet.write().unwrap().stats += *stats;
                     } else {
                         unreachable!("Cannot have food item in pets.")
                     };
@@ -1010,12 +1037,12 @@ impl EffectApplyHelpers for Team {
     }
     fn apply_single_effect(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         effect: &Effect,
         mut opponent: Option<&mut Team>,
-    ) -> Result<Vec<Rc<RefCell<Pet>>>, SAPTestError> {
-        let mut affected_pets: Vec<Rc<RefCell<Pet>>> = vec![];
+    ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
+        let mut affected_pets: Vec<Arc<RwLock<Pet>>> = vec![];
         // Store copy of original effect as may be modified.
         let mut modified_effect = effect.clone();
 
@@ -1023,8 +1050,8 @@ impl EffectApplyHelpers for Team {
             Action::Add(stat_change) => {
                 // Cannot add stats to fainted pets.
                 // If owner is dead and the trigger for effect was not faint, ignore it.
-                if affected_pet.borrow().stats.health == 0
-                    || (afflicting_pet.borrow().stats.health == 0
+                if affected_pet.read().unwrap().stats.health == 0
+                    || (afflicting_pet.read().unwrap().stats.health == 0
                         && effect.trigger.status != Status::Faint)
                 {
                     return Ok(affected_pets);
@@ -1033,7 +1060,7 @@ impl EffectApplyHelpers for Team {
                 let added_stats = match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.borrow().stats.mult_perc(stats);
+                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
                         // Update action for digraph with static value.
                         modified_effect.action =
                             Action::Add(StatChangeType::StaticValue(mult_stats));
@@ -1047,25 +1074,29 @@ impl EffectApplyHelpers for Team {
                     && self.shop.state == ShopState::Open
                 {
                     self.shop.temp_stats.push((
-                        affected_pet.borrow().id.as_ref().unwrap().clone(),
+                        affected_pet.read().unwrap().id.as_ref().unwrap().clone(),
                         added_stats,
                     ));
                 }
-                affected_pet.borrow_mut().stats += added_stats;
-                info!(target: "run", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, affected_pet.borrow());
+                affected_pet.write().unwrap().stats += added_stats;
+                {
+                    let pet = affected_pet.read().unwrap();
+                    info!(target: "run", "(\"{}\")\nAdded {} to {}.", self.name, added_stats, pet);
+                }
                 affected_pets.push(affected_pet.clone());
             }
             Action::Remove(stat_change) => {
                 let mut remove_stats = match stat_change {
                     StatChangeType::StaticValue(stats) => *stats,
                     StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.borrow().stats.mult_perc(stats);
+                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
                         mult_stats
                     }
                 };
                 // Check for food on effect owner. Add any effect dmg modifiers. ex. Pineapple
                 if let Some(item) = afflicting_pet
-                    .borrow()
+                    .read()
+                    .unwrap()
                     .item
                     .as_ref()
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
@@ -1082,8 +1113,11 @@ impl EffectApplyHelpers for Team {
                 // Update with remaining modifiers.
                 modified_effect.action = Action::Remove(StatChangeType::StaticValue(remove_stats));
 
-                let mut atk_outcome = affected_pet.borrow_mut().indirect_attack(&remove_stats);
-                info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, affected_pet.borrow());
+                let mut atk_outcome = affected_pet.write().unwrap().indirect_attack(&remove_stats);
+                {
+                    let pet = affected_pet.read().unwrap();
+                    info!(target: "run", "(\"{}\")\nRemoved {} health from {}.", self.name, remove_stats.attack, pet);
+                }
 
                 // Update for digraph to show health loss.
                 modified_effect.action =
@@ -1106,14 +1140,17 @@ impl EffectApplyHelpers for Team {
             Action::Gain(gain_food_type) => {
                 let mut food = self.convert_gain_type_to_food(gain_food_type, afflicting_pet)?;
 
-                if food.is_none() {
-                    info!(target: "run", "(\"{}\")\nRemoved food from {}.", self.name, affected_pet.borrow());
-                } else if let Some(food) = food.as_mut() {
-                    info!(target: "run", "(\"{}\")\nGave {} to {}.", self.name, food, affected_pet.borrow());
-                    food.ability.assign_owner(Some(affected_pet));
+                {
+                    let pet = affected_pet.read().unwrap();
+                    if food.is_none() {
+                        info!(target: "run", "(\"{}\")\nRemoved food from {}.", self.name, pet);
+                    } else if let Some(food) = food.as_mut() {
+                        info!(target: "run", "(\"{}\")\nGave {} to {}.", self.name, food, pet);
+                        food.ability.assign_owner(Some(affected_pet));
+                    }
                 }
 
-                affected_pet.borrow_mut().item = food;
+                affected_pet.write().unwrap().item = food;
                 affected_pets.push(affected_pet.clone());
             }
             Action::Moose(stats) => {
@@ -1152,7 +1189,8 @@ impl EffectApplyHelpers for Team {
                     match stolen_item.item {
                         ItemSlot::Pet(pet) => {
                             // Multiply pet stats.
-                            pet.borrow_mut().stats *= Statistics::new(*multiplier, *multiplier)?;
+                            pet.write().unwrap().stats *=
+                                Statistics::new(*multiplier, *multiplier)?;
                             self.buy_pet_behavior(
                                 pet,
                                 Some(afflicting_pet.clone()),
@@ -1162,7 +1200,7 @@ impl EffectApplyHelpers for Team {
                         ItemSlot::Food(food) => {
                             // If stats adds some static value, multiply it by the mulitplier
                             if let Action::Add(StatChangeType::StaticValue(mut stats)) =
-                                food.borrow_mut().ability.action
+                                food.read().unwrap().ability.action
                             {
                                 let stat_multiplier = Statistics::new(*multiplier, *multiplier)?;
                                 stats *= stat_multiplier
@@ -1185,15 +1223,16 @@ impl EffectApplyHelpers for Team {
             }
             Action::Experience(exp) => {
                 for _ in 0..*exp {
-                    let prev_target_lvl = affected_pet.borrow().lvl;
-                    affected_pet.borrow_mut().add_experience(1)?;
-                    info!(target: "run", "(\"{}\")\nGave experience point to {}.", self.name, affected_pet.borrow());
+                    let mut pet = affected_pet.write().unwrap();
+                    let prev_target_lvl = pet.lvl;
+                    pet.add_experience(1)?;
+                    info!(target: "run", "(\"{}\")\nGave experience point to {}.", self.name, pet);
 
                     // Target leveled up. Create trigger.
-                    let pet_leveled_up = if affected_pet.borrow().lvl != prev_target_lvl {
-                        info!(target: "run", "(\"{}\")\nPet {} leveled up.", self.name, affected_pet.borrow());
+                    let pet_leveled_up = if pet.lvl != prev_target_lvl {
+                        info!(target: "run", "(\"{}\")\nPet {} leveled up.", self.name, pet);
                         let mut lvl_trigger = TRIGGER_ANY_LEVELUP;
-                        lvl_trigger.affected_pet = Some(Rc::downgrade(affected_pet));
+                        lvl_trigger.affected_pet = Some(Arc::downgrade(affected_pet));
                         Some(lvl_trigger)
                     } else {
                         None
@@ -1224,9 +1263,14 @@ impl EffectApplyHelpers for Team {
                     .friends
                     .iter()
                     .flatten()
-                    .filter(|pet| pet.borrow().stats.health == 0)
+                    .filter(|pet| pet.read().unwrap().stats.health == 0)
                     .count();
-                if let Some(position) = affected_pet.borrow().pos.map(|idx| idx + num_fainted) {
+                if let Some(position) = affected_pet
+                    .read()
+                    .unwrap()
+                    .pos
+                    .map(|idx| idx + num_fainted)
+                {
                     info!(target: "run", "(\"{}\")\nPushed pet at position {} by {}.", self.name, position, pos_change);
                     if let Some(opponent) = opponent.as_mut() {
                         self.push_pet(position, pos_change, Some(opponent))?;
@@ -1237,7 +1281,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             Action::Transform(pet_name, stats, lvl) => {
-                if let Some(target_idx) = affected_pet.borrow().pos {
+                if let Some(target_idx) = affected_pet.read().unwrap().pos {
                     let mut transformed_pet = Pet::new(pet_name.clone(), *stats, *lvl)?;
                     transformed_pet.set_pos(target_idx);
                     transformed_pet.team = Some(self.name.to_owned());
@@ -1245,11 +1289,9 @@ impl EffectApplyHelpers for Team {
                     if (0..self.friends.len()).contains(&target_idx) {
                         self.friends.remove(target_idx);
                         info!(target: "run", "(\"{}\")\nTransformed pet at position {} to {}.", self.name, target_idx, &transformed_pet);
-                        let rc_transformed_pet = Rc::new(RefCell::new(transformed_pet));
+                        let rc_transformed_pet = Arc::new(RwLock::new(transformed_pet));
+                        reassign_effects(&rc_transformed_pet);
 
-                        for effect in rc_transformed_pet.borrow_mut().effect.iter_mut() {
-                            effect.assign_owner(Some(&rc_transformed_pet));
-                        }
                         affected_pets.extend([rc_transformed_pet.clone(), affected_pet.clone()]);
                         self.friends.insert(target_idx, Some(rc_transformed_pet));
                     }
@@ -1325,8 +1367,9 @@ impl EffectApplyHelpers for Team {
                 return Ok(pets);
             }
             Action::Kill => {
-                affected_pet.borrow_mut().stats.health = 0;
-                info!(target: "run", "(\"{}\")\nKilled pet {}.", self.name, affected_pet.borrow());
+                let mut pet = affected_pet.write().unwrap();
+                pet.stats.health = 0;
+                info!(target: "run", "(\"{}\")\nKilled pet {}.", self.name, pet);
 
                 let mut self_faint_triggers = get_self_faint_triggers(&None);
                 let mut enemy_faint_triggers = get_self_enemy_faint_triggers(&None);
@@ -1345,11 +1388,12 @@ impl EffectApplyHelpers for Team {
                 affected_pets.push(affected_pet.clone());
             }
             Action::Debuff(perc_stats) => {
-                let debuff_stats = affected_pet.borrow().stats.mult_perc(perc_stats);
+                let mut pet = affected_pet.write().unwrap();
+                let debuff_stats = pet.stats.mult_perc(perc_stats);
                 modified_effect.action = Action::Debuff(debuff_stats);
 
-                affected_pet.borrow_mut().stats -= debuff_stats;
-                info!(target: "run", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, affected_pet.borrow(), perc_stats);
+                pet.stats -= debuff_stats;
+                info!(target: "run", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, pet, perc_stats);
                 affected_pets.push(affected_pet.clone());
             }
             Action::Lynx => {
@@ -1358,7 +1402,11 @@ impl EffectApplyHelpers for Team {
                     reason: "Opponent must be known for this action.".to_string(),
                 })?;
 
-                let opponent_lvls: usize = opponent.all().iter().map(|pet| pet.borrow().lvl).sum();
+                let opponent_lvls: usize = opponent
+                    .all()
+                    .iter()
+                    .map(|pet| pet.read().unwrap().lvl)
+                    .sum();
                 let lvl_dmg_action = Action::Remove(StatChangeType::StaticValue(Statistics::new(
                     opponent_lvls,
                     0,
@@ -1428,11 +1476,10 @@ impl EffectApplyHelpers for Team {
                 affected_pets.extend(pets);
             }
             Action::Cockroach => {
-                let mut pet_stats = affected_pet.borrow().stats;
-                pet_stats.attack = TryInto::<isize>::try_into(self.shop.tier())? + 1;
+                let mut pet = affected_pet.write().unwrap();
+                pet.stats.attack = TryInto::<isize>::try_into(self.shop.tier())? + 1;
 
-                affected_pet.borrow_mut().stats = pet_stats;
-                info!(target: "run", "(\"{}\")\nSet stats of {} by {}.", self.name, affected_pet.borrow(), pet_stats);
+                info!(target: "run", "(\"{}\")\nSet stats of {}.", self.name, pet);
                 affected_pets.push(affected_pet.clone());
             }
             Action::Copy(attr, target, pos) => {
@@ -1448,7 +1495,7 @@ impl EffectApplyHelpers for Team {
                 affected_pets.extend(self.copy_effect(attr, targets, affected_pet)?);
             }
             Action::Swap(RandomizeType::Stats) => {
-                affected_pet.borrow_mut().stats.invert();
+                affected_pet.write().unwrap().stats.invert();
                 affected_pets.push(affected_pet.clone());
             }
             Action::None => {}
@@ -1491,7 +1538,8 @@ impl EffectApplyHelpers for Team {
             Position::Any(cond) => {
                 let pets = self.get_pets_by_cond(cond);
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                pets.choose(&mut rng).and_then(|pet| pet.borrow().pos)
+                pets.choose(&mut rng)
+                    .and_then(|pet| pet.read().unwrap().pos)
             }
             Position::First => (!self.friends.is_empty()).then_some(0),
             Position::Last => Some(self.friends.len().saturating_sub(1)),

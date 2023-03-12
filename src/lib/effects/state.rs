@@ -1,8 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     ops::RangeInclusive,
-    rc::{Rc, Weak},
+    sync::{Arc, RwLock, Weak},
 };
 
 use crate::{
@@ -179,12 +178,12 @@ pub struct Outcome {
     pub status: Status,
     #[serde(skip)]
     /// The affected pet.
-    pub(crate) affected_pet: Option<Weak<RefCell<Pet>>>,
+    pub(crate) affected_pet: Option<Weak<RwLock<Pet>>>,
     /// The affected team.
     pub affected_team: Target,
     #[serde(skip)]
     /// The pet causing the status_update.
-    pub(crate) afflicting_pet: Option<Weak<RefCell<Pet>>>,
+    pub(crate) afflicting_pet: Option<Weak<RwLock<Pet>>>,
     /// The team causing the status update.
     pub afflicting_team: Target,
     /// General position on `affected_team`.
@@ -228,39 +227,39 @@ impl Outcome {
     /// Attach the affected pet to this trigger.
     /// # Example.
     /// ```
-    /// use std::{rc::Rc, cell::RefCell};
+    /// use std::sync::{Arc, RwLock};
     /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
-    /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
+    /// let ant = Arc::new(RwLock::new(Pet::try_from(PetName::Ant).unwrap()));
     /// let mut faint_trigger = TRIGGER_SELF_FAINT.clone();
     /// // Set affected pet to be ant.
     /// faint_trigger.set_affected(&ant);
     ///
     /// let affected_pet = faint_trigger.get_affected().unwrap();
-    /// assert!(affected_pet.ptr_eq(&Rc::downgrade(&ant)));
+    /// assert!(affected_pet.ptr_eq(&Arc::downgrade(&ant)));
     /// ```
-    pub fn set_affected(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
-        self.affected_pet = Some(Rc::downgrade(pet));
+    pub fn set_affected(&mut self, pet: &Arc<RwLock<Pet>>) -> &mut Self {
+        self.affected_pet = Some(Arc::downgrade(pet));
         self
     }
 
     /// Attach the afflicting pet to this trigger.
     /// # Example.
     /// ```
-    /// use std::{rc::Rc, cell::RefCell};
+    /// use std::sync::{Arc, RwLock};
     /// use saptest::{Pet, PetName, effects::trigger::TRIGGER_SELF_FAINT};
     ///
-    /// let ant = Rc::new(RefCell::new(Pet::try_from(PetName::Ant).unwrap()));
-    /// let mosquito = Rc::new(RefCell::new(Pet::try_from(PetName::Mosquito).unwrap()));
+    /// let ant = Arc::new(RwLock::new(Pet::try_from(PetName::Ant).unwrap()));
+    /// let mosquito = Arc::new(RwLock::new(Pet::try_from(PetName::Mosquito).unwrap()));
     /// let mut faint_trigger = TRIGGER_SELF_FAINT.clone();
     /// // Set affected pet to be ant and afflicting pet to be mosquito.
     /// faint_trigger.set_affected(&ant).set_afflicting(&mosquito);
     ///
     /// let afflicting_pet = faint_trigger.get_afflicting().unwrap();
-    /// assert!(afflicting_pet.ptr_eq(&Rc::downgrade(&mosquito)));
+    /// assert!(afflicting_pet.ptr_eq(&Arc::downgrade(&mosquito)));
     /// ```
-    pub fn set_afflicting(&mut self, pet: &Rc<RefCell<Pet>>) -> &mut Self {
-        self.afflicting_pet = Some(Rc::downgrade(pet));
+    pub fn set_afflicting(&mut self, pet: &Arc<RwLock<Pet>>) -> &mut Self {
+        self.afflicting_pet = Some(Arc::downgrade(pet));
         self
     }
 
@@ -271,7 +270,7 @@ impl Outcome {
     /// // No single affected pet as affects every pet.
     /// assert!(TRIGGER_START_BATTLE.get_affected().is_none())
     /// ```
-    pub fn get_affected(&self) -> Option<Weak<RefCell<Pet>>> {
+    pub fn get_affected(&self) -> Option<Weak<RwLock<Pet>>> {
         self.affected_pet.as_ref().cloned()
     }
 
@@ -282,7 +281,7 @@ impl Outcome {
     /// // No single afflicting pet as no pet causes the start of battle.
     /// assert!(TRIGGER_START_BATTLE.get_afflicting().is_none())
     /// ```
-    pub fn get_afflicting(&self) -> Option<Weak<RefCell<Pet>>> {
+    pub fn get_afflicting(&self) -> Option<Weak<RwLock<Pet>>> {
         self.afflicting_pet.as_ref().cloned()
     }
 }

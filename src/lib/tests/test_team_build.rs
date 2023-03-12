@@ -1,4 +1,4 @@
-use std::rc::Rc;
+use std::{rc::Rc, sync::Arc};
 
 use itertools::Itertools;
 
@@ -106,16 +106,17 @@ fn test_team_restore() {
 
     for (restored_pet, original_pet) in team.friends.iter().zip_eq(original_team.friends.iter()) {
         assert!(
-            restored_pet.as_ref().unwrap().borrow().stats
-                == original_pet.as_ref().unwrap().borrow().stats
+            restored_pet.as_ref().unwrap().read().unwrap().stats
+                == original_pet.as_ref().unwrap().read().unwrap().stats
         );
         for (effect_restored, effect_original) in restored_pet
             .as_ref()
             .unwrap()
-            .borrow()
+            .read()
+            .unwrap()
             .effect
             .iter()
-            .zip_eq(original_pet.as_ref().unwrap().borrow().effect.iter())
+            .zip_eq(original_pet.as_ref().unwrap().read().unwrap().effect.iter())
         {
             assert!(effect_restored.uses == effect_original.uses)
         }
@@ -134,15 +135,19 @@ fn test_team_push() {
     )
     .unwrap();
 
+    let snake = team.nth(0).unwrap();
+    let hippo = team.nth(1).unwrap();
+    let dog = team.nth(2).unwrap();
+
     // Push pet at pos 0 (Snake) a space back to pos 1.
     team.push_pet(0, -1, None).unwrap();
 
-    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Snake);
+    assert_eq!(snake.read().unwrap().pos, Some(1));
 
     // Push pet at pos 2 (Dog) two spaces forward to pos 0.
     team.push_pet(2, 2, None).unwrap();
 
-    assert_eq!(team.nth(0).unwrap().borrow().name, PetName::Dog);
+    assert_eq!(dog.read().unwrap().pos, Some(0));
 
     // Two push triggers made.
     assert_eq!(team.triggers.len(), 2);
@@ -150,8 +155,8 @@ fn test_team_push() {
     let push_trigger_dog = team.triggers.back().unwrap();
 
     // Get weak references to pets.
-    let dog = Rc::downgrade(team.friends.get(0).unwrap().as_ref().unwrap());
-    let snake = Rc::downgrade(team.friends.get(2).unwrap().as_ref().unwrap());
+    let dog = Arc::downgrade(&dog);
+    let snake = Arc::downgrade(&snake);
 
     // Snake
     assert!(
@@ -238,7 +243,8 @@ fn test_clear_team() {
             .unwrap()
             .as_ref()
             .unwrap()
-            .borrow()
+            .read()
+            .unwrap()
             .pos
             == Some(0)
             && empty_pos_front_team
@@ -247,7 +253,8 @@ fn test_clear_team() {
                 .unwrap()
                 .as_ref()
                 .unwrap()
-                .borrow()
+                .read()
+                .unwrap()
                 .pos
                 == Some(2)
             && empty_pos_front_team.friends.len() == 3
@@ -263,7 +270,8 @@ fn test_clear_team() {
             .unwrap()
             .as_ref()
             .unwrap()
-            .borrow()
+            .read()
+            .unwrap()
             .pos
             == Some(0)
             && dead_pet_second_pos_team.friends.len() == 1
@@ -338,12 +346,12 @@ fn test_start_battle_order() {
         // Caterpillar survives transforming into unhurt butterfly.
         let butterfly = team.first().unwrap();
         assert!(
-            butterfly.borrow().stats
+            butterfly.read().unwrap().stats
                 == Statistics {
                     attack: 1,
                     health: 1
                 }
-                && butterfly.borrow().name == PetName::Butterfly
+                && butterfly.read().unwrap().name == PetName::Butterfly
         )
     }
 
@@ -359,12 +367,12 @@ fn test_start_battle_order() {
         assert!(team.first().is_none());
         let butterfly = team.friends.first().unwrap().as_ref().unwrap();
         assert!(
-            butterfly.borrow().stats
+            butterfly.read().unwrap().stats
                 == Statistics {
                     attack: 1,
                     health: 0
                 }
-                && butterfly.borrow().name == PetName::Butterfly
+                && butterfly.read().unwrap().name == PetName::Butterfly
         )
     }
 }

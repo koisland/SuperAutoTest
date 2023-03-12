@@ -1,5 +1,9 @@
 use petgraph::{stable_graph::NodeIndex, Directed, Graph};
-use std::{cell::RefCell, collections::HashMap, fmt::Display, rc::Rc};
+use std::{
+    collections::HashMap,
+    fmt::Display,
+    sync::{Arc, RwLock},
+};
 
 use crate::{
     effects::{
@@ -58,11 +62,12 @@ pub struct BattleGraph {
 impl BattleGraph {
     pub(crate) fn update(
         &mut self,
-        friends: &[Option<Rc<RefCell<Pet>>>],
-        enemies: &[Option<Rc<RefCell<Pet>>>],
+        friends: &[Option<Arc<RwLock<Pet>>>],
+        enemies: &[Option<Arc<RwLock<Pet>>>],
     ) {
         for pet in friends.iter().chain(enemies.iter()).flatten() {
-            if let (Some(id), Some(team)) = (&pet.borrow().id, &pet.borrow().team) {
+            let pet = pet.read().unwrap();
+            if let (Some(id), Some(team)) = (&pet.id, &pet.team) {
                 let node = PetNode {
                     id: id.to_owned(),
                     team: team.to_owned(),
@@ -92,15 +97,15 @@ impl BattleGraph {
 pub(crate) trait TeamHistoryHelpers {
     fn add_hurt_and_attack_edges(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         atk_outcome: &AttackOutcome,
     ) -> Result<(), SAPTestError>;
 
     fn add_action_edge(
         &mut self,
-        affected: &Rc<RefCell<Pet>>,
-        afflicting: &Rc<RefCell<Pet>>,
+        affected: &Arc<RwLock<Pet>>,
+        afflicting: &Arc<RwLock<Pet>>,
         status: &Status,
         action: &Action,
     ) -> Result<(), SAPTestError>;
@@ -108,11 +113,11 @@ pub(crate) trait TeamHistoryHelpers {
 impl TeamHistoryHelpers for Team {
     fn add_hurt_and_attack_edges(
         &mut self,
-        affected_pet: &Rc<RefCell<Pet>>,
-        afflicting_pet: &Rc<RefCell<Pet>>,
+        affected_pet: &Arc<RwLock<Pet>>,
+        afflicting_pet: &Arc<RwLock<Pet>>,
         atk_outcome: &AttackOutcome,
     ) -> Result<(), SAPTestError> {
-        let mut outcomes = if Some(&self.name) == affected_pet.borrow().team.as_ref() {
+        let mut outcomes = if Some(&self.name) == affected_pet.read().unwrap().team.as_ref() {
             atk_outcome.friends.iter()
         } else {
             atk_outcome.opponents.iter()
@@ -138,19 +143,21 @@ impl TeamHistoryHelpers for Team {
     }
     fn add_action_edge(
         &mut self,
-        affected: &Rc<RefCell<Pet>>,
-        afflicting: &Rc<RefCell<Pet>>,
+        affected: &Arc<RwLock<Pet>>,
+        afflicting: &Arc<RwLock<Pet>>,
         status: &Status,
         action: &Action,
     ) -> Result<(), SAPTestError> {
-        if let (Some(affected_team), Some(afflicting_team)) = (
-            affected.borrow().team.as_ref(),
-            afflicting.borrow().team.as_ref(),
-        ) {
-            if let Some(id) = &affected.borrow().id {
+        let affected = affected.read().unwrap();
+        let afflicting = afflicting.read().unwrap();
+
+        if let (Some(affected_team), Some(afflicting_team)) =
+            (affected.team.clone(), afflicting.team.clone())
+        {
+            if let Some(id) = affected.id.clone() {
                 let node = PetNode {
-                    id: id.clone(),
-                    team: affected_team.to_owned(),
+                    id,
+                    team: affected_team,
                 };
 
                 let affected_node_idx = *self
@@ -162,10 +169,10 @@ impl TeamHistoryHelpers for Team {
                         self.history.graph.phase_graph.add_node(node.clone())
                     });
 
-                if let Some(afflicting_pet_id) = &afflicting.borrow().id {
+                if let Some(afflicting_pet_id) = afflicting.id.clone() {
                     let other_node = PetNode {
-                        id: afflicting_pet_id.clone(),
-                        team: afflicting_team.to_owned(),
+                        id: afflicting_pet_id,
+                        team: afflicting_team,
                     };
                     let afflicting_node_idx =
                         self.history.graph.pet_nodes.get(&other_node).cloned();
@@ -177,8 +184,8 @@ impl TeamHistoryHelpers for Team {
                                 status.clone(),
                                 action.clone(),
                                 (self.history.curr_phase, self.history.curr_cycle),
-                                affected.borrow().stats,
-                                afflicting.borrow().stats,
+                                affected.stats,
+                                afflicting.stats,
                             ),
                         );
                     }

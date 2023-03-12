@@ -1,12 +1,12 @@
-use std::{cell::RefCell, rc::Rc};
+use std::sync::{Arc, RwLock};
 
 use crate::{Food, FoodName, Pet, PetName, Position, Statistics, Team};
 
-pub fn count_pets(friends: &[Option<Rc<RefCell<Pet>>>], pet_name: PetName) -> usize {
+pub fn count_pets(friends: &[Option<Arc<RwLock<Pet>>>], pet_name: PetName) -> usize {
     friends
         .iter()
         .flatten()
-        .filter_map(|pet| (pet.borrow().name == pet_name).then_some(1))
+        .filter_map(|pet| (pet.read().unwrap().name == pet_name).then_some(1))
         .sum()
 }
 

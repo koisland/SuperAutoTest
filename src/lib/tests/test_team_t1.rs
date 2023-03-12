@@ -23,7 +23,7 @@ fn test_battle_ant_team() {
         .friends
         .iter()
         .flatten()
-        .all(|pet| pet.borrow().stats == Statistics::new(2, 1).unwrap());
+        .all(|pet| pet.read().unwrap().stats == Statistics::new(2, 1).unwrap());
     assert!(all_2_1);
 
     // One battle phase and one ant faints.
@@ -33,7 +33,7 @@ fn test_battle_ant_team() {
         .friends
         .iter()
         .flatten()
-        .any(|pet| pet.borrow().stats == Statistics::new(4, 2).unwrap());
+        .any(|pet| pet.read().unwrap().stats == Statistics::new(4, 2).unwrap());
     // Another pet gets (2,1).
     assert!(any_gets_2_1)
 }
@@ -45,10 +45,10 @@ fn test_battle_cricket_horse_team() {
 
     // First pets are crickets
     // Horse is 3rd pet.
-    assert_eq!(team.first().unwrap().borrow().name, PetName::Cricket);
-    assert_eq!(team.nth(2).unwrap().borrow().name, PetName::Horse);
+    assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Cricket);
+    assert_eq!(team.nth(2).unwrap().read().unwrap().name, PetName::Horse);
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -61,9 +61,12 @@ fn test_battle_cricket_horse_team() {
 
     // Cricket dies and zombie cricket is spawned.
     // Horse provides 1 attack.
-    assert_eq!(team.first().unwrap().borrow().name, PetName::ZombieCricket);
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().name,
+        PetName::ZombieCricket
+    );
+    assert_eq!(
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -90,7 +93,7 @@ fn test_battle_mosquito_team() {
     for pet in team.all().iter() {
         // Mosquitoes are unhurt
         assert_eq!(
-            pet.borrow().stats,
+            pet.read().unwrap().stats,
             Statistics {
                 attack: 2,
                 health: 2,
@@ -105,7 +108,7 @@ fn test_battle_frilled_dragon_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.last().unwrap().borrow().stats,
+        team.last().unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -117,7 +120,7 @@ fn test_battle_frilled_dragon_team() {
     // Team has two crickets with faint triggers. Gains (1,1) for each.
     let last_pet = team.all().into_iter().last();
     assert_eq!(
-        last_pet.unwrap().borrow().stats,
+        last_pet.unwrap().read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 3
@@ -133,7 +136,7 @@ fn test_battle_frog_team() {
     let cricket = team.first();
     let frilled_dragon = team.nth(2);
     assert_eq!(
-        cricket.unwrap().as_ref().borrow().stats,
+        cricket.unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -141,7 +144,7 @@ fn test_battle_frog_team() {
     );
     // Frilled dragon before activation of ability.
     assert_eq!(
-        frilled_dragon.as_ref().unwrap().as_ref().borrow().stats,
+        frilled_dragon.as_ref().unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -155,7 +158,7 @@ fn test_battle_frog_team() {
 
     // Frilled dragon gets cricket stats.
     assert_eq!(
-        frilled_dragon.unwrap().as_ref().borrow().stats,
+        frilled_dragon.as_ref().unwrap().read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 3
@@ -169,7 +172,7 @@ fn test_battle_moth_team() {
     let mut enemy_team = test_ant_team();
 
     assert_eq!(
-        team.first().unwrap().as_ref().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 3
@@ -179,7 +182,7 @@ fn test_battle_moth_team() {
     team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(
-        team.first().unwrap().as_ref().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 8,
             health: 1
@@ -194,7 +197,7 @@ fn test_battle_hummingbird_team() {
 
     let duck = team.first().unwrap();
     assert_eq!(
-        duck.borrow().stats,
+        duck.read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 3
@@ -203,7 +206,7 @@ fn test_battle_hummingbird_team() {
     // Duck has strawberry.
 
     assert_eq!(
-        duck.borrow().item.as_ref().unwrap().name,
+        duck.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Strawberry
     );
     // Two hummingbirds on team.
@@ -214,7 +217,7 @@ fn test_battle_hummingbird_team() {
 
     // Duck gets 2/1 for every hummingbird since only strawberry friend.
     assert_eq!(
-        duck.borrow().stats,
+        duck.read().unwrap().stats,
         Statistics {
             attack: 6,
             health: 5
@@ -233,7 +236,10 @@ fn test_battle_iguana_seahorse_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Only one pet remaining on enemy team.
-    assert_eq!(enemy_team.first().unwrap().borrow().name, PetName::Cricket);
+    assert_eq!(
+        enemy_team.first().unwrap().read().unwrap().name,
+        PetName::Cricket
+    );
     assert_eq!(enemy_team.friends.len(), 1)
 }
 
@@ -246,7 +252,7 @@ fn test_shop_beaver_team() {
             continue;
         }
         // Two pets at (2,1)
-        assert_eq!(pet.borrow().stats, Statistics::new(2, 1).unwrap())
+        assert_eq!(pet.read().unwrap().stats, Statistics::new(2, 1).unwrap())
     }
 
     // Init shop and set level of beaver at front to level 2.
@@ -261,7 +267,7 @@ fn test_shop_beaver_team() {
 
     // Ants get (0,2)
     for (_, pet) in team.all().into_iter().enumerate() {
-        assert_eq!(pet.borrow().stats, Statistics::new(2, 3).unwrap())
+        assert_eq!(pet.read().unwrap().stats, Statistics::new(2, 3).unwrap())
     }
 }
 
@@ -269,7 +275,7 @@ fn test_shop_beaver_team() {
 fn test_shop_duck_team() {
     let mut team = test_duck_team();
 
-    assert_eq!(team.first().unwrap().borrow().name, PetName::Duck);
+    assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Duck);
 
     team.set_shop_seed(Some(11)).open_shop().unwrap();
 
@@ -310,10 +316,10 @@ fn test_shop_fish_team() {
     let mut team = test_fish_team();
     // Duck stats.
     for pet in team.all().get(1..).unwrap() {
-        assert_eq!(pet.borrow().stats, Statistics::new(2, 3).unwrap())
+        assert_eq!(pet.read().unwrap().stats, Statistics::new(2, 3).unwrap())
     }
     let fish = team.first().unwrap();
-    assert!(fish.borrow().lvl == 1 && fish.borrow().exp == 1);
+    assert!(fish.read().unwrap().lvl == 1 && fish.read().unwrap().exp == 1);
 
     // Init seeded shop. Has fish.
     team.set_shop_seed(Some(22221211)).open_shop().unwrap();
@@ -333,7 +339,7 @@ fn test_shop_fish_team() {
 
     // Pets gain (1, 1) from fish levelup.
     for pet in team.all().get(1..).unwrap() {
-        assert_eq!(pet.borrow().stats, Statistics::new(3, 4).unwrap())
+        assert_eq!(pet.read().unwrap().stats, Statistics::new(3, 4).unwrap())
     }
 }
 
@@ -344,7 +350,7 @@ fn test_shop_otter_team() {
     team.set_shop_seed(Some(432)).open_shop().unwrap();
     // Duck has (2,3)
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics::new(2, 3).unwrap()
     );
 
@@ -360,7 +366,7 @@ fn test_shop_otter_team() {
     // Buying otter buffs duck to (3,4)
     team.buy(&otter_pos, &item_type, &Position::Last).unwrap();
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics::new(3, 4).unwrap()
     )
 }
@@ -385,7 +391,7 @@ fn test_shop_chinchilla_team() {
 
     // Loyal chinchilla summoned.
     assert_eq!(
-        team.first().unwrap().borrow().name,
+        team.first().unwrap().read().unwrap().name,
         PetName::LoyalChinchilla
     );
 
@@ -400,7 +406,7 @@ fn test_shop_chinchilla_team() {
     assert!(
         all_pets
             .iter()
-            .all(|pet| pet.borrow().name == PetName::LoyalChinchilla)
+            .all(|pet| pet.read().unwrap().name == PetName::LoyalChinchilla)
             && all_pets.len() == 2
     )
 }
@@ -457,7 +463,7 @@ fn test_shop_bluebird_team() {
     assert!(team
         .all()
         .into_iter()
-        .all(|pet| pet.borrow().stats == Statistics::new(2, 1).unwrap()));
+        .all(|pet| pet.read().unwrap().stats == Statistics::new(2, 1).unwrap()));
 
     // Set seed so reproducible
     // Open shop and close.
@@ -465,7 +471,7 @@ fn test_shop_bluebird_team() {
 
     // Three random (1,0) buffs.
     for (i, pet) in team.all().into_iter().enumerate() {
-        let pet_stats = pet.borrow().stats;
+        let pet_stats = pet.read().unwrap().stats;
         if i == 0 {
             assert_eq!(pet_stats, Statistics::new(4, 1).unwrap());
         } else if i == 1 {
@@ -482,7 +488,7 @@ fn test_shop_ladybug_team() {
 
     let original_stats = Statistics::new(1, 3).unwrap();
     for pet in team.all().into_iter() {
-        assert_eq!(pet.borrow().stats, original_stats)
+        assert_eq!(pet.read().unwrap().stats, original_stats)
     }
 
     team.set_shop_seed(Some(432))
@@ -493,14 +499,14 @@ fn test_shop_ladybug_team() {
 
     // Ladybugs gain (2,0) after first ladybug eats honey.
     for pet in team.all().into_iter() {
-        assert_eq!(pet.borrow().stats, Statistics::new(3, 3).unwrap())
+        assert_eq!(pet.read().unwrap().stats, Statistics::new(3, 3).unwrap())
     }
 
     // Close and reenter shop.
     team.close_shop().unwrap().open_shop().unwrap();
     // Reverted to original stats.
     for pet in team.all().into_iter() {
-        assert_eq!(pet.borrow().stats, original_stats)
+        assert_eq!(pet.read().unwrap().stats, original_stats)
     }
 }
 
@@ -509,14 +515,14 @@ fn test_shop_cockroach_team() {
     let mut team = test_cockroach_team();
 
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics::new(1, 4).unwrap()
     );
     // Open shop for start of turn.
     assert_eq!(team.shop.tier(), 1);
     team.open_shop().unwrap();
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics::new(2, 4).unwrap()
     );
     team.close_shop().unwrap();
@@ -528,7 +534,7 @@ fn test_shop_cockroach_team() {
     assert_eq!(team.shop.tier(), 2);
     // Attack of roach is 2 + 1.
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics::new(3, 4).unwrap()
     );
 }
@@ -567,7 +573,7 @@ fn test_shop_frog_team() {
     let mut team_frog_end_turn = test_frog_team();
 
     assert_eq!(
-        team_frog_sell.nth(0).unwrap().borrow().stats,
+        team_frog_sell.nth(0).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -575,7 +581,7 @@ fn test_shop_frog_team() {
     );
     // Frilled dragon before activation of ability.
     assert_eq!(
-        team_frog_sell.nth(2).unwrap().borrow().stats,
+        team_frog_sell.nth(2).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -592,7 +598,7 @@ fn test_shop_frog_team() {
     team_frog_sell.sell(&frog_pos).unwrap();
 
     assert_eq!(
-        team_frog_sell.nth(0).unwrap().borrow().stats,
+        team_frog_sell.nth(0).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -600,7 +606,7 @@ fn test_shop_frog_team() {
     );
     // Frilled dragon now has cricket stats.
     assert_eq!(
-        team_frog_sell.nth(2).unwrap().borrow().stats,
+        team_frog_sell.nth(2).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -617,7 +623,7 @@ fn test_shop_frog_team() {
         .unwrap();
 
     assert_eq!(
-        team_frog_end_turn.nth(0).unwrap().borrow().stats,
+        team_frog_end_turn.nth(0).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 1
@@ -625,7 +631,7 @@ fn test_shop_frog_team() {
     );
     // Frilled dragon now has cricket stats.
     assert_eq!(
-        team_frog_end_turn.nth(2).unwrap().borrow().stats,
+        team_frog_end_turn.nth(2).unwrap().read().unwrap().stats,
         Statistics {
             attack: 1,
             health: 2
@@ -644,7 +650,7 @@ fn test_shop_kiwi_team() {
     .unwrap();
 
     assert_eq!(
-        team.last().unwrap().borrow().stats,
+        team.last().unwrap().read().unwrap().stats,
         Statistics {
             attack: 2,
             health: 1
@@ -655,7 +661,7 @@ fn test_shop_kiwi_team() {
 
     // Gains (1,2) from sell.
     assert_eq!(
-        team.last().unwrap().borrow().stats,
+        team.last().unwrap().read().unwrap().stats,
         Statistics {
             attack: 3,
             health: 3
@@ -697,7 +703,7 @@ fn test_shop_pillbug_team() {
     // Check health of two pets behind pillbug.
     for pet in pets.get(1..).unwrap() {
         assert_eq!(
-            pet.borrow().stats,
+            pet.read().unwrap().stats,
             Statistics {
                 attack: 2,
                 health: 1
@@ -709,7 +715,7 @@ fn test_shop_pillbug_team() {
     // Two pets behind pillbug get (0,1) on shop tier upgrade.
     for pet in pets.get(1..).unwrap() {
         assert_eq!(
-            pet.borrow().stats,
+            pet.read().unwrap().stats,
             Statistics {
                 attack: 2,
                 health: 2

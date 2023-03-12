@@ -358,23 +358,23 @@ pub trait ShopItemViewer: std::borrow::Borrow<ShopItem> {
     fn actions(&self) -> Vec<Action>;
 }
 
-impl<I: std::borrow::Borrow<ShopItem>> ShopItemViewer for I {
+impl ShopItemViewer for ShopItem {
     fn name(&self) -> EntityName {
-        match &self.borrow().item {
-            ItemSlot::Pet(pet) => EntityName::Pet(pet.borrow().name.clone()),
-            ItemSlot::Food(food) => EntityName::Food(food.borrow().name.clone()),
+        match &self.item {
+            ItemSlot::Pet(pet) => EntityName::Pet(pet.read().unwrap().name.clone()),
+            ItemSlot::Food(food) => EntityName::Food(food.read().unwrap().name.clone()),
         }
     }
     fn cost(&self) -> usize {
-        self.borrow().cost
+        self.cost
     }
     fn is_frozen(&self) -> bool {
-        self.borrow().state == ItemState::Frozen
+        self.state == ItemState::Frozen
     }
     fn health_stat(&self) -> Option<isize> {
-        match &self.borrow().item {
-            ItemSlot::Pet(pet) => Some(pet.borrow().stats.health),
-            ItemSlot::Food(food) => match food.borrow().ability.action {
+        match &self.item {
+            ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.health),
+            ItemSlot::Food(food) => match food.read().unwrap().ability.action {
                 Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.health),
                 Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.health),
                 _ => None,
@@ -382,9 +382,9 @@ impl<I: std::borrow::Borrow<ShopItem>> ShopItemViewer for I {
         }
     }
     fn attack_stat(&self) -> Option<isize> {
-        match &self.borrow().item {
-            ItemSlot::Pet(pet) => Some(pet.borrow().stats.attack),
-            ItemSlot::Food(food) => match food.borrow().ability.action {
+        match &self.item {
+            ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.attack),
+            ItemSlot::Food(food) => match food.read().unwrap().ability.action {
                 Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.attack),
                 Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.attack),
                 Action::Negate(stats) => Some(stats.attack),
@@ -393,31 +393,33 @@ impl<I: std::borrow::Borrow<ShopItem>> ShopItemViewer for I {
         }
     }
     fn tier(&self) -> usize {
-        match &self.borrow().item {
-            ItemSlot::Pet(pet) => pet.borrow().tier,
-            ItemSlot::Food(food) => food.borrow().tier,
+        match &self.item {
+            ItemSlot::Pet(pet) => pet.read().unwrap().tier,
+            ItemSlot::Food(food) => food.read().unwrap().tier,
         }
     }
     fn triggers(&self) -> Vec<Status> {
-        match &self.borrow().item {
+        match &self.item {
             ItemSlot::Pet(pet) => pet
-                .borrow()
+                .read()
+                .unwrap()
                 .effect
                 .iter()
                 .map(|effect| effect.trigger.status.clone())
                 .collect_vec(),
-            ItemSlot::Food(food) => vec![food.borrow().ability.trigger.status.clone()],
+            ItemSlot::Food(food) => vec![food.read().unwrap().ability.trigger.status.clone()],
         }
     }
     fn actions(&self) -> Vec<Action> {
-        match &self.borrow().item {
+        match &self.item {
             ItemSlot::Pet(pet) => pet
-                .borrow()
+                .read()
+                .unwrap()
                 .effect
                 .iter()
                 .map(|effect| effect.action.clone())
                 .collect_vec(),
-            ItemSlot::Food(food) => vec![food.borrow().ability.action.clone()],
+            ItemSlot::Food(food) => vec![food.read().unwrap().ability.action.clone()],
         }
     }
 }

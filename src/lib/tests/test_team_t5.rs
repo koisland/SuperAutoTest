@@ -26,8 +26,8 @@ fn test_battle_croc_team() {
 
     let last_pet = team.last().unwrap();
     let last_enemy_pet = team.last().unwrap();
-    assert_eq!(last_pet.borrow().name, PetName::Cricket);
-    assert_eq!(last_enemy_pet.borrow().name, PetName::Cricket);
+    assert_eq!(last_pet.read().unwrap().name, PetName::Cricket);
+    assert_eq!(last_enemy_pet.read().unwrap().name, PetName::Cricket);
 
     // After start of battle, both crickets at end are sniped.
     // Two zombie crickets are spawned in their place.
@@ -38,8 +38,8 @@ fn test_battle_croc_team() {
 
     assert_eq!(team.all().len(), 4);
     assert_eq!(enemy_team.all().len(), 4);
-    assert_eq!(last_pet.borrow().name, PetName::ZombieCricket);
-    assert_eq!(last_enemy_pet.borrow().name, PetName::ZombieCricket);
+    assert_eq!(last_pet.read().unwrap().name, PetName::ZombieCricket);
+    assert_eq!(last_enemy_pet.read().unwrap().name, PetName::ZombieCricket);
 }
 
 #[test]
@@ -52,7 +52,7 @@ fn test_battle_rhino_team() {
     assert_eq!(outcome, TeamFightOutcome::None);
     // Only one damage from first cricket to trigger chain of faint triggers.
     assert_eq!(
-        team.first().unwrap().borrow().stats,
+        team.first().unwrap().read().unwrap().stats,
         Statistics {
             attack: 5,
             health: 7
@@ -62,7 +62,7 @@ fn test_battle_rhino_team() {
     assert!(enemy_team
         .all()
         .iter()
-        .all(|pet| pet.borrow().name == PetName::ZombieCricket))
+        .all(|pet| pet.read().unwrap().name == PetName::ZombieCricket))
 }
 
 #[test]
@@ -92,14 +92,14 @@ fn test_battle_chili_rhino() {
     )
     .unwrap();
     let mammoth = enemy_team.first().unwrap();
-    let mammoth_start_stats = mammoth.borrow().stats;
+    let mammoth_start_stats = mammoth.read().unwrap().stats;
 
     team.fight(&mut enemy_team).unwrap();
 
     // Rhino knockout dmg triggers because dog dies behind mammoth.
     assert_eq!(
         mammoth_start_stats + RHINO_DMG + RHINO_KNOCKOUT_DMG,
-        mammoth.borrow().stats
+        mammoth.read().unwrap().stats
     );
 }
 
@@ -122,7 +122,7 @@ fn test_shop_scorpion_team() {
     // Scorpion summoned and gains peanuts after purchase.
     let scorpion = team.first().unwrap();
     assert_eq!(
-        scorpion.borrow().item.as_ref().unwrap().name,
+        scorpion.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Peanut
     );
 }
@@ -145,7 +145,13 @@ fn test_battle_scorpion_team() {
     // Gets peanuts.
     let summoned_scorpion = team.first().unwrap();
     assert_eq!(
-        summoned_scorpion.borrow().item.as_ref().unwrap().name,
+        summoned_scorpion
+            .read()
+            .unwrap()
+            .item
+            .as_ref()
+            .unwrap()
+            .name,
         FoodName::Peanut
     );
 
@@ -160,7 +166,7 @@ fn test_battle_shark_team() {
     let mut enemy_team = test_shark_team();
 
     let shark = team.last().unwrap();
-    let shark_start_stats = shark.borrow().stats;
+    let shark_start_stats = shark.read().unwrap().stats;
     let n_team_crickets = count_pets(&team.friends, PetName::Cricket) as isize;
 
     // Lvl. 1 shark gains (1,2) on any faint.
@@ -178,7 +184,7 @@ fn test_battle_shark_team() {
     let mut final_stats = SHARK_BUFF;
     final_stats.attack *= n_team_crickets * 2;
     final_stats.health *= n_team_crickets * 2;
-    assert_eq!(shark_start_stats + final_stats, shark.borrow().stats);
+    assert_eq!(shark_start_stats + final_stats, shark.read().unwrap().stats);
 }
 
 #[test]
@@ -192,7 +198,7 @@ fn test_battle_turkey_team() {
     // Cricket faints, zombie version spawned, and it gains (3,3) (lvl.1 turkey)
     let zombie_cricket = team.first().unwrap();
     assert_eq!(
-        zombie_cricket.borrow().stats,
+        zombie_cricket.read().unwrap().stats,
         Statistics {
             attack: 4,
             health: 4
@@ -209,20 +215,23 @@ fn test_battle_hyena_team() {
     enemy_team.set_seed(Some(20));
 
     // Original positions
-    assert_eq!(team.nth(1).unwrap().borrow().name, PetName::Gorilla);
-    assert_eq!(enemy_team.nth(2).unwrap().borrow().name, PetName::Horse);
+    assert_eq!(team.nth(1).unwrap().read().unwrap().name, PetName::Gorilla);
+    assert_eq!(
+        enemy_team.nth(2).unwrap().read().unwrap().name,
+        PetName::Horse
+    );
 
     let team_stats = team
         .friends
         .iter()
         .flatten()
-        .map(|pet| pet.borrow().stats)
+        .map(|pet| pet.read().unwrap().stats)
         .collect_vec();
     let enemy_stats = enemy_team
         .friends
         .iter()
         .flatten()
-        .map(|pet| pet.borrow().stats)
+        .map(|pet| pet.read().unwrap().stats)
         .collect_vec();
 
     team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
@@ -233,7 +242,7 @@ fn test_battle_hyena_team() {
         .friends
         .iter()
         .flatten()
-        .map(|pet| pet.borrow().stats)
+        .map(|pet| pet.read().unwrap().stats)
         .zip_eq(team_stats)
     {
         assert_eq!(og.invert().to_owned(), new)
@@ -242,7 +251,7 @@ fn test_battle_hyena_team() {
         .friends
         .iter()
         .flatten()
-        .map(|pet| pet.borrow().stats)
+        .map(|pet| pet.read().unwrap().stats)
         .zip_eq(enemy_stats)
     {
         assert_eq!(og.invert().to_owned(), new)
@@ -258,8 +267,11 @@ fn test_battle_hyena_team() {
         .unwrap();
 
     // Hyena at lvl. 2 swaps positions of pets.
-    assert_eq!(team.first().unwrap().borrow().name, PetName::Gorilla);
-    assert_eq!(enemy_team.first().unwrap().borrow().name, PetName::Horse);
+    assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Gorilla);
+    assert_eq!(
+        enemy_team.first().unwrap().read().unwrap().name,
+        PetName::Horse
+    );
 
     // Reset teams.
     team.restore();
@@ -274,12 +286,12 @@ fn test_battle_hyena_team() {
     let gorilla = team.first().unwrap();
     let horse = enemy_team.first().unwrap();
     assert!(
-        gorilla.borrow().name == PetName::Gorilla
-            && gorilla.borrow().stats == Statistics::new(9, 6).unwrap()
+        gorilla.read().unwrap().name == PetName::Gorilla
+            && gorilla.read().unwrap().stats == Statistics::new(9, 6).unwrap()
     );
     assert!(
-        horse.borrow().name == PetName::Horse
-            && horse.borrow().stats == Statistics::new(1, 2).unwrap()
+        horse.read().unwrap().name == PetName::Horse
+            && horse.read().unwrap().stats == Statistics::new(1, 2).unwrap()
     );
 }
 
@@ -290,8 +302,11 @@ fn test_battle_lionfish_team() {
 
     // Enemy team's mammoth has no item.
     let mammoth = enemy_team.first().unwrap();
-    assert_eq!(mammoth.borrow().item, None);
-    assert_eq!(mammoth.borrow().stats, Statistics::new(3, 10).unwrap());
+    assert_eq!(mammoth.read().unwrap().item, None);
+    assert_eq!(
+        mammoth.read().unwrap().stats,
+        Statistics::new(3, 10).unwrap()
+    );
 
     team.fight(&mut enemy_team).unwrap();
 
@@ -300,8 +315,11 @@ fn test_battle_lionfish_team() {
     let mut example_weakness = Food::try_from(FoodName::Weak).unwrap();
     example_weakness.ability.assign_owner(Some(&mammoth));
 
-    assert_eq!(mammoth.borrow().item, Some(example_weakness));
-    assert_eq!(mammoth.borrow().stats, Statistics::new(3, 4).unwrap());
+    assert_eq!(mammoth.read().unwrap().item, Some(example_weakness));
+    assert_eq!(
+        mammoth.read().unwrap().stats,
+        Statistics::new(3, 4).unwrap()
+    );
 }
 
 #[test]
@@ -312,7 +330,7 @@ fn test_battle_eagle_team() {
     team.fight(&mut enemy_team).unwrap();
 
     let summoned_pet = team.first().unwrap();
-    assert_eq!(summoned_pet.borrow().tier, 6);
+    assert_eq!(summoned_pet.read().unwrap().tier, 6);
 }
 
 #[test]
@@ -329,7 +347,10 @@ fn test_battle_microbe_team() {
         .chain(enemy_team.friends.iter())
         .flatten()
     {
-        assert_eq!(pet.borrow().item.as_ref().unwrap().name, FoodName::Weak);
+        assert_eq!(
+            pet.read().unwrap().item.as_ref().unwrap().name,
+            FoodName::Weak
+        );
     }
 }
 
@@ -341,19 +362,22 @@ fn test_battle_lion_lowest_tier_team() {
     let highest_tier_pet = team
         .all()
         .into_iter()
-        .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
+        .max_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier))
         .unwrap();
     // Highest tier pet not lion.
-    assert_ne!(highest_tier_pet.borrow().name, PetName::Lion);
+    assert_ne!(highest_tier_pet.read().unwrap().name, PetName::Lion);
     let lion = team.first().unwrap();
-    let lion_original_stats = lion.borrow().stats;
+    let lion_original_stats = lion.read().unwrap().stats;
 
     // Activate start of battle effects.
     team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
         .unwrap();
 
     // Stats are unchanged.
-    assert_eq!(lion_original_stats, team.first().unwrap().borrow().stats)
+    assert_eq!(
+        lion_original_stats,
+        team.first().unwrap().read().unwrap().stats
+    )
 }
 
 #[test]
@@ -364,12 +388,12 @@ fn test_battle_lion_highest_tier_team() {
     let highest_tier_pet = team
         .all()
         .into_iter()
-        .max_by(|pet_1, pet_2| pet_1.borrow().tier.cmp(&pet_2.borrow().tier))
+        .max_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier))
         .unwrap();
     // Highest tier pet is lion.
-    assert_eq!(highest_tier_pet.borrow().name, PetName::Lion);
+    assert_eq!(highest_tier_pet.read().unwrap().name, PetName::Lion);
     let lion = team.first().unwrap();
-    let lion_original_stats = lion.borrow().stats;
+    let lion_original_stats = lion.read().unwrap().stats;
 
     // Activate start of battle effects.
     team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
@@ -378,7 +402,7 @@ fn test_battle_lion_highest_tier_team() {
     // Adds 50% of attack and health to original stats.
     assert_eq!(
         lion_original_stats + (lion_original_stats.mult_perc(&Statistics::new(50, 50).unwrap())),
-        team.first().unwrap().borrow().stats
+        team.first().unwrap().read().unwrap().stats
     )
 }
 
@@ -390,16 +414,16 @@ fn test_battle_swordfish_team() {
     let swordfish = team.first().unwrap();
     let eagle = enemy_team.first().unwrap();
 
-    assert!(eagle.borrow().stats.health == 5);
-    assert!(swordfish.borrow().stats.health == 25);
+    assert!(eagle.read().unwrap().stats.health == 5);
+    assert!(swordfish.read().unwrap().stats.health == 25);
 
     // Activate start of battle effect.
     team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
         .unwrap();
 
     // Both swordfish and enemy eagle are hit and take 25 dmg.
-    assert!(swordfish.borrow().stats.health == 0);
-    assert!(eagle.borrow().stats.health == 0);
+    assert!(swordfish.read().unwrap().stats.health == 0);
+    assert!(eagle.read().unwrap().stats.health == 0);
 }
 
 #[test]
@@ -410,14 +434,26 @@ fn test_battle_triceratops_team() {
     let triceratops = team.first().unwrap();
     let gorilla = team.nth(1).unwrap();
 
-    assert_eq!(triceratops.borrow().stats, Statistics::new(5, 6).unwrap());
-    assert_eq!(gorilla.borrow().stats, Statistics::new(6, 9).unwrap());
+    assert_eq!(
+        triceratops.read().unwrap().stats,
+        Statistics::new(5, 6).unwrap()
+    );
+    assert_eq!(
+        gorilla.read().unwrap().stats,
+        Statistics::new(6, 9).unwrap()
+    );
 
     team.fight(&mut enemy_team).unwrap();
 
     // Triceratops takes 1 dmg. Gorilla behind gets (3,3) buff.
-    assert_eq!(triceratops.borrow().stats, Statistics::new(5, 5).unwrap());
-    assert_eq!(gorilla.borrow().stats, Statistics::new(9, 12).unwrap());
+    assert_eq!(
+        triceratops.read().unwrap().stats,
+        Statistics::new(5, 5).unwrap()
+    );
+    assert_eq!(
+        gorilla.read().unwrap().stats,
+        Statistics::new(9, 12).unwrap()
+    );
 }
 
 #[test]
@@ -478,7 +514,7 @@ fn test_shop_monkey_team() {
     team.open_shop().unwrap();
 
     let ant = team.first().unwrap();
-    let ant_start_stats = ant.borrow().stats;
+    let ant_start_stats = ant.read().unwrap().stats;
     const MONKEY_BUFF: Statistics = Statistics {
         attack: 2,
         health: 3,
@@ -487,7 +523,7 @@ fn test_shop_monkey_team() {
     team.close_shop().unwrap();
 
     // Ant got monkey buff at end of turn.
-    assert_eq!(ant.borrow().stats, ant_start_stats + MONKEY_BUFF);
+    assert_eq!(ant.read().unwrap().stats, ant_start_stats + MONKEY_BUFF);
 }
 
 #[test]
@@ -499,9 +535,9 @@ fn test_shop_seal_team() {
     let pets = team.all();
     let [ant_1, ant_2, seal] = pets.get(0..3).unwrap() else { panic!() };
     let (ant_1_start_stats, ant_2_start_stats, seal_start_stats) = (
-        ant_1.borrow().stats,
-        ant_2.borrow().stats,
-        seal.borrow().stats,
+        ant_1.read().unwrap().stats,
+        ant_2.read().unwrap().stats,
+        seal.read().unwrap().stats,
     );
     const SEAL_BUFF: Statistics = Statistics {
         attack: 1,
@@ -512,9 +548,9 @@ fn test_shop_seal_team() {
 
     // Two ants get buff after seal eats food.
     assert!(
-        ant_1_start_stats + SEAL_BUFF == ant_1.borrow().stats
-            && ant_2_start_stats + SEAL_BUFF == ant_2.borrow().stats
-            && seal_start_stats == seal.borrow().stats
+        ant_1_start_stats + SEAL_BUFF == ant_1.read().unwrap().stats
+            && ant_2_start_stats + SEAL_BUFF == ant_2.read().unwrap().stats
+            && seal_start_stats == seal.read().unwrap().stats
     );
 }
 
@@ -552,7 +588,7 @@ fn test_shop_moose_team() {
     };
     let mult_moose_buff = MOOSE_BUFF * Statistics::new(min_tier, min_tier).unwrap();
     let buff_target = team.nth(1).unwrap();
-    let buff_target_start_stats = buff_target.borrow().stats;
+    let buff_target_start_stats = buff_target.read().unwrap().stats;
 
     // End turn.
     team.close_shop().unwrap();
@@ -565,7 +601,7 @@ fn test_shop_moose_team() {
     assert!(items.iter().all(|item| !item.is_frozen()));
     // Target gets (4,4) = (1,1) * 4.
     assert_eq!(
-        buff_target.borrow().stats,
+        buff_target.read().unwrap().stats,
         buff_target_start_stats + mult_moose_buff
     );
 }
@@ -623,21 +659,21 @@ fn test_shop_poodle_team() {
         poodle_start_stats,
         tiger_start_stats,
     ) = (
-        ant.borrow().stats,
-        dog_1.borrow().stats,
-        dog_2.borrow().stats,
-        poodle.borrow().stats,
-        tiger.borrow().stats,
+        ant.read().unwrap().stats,
+        dog_1.read().unwrap().stats,
+        dog_2.read().unwrap().stats,
+        poodle.read().unwrap().stats,
+        tiger.read().unwrap().stats,
     );
     team.close_shop().unwrap();
 
     // Only one dog buffed and poodle doesn't buff itself.
     assert!(
-        ant.borrow().stats == ant_start_stats + POODLE_BUFF
-            && dog_1.borrow().stats == dog_1_start_stats
-            && dog_2.borrow().stats == dog_2_start_stats + POODLE_BUFF
-            && poodle.borrow().stats == poodle_start_stats
-            && tiger.borrow().stats == tiger_start_stats + POODLE_BUFF
+        ant.read().unwrap().stats == ant_start_stats + POODLE_BUFF
+            && dog_1.read().unwrap().stats == dog_1_start_stats
+            && dog_2.read().unwrap().stats == dog_2_start_stats + POODLE_BUFF
+            && poodle.read().unwrap().stats == poodle_start_stats
+            && tiger.read().unwrap().stats == tiger_start_stats + POODLE_BUFF
     );
 }
 
@@ -655,12 +691,15 @@ fn test_shop_fox_team() {
     // No gold.
     assert_eq!(team.gold(), 0);
     // Fox has no item.
-    assert_eq!(fox.borrow().item, None);
+    assert_eq!(fox.read().unwrap().item, None);
 
     team.close_shop().unwrap();
 
     // Stole honey from shop.
-    assert_eq!(fox.borrow().item.as_ref().unwrap().name, FoodName::Honey);
+    assert_eq!(
+        fox.read().unwrap().item.as_ref().unwrap().name,
+        FoodName::Honey
+    );
 }
 
 #[test]
@@ -739,7 +778,7 @@ fn test_shop_shoebill_team() {
     let friends_start_stats_no_berry = team
         .all()
         .into_iter()
-        .map(|friend| friend.borrow().stats)
+        .map(|friend| friend.read().unwrap().stats)
         .collect_vec();
 
     team.close_shop().unwrap();
@@ -749,7 +788,7 @@ fn test_shop_shoebill_team() {
         friends_start_stats_no_berry,
         team.all()
             .into_iter()
-            .map(|friend| friend.borrow().stats)
+            .map(|friend| friend.read().unwrap().stats)
             .collect_vec()
     );
 
@@ -765,7 +804,7 @@ fn test_shop_shoebill_team() {
     let friends = team.all();
     let friends_start_stats_w_berry = friends
         .iter()
-        .map(|friend| friend.borrow().stats)
+        .map(|friend| friend.read().unwrap().stats)
         .collect_vec();
     const SHOEBILL_BUFF: Statistics = Statistics {
         attack: 1,
@@ -775,13 +814,13 @@ fn test_shop_shoebill_team() {
     // All friends have strawberries.
     assert!(friends
         .iter()
-        .all(|pet| pet.borrow().item.as_ref().unwrap().name == FoodName::Strawberry));
+        .all(|pet| pet.read().unwrap().item.as_ref().unwrap().name == FoodName::Strawberry));
     // End turn.
     team.close_shop().unwrap();
 
     let friends_curr_stats = friends
         .iter()
-        .map(|friend| friend.borrow().stats)
+        .map(|friend| friend.read().unwrap().stats)
         .collect_vec();
 
     for (prev, after) in friends_start_stats_w_berry
@@ -810,7 +849,7 @@ fn test_shop_siberian_husky_team() {
     let [ant, dog, husky, tiger] = all_pets.get(0..4).unwrap() else { panic!() };
     let (ant_start_stats, dog_start_stats, husky_start_stats, tiger_start_stats) = all_pets
         .iter()
-        .map(|pet| pet.borrow().stats)
+        .map(|pet| pet.read().unwrap().stats)
         .collect_tuple()
         .unwrap();
     const HUSKY_BUFF: Statistics = Statistics {
@@ -822,10 +861,10 @@ fn test_shop_siberian_husky_team() {
 
     // All pets w/o an item (excluding husky) get husky buff.
     assert!(
-        ant.borrow().stats == ant_start_stats
-            && dog.borrow().stats == dog_start_stats + HUSKY_BUFF
-            && husky.borrow().stats == husky_start_stats
-            && tiger.borrow().stats == tiger_start_stats + HUSKY_BUFF
+        ant.read().unwrap().stats == ant_start_stats
+            && dog.read().unwrap().stats == dog_start_stats + HUSKY_BUFF
+            && husky.read().unwrap().stats == husky_start_stats
+            && tiger.read().unwrap().stats == tiger_start_stats + HUSKY_BUFF
     );
 }
 
@@ -847,19 +886,19 @@ fn test_shop_zebra_team() {
         attack: 2,
         health: 2,
     };
-    let ant_start_stats = ant.borrow().stats;
+    let ant_start_stats = ant.read().unwrap().stats;
 
     team.buy(&Position::First, &Entity::Pet, &Position::First)
         .unwrap();
 
     // Ant gets buff when zebra bought.
-    assert_eq!(ant.borrow().stats, ant_start_stats + ZEBRA_BUFF);
+    assert_eq!(ant.read().unwrap().stats, ant_start_stats + ZEBRA_BUFF);
 
     team.sell(&Position::First).unwrap();
 
     // Ant gets additional buff when zebra sold.
     assert_eq!(
-        ant.borrow().stats,
+        ant.read().unwrap().stats,
         ant_start_stats + ZEBRA_BUFF + ZEBRA_BUFF
     );
 }
