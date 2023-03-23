@@ -207,7 +207,7 @@ pub trait PetCombat {
     ///     effects::actions::{Action, StatChangeType}
     /// };
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
-    /// let add_action = Action::Add(StatChangeType::StaticValue(Statistics::new(2,1).unwrap()));
+    /// let add_action = Action::Add(StatChangeType::SetStatistics(Statistics::new(2,1).unwrap()));
     ///
     /// assert!(ant_1.has_effect_ability(&add_action, true))
     /// ```
@@ -330,12 +330,10 @@ impl PetCombat for Pet {
 
             match food_effect {
                 // Get stat modifiers from effects.
-                Action::Add(stat_change) | Action::Remove(stat_change) => match stat_change {
-                    StatChangeType::StaticValue(stats) => Some(*stats),
-                    StatChangeType::SelfMultValue(stats_mult) => {
-                        Some(self.stats.mult_perc(stats_mult))
-                    }
-                },
+                // Safe to unwrap.
+                Action::Add(stat_change) | Action::Remove(stat_change) => {
+                    Some(stat_change.to_stats(self.stats))
+                }
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;
                     // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).

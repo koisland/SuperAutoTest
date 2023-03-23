@@ -455,12 +455,7 @@ impl EffectApplyHelpers for Team {
             SummonType::StoredPet(box_pet) => *box_pet.clone(),
             SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
             SummonType::CustomPet(name, stat_types, lvl) => {
-                let mut stats = match stat_types {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        target_pet.read().unwrap().stats.mult_perc(stats)
-                    }
-                };
+                let mut stats = stat_types.to_stats(target_pet.read().unwrap().stats);
                 Pet::new(
                     name.clone(),
                     Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
@@ -585,7 +580,6 @@ impl EffectApplyHelpers for Team {
         let mut affected_pet_guard = affected_pet.write().unwrap();
         affected_pet_guard.effect = vec![Effect {
             owner: Some(target_pet_ref),
-            entity: Entity::Pet,
             trigger: target_pet_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
@@ -1048,25 +1042,19 @@ impl EffectApplyHelpers for Team {
 
         match &effect.action {
             Action::Add(stat_change) => {
+                let affected_pet_stats = affected_pet.read().unwrap().stats;
+                let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
+
                 // Cannot add stats to fainted pets.
                 // If owner is dead and the trigger for effect was not faint, ignore it.
-                if affected_pet.read().unwrap().stats.health == 0
-                    || (afflicting_pet.read().unwrap().stats.health == 0
-                        && effect.trigger.status != Status::Faint)
-                {
+                let afflicting_pet_w_faint_trigger_has_fainted = afflicting_pet_stats.health == 0 && effect.trigger.status != Status::Faint;
+                if affected_pet_stats.health == 0 || afflicting_pet_w_faint_trigger_has_fainted {
                     return Ok(affected_pets);
                 }
-
-                let added_stats = match stat_change {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
-                        // Update action for digraph with static value.
-                        modified_effect.action =
-                            Action::Add(StatChangeType::StaticValue(mult_stats));
-                        mult_stats
-                    }
-                };
+                // Convert stat change to stats with afflicting pet stats.
+                let added_stats = stat_change.to_stats(afflicting_pet_stats);
+                // Update action for digraph with static value.
+                modified_effect.action = Action::Add(StatChangeType::SetStatistics(added_stats));
 
                 // If effect is temporary, store stats to be removed from referenced pet on reopening shop.
                 if effect.temp
@@ -1086,13 +1074,9 @@ impl EffectApplyHelpers for Team {
                 affected_pets.push(affected_pet.clone());
             }
             Action::Remove(stat_change) => {
-                let mut remove_stats = match stat_change {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
-                        mult_stats
-                    }
-                };
+                let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
+
+                let mut remove_stats = stat_change.to_stats(afflicting_pet_stats);
                 // Check for food on effect owner. Add any effect dmg modifiers. ex. Pineapple
                 if let Some(item) = afflicting_pet
                     .read()
@@ -1102,16 +1086,12 @@ impl EffectApplyHelpers for Team {
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
                 {
                     if let Action::Add(modifier) = &item.ability.action {
-                        remove_stats = match modifier {
-                            StatChangeType::StaticValue(stats) => remove_stats + *stats,
-                            StatChangeType::SelfMultValue(stats_mult) => {
-                                remove_stats.mult_perc(stats_mult)
-                            }
-                        }
+                        remove_stats = remove_stats + modifier.to_stats(afflicting_pet_stats)
                     }
                 }
                 // Update with remaining modifiers.
-                modified_effect.action = Action::Remove(StatChangeType::StaticValue(remove_stats));
+                modified_effect.action =
+                    Action::Remove(StatChangeType::SetStatistics(remove_stats));
 
                 let mut atk_outcome = affected_pet.write().unwrap().indirect_attack(&remove_stats);
                 {
@@ -1120,8 +1100,9 @@ impl EffectApplyHelpers for Team {
                 }
 
                 // Update for digraph to show health loss.
-                modified_effect.action =
-                    Action::Remove(StatChangeType::StaticValue(atk_outcome.friend_stat_change));
+                modified_effect.action = Action::Remove(StatChangeType::SetStatistics(
+                    atk_outcome.friend_stat_change,
+                ));
 
                 // Update triggers from where they came from.
                 if let Some(opponent) = opponent.as_mut() {
@@ -1167,7 +1148,7 @@ impl EffectApplyHelpers for Team {
                     pet.state = ItemState::Normal
                 }
                 let buffed_stats = *stats * Statistics::new(min_tier, min_tier)?;
-                modified_effect.action = Action::Add(StatChangeType::StaticValue(buffed_stats));
+                modified_effect.action = Action::Add(StatChangeType::SetStatistics(buffed_stats));
                 affected_pets.extend(self.apply_single_effect(
                     affected_pet,
                     afflicting_pet,
@@ -1199,7 +1180,7 @@ impl EffectApplyHelpers for Team {
                         }
                         ItemSlot::Food(food) => {
                             // If stats adds some static value, multiply it by the mulitplier
-                            if let Action::Add(StatChangeType::StaticValue(mut stats)) =
+                            if let Action::Add(StatChangeType::SetStatistics(mut stats)) =
                                 food.read().unwrap().ability.action
                             {
                                 let stat_multiplier = Statistics::new(*multiplier, *multiplier)?;
@@ -1407,10 +1388,9 @@ impl EffectApplyHelpers for Team {
                     .iter()
                     .map(|pet| pet.read().unwrap().lvl)
                     .sum();
-                let lvl_dmg_action = Action::Remove(StatChangeType::StaticValue(Statistics::new(
-                    opponent_lvls,
-                    0,
-                )?));
+                let lvl_dmg_action = Action::Remove(StatChangeType::SetStatistics(
+                    Statistics::new(opponent_lvls, 0)?,
+                ));
                 modified_effect.action = lvl_dmg_action;
 
                 self.apply_single_effect(
@@ -1462,7 +1442,8 @@ impl EffectApplyHelpers for Team {
                 turn_mult_stats.health *= turn_multiplier;
 
                 // Modify action to add turn-multiplied stats and apply effect.
-                modified_effect.action = Action::Add(StatChangeType::StaticValue(turn_mult_stats));
+                modified_effect.action =
+                    Action::Add(StatChangeType::SetStatistics(turn_mult_stats));
                 let pets = if let Some(opponent) = opponent.as_mut() {
                     self.apply_single_effect(
                         affected_pet,

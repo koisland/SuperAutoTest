@@ -369,7 +369,7 @@ pub trait TeamShopping {
     /// (Normal) [$3] [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
     ///
     /// (Foods)
-    /// (Normal) [$3] [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
+    /// (Normal) [$3] [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(SetStatistics(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
     /// ```
     fn print_shop(&self);
 }

@@ -9,7 +9,7 @@ use crate::{
     teams::history::History,
     teams::viewer::TeamViewer,
     wiki_scraper::parse_names::WordType,
-    Food, Shop, CONFIG, SAPDB,
+    Effect, Food, Shop, CONFIG, SAPDB,
 };
 
 use itertools::Itertools;
@@ -114,6 +114,9 @@ pub struct Team {
     pub(crate) curr_pet: Option<Weak<RwLock<Pet>>>,
     /// Clone of pets used for restoring team.
     pub(crate) stored_friends: Vec<Option<Pet>>,
+    /// Apply a persistent effect.
+    /// * This effect is applied during trigger_effects.
+    pub persistent_effect: Option<Effect>,
 }
 
 impl Default for Team {
@@ -136,6 +139,7 @@ impl Default for Team {
             history: History::default(),
             seed,
             curr_pet: None,
+            persistent_effect: None,
         }
     }
 }
@@ -211,6 +215,7 @@ impl Clone for Team {
             stored_friends: copied_stored_friends,
             curr_pet: None,
             shop: self.shop.clone(),
+            persistent_effect: self.persistent_effect.clone(),
         };
         // Reassign references.
         copied_team.reset_pet_references(None);

@@ -26,7 +26,6 @@ fn test_custom_food() {
     let custom_food = Food::new(
         &FoodName::Custom("Dung".to_string()),
         Some(Effect {
-            entity: Entity::Food,
             owner: None,
             trigger: TRIGGER_START_BATTLE,
             target: Target::Friend,
@@ -101,12 +100,11 @@ fn test_food_override_effect() {
     let buffed_apple = Food::new(
         &FoodName::Apple,
         Some(Effect {
-            entity: Entity::Food,
             owner: None,
             trigger: TRIGGER_NONE,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(StatChangeType::StaticValue(Statistics {
+            action: Action::Add(StatChangeType::SetStatistics(Statistics {
                 attack: 5,
                 health: 5,
             })),

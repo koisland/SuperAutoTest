@@ -375,8 +375,8 @@ impl ShopItemViewer for ShopItem {
         match &self.item {
             ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.health),
             ItemSlot::Food(food) => match food.read().unwrap().ability.action {
-                Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.health),
-                Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.health),
+                Action::Add(StatChangeType::SetStatistics(stats)) => Some(stats.health),
+                Action::Remove(StatChangeType::SetStatistics(stats)) => Some(stats.health),
                 _ => None,
             },
         }
@@ -385,8 +385,8 @@ impl ShopItemViewer for ShopItem {
         match &self.item {
             ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.attack),
             ItemSlot::Food(food) => match food.read().unwrap().ability.action {
-                Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.attack),
-                Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.attack),
+                Action::Add(StatChangeType::SetStatistics(stats)) => Some(stats.attack),
+                Action::Remove(StatChangeType::SetStatistics(stats)) => Some(stats.attack),
                 Action::Negate(stats) => Some(stats.attack),
                 _ => None,
             },

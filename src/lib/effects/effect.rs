@@ -37,8 +37,6 @@ pub enum EntityName {
 /// An effect for an [`Entity`] in Super Auto Pets.
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Effect {
-    /// Owner of effect.
-    pub entity: Entity,
     #[serde(skip)]
     /// Idx of owner.
     pub(crate) owner: Option<Weak<RwLock<Pet>>>,
@@ -59,8 +57,7 @@ pub struct Effect {
 
 impl PartialEq for Effect {
     fn eq(&self, other: &Self) -> bool {
-        self.entity == other.entity
-            && self.trigger == other.trigger
+        self.trigger == other.trigger
             && self.target == other.target
             && self.position == other.position
             && self.action == other.action
@@ -95,24 +92,21 @@ impl Effect {
     /// use saptest::{
     ///     Effect, Statistics,
     ///     effects::{
-    ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
     ///         state::{Position, Target, ItemCondition, Outcome},
     ///         actions::{Action, StatChangeType}
     ///     }
     /// };
     /// let lvl_1_ant_effect = Effect::new(
-    ///     Entity::Pet,
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
     ///     Position::Any(ItemCondition::None),
-    ///     Action::Add(StatChangeType::StaticValue(Statistics {attack: 2, health: 1})),
+    ///     Action::Add(StatChangeType::SetStatistics(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false
     /// );
     /// ```
     pub fn new(
-        effect_type: Entity,
         trigger: Outcome,
         target: Target,
         position: Position,
@@ -121,7 +115,6 @@ impl Effect {
         temporary: bool,
     ) -> Self {
         Effect {
-            entity: effect_type,
             owner: None,
             trigger,
             target,

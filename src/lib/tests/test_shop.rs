@@ -186,7 +186,7 @@ fn test_view_item_attr() {
             && horse.attack_stat().unwrap() == 2
             && horse.health_stat().unwrap() == 1
             && horse.actions()[0]
-                == Action::Add(StatChangeType::StaticValue(Statistics {
+                == Action::Add(StatChangeType::SetStatistics(Statistics {
                     attack: 1,
                     health: 0
                 }))
@@ -197,7 +197,7 @@ fn test_view_item_attr() {
             && pizza.attack_stat().unwrap() == 2
             && pizza.health_stat().unwrap() == 2
             && pizza.actions()[0]
-                == Action::Add(StatChangeType::StaticValue(Statistics {
+                == Action::Add(StatChangeType::SetStatistics(Statistics {
                     attack: 2,
                     health: 2
                 }))
@@ -209,7 +209,7 @@ fn test_view_item_attr() {
             && chili.attack_stat().unwrap() == 5
             && chili.health_stat().unwrap() == 0
             && chili.actions()[0]
-                == Action::Remove(StatChangeType::StaticValue(Statistics {
+                == Action::Remove(StatChangeType::SetStatistics(Statistics {
                     attack: 5,
                     health: 0
                 }))
@@ -239,8 +239,8 @@ fn test_view_by_cond() {
     (Normal) [Giraffe: (1,3) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
 
     (Foods)
-    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
-    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(StaticValue(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
+    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(SetStatistics(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
+    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(SetStatistics(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
     */
     let shop = Shop::new(6, Some(122)).unwrap();
     let pets = shop
@@ -371,7 +371,7 @@ fn test_view_by_cond() {
     let gives_2_2_stats = shop
         .get_shop_items_by_cond(
             &ItemCondition::Equal(EqualityCondition::Action(Box::new(Action::Add(
-                StatChangeType::StaticValue(Statistics::new(2, 2).unwrap()),
+                StatChangeType::SetStatistics(Statistics::new(2, 2).unwrap()),
             )))),
             &Entity::Food,
         )
@@ -390,8 +390,8 @@ fn test_view_by_pos() {
     (Normal) [Giraffe: (1,3) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
 
     (Foods)
-    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
-    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(StaticValue(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
+    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(SetStatistics(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
+    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(SetStatistics(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
     */
     let shop = Shop::new(6, Some(122)).unwrap();
 

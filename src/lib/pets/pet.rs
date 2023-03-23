@@ -186,19 +186,18 @@ impl Pet {
     ///     },
     ///     Effect, Food, FoodName, Pet, Statistics,
     /// };
-    /// let custom_pet = Pet::custom(
+    /// let give_melon_adj_effect = Effect::new(
+    ///     TRIGGER_START_BATTLE,
+    ///     Target::Friend,
+    ///     Position::Adjacent,
+    ///     Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+    ///     Some(1),
+    ///     false,
+    /// ); 
+    /// let melon_bear = Pet::custom(
     ///     "MelonBear",
     ///     Statistics::new(50, 50).unwrap(),
-    ///     &[
-    ///         Effect::new(
-    ///             Entity::Pet,
-    ///             TRIGGER_START_BATTLE,
-    ///             Target::Friend,
-    ///             Position::Adjacent,
-    ///             Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
-    ///             Some(1),
-    ///             false,
-    ///     )],
+    ///     &[give_melon_adj_effect],
     /// );
     /// ```
     pub fn custom(name: &str, stats: Statistics, effect: &[Effect]) -> Pet {
@@ -232,7 +231,7 @@ impl Pet {
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
     /// assert_eq!(
     ///     *lvl_2_ant_action,
-    ///     Action::Add(StatChangeType::StaticValue(Statistics::new(4,2).unwrap()))
+    ///     Action::Add(StatChangeType::SetStatistics(Statistics::new(4,2).unwrap()))
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {

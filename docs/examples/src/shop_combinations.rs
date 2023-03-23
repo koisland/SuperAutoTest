@@ -1,21 +1,14 @@
+use std::io::Write;
 use itertools::Itertools;
-use saptest::{SAPDB, db::{pack::Pack, record::PetRecord}, Pet, Team, Entity};
+use saptest::{Shop, Team, TeamShopping, db::{record::PetRecord, pack::Pack}, SAPDB, Entity, Pet, PetName};
 
-pub fn factorial(n: u128) -> u128 {
-    (1..=n).product()
-}
-pub fn combinations(n: u128, choose: u128) -> u128 {
-    factorial(n) / (factorial(choose) * factorial(n-choose))
-}
-// fn permutations(n: u128, choose: u128) -> u128 {
-//     factorial(n) / factorial(n-choose)
-// }
 
-pub fn five_pet_combinations() {
-    let tiers = vec![1.to_string(), 2.to_string(), 3.to_string()];
+#[test]
+pub fn generate_possible_t1_teams() {
+    let tiers = vec![1.to_string()];
     let levels = vec![1.to_string()];
     let packs = vec![Pack::Turtle.to_string()];
-    let mut turtle_records = SAPDB
+    let mut turtle_pet_records = SAPDB
         .execute_query(
             Entity::Pet,
             &[("tier", &tiers), ("pack", &packs), ("lvl", &levels)]
@@ -23,22 +16,15 @@ pub fn five_pet_combinations() {
         .unwrap()
         .into_iter()
         .map(|record| TryInto::<PetRecord>::try_into(record).ok())
+        .filter(|record| record.as_ref().map(|record| &record.name) != Some(&PetName::Sloth))
         .collect_vec();
 
-    // Include combinations with two slots.
-    turtle_records.extend([None, None]);
-
-    let n = turtle_records.len().try_into().unwrap();
-    let choose = 5;
-
-    let n_comb = combinations(n, choose);
-    // let n_perm = permutations(n, choose);
+    // Include combinations with empty slots.
+    turtle_pet_records.push(None);
 
     // Calculate chunk size.
-    let n_threads = 8;
-    let chunk_size = n_comb / n_threads;
     // Combine with itertools to generate all pet combinations.
-    let pet_comb = turtle_records.into_iter().combinations(5).chunks(chunk_size.try_into().unwrap());
+    let pet_comb = turtle_pet_records.into_iter().combinations_with_replacement(3).chunks(2_000);
 
     // Create a team for each pet combination.
     let mut handles = vec![];
@@ -61,5 +47,10 @@ pub fn five_pet_combinations() {
     }
     let res = handles.into_iter().filter_map(|handle| handle.join().ok()).flatten().collect_vec();
 
-    println!("{}", res.len())
+    if let Ok(mut file) = std::fs::File::create("t1_team.txt") {
+        for team in res.iter() {
+            file.write(team.to_string().as_bytes()).unwrap();
+            file.write(&[b'\n']).unwrap();
+        }
+    }
 }

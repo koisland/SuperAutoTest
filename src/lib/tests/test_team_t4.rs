@@ -131,7 +131,6 @@ fn test_shop_parrot_team() {
     assert_eq!(
         vec![Effect {
             owner: Some(Arc::downgrade(&parrot)),
-            entity: Entity::Pet,
             trigger: TRIGGER_END_TURN.clone().set_affected(&parrot).to_owned(),
             target: Target::Friend,
             position: Position::OnSelf,
@@ -166,7 +165,6 @@ fn test_shop_parrot_team() {
             position: Position::OnSelf,
             action: Action::Summon(SummonType::StoredPet(Box::new(zombie_cricket))),
             uses: Some(1),
-            entity: Entity::Pet,
             temp: false,
         }],
         team.nth(1).unwrap().read().unwrap().effect

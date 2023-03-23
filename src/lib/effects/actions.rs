@@ -4,6 +4,7 @@ use crate::{
         state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
         stats::Statistics,
     },
+    error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
     Entity, PetName,
@@ -28,11 +29,33 @@ pub enum CopyType {
 /// Types of [`Statistics`] changes for [`Action::Remove`] or [`Action::Add`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum StatChangeType {
-    /// Change stats by a static [`Statistics`] value.
-    StaticValue(Statistics),
+    /// Change to a static [`Statistics`] value.
+    SetStatistics(Statistics),
     /// Change [`Statistics`] by a given percentage of the stats of the owner of this `Action`.
     /// * Example: `Lion` or `Leopard`
-    SelfMultValue(Statistics),
+    SelfMultStatistics(Statistics),
+    /// Set only [`Statistics`] attack.
+    SetAttack(isize),
+    /// Set only [`Statistics`] health.
+    SetHealth(isize),
+}
+
+impl StatChangeType {
+    /// Convert [`StatChangeType`] into [`Statistics`].
+    pub(crate) fn to_stats(&self, pet_stats: Statistics) -> Statistics {
+        match self {
+            StatChangeType::SetStatistics(stats) => *stats,
+            StatChangeType::SelfMultStatistics(stats) => pet_stats.mult_perc(stats),
+            StatChangeType::SetAttack(atk) => Statistics {
+                attack: *atk,
+                health: 0,
+            },
+            StatChangeType::SetHealth(health) => Statistics {
+                attack: 0,
+                health: *health,
+            },
+        }
+    }
 }
 
 /// Types of summons for [`Action::Summon`].
@@ -144,6 +167,8 @@ pub enum LogicType {
 pub enum Action {
     /// Add [`Statistics`] to a [`Pet`].
     Add(StatChangeType),
+    /// Set [`Statistics`] of a [`Pet`].
+    Set(StatChangeType),
     /// Remove [`Statistics`] from a [`Pet`].
     /// * Altering stats this way creates hurt trigger [`Outcome`](crate::effects::state::Outcome)s.
     Remove(StatChangeType),
@@ -240,7 +265,7 @@ pub enum Action {
     ///         Target::Enemy,
     ///         TeamCondition::NumberFaintedMultiple(2),
     ///     )),
-    ///     Box::new(Action::Remove(StatChangeType::StaticValue(effect_stats))),
+    ///     Box::new(Action::Remove(StatChangeType::SetStatistics(effect_stats))),
     ///     Box::new(Action::None),
     /// );
     /// ```
@@ -256,7 +281,7 @@ pub enum Action {
     ///             ItemCondition::Equal(EqualityCondition::Tier(6)),
     ///         ]),
     ///     )),
-    ///     Box::new(Action::Add(StatChangeType::StaticValue(effect_stats))),
+    ///     Box::new(Action::Add(StatChangeType::SetStatistics(effect_stats))),
     ///     Box::new(Action::None),
     /// );
     /// ```

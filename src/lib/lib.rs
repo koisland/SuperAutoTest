@@ -98,7 +98,7 @@
 //! use saptest::{
 //!     Pet, PetName, PetCombat,
 //!     Food, FoodName,
-//!     Entity, Position, Effect, Statistics,
+//!     Position, Effect, Statistics,
 //!     effects::{
 //!         trigger::TRIGGER_START_BATTLE,
 //!         actions::GainType,
@@ -112,7 +112,6 @@
 //!
 //! // A custom pet and effect.
 //! let custom_effect = Effect::new(
-//!     Entity::Pet,
 //!     TRIGGER_START_BATTLE, // Effect trigger
 //!     Target::Friend, // Target
 //!     Position::Adjacent, // Positions

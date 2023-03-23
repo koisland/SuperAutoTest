@@ -4,6 +4,7 @@ mod mushroom_scorpion;
 mod permanent_coconut;
 mod rhino;
 mod pet_combinations;
+mod shop_combinations;
 
 use blowfish_99::ninety_nine_blowfish_battle;
 use deer_mushroom_zombie_fly::deer_fly_mushroom;
@@ -11,6 +12,7 @@ use mushroom_scorpion::mushroom_scorpion;
 use permanent_coconut::permanent_coconut;
 use rhino::rhino;
 use pet_combinations::five_pet_combinations;
+// use shop_combinations::generate_possible_t1_teams;
 
 fn main() {
     // Rhino ability.

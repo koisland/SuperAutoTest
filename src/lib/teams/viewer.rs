@@ -215,15 +215,14 @@ pub trait TeamViewer {
     /// let enemy_team = team.clone();
     /// // Define the crocodile pet effect.
     /// let croc_effect = Effect::new(
-    ///     Entity::Pet,
     ///     TRIGGER_START_BATTLE,
     ///     Target::Enemy,
     ///     Position::Last,
-    ///     Action::Remove(StatChangeType::StaticValue(Statistics { attack: 8, health: 0 })),
+    ///     Action::Remove(StatChangeType::SetStatistics(Statistics { attack: 8, health: 0 })),
     ///     Some(1),
     ///     true
     /// );
-    /// // Search for pets.
+    /// // Search for pets affected by effect.
     /// let pets_found = team.get_pets_by_effect(&TRIGGER_NONE, &croc_effect, Some(&enemy_team)).unwrap();
     /// // As expected, the last enemy pet is the target of the effect.
     /// let pet_found = pets_found.first().unwrap();
