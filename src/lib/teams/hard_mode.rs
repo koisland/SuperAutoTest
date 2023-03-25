@@ -91,21 +91,24 @@ impl From<HardModeOption> for Effect {
                 uses: Some(1),
                 temp: true,
             },
-            HardModeOption::Handkerchief => Effect {
-                owner: None,
-                trigger: TRIGGER_START_BATTLE,
-                target: Target::Friend,
-                position: Position::Range(0..=-5), // TODO: Add Position::FrontToBack
-                action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
-                uses: Some(1),
-                temp: true,
-            },
+            // HardModeOption::Handkerchief => Effect {
+            //     owner: None,
+            //     trigger: TRIGGER_START_BATTLE,
+            //     target: Target::Friend,
+            //     position: Position::Range(0..=-5), // TODO: Add Position::FrontToBack
+            //     action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
+            //     uses: Some(1),
+            //     temp: true,
+            // },
             HardModeOption::PogoStick => Effect {
                 owner: None,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
                 position: Position::N(ItemCondition::Illest, 1, false),
-                action: Action::Set(StatChangeType::SelfMultStatistics(Statistics { attack: 400, health: 400 })),
+                action: Action::Set(StatChangeType::SelfMultStatistics(Statistics {
+                    attack: 400,
+                    health: 400,
+                })),
                 uses: Some(1),
                 temp: true,
             },
@@ -114,6 +117,7 @@ impl From<HardModeOption> for Effect {
             HardModeOption::RingPyramid => todo!(),
             HardModeOption::RubberDuck => todo!(),
             HardModeOption::Unicycle => todo!(),
+            _ => todo!()
         }
     }
 }

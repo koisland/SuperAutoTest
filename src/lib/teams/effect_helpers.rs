@@ -1047,7 +1047,8 @@ impl EffectApplyHelpers for Team {
 
                 // Cannot add stats to fainted pets.
                 // If owner is dead and the trigger for effect was not faint, ignore it.
-                let afflicting_pet_w_faint_trigger_has_fainted = afflicting_pet_stats.health == 0 && effect.trigger.status != Status::Faint;
+                let afflicting_pet_w_faint_trigger_has_fainted =
+                    afflicting_pet_stats.health == 0 && effect.trigger.status != Status::Faint;
                 if affected_pet_stats.health == 0 || afflicting_pet_w_faint_trigger_has_fainted {
                     return Ok(affected_pets);
                 }
@@ -1086,7 +1087,7 @@ impl EffectApplyHelpers for Team {
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
                 {
                     if let Action::Add(modifier) = &item.ability.action {
-                        remove_stats = remove_stats + modifier.to_stats(afflicting_pet_stats)
+                        remove_stats += modifier.to_stats(afflicting_pet_stats)
                     }
                 }
                 // Update with remaining modifiers.

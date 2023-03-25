@@ -193,7 +193,7 @@ impl Pet {
     ///     Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
     ///     Some(1),
     ///     false,
-    /// ); 
+    /// );
     /// let melon_bear = Pet::custom(
     ///     "MelonBear",
     ///     Statistics::new(50, 50).unwrap(),

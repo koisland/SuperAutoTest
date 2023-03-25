@@ -14,4 +14,5 @@ pub mod viewer;
 pub(crate) mod effect_helpers;
 pub(crate) mod history;
 
+/// Hard mode.
 pub mod hard_mode;

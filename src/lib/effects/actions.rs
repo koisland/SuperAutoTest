@@ -4,7 +4,6 @@ use crate::{
         state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
         stats::Statistics,
     },
-    error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
     Entity, PetName,

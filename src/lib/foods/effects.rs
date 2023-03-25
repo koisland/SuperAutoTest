@@ -2,7 +2,7 @@ use crate::{
     db::record::FoodRecord,
     effects::{
         actions::{Action, RandomizeType, StatChangeType, SummonType},
-        effect::{Effect, Entity},
+        effect::Effect,
         state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,
