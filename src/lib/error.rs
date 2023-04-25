@@ -10,8 +10,14 @@ pub enum SAPTestError {
     SerializeFailure(#[from] serde_json::Error),
 
     /// Failure to request data from Fandom wiki.
-    #[error("Failed to scrape data from Fandom wiki.")]
-    RequestFailure(#[from] reqwest::Error),
+    #[error("Failed to get data from Fandom wiki.")]
+    RequestFailure(#[from] ureq::Error),
+
+    /// Invalid Fandom wiki page. This error only comes up from ureq's [`Response::into_string`](https://docs.rs/ureq/latest/ureq/struct.Response.html#method.into_string) method.
+    ///
+    /// This should never be an issue unless a file is misplaced on the Fandom wiki.
+    #[error("Fandom wiki page invalid.")]
+    InvalidRequestFailure(#[from] std::io::Error),
 
     /// Failure to execute query from SQLite database.
     #[error("Failed database query execution.")]

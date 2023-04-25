@@ -1,10 +1,9 @@
 use crate::{error::SAPTestError, regex_patterns::*};
 use log::info;
-use reqwest::blocking;
 
 pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");
-    Ok(blocking::get(url)?.text()?)
+    Ok(ureq::get(url).call()?.into_string()?)
 }
 
 /// Remove any Fandom icon names from a block of text.
