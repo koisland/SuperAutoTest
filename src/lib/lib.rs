@@ -142,6 +142,8 @@
 //! Read more under the [`db`](crate::db) module.
 
 #![warn(missing_docs)]
+// TODO: Split errors into smaller categories?
+#![allow(clippy::result_large_err)]
 
 #[macro_use]
 extern crate lazy_regex;
