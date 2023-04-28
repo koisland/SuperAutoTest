@@ -1538,7 +1538,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 entity: Entity::Pet,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::Any(ItemCondition::None),
+                position: Position::N(ItemCondition::None, record.lvl, true),
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
