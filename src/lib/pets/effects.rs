@@ -546,16 +546,19 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Add(StatChangeType::StaticValue(effect_stats)),
                 uses: None,
             }],
-            PetName::Dolphin => vec![Effect {
-                owner: None,
-                entity: Entity::Pet,
-                temp: record.temp_effect,
-                trigger: TRIGGER_START_BATTLE,
-                target: Target::Enemy,
-                position: Position::N(ItemCondition::Illest, 1, false),
-                action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
-                uses: Some(record.n_triggers),
-            }],
+            PetName::Dolphin => vec![
+                Effect {
+                    owner: None,
+                    entity: Entity::Pet,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_START_BATTLE,
+                    target: Target::Enemy,
+                    position: Position::N(ItemCondition::Illest, 1, false),
+                    action: Action::Remove(StatChangeType::StaticValue(effect_stats)),
+                    uses: Some(1),
+                };
+                record.n_triggers
+            ],
             PetName::Kangaroo => vec![Effect {
                 owner: None,
                 entity: Entity::Pet,
