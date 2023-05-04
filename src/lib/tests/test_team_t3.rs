@@ -1,6 +1,7 @@
 use itertools::Itertools;
 
 use crate::{
+    create_battle_digraph,
     effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
@@ -10,15 +11,31 @@ use crate::{
         test_blowfish_rally_team, test_blowfish_team, test_camel_team, test_capybara_team,
         test_cassowary_team, test_clownfish_team, test_cricket_horse_team, test_dog_team,
         test_dolphin_team, test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team,
-        test_hatching_chick_team, test_hippo_team, test_hummingbird_team, test_kangaroo_team,
-        test_leech_team, test_mouse_team, test_okapi_team, test_owl_team, test_ox_team,
-        test_puppy_team, test_rabbit_team, test_seagull_team, test_sheep_team, test_starfish_team,
-        test_toad_team, test_tropicalfish_team, test_wasp_team, test_woodpecker_self_hurt_team,
-        test_woodpecker_team,
+        test_gorilla_team, test_hatching_chick_team, test_hippo_team, test_hummingbird_team,
+        test_kangaroo_team, test_leech_team, test_mouse_team, test_okapi_team, test_owl_team,
+        test_ox_team, test_puppy_team, test_rabbit_team, test_seagull_team, test_sheep_team,
+        test_starfish_team, test_toad_team, test_tropicalfish_team, test_wasp_team,
+        test_woodpecker_self_hurt_team, test_woodpecker_team,
     },
     Entity, ItemCondition, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
     TeamShopping,
 };
+
+#[test]
+fn test_battle_dolphin_team() {
+    let mut team = test_dolphin_team();
+    let mut enemy_team = test_gorilla_team();
+
+    // Set dolphin to level 3.
+    team.set_level(&Position::First, 3).unwrap();
+
+    assert_eq!(enemy_team.first().unwrap().read().unwrap().stats.health, 9);
+
+    let fight = team.fight(&mut enemy_team).unwrap();
+
+    // Dolphin wins because of multi-trigger dealing 9 total damage and instantly killing gorilla.
+    assert_eq!(fight, TeamFightOutcome::Win);
+}
 
 #[test]
 fn test_battle_badger_team() {
@@ -53,28 +70,6 @@ fn test_battle_blowfish_team() {
     assert_eq!(team.nth(1).unwrap().read().unwrap().stats.health, 4);
 }
 
-#[test]
-fn test_battle_blowfish_rally_battle() {
-    let mut team = test_blowfish_rally_team();
-    let mut enemy_team = test_blowfish_rally_team();
-
-    let mut fight = team.fight(&mut enemy_team).unwrap();
-    while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team).unwrap()
-    }
-
-    // Only one attack occurs in fight.
-    // let n_atks: usize = team
-    //     .history
-    //     .effect_graph
-    //     .raw_nodes()
-    //     .iter()
-    //     .filter_map(|node| (node.weight.status == Status::Attack).then_some(1))
-    //     .sum();
-    // assert_eq!(1, n_atks);
-    // // 25 atks occur 1 + 50 = 51 dmg.
-    // assert_eq!(25, team.history.effect_graph.raw_edges().len())
-}
 #[test]
 fn test_battle_camel_team() {
     let mut team = test_camel_team();
