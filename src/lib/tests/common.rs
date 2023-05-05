@@ -421,19 +421,6 @@ pub fn test_filled_sheep_team() -> Team {
     .unwrap()
 }
 
-pub fn test_blowfish_rally_team() -> Team {
-    let blowfish = Pet::new(
-        PetName::Blowfish,
-        Some(Statistics {
-            attack: 1,
-            health: 50,
-        }),
-        1,
-    )
-    .unwrap();
-    Team::new(&[Some(blowfish)], 5).unwrap()
-}
-
 pub fn test_aardvark_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Aardvark).unwrap())], 5).unwrap()
 }

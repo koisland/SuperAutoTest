@@ -171,7 +171,7 @@ pub use crate::teams::{combat::TeamCombat, effects::TeamEffects, team::Team, vie
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]
-pub use crate::db::setup::SapDB;
+pub use crate::db::{query::SAPQuery, setup::SapDB};
 #[doc(inline)]
 pub use crate::foods::{food::Food, names::FoodName};
 #[doc(inline)]

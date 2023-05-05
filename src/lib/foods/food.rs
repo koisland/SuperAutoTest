@@ -3,7 +3,10 @@ use std::fmt::Display;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    db::record::FoodRecord, effects::effect::Effect, error::SAPTestError, foods::names::FoodName,
+    db::{query::SAPQuery, record::FoodRecord},
+    effects::effect::Effect,
+    error::SAPTestError,
+    foods::names::FoodName,
     Entity, SAPDB,
 };
 
@@ -70,8 +73,13 @@ impl Food {
                     custom_effect,
                 )
             } else {
+                let mut food_query = SAPQuery::builder();
+                food_query
+                    .set_table(Entity::Food)
+                    .set_param("name", vec![&name.to_string()]);
+
                 let food_record: FoodRecord = SAPDB
-                    .execute_query(Entity::Food, &[("name", &vec![name.to_string()])])?
+                    .execute_query(food_query)?
                     // .execute_food_query("SELECT * FROM foods WHERE name = ?", &[name.to_string()])?
                     .into_iter()
                     .next()

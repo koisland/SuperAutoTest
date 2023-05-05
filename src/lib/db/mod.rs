@@ -189,6 +189,8 @@
 
 /// Game packs.
 pub mod pack;
+/// Database query.
+pub mod query;
 /// Record types.
 pub mod record;
 /// Database setup functions.

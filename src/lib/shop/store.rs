@@ -1,6 +1,5 @@
 use std::{
     fmt::Display,
-    fmt::Write,
     ops::Range,
     sync::{Arc, RwLock},
 };
@@ -13,8 +12,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     db::{
         pack::Pack,
+        query::SAPQuery,
         record::{FoodRecord, PetRecord, SAPRecord},
-        utils::setup_param_query,
     },
     effects::{effect::Entity, stats::Statistics},
     error::SAPTestError,
@@ -522,32 +521,38 @@ impl Shop {
     /// Build shop query.
     pub(crate) fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> (String, Vec<String>) {
         let tiers = tiers.into_iter().map(|tier| tier.to_string()).collect_vec();
-        let params: [Vec<String>; 3] = [
-            tiers,
-            self.packs.iter().map(|pack| pack.to_string()).collect_vec(),
-            vec![1.to_string()],
-        ];
-        let mut flat_param: Vec<String> = params.iter().flatten().cloned().collect_vec();
+        let packs = self.packs.iter().map(|pack| pack.to_string()).collect_vec();
 
-        let stmt = match entity {
+        let (query, stmt) = match entity {
             Entity::Pet => {
-                let named_params = [
-                    ("tier", &params[0]),
-                    ("pack", &params[1]),
-                    ("lvl", &params[2]),
-                ];
-                let mut sql = setup_param_query("pets", &named_params);
-                write!(sql, "AND name != 'Sloth'").unwrap();
-                sql
+                let mut query = SAPQuery::from_iter([
+                    ("tier".to_string(), tiers),
+                    ("pack".to_string(), packs),
+                    ("lvl".to_string(), vec![1.to_string()]),
+                ]);
+                query.set_table(Entity::Pet);
+
+                // As long as table set, safe to unwrap.
+                // Exclude sloth. Fixed percentage chance handled in Shop::fill_pets()
+                let stmt = query
+                    .as_sql()
+                    .map(|mut sql| {
+                        sql.push_str("AND name != 'Sloth'");
+                        sql
+                    })
+                    .unwrap();
+                (query, stmt)
             }
             Entity::Food => {
-                let named_params = [("tier", &params[0]), ("pack", &params[1])];
-                flat_param.pop();
-                setup_param_query("foods", &named_params)
+                let mut query =
+                    SAPQuery::from_iter([("tier".to_string(), tiers), ("pack".to_string(), packs)]);
+                query.set_table(Entity::Food);
+                let stmt = query.as_sql().unwrap();
+                (query, stmt)
             }
         };
-
-        (stmt, flat_param)
+        let flat_params = query.flat_params().into_iter().cloned().collect();
+        (stmt, flat_params)
     }
 
     pub(crate) fn get_rng(&self) -> ChaCha12Rng {
