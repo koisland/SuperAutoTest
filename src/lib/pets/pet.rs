@@ -3,7 +3,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::{Arc, RwLock};
 
 use crate::{
-    db::record::{PetRecord, SAPRecord},
+    db::{
+        query::SAPQuery,
+        record::{PetRecord, SAPRecord},
+    },
     effects::{effect::Effect, stats::Statistics},
     error::SAPTestError,
     foods::food::Food,
@@ -236,14 +239,13 @@ impl Pet {
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
+        let mut pet_query = SAPQuery::from_iter([
+            ("name", vec![&self.name.to_string()[..]]),
+            ("lvl", vec![&lvl.to_string()[..]]),
+        ]);
+        pet_query.set_table(Entity::Pet);
         SAPDB
-            .execute_query(
-                Entity::Pet,
-                &[
-                    ("name", &vec![self.name.to_string()]),
-                    ("lvl", &vec![lvl.to_string()]),
-                ],
-            )?
+            .execute_query(pet_query)?
             .into_iter()
             .next()
             .and_then(|record| {

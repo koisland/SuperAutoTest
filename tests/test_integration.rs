@@ -6,7 +6,7 @@ use saptest::{
         trigger::*,
     },
     teams::{combat::TeamCombat, team::TeamFightOutcome},
-    Effect, Food, FoodName, Pet, PetName, Shop, ShopItem, Statistics, Team, TeamEffects,
+    Effect, Food, FoodName, Pet, PetName, SAPQuery, Shop, ShopItem, Statistics, Team, TeamEffects,
     TeamShopping, SAPDB,
 };
 use std::{str::FromStr, thread};
@@ -14,12 +14,14 @@ use std::{str::FromStr, thread};
 #[test]
 fn test_query_db() {
     // Essentially "SELECT * FROM foods"
-    let food_query = SAPDB.execute_query(Entity::Food, &[]);
-    // Essentially "SELECT * FROM pets"
-    let pet_query = SAPDB.execute_query(Entity::Pet, &[]);
+    let mut food_query = SAPQuery::builder();
+    food_query.set_table(Entity::Food);
+    assert!(SAPDB.execute_query(food_query).is_ok());
 
-    assert!(food_query.is_ok());
-    assert!(pet_query.is_ok());
+    // Essentially "SELECT * FROM pets"
+    let mut pet_query = SAPQuery::builder();
+    pet_query.set_table(Entity::Pet);
+    assert!(SAPDB.execute_query(pet_query).is_ok());
 }
 
 #[test]
