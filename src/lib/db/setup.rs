@@ -98,6 +98,7 @@ impl SapDB {
                 temp_effect BOOLEAN NOT NULL,
                 lvl INTEGER NOT NULL,
                 cost INTEGER NOT NULL,
+                img_url TEXT,
                 CONSTRAINT unq UNIQUE (name, pack, lvl)
             );
             CREATE TABLE IF NOT EXISTS foods (
@@ -115,6 +116,7 @@ impl SapDB {
                 effect_health INTEGER NOT NULL,
                 turn_effect BOOLEAN NOT NULL,
                 cost INTEGER NOT NULL,
+                img_url TEXT,
                 CONSTRAINT unq UNIQUE (name, pack)
             );",
         )?;
@@ -133,9 +135,9 @@ impl SapDB {
                 holdable, single_use, end_of_battle,
                 random, n_targets,
                 effect_atk, effect_health,
-                turn_effect, cost
+                turn_effect, cost, img_url
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             ON CONFLICT(name, pack) DO UPDATE SET
                 tier = ?2,
                 effect = ?3,
@@ -148,7 +150,8 @@ impl SapDB {
                 effect_atk = ?10,
                 effect_health = ?11,
                 turn_effect = ?12,
-                cost = ?13
+                cost = ?13,
+                img_url = ?14
             WHERE
                 tier != ?2 OR
                 effect != ?3
@@ -179,6 +182,7 @@ impl SapDB {
                     &food.effect_health.to_string(),
                     &food.turn_effect.to_string(),
                     &food.cost.to_string(),
+                    &food.img_url.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;
@@ -198,9 +202,9 @@ impl SapDB {
             INSERT INTO pets (
                 name, tier, attack, health, pack,
                 effect_trigger, effect, effect_atk, effect_health, n_triggers, temp_effect,
-                lvl, cost
+                lvl, cost, img_url
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             ON CONFLICT(name, pack, lvl) DO UPDATE SET
                 tier = ?2,
                 attack = ?3,
@@ -210,7 +214,8 @@ impl SapDB {
                 effect_atk = ?8,
                 effect_health = ?9,
                 n_triggers = ?10,
-                temp_effect = ?11
+                temp_effect = ?11,
+                img_url = ?14
             WHERE
                 tier != ?2 OR
                 attack != ?3 OR
@@ -257,6 +262,7 @@ impl SapDB {
                     &pet.temp_effect.to_string(),
                     &pet.lvl.to_string(),
                     &pet.cost.to_string(),
+                    &pet.img_url.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;

@@ -130,6 +130,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 1,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -145,6 +146,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 2,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -160,6 +162,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 3,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -175,6 +178,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 1,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -190,6 +194,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 2,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -205,6 +210,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 3,
             cost: 3,
+            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png/revision/latest?cb=20230307093550"),
         },
     ];
     assert_eq!(

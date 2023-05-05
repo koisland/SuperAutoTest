@@ -219,7 +219,6 @@ python setup.py install
 
 ## TODO:
 * Add trait for randomly generating teams.
-* Make structs thread-safe.
 
 ---
 ## Sources
