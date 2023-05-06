@@ -199,9 +199,6 @@ pub fn parse_single_pet(
             }));
         };
 
-        if pet_name == "Siberian Husky" {
-            println!("{:?}", IMG_URLS.keys())
-        }
         let url = IMG_URLS
             .get(pet_name)
             .map(|data| data.url.clone())

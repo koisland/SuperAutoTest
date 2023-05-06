@@ -34,13 +34,17 @@ lazy_static! {
     static ref IMG_URLS: HashMap<String, WikiImgData> = {
         if CONFIG.database.update_on_startup {
             // Replace extensions, ICON, and '_' in names.
-            let re = regex::Regex::new("_*Icon_*").unwrap();
+            let re_icon = regex::Regex::new("_*Icon_*").unwrap();
+            let re_url = regex::Regex::new("/revision/latest\\?cb=.*").unwrap();
             let imgs = extract_all_wiki_images();
 
             imgs.into_iter()
                 // Replace extension so items can match.
-                .map(|data| {
-                    let cleaned_name = re.replace_all(&data.name, " ");
+                .map(|mut data| {
+                    let cleaned_name = re_icon.replace(&data.name, " ");
+                    // Strip revision information.
+                    let cleaned_url = re_url.replace(&data.url, "");
+                    data.url = cleaned_url.to_string();
                     (
                         cleaned_name.replace(".png", "").trim().replace('_', " "),
                         data

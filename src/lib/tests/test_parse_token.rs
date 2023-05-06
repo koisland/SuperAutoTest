@@ -73,7 +73,9 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 1,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
+            ),
         },
         PetRecord {
             name: PetName::Bus,
@@ -89,7 +91,9 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 2,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
+            ),
         },
         PetRecord {
             name: PetName::Bus,
@@ -105,7 +109,9 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 3,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
+            ),
         },
     ];
     assert_eq!(pets, exp_pets)
@@ -143,7 +149,9 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 1,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
+            ),
         },
         PetRecord {
             name: PetName::Butterfly,
@@ -161,7 +169,9 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 2,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
+            ),
         },
         PetRecord {
             name: PetName::Butterfly,
@@ -179,7 +189,9 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 3,
             cost: 0,
-            img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png/revision/latest?cb=20230307093521"),
+            img_url: String::from(
+                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
+            ),
         },
     ];
 

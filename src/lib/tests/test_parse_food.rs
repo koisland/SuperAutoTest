@@ -262,7 +262,9 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png/revision/latest?cb=20230409195129")
+                img_url: String::from(
+                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
+                )
             },
             FoodRecord {
                 name: FoodName::Cupcake,
@@ -278,7 +280,9 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from("https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png/revision/latest?cb=20230409195129")
+                img_url: String::from(
+                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
+                )
             }
         ]
     )
