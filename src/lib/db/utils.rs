@@ -30,6 +30,7 @@ impl TryFrom<&Row<'_>> for PetRecord {
             temp_effect: is_temp_effect_str == *"true",
             lvl: pet_row.get(12)?,
             cost: pet_row.get(13)?,
+            img_url: pet_row.get(14)?,
         })
     }
 }
@@ -59,6 +60,7 @@ impl TryFrom<&Row<'_>> for FoodRecord {
             effect_health: food_row.get(11)?,
             turn_effect: turn_effect_str == *"true",
             cost: food_row.get(13)?,
+            img_url: food_row.get(14)?,
         })
     }
 }

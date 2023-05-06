@@ -13,6 +13,8 @@ use crate::{
     },
     PetName,
 };
+
+use super::IMG_URLS;
 const DEFAULT_TOKEN_COST: usize = 0;
 
 #[derive(Debug, PartialEq, Eq, Hash)]
@@ -134,6 +136,11 @@ pub fn parse_single_token(
         col_map_vals.get(&TokenTableCols::SummonedFrom),
         col_map_vals.get(&TokenTableCols::Notes),
     ) {
+        let url = IMG_URLS
+            .get(<&str>::clone(name))
+            .map(|data| data.url.clone())
+            .unwrap_or_else(String::default);
+
         for (lvl, stats) in [stats_level_1, stats_level_2, stats_level_3]
             .into_iter()
             .enumerate()
@@ -160,6 +167,7 @@ pub fn parse_single_token(
                     temp_effect: false,
                     lvl: lvl + 1,
                     cost: DEFAULT_TOKEN_COST,
+                    img_url: url.clone(),
                 })
             } else {
                 warn!("Failed to parse stats for {name} from string {stats}.")

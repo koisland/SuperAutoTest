@@ -89,6 +89,8 @@ pub struct FoodRecord {
     pub turn_effect: bool,
     /// The cost of the food.
     pub cost: usize,
+    /// Most recent image url.
+    pub img_url: String,
 }
 
 /// A record with information about a pet from Super Auto Pets.
@@ -128,4 +130,6 @@ pub struct PetRecord {
     pub lvl: usize,
     /// The cost of the pet.
     pub cost: usize,
+    /// Most recent image url.
+    pub img_url: String,
 }

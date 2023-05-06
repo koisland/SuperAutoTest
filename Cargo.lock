@@ -714,8 +714,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "sap_examples"
+version = "0.1.0"
+dependencies = [
+ "itertools",
+ "saptest 0.4.6",
+]
+
+[[package]]
 name = "saptest"
 version = "0.4.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3339a780a7bef5ccec8c83a4c647e7f8b6bb9b00d59a49ea8ac3995a0bfb20a9"
+dependencies = [
+ "indexmap",
+ "itertools",
+ "lazy-regex",
+ "lazy_static",
+ "log",
+ "petgraph",
+ "r2d2",
+ "r2d2_sqlite",
+ "rand",
+ "rand_chacha",
+ "regex",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "thiserror",
+ "toml",
+ "ureq",
+]
+
+[[package]]
+name = "saptest"
+version = "0.4.8"
 dependencies = [
  "criterion",
  "indexmap",
