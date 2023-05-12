@@ -14,6 +14,8 @@ use crate::{
     wiki_scraper::common::{get_page_info, remove_icon_names},
 };
 
+use super::IMG_URLS;
+
 const TABLE_STR_DELIM: &str = "|-";
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
 const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
@@ -234,6 +236,12 @@ pub fn parse_one_food_entry(
     if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) =
         cols.iter().zip_eq(col_info).collect_tuple()
     {
+        // Get image url setting no empty string if not found.
+        let url = IMG_URLS
+            .get(name.1)
+            .map(|data| data.url.clone())
+            .unwrap_or_else(String::default);
+
         // Map tiers that are N/A to 0. ex. Coconut which is summoned.
         tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
 
@@ -279,6 +287,7 @@ pub fn parse_one_food_entry(
                 effect_health,
                 turn_effect,
                 cost,
+                img_url: url.clone(),
             });
         }
     } else {

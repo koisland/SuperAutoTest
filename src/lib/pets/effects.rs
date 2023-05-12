@@ -543,16 +543,18 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Add(StatChangeType::SetStatistics(effect_stats)),
                 uses: None,
             }],
-            PetName::Dolphin => vec![Effect {
-                owner: None,
-
-                temp: record.temp_effect,
-                trigger: TRIGGER_START_BATTLE,
-                target: Target::Enemy,
-                position: Position::N(ItemCondition::Illest, 1, false),
-                action: Action::Remove(StatChangeType::SetStatistics(effect_stats)),
-                uses: Some(record.n_triggers),
-            }],
+            PetName::Dolphin => vec![
+                Effect {
+                    owner: None,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_START_BATTLE,
+                    target: Target::Enemy,
+                    position: Position::N(ItemCondition::Illest, 1, false),
+                    action: Action::Remove(StatChangeType::SetStatistics(effect_stats)),
+                    uses: Some(1),
+                };
+                record.n_triggers
+            ],
             PetName::Kangaroo => vec![Effect {
                 owner: None,
 
@@ -1535,7 +1537,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
 
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::Any(ItemCondition::None),
+                position: Position::N(ItemCondition::None, record.lvl, true),
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,

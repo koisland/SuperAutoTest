@@ -117,7 +117,7 @@ impl From<HardModeOption> for Effect {
             HardModeOption::RingPyramid => todo!(),
             HardModeOption::RubberDuck => todo!(),
             HardModeOption::Unicycle => todo!(),
-            _ => todo!()
+            _ => todo!(),
         }
     }
 }

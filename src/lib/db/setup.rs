@@ -1,7 +1,7 @@
 use crate::{
     db::{
+        query::SAPQuery,
         record::{FoodRecord, PetRecord, SAPRecord},
-        utils::setup_param_query,
     },
     error::SAPTestError,
     wiki_scraper::{
@@ -10,7 +10,6 @@ use crate::{
     },
     Entity, CONFIG,
 };
-use itertools::Itertools;
 use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
@@ -99,6 +98,7 @@ impl SapDB {
                 temp_effect BOOLEAN NOT NULL,
                 lvl INTEGER NOT NULL,
                 cost INTEGER NOT NULL,
+                img_url TEXT,
                 CONSTRAINT unq UNIQUE (name, pack, lvl)
             );
             CREATE TABLE IF NOT EXISTS foods (
@@ -116,6 +116,7 @@ impl SapDB {
                 effect_health INTEGER NOT NULL,
                 turn_effect BOOLEAN NOT NULL,
                 cost INTEGER NOT NULL,
+                img_url TEXT,
                 CONSTRAINT unq UNIQUE (name, pack)
             );",
         )?;
@@ -134,9 +135,9 @@ impl SapDB {
                 holdable, single_use, end_of_battle,
                 random, n_targets,
                 effect_atk, effect_health,
-                turn_effect, cost
+                turn_effect, cost, img_url
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             ON CONFLICT(name, pack) DO UPDATE SET
                 tier = ?2,
                 effect = ?3,
@@ -149,7 +150,8 @@ impl SapDB {
                 effect_atk = ?10,
                 effect_health = ?11,
                 turn_effect = ?12,
-                cost = ?13
+                cost = ?13,
+                img_url = ?14
             WHERE
                 tier != ?2 OR
                 effect != ?3
@@ -180,6 +182,7 @@ impl SapDB {
                     &food.effect_health.to_string(),
                     &food.turn_effect.to_string(),
                     &food.cost.to_string(),
+                    &food.img_url.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;
@@ -199,9 +202,9 @@ impl SapDB {
             INSERT INTO pets (
                 name, tier, attack, health, pack,
                 effect_trigger, effect, effect_atk, effect_health, n_triggers, temp_effect,
-                lvl, cost
+                lvl, cost, img_url
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
             ON CONFLICT(name, pack, lvl) DO UPDATE SET
                 tier = ?2,
                 attack = ?3,
@@ -211,7 +214,8 @@ impl SapDB {
                 effect_atk = ?8,
                 effect_health = ?9,
                 n_triggers = ?10,
-                temp_effect = ?11
+                temp_effect = ?11,
+                img_url = ?14
             WHERE
                 tier != ?2 OR
                 attack != ?3 OR
@@ -258,6 +262,7 @@ impl SapDB {
                     &pet.temp_effect.to_string(),
                     &pet.lvl.to_string(),
                     &pet.cost.to_string(),
+                    &pet.img_url.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;
@@ -286,65 +291,50 @@ impl SapDB {
         Ok(self)
     }
 
-    /// Execute `SELECT` query in the Super Auto Pets database.
-    /// 1. A Super Auto Pets [`Entity`]
-    /// 2. Parameters
-    ///     * Format: `[(field, [param, param]), ... ]`
-    ///     * Example: `[("name", ["Cat", "Dog"]), ("lvl", ["1", "2"])]`
+    /// Execute `SELECT` query in the Super Auto Pets database with a [`SAPQuery`].
     ///
     /// # Examples
     /// ---
     /// Pet Query
     /// ```
-    /// use saptest::{SAPDB, Entity, PetName, db::{pack::Pack, record::SAPRecord}};
+    /// use saptest::{SAPDB, SAPQuery, Entity, PetName, db::{pack::Pack, record::SAPRecord}};
     ///
-    /// let pets = vec![PetName::Tiger.to_string()];
-    /// let levels = vec![2.to_string()];
-    /// let packs = vec![Pack::Turtle.to_string()];
-    /// let params = vec![("name", &pets), ("lvl", &levels), ("pack", &packs)];
+    /// let mut query = SAPQuery::builder();
+    /// query.set_table(Entity::Pet)
+    ///     .set_param("name", vec![PetName::Tiger])
+    ///     .set_param("lvl", vec![2])
+    ///     .set_param("pack", vec![Pack::Turtle]);
     ///
-    /// let pets = SAPDB.execute_query(Entity::Pet, &params).unwrap();
-    /// let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
+    /// let pets = SAPDB.execute_query(query).unwrap();
+    /// let Some(SAPRecord::Pet(record)) = pets.first() else { panic!("No Record found.")};
     /// assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
     /// ```
     /// ---
     /// Food Query
     /// ```
-    /// use saptest::{SAPDB, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
+    /// use saptest::{SAPDB, SAPQuery, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
+
+    /// let mut query = SAPQuery::builder();
+    /// query.set_table(Entity::Food)
+    ///     .set_param("name", vec![FoodName::Apple])
+    ///     .set_param("pack", vec![Pack::Turtle]);
     ///
-    /// let foods = vec!["Apple".to_string()];
-    /// let packs = vec![Pack::Turtle.to_string()];
-    /// let params = vec![("name", &foods), ("pack", &packs)];
-    /// let foods = SAPDB.execute_query(Entity::Food, &params).unwrap();
+    /// let foods = SAPDB.execute_query(query).unwrap();
     ///
-    /// let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
+    /// let Some(SAPRecord::Food(record)) = foods.first() else { panic!("No Record found.")};
     /// assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
     /// ```
-    pub fn execute_query(
-        &self,
-        entity: Entity,
-        params: &[(&str, &Vec<String>)],
-    ) -> Result<Vec<SAPRecord>, SAPTestError> {
+    pub fn execute_query(&self, sap_query: SAPQuery) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;
         let mut records: Vec<SAPRecord> = vec![];
 
-        let mut tbl = entity.to_string().to_lowercase();
-        // Table names suffixed with 's'.
-        tbl.push('s');
-        // If no params, select all items.
-        let sql = if params.is_empty() {
-            format!("SELECT * FROM {tbl}")
-        } else {
-            setup_param_query(&tbl, params)
-        };
-        let flat_params = params
-            .iter()
-            .flat_map(|(_, params)| params.to_owned())
-            .collect_vec();
-        let mut stmt = conn.prepare(&sql)?;
-        let mut query = stmt.query(rusqlite::params_from_iter(flat_params))?;
+        let mut stmt = conn.prepare(&sap_query.as_sql()?)?;
+        // ^ Requires a table. Safe to unwrap.
+        let table = sap_query.table.unwrap();
+
+        let mut query = stmt.query(rusqlite::params_from_iter(sap_query.flat_params()))?;
         while let Some(row) = query.next()? {
-            let record = match entity {
+            let record = match table {
                 Entity::Pet => SAPRecord::Pet(row.try_into()?),
                 Entity::Food => SAPRecord::Food(row.try_into()?),
             };
@@ -386,6 +376,7 @@ mod test {
     use crate::{
         db::{
             pack::Pack,
+            query::SAPQuery,
             record::{FoodRecord, PetRecord, SAPRecord},
         },
         Entity, FoodName, PetName, SAPDB,
@@ -393,19 +384,28 @@ mod test {
 
     #[test]
     fn test_query_no_params() {
-        let params = vec![];
-        let foods = SAPDB.execute_query(Entity::Food, &params);
-        let pets = SAPDB.execute_query(Entity::Pet, &params);
+        let mut food_query = SAPQuery::builder();
+        food_query.set_table(Entity::Food);
+
+        let mut pet_query = SAPQuery::builder();
+        pet_query.set_table(Entity::Pet);
+
+        let foods = SAPDB.execute_query(food_query);
+        let pets = SAPDB.execute_query(pet_query);
         assert!(foods.is_ok());
         assert!(pets.is_ok());
     }
 
     #[test]
     fn test_query_params_food() {
-        let foods = vec!["Apple".to_string()];
-        let packs = vec![Pack::Turtle.to_string()];
-        let params = vec![("name", &foods), ("pack", &packs)];
-        let foods = SAPDB.execute_query(Entity::Food, &params).unwrap();
+        let mut food_query = SAPQuery::builder();
+
+        food_query
+            .set_table(Entity::Food)
+            .set_param("name", vec![FoodName::Apple])
+            .set_param("pack", vec![Pack::Turtle]);
+
+        let foods = SAPDB.execute_query(food_query).unwrap();
 
         let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
         assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
@@ -413,12 +413,15 @@ mod test {
 
     #[test]
     fn test_query_params_pets() {
-        let pets = vec![PetName::Tiger.to_string()];
-        let levels = vec![2.to_string()];
-        let packs = vec![Pack::Turtle.to_string()];
-        let params = vec![("name", &pets), ("lvl", &levels), ("pack", &packs)];
+        let mut pet_query = SAPQuery::builder();
 
-        let pets = SAPDB.execute_query(Entity::Pet, &params).unwrap();
+        pet_query
+            .set_table(Entity::Pet)
+            .set_param("name", vec![PetName::Tiger])
+            .set_param("lvl", vec![2])
+            .set_param("pack", vec![Pack::Turtle]);
+
+        let pets = SAPDB.execute_query(pet_query).unwrap();
         let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
         assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
     }

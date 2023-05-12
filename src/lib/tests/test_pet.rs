@@ -3,7 +3,6 @@ use std::collections::VecDeque;
 use crate::{
     effects::{
         actions::{Action, StatChangeType},
-        effect::Entity,
         state::{ItemCondition, Position, Target},
         stats::Statistics,
         trigger::*,

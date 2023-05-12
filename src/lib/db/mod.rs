@@ -51,6 +51,7 @@
 //!     temp_effect BOOLEAN NOT NULL,
 //!     lvl INTEGER NOT NULL,
 //!     cost INTEGER NOT NULL,
+//!     img_url TEXT,
 //!     CONSTRAINT unq UNIQUE (name, pack, lvl)
 //! );
 //! ```
@@ -84,6 +85,8 @@
 //!     * Level of pet.
 //! * `cost`
 //!     * Cost of pet.
+//! * `img_url`
+//!     * Current image url displayed on page.
 //!
 //! #### Foods
 //! Food records.
@@ -104,6 +107,7 @@
 //!     effect_health INTEGER NOT NULL,
 //!     turn_effect BOOLEAN NOT NULL,
 //!     cost INTEGER NOT NULL,
+//!     img_url TEXT,
 //!     CONSTRAINT unq UNIQUE (name, pack)
 //! );"
 //! ```
@@ -139,6 +143,8 @@
 //!     * Example: [`Grapes`](crate::FoodName::Grapes)
 //! * `cost`
 //!     * The cost of the food.
+//! * `img_url`
+//!     * Current image url displayed on page.
 //!
 //! ### Conversion
 //! * Any record can be converted into [`Food`](crate::Food)s or [Pet](crate::Pet)s.
@@ -189,6 +195,8 @@
 
 /// Game packs.
 pub mod pack;
+/// Database query.
+pub mod query;
 /// Record types.
 pub mod record;
 /// Database setup functions.

@@ -10,6 +10,8 @@ use crate::{
     PetName, Statistics,
 };
 
+use super::IMG_URLS;
+
 const DEFAULT_PET_COST: usize = 3;
 
 /// Numeric regex helper function.
@@ -197,6 +199,11 @@ pub fn parse_single_pet(
             }));
         };
 
+        let url = IMG_URLS
+            .get(pet_name)
+            .map(|data| data.url.clone())
+            .unwrap_or_else(String::default);
+
         let (pet_atk, pet_health) = parse_pet_stats(block)?;
 
         let pet_packs = parse_pet_packs(block);
@@ -228,6 +235,7 @@ pub fn parse_single_pet(
                     temp_effect,
                     lvl: lvl + 1,
                     cost: DEFAULT_PET_COST,
+                    img_url: url.clone(),
                 };
 
                 pets.push(pet)

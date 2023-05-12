@@ -1,6 +1,5 @@
 use saptest::{Food, FoodName, Pet, PetName, Team, TeamCombat, TeamViewer};
 
-
 /// Classic [`Mushroom`](saptest::FoodName::Mushroom)ed [`Scorpion`](saptest::PetName::Scorpion) tactic.
 /// * https://youtu.be/NSqjuA32AoA?t=149
 /// * Scorpion spawns with [`Peanut`](saptest::FoodName::Peanut) on summon with [`Mushroom`](saptest::FoodName::Mushroom).
@@ -23,7 +22,13 @@ pub fn mushroom_scorpion() -> Team {
     let respawned_scorpion = team.first().unwrap();
     // Gain peanut on respawn.
     assert_eq!(
-        respawned_scorpion.read().unwrap().item.as_ref().unwrap().name,
+        respawned_scorpion
+            .read()
+            .unwrap()
+            .item
+            .as_ref()
+            .unwrap()
+            .name,
         FoodName::Peanut
     );
     team

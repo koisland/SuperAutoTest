@@ -141,6 +141,8 @@
 //! Read more under the [`db`](crate::db) module.
 
 #![warn(missing_docs)]
+// TODO: Split errors into smaller categories?
+#![allow(clippy::result_large_err)]
 
 #[macro_use]
 extern crate lazy_regex;
@@ -168,7 +170,7 @@ pub use crate::teams::{combat::TeamCombat, effects::TeamEffects, team::Team, vie
 
 use crate::config::{LibConfig, CONFIG_PATH, DEFAULT_CONFIG};
 #[doc(inline)]
-pub use crate::db::setup::SapDB;
+pub use crate::db::{query::SAPQuery, setup::SapDB};
 #[doc(inline)]
 pub use crate::foods::{food::Food, names::FoodName};
 #[doc(inline)]
