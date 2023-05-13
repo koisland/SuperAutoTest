@@ -168,7 +168,11 @@ pub trait TeamViewer {
     /// let mut team = Team::new(&pets, 5).unwrap();
     /// // Give two random pets honey.
     /// team.set_item(
-    ///     &Position::N(ItemCondition::None, 2, true),
+    ///     &Position::N {
+    ///         condition: ItemCondition::None,
+    ///         targets: 2,
+    ///         random: true
+    ///     },
     ///     Some(Food::try_from(FoodName::Honey).unwrap())
     /// );
     /// let matching_pets = team.get_pets_by_cond(
@@ -752,7 +756,14 @@ impl TeamViewer for Team {
                     )?)
                 }
             }
-            (Target::Either, Position::N(condition, num_pets, randomize)) => {
+            (
+                Target::Either,
+                Position::N {
+                    condition,
+                    targets,
+                    random: randomize,
+                },
+            ) => {
                 let mut self_pets = self.get_pets_by_cond(condition);
                 let mut opponent_pets = opponent.get_pets_by_cond(condition);
 
@@ -766,7 +777,7 @@ impl TeamViewer for Team {
                     (self_pets.into_iter(), opponent_pets.into_iter());
 
                 // Get n values of indices.
-                for n in 0..*num_pets {
+                for n in 0..*targets {
                     // Alternate between teams.
                     if n % 2 == 0 {
                         if let Some(pet) = self_pets.next() {
@@ -777,7 +788,14 @@ impl TeamViewer for Team {
                     }
                 }
             }
-            (Target::Friend | Target::Enemy, Position::N(condition, n, randomize)) => {
+            (
+                Target::Friend | Target::Enemy,
+                Position::N {
+                    condition,
+                    targets,
+                    random: randomize,
+                },
+            ) => {
                 let mut found_pets = team.get_pets_by_cond(condition);
                 if *randomize {
                     let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
@@ -786,7 +804,7 @@ impl TeamViewer for Team {
                 let mut found_pets = found_pets.into_iter();
 
                 // Get n values of indices.
-                for _ in 0..*n {
+                for _ in 0..*targets {
                     if let Some(pet) = found_pets.next() {
                         pets.push(pet)
                     }

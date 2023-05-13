@@ -239,7 +239,11 @@ impl ShopViewer for Shop {
         let mut found_items = vec![];
 
         match pos {
-            Position::N(condition, number_items, randomize) => {
+            Position::N {
+                condition,
+                targets: number_items,
+                random: randomize,
+            } => {
                 let mut found_shop_items = self.get_shop_items_by_cond(condition, item)?;
                 if *randomize {
                     let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));

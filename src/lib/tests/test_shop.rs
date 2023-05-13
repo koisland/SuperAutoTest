@@ -417,7 +417,14 @@ fn test_view_by_pos() {
         .get_shop_items_by_pos(&Position::Range(0..=2), &Entity::Pet)
         .unwrap();
     let n_num_pets = shop
-        .get_shop_items_by_pos(&Position::N(ItemCondition::None, 3, true), &Entity::Pet)
+        .get_shop_items_by_pos(
+            &Position::N {
+                condition: ItemCondition::None,
+                targets: 3,
+                random: true,
+            },
+            &Entity::Pet,
+        )
         .unwrap();
 
     let rel_idx_food = shop

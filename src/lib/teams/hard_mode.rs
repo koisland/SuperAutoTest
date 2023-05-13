@@ -104,7 +104,11 @@ impl From<HardModeOption> for Effect {
                 owner: None,
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Enemy,
-                position: Position::N(ItemCondition::Illest, 1, false),
+                position: Position::N {
+                    condition: ItemCondition::Illest,
+                    targets: 1,
+                    random: false,
+                },
                 action: Action::Set(StatChangeType::SelfMultStatistics(Statistics {
                     attack: 400,
                     health: 400,

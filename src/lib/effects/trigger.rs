@@ -8,7 +8,7 @@ use crate::{
     Pet,
 };
 
-use super::state::EqualityCondition;
+use super::state::{EqualityCondition, TeamCondition};
 
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
 pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 2] {
@@ -43,6 +43,28 @@ pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
     ) = (Some(pet.clone()), Some(pet.clone()), Some(pet));
     [self_trigger, any_trigger, any_enemy_trigger]
 }
+
+/// Trigger for when no pets left on team.
+pub const TRIGGER_NO_PETS_LEFT: Outcome = Outcome {
+    status: Status::IsTeam(TeamCondition::NumberPetsEqual(0)),
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::Enemy,
+    position: Position::None,
+    stat_diff: None,
+};
+
+/// Trigger for when one pet left on team.
+pub const TRIGGER_ONE_PET_LEFT: Outcome = Outcome {
+    status: Status::IsTeam(TeamCondition::NumberPetsEqual(1)),
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::Enemy,
+    position: Position::None,
+    stat_diff: None,
+};
 
 /// Start of battle trigger.
 pub const TRIGGER_START_BATTLE: Outcome = Outcome {

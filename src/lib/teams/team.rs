@@ -6,8 +6,7 @@ use crate::{
     error::SAPTestError,
     pets::pet::{reassign_effects, Pet},
     shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
-    teams::history::History,
-    teams::viewer::TeamViewer,
+    teams::{effects::golden_effect, history::History, viewer::TeamViewer},
     wiki_scraper::parse_names::WordType,
     Effect, Food, Shop, CONFIG, SAPDB,
 };
@@ -18,7 +17,7 @@ use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     fmt::Display,
     sync::{Arc, RwLock, Weak},
 };
@@ -115,8 +114,11 @@ pub struct Team {
     /// Clone of pets used for restoring team.
     pub(crate) stored_friends: Vec<Option<Pet>>,
     /// Apply a persistent effect.
-    /// * This effect is applied during trigger_effects.
-    pub persistent_effect: Option<Effect>,
+    /// * These effects are **ALWAYS** applied during trigger_effects.
+    pub persistent_effects: Vec<Effect>,
+    /// Counters.
+    /// * These can be used with effects.
+    pub counters: HashMap<String, usize>,
 }
 
 impl Default for Team {
@@ -139,7 +141,9 @@ impl Default for Team {
             history: History::default(),
             seed,
             curr_pet: None,
-            persistent_effect: None,
+            persistent_effects: Vec::default(),
+            // Add trumpets.
+            counters: HashMap::from_iter([("Trumpets".to_owned(), 0)]),
         }
     }
 }
@@ -215,7 +219,8 @@ impl Clone for Team {
             stored_friends: copied_stored_friends,
             curr_pet: None,
             shop: self.shop.clone(),
-            persistent_effect: self.persistent_effect.clone(),
+            persistent_effects: self.persistent_effects.clone(),
+            counters: self.counters.clone(),
         };
         // Reassign references.
         copied_team.reset_pet_references(None);
@@ -289,6 +294,8 @@ impl Team {
             curr_pet,
             ..Default::default()
         };
+        // Add golden pack effects.
+        team.persistent_effects.extend(golden_effect());
 
         // Update pet count.
         team.history.pet_count = team.all().len();

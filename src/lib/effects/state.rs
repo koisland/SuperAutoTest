@@ -33,7 +33,7 @@ pub enum EqualityCondition {
     Frozen,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
     /// Previous team fight was some outcome.
@@ -46,6 +46,8 @@ pub enum TeamCondition {
     NumberPetsGreaterEqual(usize),
     /// Number of fainted pets is a multiple of this value.
     NumberFaintedMultiple(usize),
+    /// Counter is equal to this value.
+    CounterEqual(String, usize),
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -90,12 +92,16 @@ pub enum ItemCondition {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Default)]
 pub enum Position {
     /// Some number of [`Pet`]s based on a given [`ItemCondition`].
-    /// 1. [`ItemCondition`]s to select pets by.
-    /// 2. Number of pets to select.
-    /// 3. Shuffle any found pets.
     ///
     /// Note: These positions are non-overlapping.
-    N(ItemCondition, usize, bool),
+    N {
+        /// [`ItemCondition`]s to select pets by.
+        condition: ItemCondition,
+        /// Number of pets to select.
+        targets: usize,
+        /// Shuffle any found pets.
+        random: bool,
+    },
     /// Any [`Pet`] that matches a given [`ItemCondition`].
     Any(ItemCondition),
     /// All [`Pet`]s that match a given [`ItemCondition`].
@@ -146,7 +152,7 @@ impl Position {
             Position::Any(_)
                 | Position::All(_)
                 | Position::Relative(_)
-                | Position::N(_, _, _)
+                | Position::N { .. }
                 | Position::Nearest(_)
                 | Position::Ahead
                 | Position::None
@@ -298,12 +304,6 @@ pub enum Status {
     StartOfBattle,
     /// After start of battle, prior to first battle.
     BeforeFirstBattle,
-    /// Won the Battle.
-    WinBattle,
-    /// Loss the battle.
-    LoseBattle,
-    /// Drew
-    DrawBattle,
     /// Before pet attacks.
     BeforeAttack,
     /// Pet is attacking.
@@ -324,6 +324,8 @@ pub enum Status {
     AteFood,
     /// Specific food eaten.
     AteSpecificFood(FoodName),
+    /// Team State
+    IsTeam(TeamCondition),
     /// Pet bought.
     BuyPet,
     /// Pet sold.

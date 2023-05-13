@@ -388,6 +388,20 @@ impl BattlePhases for Team {
                 )
             }
 
+            // Add triggers if no pets or one pet left.
+            let num_pets_left = self.all().len();
+            if num_pets_left == 0 {
+                self.triggers.push_back(TRIGGER_NO_PETS_LEFT)
+            } else if num_pets_left == 1 {
+                self.triggers.push_back(TRIGGER_ONE_PET_LEFT)
+            }
+            let num_opp_pets_left = opponent.all().len();
+            if num_opp_pets_left == 0 {
+                opponent.triggers.push_back(TRIGGER_NO_PETS_LEFT)
+            } else if num_pets_left == 1 {
+                opponent.triggers.push_back(TRIGGER_ONE_PET_LEFT)
+            }
+
             // Apply effect triggers from combat phase.
             self.trigger_all_effects(opponent)?;
         }

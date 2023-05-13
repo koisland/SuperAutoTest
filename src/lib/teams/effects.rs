@@ -1,8 +1,8 @@
 use crate::{
     effects::{
-        actions::Action,
+        actions::{Action, ConditionType, LogicType, StatChangeType, SummonType},
         effect::{Effect, EffectModify},
-        state::{Outcome, Position, Status, Target},
+        state::{Outcome, Position, Status, Target, TeamCondition},
         trigger::*,
     },
     error::SAPTestError,
@@ -12,7 +12,7 @@ use crate::{
         team::Team,
         viewer::TeamViewer,
     },
-    Pet, PetCombat,
+    Pet, PetCombat, PetName,
 };
 use itertools::Itertools;
 
@@ -34,6 +34,33 @@ const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
     TRIGGER_ROLL,
     TRIGGER_SHOP_TIER_UPGRADED,
 ];
+
+pub(crate) fn golden_effect() -> Vec<Effect> {
+    let no_pet_left = Effect {
+        owner: None,
+        trigger: TRIGGER_NO_PETS_LEFT,
+        target: Target::Friend,
+        position: Position::First,
+        action: Action::Conditional(
+            LogicType::IfNot(ConditionType::Team(
+                Target::Friend,
+                TeamCondition::CounterEqual("Trumpets".to_owned(), 0),
+            )),
+            Box::new(Action::Summon(SummonType::CustomPet(
+                PetName::Custom("Golden Retriever".to_owned()),
+                StatChangeType::OnTeamCounter("Trumpets".to_owned()),
+                1,
+            ))),
+            Box::new(Action::None),
+        ),
+        uses: Some(1),
+        temp: true,
+    };
+    let mut one_pet_left = no_pet_left.clone();
+    one_pet_left.trigger = TRIGGER_ONE_PET_LEFT;
+
+    vec![no_pet_left, one_pet_left]
+}
 
 fn knockout_pet_caused_knockout(team: &Team, pet: &Arc<RwLock<Pet>>) -> bool {
     team.triggers.iter().any(|trigger| {
@@ -445,7 +472,21 @@ impl TeamEffects for Team {
         trigger: &Outcome,
         mut opponent: Option<&mut Team>,
     ) -> Result<&mut Self, SAPTestError> {
-        let mut applied_effects: Vec<Effect> = vec![];
+        // Add persistent effects. Owner always first on team. Not sure if best choice but must work for golden pack.
+        let mut applied_effects: Vec<Effect> = self
+            .persistent_effects
+            .iter()
+            .cloned()
+            .filter_map(|mut effect| {
+                // Take the first friend regardless if alive or not.
+                if let Some(Some(pet)) = self.friends.first() {
+                    effect.assign_owner(Some(pet));
+                    Some(effect)
+                } else {
+                    None
+                }
+            })
+            .collect();
 
         // Get petname and position of trigger.
         let (trigger_pet_name, trigger_pet_pos) = if let Some(Some(trigger_pet)) =

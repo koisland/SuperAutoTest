@@ -42,6 +42,7 @@ impl std::fmt::Display for StatChangeType {
             }
             StatChangeType::SetAttack(atk) => write!(f, "({atk}, 0)"),
             StatChangeType::SetHealth(health) => write!(f, "(0, {health})"),
+            StatChangeType::OnTeamCounter(counter_key) => write!(f, "Based on {counter_key}"),
         }
     }
 }

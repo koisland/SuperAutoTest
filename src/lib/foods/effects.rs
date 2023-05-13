@@ -245,7 +245,11 @@ impl TryFrom<&FoodRecord> for Effect {
 
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
-                position: Position::N(ItemCondition::None, record.n_targets, true),
+                position: Position::N {
+                    condition: ItemCondition::None,
+                    targets: record.n_targets,
+                    random: true,
+                },
                 action: Action::Add(StatChangeType::SetStatistics(effect_stats)),
                 uses,
                 temp: record.end_of_battle,

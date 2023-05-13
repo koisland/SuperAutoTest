@@ -330,9 +330,8 @@ impl PetCombat for Pet {
 
             match food_effect {
                 // Get stat modifiers from effects.
-                // Safe to unwrap.
                 Action::Add(stat_change) | Action::Remove(stat_change) => {
-                    Some(stat_change.to_stats(self.stats))
+                    stat_change.to_stats(Some(self.stats), None).ok()
                 }
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;

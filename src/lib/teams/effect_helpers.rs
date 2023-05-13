@@ -455,7 +455,8 @@ impl EffectApplyHelpers for Team {
             SummonType::StoredPet(box_pet) => *box_pet.clone(),
             SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
             SummonType::CustomPet(name, stat_types, lvl) => {
-                let mut stats = stat_types.to_stats(target_pet.read().unwrap().stats);
+                let mut stats = stat_types
+                    .to_stats(Some(target_pet.read().unwrap().stats), Some(&self.counters))?;
                 Pet::new(
                     name.clone(),
                     Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
@@ -723,6 +724,11 @@ impl EffectApplyHelpers for Team {
                 TeamCondition::NumberFaintedMultiple(multiple) => {
                     team.fainted.len() % *multiple == 0
                 }
+                TeamCondition::CounterEqual(counter_name, num_counts) => team
+                    .counters
+                    .get(counter_name)
+                    .map(|count| count == num_counts)
+                    .unwrap_or(false),
             }
         }
         match condition_type {
@@ -1053,7 +1059,9 @@ impl EffectApplyHelpers for Team {
                     return Ok(affected_pets);
                 }
                 // Convert stat change to stats with afflicting pet stats.
-                let added_stats = stat_change.to_stats(afflicting_pet_stats);
+                let added_stats =
+                    stat_change.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+
                 // Update action for digraph with static value.
                 modified_effect.action = Action::Add(StatChangeType::SetStatistics(added_stats));
 
@@ -1077,7 +1085,9 @@ impl EffectApplyHelpers for Team {
             Action::Remove(stat_change) => {
                 let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
 
-                let mut remove_stats = stat_change.to_stats(afflicting_pet_stats);
+                let mut remove_stats =
+                    stat_change.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+
                 // Check for food on effect owner. Add any effect dmg modifiers. ex. Pineapple
                 if let Some(item) = afflicting_pet
                     .read()
@@ -1087,7 +1097,9 @@ impl EffectApplyHelpers for Team {
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
                 {
                     if let Action::Add(modifier) = &item.ability.action {
-                        remove_stats += modifier.to_stats(afflicting_pet_stats)
+                        let modifier_stats =
+                            modifier.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+                        remove_stats += modifier_stats
                     }
                 }
                 // Update with remaining modifiers.

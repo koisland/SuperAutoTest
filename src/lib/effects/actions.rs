@@ -4,11 +4,13 @@ use crate::{
         state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
         stats::Statistics,
     },
+    error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
     Entity, PetName,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 /// [`Pet`] attribute used for [`Action::Copy`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -37,14 +39,22 @@ pub enum StatChangeType {
     SetAttack(isize),
     /// Set only [`Statistics`] health.
     SetHealth(isize),
+    /// Set statistics based on a given team counter.
+    OnTeamCounter(String),
 }
 
 impl StatChangeType {
     /// Convert [`StatChangeType`] into [`Statistics`].
-    pub(crate) fn to_stats(&self, pet_stats: Statistics) -> Statistics {
-        match self {
+    pub(crate) fn to_stats(
+        &self,
+        pet_stats: Option<Statistics>,
+        team_counters: Option<&HashMap<String, usize>>,
+    ) -> Result<Statistics, SAPTestError> {
+        Ok(match self {
             StatChangeType::SetStatistics(stats) => *stats,
-            StatChangeType::SelfMultStatistics(stats) => pet_stats.mult_perc(stats),
+            StatChangeType::SelfMultStatistics(stats) => {
+                pet_stats.map_or_else(Statistics::default, |pet_stats| pet_stats.mult_perc(stats))
+            }
             StatChangeType::SetAttack(atk) => Statistics {
                 attack: *atk,
                 health: 0,
@@ -53,7 +63,22 @@ impl StatChangeType {
                 attack: 0,
                 health: *health,
             },
-        }
+            StatChangeType::OnTeamCounter(counter_key) => {
+                let counter_value = team_counters
+                    .and_then(|counters| counters.get(counter_key))
+                    .ok_or(SAPTestError::InvalidTeamAction {
+                        subject: "Invalid Stat Change".to_owned(),
+                        reason: format!("No such counter key: {counter_key}"),
+                    })?;
+
+                let counter_value = TryInto::<isize>::try_into(*counter_value)?;
+
+                Statistics {
+                    attack: counter_value,
+                    health: counter_value,
+                }
+            }
+        })
     }
 }
 
