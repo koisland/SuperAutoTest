@@ -1,15 +1,15 @@
 use std::{borrow::Cow, collections::HashMap, str::FromStr};
 
 use itertools::Itertools;
-use log::{info, warn};
+use log::{error, info, warn};
 
 use crate::{
     db::{pack::Pack, record::PetRecord},
     error::SAPTestError,
     regex_patterns::*,
     wiki_scraper::{
-        common::get_page_info,
-        parse_food::{clean_link_text, get_largest_table},
+        common::{get_largest_table, get_page_info},
+        parse_food::clean_link_text,
     },
     PetName,
 };
@@ -179,6 +179,7 @@ pub fn parse_single_token(
 
     Ok(())
 }
+
 /// Parse token info into a list of `Pet`s.
 pub fn parse_token_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     let response = get_page_info(url)?;
@@ -188,14 +189,12 @@ pub fn parse_token_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     let cols = TokenTableCols::get_cols(&table)?;
 
     for block in table
-        .get(2..)
-        .ok_or(SAPTestError::ParserFailure {
-            subject: "Token Cols".to_string(),
-            reason: "No largest table in token url content.".to_string(),
-        })?
         .iter()
+        .filter(|block| block.starts_with("\n|{{IconSAP"))
     {
-        parse_single_token(block, &cols, &mut pets)?;
+        if let Err(err) = parse_single_token(block, &cols, &mut pets) {
+            error!(target: "wiki_scraper", "{err}")
+        };
     }
 
     info!(target: "wiki_scraper", "Retrieved {} tokens.", pets.len());

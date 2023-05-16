@@ -2,10 +2,13 @@ use itertools::Itertools;
 
 use crate::{
     db::{pack::Pack, record::FoodRecord},
-    wiki_scraper::parse_food::{
-        clean_link_text, get_effect_attack, get_effect_health, get_food_cost, get_largest_table,
-        get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
-        parse_one_food_entry, FoodTableCols,
+    wiki_scraper::{
+        common::get_largest_table,
+        parse_food::{
+            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
+            get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
+            parse_one_food_entry, FoodTableCols,
+        },
     },
     FoodName,
 };

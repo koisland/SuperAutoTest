@@ -254,8 +254,7 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     for block in response.split("\n\n") {
         // Update pets and continue if cannot.
         if let Err(error_msg) = parse_single_pet(block, &mut curr_tier, &mut pets) {
-            error!(target: "wiki_scraper", "{:?}", error_msg);
-            continue;
+            error!(target: "wiki_scraper", "{error_msg}")
         }
     }
     info!(target: "wiki_scraper", "Retrieved {} pets.", pets.len());
