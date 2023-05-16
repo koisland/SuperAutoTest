@@ -6,6 +6,7 @@ use crate::regex_patterns::{
     RGX_ATK, RGX_DMG, RGX_DMG_REDUCE, RGX_END_OF_BATTLE, RGX_END_TURN, RGX_HEALTH, RGX_ONE_USE,
     RGX_RANDOM, RGX_START_TURN, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
 };
+use crate::wiki_scraper::common::get_largest_table;
 use crate::FoodName;
 use crate::{
     db::{pack::Pack, record::FoodRecord},
@@ -16,7 +17,6 @@ use crate::{
 
 use super::IMG_URLS;
 
-const TABLE_STR_DELIM: &str = "|-";
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
 const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
 const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
@@ -92,26 +92,6 @@ pub fn clean_link_text(text: &str) -> String {
         }
     }
     remove_icon_names(&text_copy).trim_matches('|').to_string()
-}
-
-/// Get the largest table and its values contained by `{|...|}` and split it into rows.
-pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, SAPTestError> {
-    let largest_block = page_info
-        .split("\n\n")
-        .max_by(|blk_1, blk_2| blk_1.len().cmp(&blk_2.len()))
-        .ok_or(SAPTestError::ParserFailure {
-            subject: "Largest Table".to_string(),
-            reason: "Largest text block not found.".to_string(),
-        })?;
-
-    if let Some(Some(largest_table)) = RGX_TABLE.captures(largest_block).map(|cap| cap.get(0)) {
-        Ok(largest_table.as_str().split(TABLE_STR_DELIM).collect_vec())
-    } else {
-        Err(SAPTestError::ParserFailure {
-            subject: "Largest Table".to_string(),
-            reason: "Can't find main table following format: {|...|}.".to_string(),
-        })
-    }
 }
 
 /// Check whether food effect is random and the number of targets it affects.
@@ -308,8 +288,7 @@ pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, SAPTestError> {
     // Skip first table which contains columns.
     for food_info in table.get(1..).expect("No table elements.").iter() {
         if let Err(error_msg) = parse_one_food_entry(food_info, &cols, &mut foods) {
-            error!(target: "wiki_scraper", "{}", error_msg);
-            continue;
+            error!(target: "wiki_scraper", "{error_msg}", )
         };
     }
     info!(target: "wiki_scraper", "Retrieved {} foods.", foods.len());

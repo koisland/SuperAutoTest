@@ -1,5 +1,8 @@
 use crate::{error::SAPTestError, regex_patterns::*};
+use itertools::Itertools;
 use log::info;
+
+const TABLE_ENTRY_DELIM: &str = "|-";
 
 pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");
@@ -31,4 +34,27 @@ pub fn remove_icon_names(line: &str) -> String {
     }
     // Remove remaining }, if any.
     final_line.replace('}', "")
+}
+
+/// Get the largest table and its values contained by `{|...|}` and split it into rows.
+pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, SAPTestError> {
+    let largest_block = page_info
+        .split("\n\n")
+        .max_by(|blk_1, blk_2| blk_1.len().cmp(&blk_2.len()))
+        .ok_or(SAPTestError::ParserFailure {
+            subject: "Largest Table".to_string(),
+            reason: "Largest text block not found.".to_string(),
+        })?;
+
+    if let Some(Some(largest_table)) = RGX_TABLE.captures(largest_block).map(|cap| cap.get(0)) {
+        Ok(largest_table
+            .as_str()
+            .split(TABLE_ENTRY_DELIM)
+            .collect_vec())
+    } else {
+        Err(SAPTestError::ParserFailure {
+            subject: "Largest Table".to_string(),
+            reason: "Can't find main table following format: {|...|}.".to_string(),
+        })
+    }
 }

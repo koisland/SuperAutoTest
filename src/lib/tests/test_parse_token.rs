@@ -3,7 +3,7 @@ use std::str::FromStr;
 use crate::{
     db::{pack::Pack, record::PetRecord},
     wiki_scraper::{
-        parse_food::get_largest_table,
+        common::get_largest_table,
         parse_tokens::{clean_token_block, parse_single_token, TokenTableCols},
     },
     PetName,
@@ -23,7 +23,7 @@ const TOKEN_TABLE: &str = "
 |{{IconSAP|Bee}}
 | colspan=\"3\" |1/1
 |Any [[Pets|Animal]] with {{IconSAP|Honey}} once it faints.
-|
+|-
 |}
 ";
 
@@ -222,6 +222,15 @@ fn test_parse_invalid_token_cols() {
 #[test]
 fn test_parse_token_cols() {
     let table = get_largest_table(TOKEN_TABLE).unwrap();
+    // Four blocks. Last one is end break. Only one real entry.
+    assert_eq!(table.len(), 4);
+    assert_eq!(
+        table
+            .iter()
+            .filter(|block| block.starts_with("\n|{{IconSAP"))
+            .count(),
+        1
+    );
     let cols = TokenTableCols::get_cols(&table).unwrap();
     assert_eq!(
         cols,
