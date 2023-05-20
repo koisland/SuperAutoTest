@@ -2150,8 +2150,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Multiple(vec![
                     Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets WHERE effect_trigger = ? AND lvl = ?".to_string(),
-                        vec!["Faint".to_string(), 1.to_string()],
+                        "SELECT * FROM pets WHERE effect_trigger = ? AND lvl = ? AND is_token = ?"
+                            .to_string(),
+                        vec!["Faint".to_string(), 1.to_string(), false.to_string()],
                         None
                     ));
                     record.lvl
@@ -2198,8 +2199,14 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ?".to_string(),
-                    vec![1.to_string(), 1.to_string(), "Sloth".to_string()],
+                    "SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ? AND is_token = ?"
+                        .to_string(),
+                    vec![
+                        1.to_string(),
+                        1.to_string(),
+                        "Sloth".to_string(),
+                        false.to_string(),
+                    ],
                     Some(effect_stats),
                 )),
                 uses: None,

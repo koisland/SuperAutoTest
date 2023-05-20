@@ -236,6 +236,7 @@ pub fn parse_single_pet(
                     lvl: lvl + 1,
                     cost: DEFAULT_PET_COST,
                     img_url: url.clone(),
+                    is_token: false,
                 };
 
                 pets.push(pet)

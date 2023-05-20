@@ -99,6 +99,7 @@ impl SapDB {
                 lvl INTEGER NOT NULL,
                 cost INTEGER NOT NULL,
                 img_url TEXT,
+                is_token BOOLEAN NOT NULL,
                 CONSTRAINT unq UNIQUE (name, pack, lvl)
             );
             CREATE TABLE IF NOT EXISTS foods (
@@ -202,9 +203,9 @@ impl SapDB {
             INSERT INTO pets (
                 name, tier, attack, health, pack,
                 effect_trigger, effect, effect_atk, effect_health, n_triggers, temp_effect,
-                lvl, cost, img_url
+                lvl, cost, img_url, is_token
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
             ON CONFLICT(name, pack, lvl) DO UPDATE SET
                 tier = ?2,
                 attack = ?3,
@@ -215,7 +216,8 @@ impl SapDB {
                 effect_health = ?9,
                 n_triggers = ?10,
                 temp_effect = ?11,
-                img_url = ?14
+                img_url = ?14,
+                is_token = ?15
             WHERE
                 tier != ?2 OR
                 attack != ?3 OR
@@ -263,6 +265,7 @@ impl SapDB {
                     &pet.lvl.to_string(),
                     &pet.cost.to_string(),
                     &pet.img_url.to_string(),
+                    &pet.is_token.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;
