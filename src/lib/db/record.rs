@@ -132,4 +132,6 @@ pub struct PetRecord {
     pub cost: usize,
     /// Most recent image url.
     pub img_url: String,
+    /// Is pet a token?
+    pub is_token: bool,
 }

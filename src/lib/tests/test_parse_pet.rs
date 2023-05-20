@@ -133,6 +133,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -151,6 +152,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -169,6 +171,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -187,6 +190,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -205,6 +209,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
         PetRecord {
             name: PetName::Mammoth,
@@ -223,6 +228,7 @@ fn test_create_pet_record() {
             img_url: String::from(
                 "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
             ),
+            is_token: false,
         },
     ];
     assert_eq!(

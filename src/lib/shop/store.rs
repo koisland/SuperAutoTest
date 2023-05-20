@@ -537,7 +537,7 @@ impl Shop {
                 let stmt = query
                     .as_sql()
                     .map(|mut sql| {
-                        sql.push_str("AND name != 'Sloth'");
+                        sql.push_str("AND name != 'Sloth' AND is_token = 'false'");
                         sql
                     })
                     .unwrap();

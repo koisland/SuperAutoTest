@@ -217,7 +217,7 @@ fn create_pet_token() {
         Pet {
             id: None,
             name: PetName::Bee,
-            tier: 0,
+            tier: 1,
             stats: Statistics {
                 attack: 50,
                 health: 50,

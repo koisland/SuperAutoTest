@@ -16,6 +16,7 @@ impl TryFrom<&Row<'_>> for PetRecord {
         let pet_name: String = pet_row.get(1)?;
         let pack: String = pet_row.get(5)?;
         let is_temp_effect_str: String = pet_row.get(11)?;
+        let is_token: String = pet_row.get(15)?;
         Ok(PetRecord {
             name: PetName::from_str(&pet_name)?,
             tier: pet_row.get(2)?,
@@ -31,6 +32,7 @@ impl TryFrom<&Row<'_>> for PetRecord {
             lvl: pet_row.get(12)?,
             cost: pet_row.get(13)?,
             img_url: pet_row.get(14)?,
+            is_token: is_token == *"true",
         })
     }
 }

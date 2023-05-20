@@ -155,7 +155,8 @@ pub fn parse_single_token(
             {
                 pets.push(PetRecord {
                     name: PetName::from_str(name)?,
-                    tier: 0,
+                    // All tokens treated as tier 1.
+                    tier: 1,
                     attack,
                     health,
                     pack: Pack::Unknown,
@@ -168,6 +169,7 @@ pub fn parse_single_token(
                     lvl: lvl + 1,
                     cost: DEFAULT_TOKEN_COST,
                     img_url: url.clone(),
+                    is_token: true,
                 })
             } else {
                 warn!("Failed to parse stats for {name} from string {stats}.")
