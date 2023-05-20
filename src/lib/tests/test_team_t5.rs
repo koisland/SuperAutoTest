@@ -66,6 +66,37 @@ fn test_battle_rhino_team() {
 }
 
 #[test]
+fn test_battle_rhino_against_token_team() {
+    let bee = Pet::new(
+        PetName::Bee,
+        Some(Statistics {
+            attack: 50,
+            health: 50,
+        }),
+        1,
+    )
+    .unwrap();
+    let duck = Pet::try_from(PetName::Duck).unwrap();
+
+    let rhino = Pet::try_from(PetName::Rhino).unwrap();
+
+    let mut t1 = Team::new(&[Some(duck), Some(bee)], 5).unwrap();
+    let mut t2 = Team::new(&[Some(rhino)], 5).unwrap();
+
+    t1.fight(&mut t2).unwrap();
+
+    // Rhino does 8 damage to Bee because tier 1.
+    assert_eq!(t1.first().unwrap().read().unwrap().tier, 1);
+    assert_eq!(
+        t1.first().unwrap().read().unwrap().stats,
+        Statistics {
+            attack: 50,
+            health: 42
+        }
+    );
+}
+
+#[test]
 fn test_battle_chili_rhino() {
     const RHINO_DMG: Statistics = Statistics {
         attack: 0,

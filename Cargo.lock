@@ -724,14 +724,15 @@ name = "sap_examples"
 version = "0.1.0"
 dependencies = [
  "itertools",
- "saptest 0.4.9 (registry+https://github.com/rust-lang/crates.io-index)",
+ "saptest 0.4.9",
 ]
 
 [[package]]
 name = "saptest"
 version = "0.4.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6ceefd00d3af925ce2a35da25c065fbb86e35e91ef0a16a271f36603e0f89f92"
 dependencies = [
- "criterion",
  "indexmap",
  "itertools",
  "lazy-regex",
@@ -753,10 +754,9 @@ dependencies = [
 
 [[package]]
 name = "saptest"
-version = "0.4.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ceefd00d3af925ce2a35da25c065fbb86e35e91ef0a16a271f36603e0f89f92"
+version = "0.4.10"
 dependencies = [
+ "criterion",
  "indexmap",
  "itertools",
  "lazy-regex",
