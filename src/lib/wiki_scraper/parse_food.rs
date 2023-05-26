@@ -55,13 +55,9 @@ impl FromStr for FoodTableCols {
             "Name" => Ok(FoodTableCols::Name),
             "Tier" => Ok(FoodTableCols::Tier),
             "Effect" => Ok(FoodTableCols::Effect),
-            "Turtle Pack" => Ok(FoodTableCols::GamePack(Pack::Turtle)),
-            "Puppy Pack" => Ok(FoodTableCols::GamePack(Pack::Puppy)),
-            "Star Pack" => Ok(FoodTableCols::GamePack(Pack::Star)),
-            _ => Err(SAPTestError::ParserFailure {
-                subject: "Food Table Columns".to_string(),
-                reason: format!("Unknown column {s}."),
-            }),
+            _ => Ok(FoodTableCols::GamePack(Pack::from_str(
+                s.trim_end_matches(" Pack"),
+            )?)),
         }
     }
 }

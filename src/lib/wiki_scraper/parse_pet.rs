@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use log::{error, info, warn};
+use log::{error, info};
 use std::{convert::TryInto, error::Error, str::FromStr};
 
 use crate::{
@@ -62,15 +62,8 @@ pub fn parse_pet_stats(line: &str) -> Result<(usize, usize), SAPTestError> {
 pub fn parse_pet_packs(line: &str) -> Vec<Pack> {
     RGX_PET_PACK
         .captures_iter(line)
-        .map(|cap| match cap.get(1).unwrap().as_str() {
-            "starpack" => Pack::Star,
-            "puppypack" => Pack::Puppy,
-            "turtlepack" => Pack::Turtle,
-            "weeklypack" => Pack::Weekly,
-            _ => {
-                warn!(target: "wiki_parser", "New pack found. {:?}", cap);
-                Pack::Unknown
-            }
+        .filter_map(|cap| {
+            Pack::from_str(cap.get(1).unwrap().as_str().trim_end_matches("pack")).ok()
         })
         .collect_vec()
 }
