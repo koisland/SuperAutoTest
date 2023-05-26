@@ -25,13 +25,12 @@ impl FromStr for Pack {
     type Err = SAPTestError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        // let capitalized_s = capitalize_names(s);
-        match s {
-            "Turtle" => Ok(Pack::Turtle),
-            "Puppy" => Ok(Pack::Puppy),
-            "Star" => Ok(Pack::Star),
-            "Weekly" => Ok(Pack::Weekly),
-            "Golden" => Ok(Pack::Golden),
+        match s.to_ascii_lowercase().as_str() {
+            "turtle" => Ok(Pack::Turtle),
+            "puppy" => Ok(Pack::Puppy),
+            "star" => Ok(Pack::Star),
+            "weekly" => Ok(Pack::Weekly),
+            "golden" => Ok(Pack::Golden),
             _ => Ok(Pack::Unknown),
         }
     }
@@ -59,7 +58,7 @@ mod test {
     #[test]
     fn test_str_to_pack() {
         assert_eq!(Pack::Turtle, Pack::from_str("Turtle").unwrap());
-        assert_ne!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
+        assert_eq!(Pack::Turtle, Pack::from_str("TURTLE").unwrap());
         assert_eq!(Pack::Unknown, Pack::from_str("camel").unwrap());
     }
 }
