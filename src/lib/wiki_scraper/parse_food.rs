@@ -185,88 +185,84 @@ pub fn parse_one_food_entry(
         .split('|')
         .map(|col_info| col_info.trim())
         .collect_vec();
+    let (num_cols, num_col_infos) = (cols.len(), col_info.len());
 
     if cols.len() > col_info.len() {
-        return Err(Box::new(SAPTestError::ParserFailure {
-            subject: "Food Entry".to_string(),
-            reason: format!(
-                "Missing food entry fields ({} > {}). Required: {:?}",
-                cols.len(),
-                col_info.len(),
-                cols
-            ),
-        }));
+        return Err(format!(
+            "Missing food entry fields ({num_cols} > {num_col_infos}). Required: {cols:?}",
+        )
+        .into());
     }
     if cols.len() < col_info.len() {
-        return Err(Box::new(SAPTestError::ParserFailure {
-            subject: "Food Entry".to_string(),
-            reason: format!(
-                "New pack added or extra fields provided ({} < {}). Provided: {:?}",
-                cols.len(),
-                col_info.len(),
-                col_info
-            ),
-        }));
+        return Err(format!(
+            "New pack added or extra fields provided ({num_cols} < {num_col_infos}). Provided: {col_info:?}",
+        )
+        .into());
     };
 
-    if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) =
-        cols.iter().zip_eq(col_info).collect_tuple()
-    {
-        // Get image url setting no empty string if not found.
-        let url = IMG_URLS
-            .get(name.1)
-            .map(|data| data.url.clone())
-            .unwrap_or_else(String::default);
+    let col_map = cols.iter().zip_eq(col_info).collect_vec();
 
-        // Map tiers that are N/A to 0. ex. Coconut which is summoned.
-        tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
+    let Some(((_, mut tier), (_, name), (_, effect))) = col_map.get(0..3).and_then(|cols| cols.iter().collect_tuple()) else {
+        return Err(format!("Missing tier, name or effect for {food_info}").into());
+    };
 
-        let mut packs = [turtle_pack, puppy_pack, star_pack]
-            .iter()
-            .filter_map(|(pack, pack_desc)| {
-                if let FoodTableCols::GamePack(pack_name) = pack {
-                    // If pack description doesn't list item in pack, ignore.
-                    pack_desc.contains("Yes").then_some(pack_name.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec();
-        // If no containing pack, assume weekly.
-        if packs.is_empty() {
-            packs.push(Pack::Weekly)
-        }
+    let Some(packs) = col_map.get(2..) else {
+        return Err(format!("No packs for {food_info}").into());
+    };
+    // Get image url setting no empty string if not found.
+    let url = IMG_URLS
+        .get(*name)
+        .map(|data| data.url.clone())
+        .unwrap_or_else(String::default);
 
-        let holdable_item = is_holdable_item(name.1, effect.1);
-        let (_, single_use) = is_temp_single_use(name.1, effect.1);
-        let (random, n_targets) = get_random_n_effect(effect.1)?;
-        let turn_effect = is_turn_effect(effect.1);
-        let end_of_battle = is_end_of_battle_effect(effect.1);
-        let effect_atk = get_effect_attack(effect.1)?;
-        let effect_health = get_effect_health(effect.1)?;
-        let cost = get_food_cost(name.1);
+    // Map tiers that are N/A to 0. ex. Coconut which is summoned.
+    tier = if tier == "N/A" { "0" } else { tier };
 
-        // Attempt convert tier to usize.
-        for pack in packs {
-            foods.push(FoodRecord {
-                name: FoodName::from_str(name.1)?,
-                tier: tier.1.parse::<usize>()?,
-                // Remove newlines and replace any in-between effect desc.
-                effect: effect.1.replace('\n', " "),
-                pack,
-                holdable: holdable_item,
-                single_use,
-                end_of_battle,
-                random,
-                n_targets,
-                effect_atk,
-                effect_health,
-                turn_effect,
-                cost,
-                img_url: url.clone(),
-            });
-        }
-    } else {
+    let mut packs = packs
+        .iter()
+        .filter_map(|(pack, pack_desc)| {
+            if let FoodTableCols::GamePack(pack_name) = pack {
+                // If pack description doesn't list item in pack, ignore.
+                pack_desc.contains("Yes").then_some(pack_name.clone())
+            } else {
+                None
+            }
+        })
+        .collect_vec();
+
+    // If no containing pack, assume weekly.
+    if packs.is_empty() {
+        packs.push(Pack::Weekly)
+    }
+
+    let holdable_item = is_holdable_item(name, effect);
+    let (_, single_use) = is_temp_single_use(name, effect);
+    let (random, n_targets) = get_random_n_effect(effect)?;
+    let turn_effect = is_turn_effect(effect);
+    let end_of_battle = is_end_of_battle_effect(effect);
+    let effect_atk = get_effect_attack(effect)?;
+    let effect_health = get_effect_health(effect)?;
+    let cost = get_food_cost(name);
+
+    // Attempt convert tier to usize.
+    for pack in packs {
+        foods.push(FoodRecord {
+            name: FoodName::from_str(name)?,
+            tier: tier.parse::<usize>()?,
+            // Remove newlines and replace any in-between effect desc.
+            effect: effect.replace('\n', " "),
+            pack,
+            holdable: holdable_item,
+            single_use,
+            end_of_battle,
+            random,
+            n_targets,
+            effect_atk,
+            effect_health,
+            turn_effect,
+            cost,
+            img_url: url.clone(),
+        });
     }
     Ok(())
 }
