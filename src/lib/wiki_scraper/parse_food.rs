@@ -6,6 +6,7 @@ use crate::regex_patterns::{
     RGX_ATK, RGX_DMG, RGX_DMG_REDUCE, RGX_END_OF_BATTLE, RGX_END_TURN, RGX_HEALTH, RGX_ONE_USE,
     RGX_RANDOM, RGX_START_TURN, RGX_SUMMON_ATK, RGX_SUMMON_HEALTH,
 };
+use crate::shop::store::MAX_SHOP_TIER;
 use crate::FoodName;
 use crate::{
     db::{pack::Pack, record::FoodRecord},
@@ -16,55 +17,10 @@ use crate::{
 
 use super::IMG_URLS;
 
-const TABLE_STR_DELIM: &str = "|-";
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
 const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
 const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
 const DEFAULT_FOOD_COST: usize = 3;
-
-#[derive(Debug, PartialEq, Eq)]
-pub enum FoodTableCols {
-    Name,
-    Tier,
-    Effect,
-    GamePack(Pack),
-}
-
-impl FoodTableCols {
-    pub fn get_cols(cols_str: &str) -> Result<Vec<FoodTableCols>, SAPTestError> {
-        let cols: Option<Vec<FoodTableCols>> = RGX_COLS
-            .captures_iter(cols_str)
-            .filter_map(|capt|
-                // Get capture and remove newlines and !.
-                // !Name\n -> Name
-                capt.get(1).map(|mtch| mtch.as_str().trim_matches(|c| c == '\n' || c == '!')))
-            .map(|colname| FoodTableCols::from_str(colname).ok())
-            .collect();
-
-        cols.ok_or(SAPTestError::ParserFailure {
-            subject: "Food Table Columns".to_string(),
-            reason: format!("One or more cols is unknown in col_str: {cols_str}."),
-        })
-    }
-}
-impl FromStr for FoodTableCols {
-    type Err = SAPTestError;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "Name" => Ok(FoodTableCols::Name),
-            "Tier" => Ok(FoodTableCols::Tier),
-            "Effect" => Ok(FoodTableCols::Effect),
-            "Turtle Pack" => Ok(FoodTableCols::GamePack(Pack::Turtle)),
-            "Puppy Pack" => Ok(FoodTableCols::GamePack(Pack::Puppy)),
-            "Star Pack" => Ok(FoodTableCols::GamePack(Pack::Star)),
-            _ => Err(SAPTestError::ParserFailure {
-                subject: "Food Table Columns".to_string(),
-                reason: format!("Unknown column {s}."),
-            }),
-        }
-    }
-}
 
 /// Clean text removing:
 /// * Links `[[...|...]]`
@@ -92,26 +48,6 @@ pub fn clean_link_text(text: &str) -> String {
         }
     }
     remove_icon_names(&text_copy).trim_matches('|').to_string()
-}
-
-/// Get the largest table and its values contained by `{|...|}` and split it into rows.
-pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, SAPTestError> {
-    let largest_block = page_info
-        .split("\n\n")
-        .max_by(|blk_1, blk_2| blk_1.len().cmp(&blk_2.len()))
-        .ok_or(SAPTestError::ParserFailure {
-            subject: "Largest Table".to_string(),
-            reason: "Largest text block not found.".to_string(),
-        })?;
-
-    if let Some(Some(largest_table)) = RGX_TABLE.captures(largest_block).map(|cap| cap.get(0)) {
-        Ok(largest_table.as_str().split(TABLE_STR_DELIM).collect_vec())
-    } else {
-        Err(SAPTestError::ParserFailure {
-            subject: "Largest Table".to_string(),
-            reason: "Can't find main table following format: {|...|}.".to_string(),
-        })
-    }
 }
 
 /// Check whether food effect is random and the number of targets it affects.
@@ -175,9 +111,7 @@ pub fn is_temp_single_use(name: &str, effect: &str) -> (bool, bool) {
 }
 
 pub fn is_holdable_item(name: &str, effect: &str) -> bool {
-    effect
-        .to_lowercase()
-        .contains(&format!("give one pet {}", name.to_lowercase()))
+    effect.to_lowercase().contains(&name.to_lowercase())
         || HOLDABLE_ITEMS_EXCEPTIONS.contains(&name)
 }
 
@@ -201,96 +135,66 @@ pub fn get_food_cost(name: &str) -> usize {
 /// Parse a single wiki food entry and update a list of `FoodRecord`s.
 pub fn parse_one_food_entry(
     food_info: &str,
-    cols: &[FoodTableCols],
+    current_tier: usize,
     foods: &mut Vec<FoodRecord>,
 ) -> Result<(), Box<dyn Error>> {
     let clean_food_info = clean_link_text(food_info.trim());
-    let col_info = clean_food_info
-        .split('|')
-        .map(|col_info| col_info.trim())
+    let name = RGX_FOOD_NAME
+        .captures(&clean_food_info)
+        .and_then(|cap| cap.get(1))
+        .map(|mtch| mtch.as_str());
+    let ability = RGX_FOOD_EFFECT
+        .captures(&clean_food_info)
+        .and_then(|cap| cap.get(1))
+        .map(|mtch| mtch.as_str());
+    let packs = RGX_PET_PACK
+        .captures_iter(&clean_food_info)
+        .filter_map(|cap| cap.get(1).map(|mtch| mtch.as_str()))
+        .filter_map(|pack| Pack::from_str(pack.trim_end_matches("pack")).ok())
         .collect_vec();
 
-    if cols.len() > col_info.len() {
-        return Err(Box::new(SAPTestError::ParserFailure {
-            subject: "Food Entry".to_string(),
-            reason: format!(
-                "Missing food entry fields ({} > {}). Required: {:?}",
-                cols.len(),
-                col_info.len(),
-                cols
-            ),
-        }));
-    }
-    if cols.len() < col_info.len() {
-        return Err(Box::new(SAPTestError::ParserFailure {
-            subject: "Food Entry".to_string(),
-            reason: format!(
-                "New pack added or extra fields provided ({} < {}). Provided: {:?}",
-                cols.len(),
-                col_info.len(),
-                col_info
-            ),
-        }));
+    let (Some(name), Some(effect)) = (name, ability) else {
+        return Err(format!("No name or ability for text: {food_info}").into());
     };
 
-    if let Some((mut tier, name, effect, turtle_pack, puppy_pack, star_pack)) =
-        cols.iter().zip_eq(col_info).collect_tuple()
-    {
-        // Get image url setting no empty string if not found.
-        let url = IMG_URLS
-            .get(name.1)
-            .map(|data| data.url.clone())
-            .unwrap_or_else(String::default);
+    // Get image url setting no empty string if not found.
+    let url = IMG_URLS
+        .get(name)
+        .map(|data| data.url.clone())
+        .unwrap_or_else(String::default);
 
-        // Map tiers that are N/A to 0. ex. Coconut which is summoned.
-        tier.1 = if tier.1 == "N/A" { "0" } else { tier.1 };
+    let holdable_item = is_holdable_item(name, effect);
+    let (_, single_use) = is_temp_single_use(name, effect);
+    let (random, n_targets) = get_random_n_effect(effect)?;
+    let turn_effect = is_turn_effect(effect);
+    let end_of_battle = is_end_of_battle_effect(effect);
+    let effect_atk = get_effect_attack(effect)?;
+    let effect_health = get_effect_health(effect)?;
+    let cost = get_food_cost(name);
 
-        let mut packs = [turtle_pack, puppy_pack, star_pack]
-            .iter()
-            .filter_map(|(pack, pack_desc)| {
-                if let FoodTableCols::GamePack(pack_name) = pack {
-                    // If pack description doesn't list item in pack, ignore.
-                    pack_desc.contains("Yes").then_some(pack_name.clone())
-                } else {
-                    None
-                }
-            })
-            .collect_vec();
-        // If no containing pack, assume weekly.
-        if packs.is_empty() {
-            packs.push(Pack::Weekly)
-        }
-
-        let holdable_item = is_holdable_item(name.1, effect.1);
-        let (_, single_use) = is_temp_single_use(name.1, effect.1);
-        let (random, n_targets) = get_random_n_effect(effect.1)?;
-        let turn_effect = is_turn_effect(effect.1);
-        let end_of_battle = is_end_of_battle_effect(effect.1);
-        let effect_atk = get_effect_attack(effect.1)?;
-        let effect_health = get_effect_health(effect.1)?;
-        let cost = get_food_cost(name.1);
-
-        // Attempt convert tier to usize.
-        for pack in packs {
-            foods.push(FoodRecord {
-                name: FoodName::from_str(name.1)?,
-                tier: tier.1.parse::<usize>()?,
-                // Remove newlines and replace any in-between effect desc.
-                effect: effect.1.replace('\n', " "),
-                pack,
-                holdable: holdable_item,
-                single_use,
-                end_of_battle,
-                random,
-                n_targets,
-                effect_atk,
-                effect_health,
-                turn_effect,
-                cost,
-                img_url: url.clone(),
-            });
-        }
-    } else {
+    // Attempt convert tier to usize.
+    for pack in packs {
+        foods.push(FoodRecord {
+            name: FoodName::from_str(name)?,
+            tier: if current_tier > MAX_SHOP_TIER {
+                0
+            } else {
+                current_tier
+            },
+            // Remove newlines and replace any in-between effect desc.
+            effect: effect.trim().replace('\n', " "),
+            pack,
+            holdable: holdable_item,
+            single_use,
+            end_of_battle,
+            random,
+            n_targets,
+            effect_atk,
+            effect_health,
+            turn_effect,
+            cost,
+            img_url: url.clone(),
+        });
     }
     Ok(())
 }
@@ -299,19 +203,40 @@ pub fn parse_one_food_entry(
 pub fn parse_food_info(url: &str) -> Result<Vec<FoodRecord>, SAPTestError> {
     let response = get_page_info(url)?;
     let mut foods: Vec<FoodRecord> = vec![];
+    let mut curr_tier: usize = 1;
 
-    let table = get_largest_table(&response)?;
+    // Get positions on page of tiers.
+    let mut tier_pos: Vec<usize> = RGX_TIER
+        .captures_iter(&response)
+        .filter_map(|cap| cap.get(1).map(|mtch| mtch.start()))
+        .collect();
 
-    // Can safely unwrap here as will catch above.
-    let cols = FoodTableCols::get_cols(table.first().unwrap())?;
+    // Find no tier positions.
+    if let Some(no_tier_pos) = regex!("<!-- No Tier -->")
+        .find(&response)
+        .map(|mtch| mtch.start())
+    {
+        tier_pos.push(no_tier_pos)
+    }
 
-    // Skip first table which contains columns.
-    for food_info in table.get(1..).expect("No table elements.").iter() {
-        if let Err(error_msg) = parse_one_food_entry(food_info, &cols, &mut foods) {
-            error!(target: "wiki_scraper", "{}", error_msg);
-            continue;
+    for food_row_mtch in RGX_FOOD_ROW
+        .captures_iter(&response)
+        .filter_map(|cap| cap.get(1))
+    {
+        let row_pos = food_row_mtch.start();
+        // Search by position. Will not find value but returns index of closest index. This index is the curr tier.
+        if let Err(calc_curr_tier) =
+            tier_pos.binary_search_by(|tier_start_pos| tier_start_pos.cmp(&row_pos))
+        {
+            curr_tier = calc_curr_tier
+        }
+        // Parse foods.
+        if let Err(error_msg) = parse_one_food_entry(food_row_mtch.as_str(), curr_tier, &mut foods)
+        {
+            error!(target: "wiki_scraper", "{error_msg}", )
         };
     }
+
     info!(target: "wiki_scraper", "Retrieved {} foods.", foods.len());
     Ok(foods)
 }

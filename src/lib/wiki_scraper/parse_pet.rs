@@ -1,5 +1,5 @@
 use itertools::Itertools;
-use log::{error, info, warn};
+use log::{error, info};
 use std::{convert::TryInto, error::Error, str::FromStr};
 
 use crate::{
@@ -62,15 +62,8 @@ pub fn parse_pet_stats(line: &str) -> Result<(usize, usize), SAPTestError> {
 pub fn parse_pet_packs(line: &str) -> Vec<Pack> {
     RGX_PET_PACK
         .captures_iter(line)
-        .map(|cap| match cap.get(1).unwrap().as_str() {
-            "starpack" => Pack::Star,
-            "puppypack" => Pack::Puppy,
-            "turtlepack" => Pack::Turtle,
-            "weeklypack" => Pack::Weekly,
-            _ => {
-                warn!(target: "wiki_parser", "New pack found. {:?}", cap);
-                Pack::Unknown
-            }
+        .filter_map(|cap| {
+            Pack::from_str(cap.get(1).unwrap().as_str().trim_end_matches("pack")).ok()
         })
         .collect_vec()
 }
@@ -236,6 +229,7 @@ pub fn parse_single_pet(
                     lvl: lvl + 1,
                     cost: DEFAULT_PET_COST,
                     img_url: url.clone(),
+                    is_token: false,
                 };
 
                 pets.push(pet)
@@ -254,8 +248,7 @@ pub fn parse_pet_info(url: &str) -> Result<Vec<PetRecord>, SAPTestError> {
     for block in response.split("\n\n") {
         // Update pets and continue if cannot.
         if let Err(error_msg) = parse_single_pet(block, &mut curr_tier, &mut pets) {
-            error!(target: "wiki_scraper", "{:?}", error_msg);
-            continue;
+            error!(target: "wiki_scraper", "{error_msg}")
         }
     }
     info!(target: "wiki_scraper", "Retrieved {} pets.", pets.len());

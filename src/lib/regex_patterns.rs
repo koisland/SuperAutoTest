@@ -8,8 +8,11 @@ pub static RGX_MULT_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*?\|\}"#);
 
 // Food
 pub static RGX_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*\|\}"#);
-pub static RGX_COLS: &LRegex = regex!(r#"!(.*?)\n"#);
 pub static RGX_FOOD_LINK_NAME: &LRegex = regex!(r#"\[\[(.*?)\]\]"#);
+// TODO: This breaks if end of row template curly braces on same line as ability.
+pub static RGX_FOOD_ROW: &LRegex = regex!(r#"\{\{:Foods/row([\s\W|\w]*?)\n\}\}"#);
+pub static RGX_FOOD_NAME: &LRegex = regex!(r#"food\s*=\s*(.*?)\n*\|"#);
+pub static RGX_FOOD_EFFECT: &LRegex = regex!(r#"ability\s*=\s*([\s\W|\w]*)"#);
 
 // Pet
 pub static RGX_TIER: &LRegex = regex!(r#"<!--\sTIER\s(\d)\s-->"#);

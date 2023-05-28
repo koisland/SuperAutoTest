@@ -52,6 +52,7 @@
 //!     lvl INTEGER NOT NULL,
 //!     cost INTEGER NOT NULL,
 //!     img_url TEXT,
+//!     is_token BOOLEAN NOT NULL,
 //!     CONSTRAINT unq UNIQUE (name, pack, lvl)
 //! );
 //! ```
@@ -87,6 +88,8 @@
 //!     * Cost of pet.
 //! * `img_url`
 //!     * Current image url displayed on page.
+//! * `is_token`
+//!     * Is current pet a [token](https://superautopets.fandom.com/wiki/Tokens)?
 //!
 //! #### Foods
 //! Food records.

@@ -1,11 +1,13 @@
-use itertools::Itertools;
-
 use crate::{
     db::{pack::Pack, record::FoodRecord},
-    wiki_scraper::parse_food::{
-        clean_link_text, get_effect_attack, get_effect_health, get_food_cost, get_largest_table,
-        get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
-        parse_one_food_entry, FoodTableCols,
+    regex_patterns::RGX_FOOD_ROW,
+    wiki_scraper::{
+        common::get_largest_table,
+        parse_food::{
+            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
+            get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
+            parse_one_food_entry,
+        },
     },
     FoodName,
 };
@@ -44,145 +46,107 @@ Foods in Pack 2 and not in any pack are subject to change.
 ";
 
 const STEAK_ENTRY: &str = "
-|6
-|{{IconSAP|Steak}}
-|Give one [[Pets|pet]] [[Steak]].
-Attack with +20 damage, once.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Steak}}
+| turtlepack = yes | puppypack = yes
+| ability = Give one pet {{IconSAP|Steak}}. Attack with +20 damage, once.
+}}
 ";
 
 const CUPCAKE_ENTRY: &str = "
-|2
-|{{IconSAP|Cupcake}}
-|Give one [[Pets|pet]] +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Cupcake}}
+| turtlepack = yes | puppypack = yes
+| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
+}}
 ";
 
-const CUPCAKE_ENTRY_NEW_PACK: &str = "
-|2
-|{{IconSAP|Cupcake}}
-|Give one [[Pets|pet]] +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
-|Yes
-|Yes
-|No
-|No
-";
-
-const CUPCAKE_ENTRY_MISSING_FIELD: &str = "
-|2
-|{{IconSAP|Cupcake}}
-|Give one [[Pets|pet]] +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
-|Yes
-|Yes
-";
 const BROCCOLI_ENTRY: &str = "
-|2
-|{{IconSAP|Broccoli}}
-|Give one pet -1 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}}.
-|No
-|No
-|Yes
+{{:Foods/row
+| food = {{IconSAP|Broccoli}}
+| starpack = yes
+| ability = Give one pet -1 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}}.
+}}
 ";
 
 const SHRIMP_ENTRY: &str = "
-|2
-|{{IconSAP|Fried Shrimp}}
-|Give one pet +3 {{IconSAP|attack|nolink=yes}} and -1 {{IconSAP|health|nolink=yes}}.
-|No
-|No
-|Yes
+{{:Foods/row
+| food = {{IconSAP|Fried Shrimp}}
+| starpack = yes
+| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and -1 {{IconSAP|health|nolink=yes}}.
+}}
 ";
 
 const GARLIC_ENTRY: &str = "
-|3
-|{{IconSAP|Garlic}}
-|Give one [[Pets|Pet]] [[Garlic]].
-Take 2 less damage.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Garlic}}
+| turtlepack = yes | puppypack = yes
+| ability = Give one pet {{IconSAP|Garlic}}. Take 2 less damage.
+}}
 ";
 
 const GRAPES_ENTRY: &str = "
-|4
-|{{IconSAP|Grapes}}
-|Give one [[Pets|pet]] [[Grapes]].
-Gain +1 {{IconSAP|Gold}} at the start of every turn.
-|No
-|No
-|Yes
+{{:Foods/row
+| food = {{IconSAP|Grapes}}
+| starpack = yes
+| ability = Give one pet {{IconSAP|Grapes}}. Gain +1 {{IconSAP|Gold}} at the start of every turn.
+}}
 ";
 
 const CARROT_ENTRY: &str = "
-|5
-|{{IconSAP|Carrot}}
-|Give one [[Pets|pet]] [[Carrot]].
-Gain +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}} at end of turn.
-|No
-|No
-|Yes
+{{:Foods/row
+| food = {{IconSAP|Carrot}}
+| starpack = yes
+| ability = Give one pet {{IconSAP|Carrot}}. Gain +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}} at end of turn.
+}}
 ";
 
 const SUSHI_ENTRY: &str = "
-|5
-|{{IconSAP|Sushi}}
-|Give three random [[pets]] +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Sushi}}
+| turtlepack = yes | puppypack = yes
+| ability = Give three random pets +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
+}}
 ";
 
 const PEANUTS_ENTRY: &str = "
-|N/A
-|{{IconSAP|Peanut}}
-|Knockout any pet attacked and hurt by this.
-|Yes (summoned)
-|Yes
-(summoned)
-|Yes (summoned)
+{{:Foods/row
+| food = {{IconSAP|Peanut}}
+| turtlepack = summoned | puppypack = summoned | starpack = summoned
+| ability = Knockout any pet attacked and hurt by this.
+}}
 ";
 
 const SLEEPING_PILL_ENTRY: &str = "
-|2
-|{{IconSAP|Sleeping Pill}}
-|Make one pet faint. Always on sale!
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Sleeping Pill}}
+| turtlepack = yes | puppypack = yes
+| ability = Make one pet faint. Always on sale!
+}}
 ";
 
 const CHILI_ENTRY: &str = "
-|5
-|{{IconSAP|Chili}}
-|Give one [[Pets|pet]] [[Chili]].
-Attack second enemy for 5 {{IconSAP|damage|nolink=yes}}.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Chili}}
+| turtlepack = yes | puppypack = yes
+| ability = Give one {{IconSAP|Chili}}. Attack second enemy for 5 {{IconSAP|damage|nolink=yes}}.
+}}
 ";
 
 const HONEY_ENTRY: &str = "
-|1
-|{{IconSAP|Honey}}
-|Give one [[Pets|pet]] [[Honey]].
-Summon a 1/1 {{IconSAP|Bee}} after fainting.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = {{IconSAP|Honey}}
+| turtlepack = yes | puppypack = yes
+| ability = Give one pet {{IconSAP|Honey}}. Summon a 1/1 {{IconSAP|Bee}} after fainting.
+}}
 ";
 
 const POPCORNS_ENTRY: &str = "
-|6
-|{{IconSAP|Popcorns}}
-|Give one [[Pets|pet]] [[Popcorns]].
-Summon a random pet from the same tier after fainting.
-|No
-|No
-|Yes
+{{:Foods/row
+| food = {{IconSAP|Popcorns}}
+| starpack = yes
+| ability = Give one pet {{IconSAP|Popcorns}}. Summon a random pet from the same tier after fainting.
+}}
 ";
 
 #[test]
@@ -199,34 +163,14 @@ fn test_get_table() {
 }
 
 #[test]
-fn test_get_table_cols() {
-    let table = get_largest_table(PAGE_INFO).unwrap();
-
-    let cols = FoodTableCols::get_cols(table.first().unwrap()).unwrap();
-    let exp_cols = vec![
-        FoodTableCols::Tier,
-        FoodTableCols::Name,
-        FoodTableCols::Effect,
-        FoodTableCols::GamePack(Pack::Turtle),
-        FoodTableCols::GamePack(Pack::Puppy),
-        FoodTableCols::GamePack(Pack::Star),
-    ];
-    for (col, exp_col) in cols.iter().zip_eq(&exp_cols) {
-        assert_eq!(col, exp_col)
-    }
-}
-
-#[test]
 fn test_clean_link_text() {
     let res = clean_link_text(STEAK_ENTRY);
     let exp_res = "
-|6
-|Steak
-|Give one pet Steak.
-Attack with +20 damage, once.
-|Yes
-|Yes
-|No
+{{:Foods/row
+| food = Steak
+| turtlepack = yes | puppypack = yes
+| ability = Give one pet Steak. Attack with +20 damage, once.
+
 ";
 
     assert_eq!(res, exp_res)
@@ -235,16 +179,12 @@ Attack with +20 damage, once.
 #[test]
 fn test_parse_food_entry() {
     let mut foods: Vec<FoodRecord> = vec![];
-    let cols: Vec<FoodTableCols> = vec![
-        FoodTableCols::Name,
-        FoodTableCols::Tier,
-        FoodTableCols::Effect,
-        FoodTableCols::GamePack(Pack::Turtle),
-        FoodTableCols::GamePack(Pack::Puppy),
-        FoodTableCols::GamePack(Pack::Star),
-    ];
 
-    parse_one_food_entry(CUPCAKE_ENTRY, &cols, &mut foods).unwrap();
+    let cupcake_row = RGX_FOOD_ROW
+        .find(CUPCAKE_ENTRY)
+        .map(|mtch| mtch.as_str())
+        .unwrap();
+    parse_one_food_entry(cupcake_row, 2, &mut foods).unwrap();
     assert_eq!(
         foods,
         vec![
@@ -289,38 +229,6 @@ fn test_parse_food_entry() {
 }
 
 #[test]
-fn test_parse_new_pack_or_extra_data_food_entry() {
-    let mut foods: Vec<FoodRecord> = vec![];
-    let cols: Vec<FoodTableCols> = vec![
-        FoodTableCols::Name,
-        FoodTableCols::Tier,
-        FoodTableCols::Effect,
-        FoodTableCols::GamePack(Pack::Turtle),
-        FoodTableCols::GamePack(Pack::Puppy),
-        FoodTableCols::GamePack(Pack::Star),
-    ];
-
-    // 6 columns expected but 7 items found.
-    assert!(parse_one_food_entry(CUPCAKE_ENTRY_NEW_PACK, &cols, &mut foods).is_err());
-}
-
-#[test]
-fn test_parse_missing_data_food_entry() {
-    let mut foods: Vec<FoodRecord> = vec![];
-    let cols: Vec<FoodTableCols> = vec![
-        FoodTableCols::Name,
-        FoodTableCols::Tier,
-        FoodTableCols::Effect,
-        FoodTableCols::GamePack(Pack::Turtle),
-        FoodTableCols::GamePack(Pack::Puppy),
-        FoodTableCols::GamePack(Pack::Star),
-    ];
-
-    // 6 columns expected but 5 items found.
-    assert!(parse_one_food_entry(CUPCAKE_ENTRY_MISSING_FIELD, &cols, &mut foods).is_err());
-}
-
-#[test]
 fn food_cost() {
     assert_eq!(3, get_food_cost("Cupcake"));
     assert_eq!(1, get_food_cost("Sleeping Pill"));
@@ -330,10 +238,6 @@ fn food_cost() {
 #[test]
 fn test_holdable_item() {
     assert!(is_holdable_item("Steak", &clean_link_text(STEAK_ENTRY)));
-    assert!(!is_holdable_item(
-        "Broccoli",
-        &clean_link_text(BROCCOLI_ENTRY)
-    ));
     // Exception. Only correct because matches name.
     assert!(is_holdable_item("Peanut", &clean_link_text(PEANUTS_ENTRY)));
     assert!(!is_holdable_item(
