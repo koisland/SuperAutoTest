@@ -108,11 +108,8 @@ fn test_battle_chili_rhino() {
     };
 
     let mut team = Team::new(&[Some(Pet::new(PetName::Rhino, None, 1).unwrap())], 5).unwrap();
-    team.set_item(
-        &Position::First,
-        Some(Food::try_from(FoodName::Chili).unwrap()),
-    )
-    .unwrap();
+    let chili = Food::try_from(FoodName::Chili).unwrap();
+    team.set_item(&Position::First, Some(chili)).unwrap();
 
     let mut enemy_team = Team::new(
         &[
