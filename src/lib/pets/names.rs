@@ -184,6 +184,10 @@ pub enum PetName {
     Hammershark,
     Komodo,
     Ostrich,
+    LizardTail,
+    SmallerSlug,
+    SmallestSlug,
+    GoldenRetriever,
     // No name.
     None,
     /// A custom [`PetName`].
@@ -373,6 +377,10 @@ impl FromStr for PetName {
             "Hammershark" => Ok(PetName::Hammershark),
             "Komodo" => Ok(PetName::Komodo),
             "Ostrich" => Ok(PetName::Ostrich),
+            "Lizard Tail" => Ok(PetName::LizardTail),
+            "Smaller Slug" => Ok(PetName::SmallerSlug),
+            "Smallest Slug" => Ok(PetName::SmallestSlug),
+            "Golden Retriever" => Ok(PetName::GoldenRetriever),
             _ => Ok(PetName::Custom(s.to_string())),
         }
     }
@@ -558,6 +566,10 @@ impl Display for PetName {
             PetName::Hammershark => write!(f, "Hammershark"),
             PetName::Komodo => write!(f, "Komodo"),
             PetName::Ostrich => write!(f, "Ostrich"),
+            PetName::LizardTail => write!(f, "Lizard Tail"),
+            PetName::SmallerSlug => write!(f, "Smaller Slug"),
+            PetName::SmallestSlug => write!(f, "Smallest Slug"),
+            PetName::GoldenRetriever => write!(f, "Golden Retriever"),
             PetName::None => write!(f, "None"),
             PetName::Custom(name) => write!(f, "{name}"),
         }

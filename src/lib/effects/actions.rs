@@ -342,6 +342,13 @@ pub enum Action {
     /// * An item-only [`Action`].
     /// * Used for the [`Pepper`](crate::FoodName::Pepper).
     Endure,
+    /// Adjust counter for a team.
+    /// 1. Target team. Only [`Target::Friend`] or [`Target::Enemy`] are supported.
+    /// 2. Counter name to modify.
+    ///     * If this counter does not exist, a new entry is created.
+    /// 3. Amount to modify counter by.
+    ///     * Positive values increment, while negative values decrement the count.
+    AddToCounter(Target, String, isize),
     #[default]
     /// No action to take.
     None,

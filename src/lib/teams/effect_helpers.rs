@@ -1492,6 +1492,51 @@ impl EffectApplyHelpers for Team {
                 affected_pet.write().unwrap().stats.invert();
                 affected_pets.push(affected_pet.clone());
             }
+            Action::AddToCounter(target, counter, count_change) => {
+                let modify_count = |count: &mut usize| {
+                    if count_change.is_negative() {
+                        let count_change = (-*count_change).try_into().unwrap_or(0);
+                        *count = count.saturating_sub(count_change)
+                    } else {
+                        // TODO: Should probably be clamped.
+                        *count = count.saturating_add((*count_change).try_into().unwrap_or(0))
+                    }
+                };
+                let modify_w_new_count = || {
+                    // Create new count and modify it. Closure ensures always clamped to 0.
+                    let mut new_cnt = 0;
+                    modify_count(&mut new_cnt);
+                    new_cnt
+                };
+                match target {
+                    Target::Friend => {
+                        self.counters
+                            .entry(counter.to_owned())
+                            .and_modify(modify_count)
+                            .or_insert_with(modify_w_new_count);
+                    }
+                    Target::Enemy => {
+                        if let Some(opponent) = opponent.as_mut() {
+                            opponent
+                                .counters
+                                .entry(counter.to_owned())
+                                .and_modify(modify_count)
+                                .or_insert_with(modify_w_new_count);
+                        } else {
+                            return Err(SAPTestError::InvalidTeamAction {
+                                subject: "Opponent Counter Modification".to_owned(),
+                                reason: format!("Opponent required to modify counter, {counter}."),
+                            });
+                        };
+                    }
+                    _ => {
+                        return Err(SAPTestError::InvalidTeamAction {
+                            subject: "No Counter".to_string(),
+                            reason: format!("Target ({target:?}) has no counter."),
+                        })
+                    }
+                }
+            }
             Action::None => {}
             _ => {
                 return Err(SAPTestError::InvalidTeamAction {

@@ -1,4 +1,5 @@
 use crate::{
+    db::pack::Pack,
     effects::{
         state::{Outcome, Position, Target},
         trigger::*,
@@ -6,7 +7,7 @@ use crate::{
     error::SAPTestError,
     pets::pet::{reassign_effects, Pet},
     shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
-    teams::{effects::golden_effect, history::History, viewer::TeamViewer},
+    teams::{history::History, viewer::TeamViewer},
     wiki_scraper::parse_names::WordType,
     Effect, Food, Shop, CONFIG, SAPDB,
 };
@@ -295,7 +296,8 @@ impl Team {
             ..Default::default()
         };
         // Add golden pack effects.
-        team.persistent_effects.extend(golden_effect());
+        let golden_effect: Vec<Effect> = Pack::Golden.into();
+        team.persistent_effects.extend(golden_effect);
 
         // Update pet count.
         team.history.pet_count = team.all().len();

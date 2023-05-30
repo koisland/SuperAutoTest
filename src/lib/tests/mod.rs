@@ -44,4 +44,7 @@ mod test_team_t5;
 mod test_team_t6;
 
 #[cfg(test)]
+mod test_hard_mode;
+
+#[cfg(test)]
 pub mod common;

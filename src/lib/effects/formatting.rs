@@ -197,6 +197,9 @@ impl std::fmt::Display for Action {
                     )
                 }
             }
+            Action::AddToCounter(target, counter, count_change) => {
+                write!(f, "Adjust {target:?} {counter} by {count_change}")
+            }
         }
     }
 }

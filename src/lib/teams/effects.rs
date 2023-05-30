@@ -1,4 +1,5 @@
 use crate::{
+    db::pack::Pack,
     effects::{
         actions::{Action, ConditionType, LogicType, StatChangeType, SummonType},
         effect::{Effect, EffectModify},
@@ -35,31 +36,41 @@ const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
     TRIGGER_SHOP_TIER_UPGRADED,
 ];
 
-pub(crate) fn golden_effect() -> Vec<Effect> {
-    let no_pet_left = Effect {
-        owner: None,
-        trigger: TRIGGER_NO_PETS_LEFT,
-        target: Target::Friend,
-        position: Position::First,
-        action: Action::Conditional(
-            LogicType::IfNot(ConditionType::Team(
-                Target::Friend,
-                TeamCondition::CounterEqual("Trumpets".to_owned(), 0),
-            )),
-            Box::new(Action::Summon(SummonType::CustomPet(
-                PetName::Custom("Golden Retriever".to_owned()),
-                StatChangeType::OnTeamCounter("Trumpets".to_owned()),
-                1,
-            ))),
-            Box::new(Action::None),
-        ),
-        uses: Some(1),
-        temp: true,
-    };
-    let mut one_pet_left = no_pet_left.clone();
-    one_pet_left.trigger = TRIGGER_ONE_PET_LEFT;
+impl From<Pack> for Vec<Effect> {
+    fn from(pack: Pack) -> Self {
+        match pack {
+            Pack::Golden => {
+                let no_pet_left = Effect {
+                    owner: None,
+                    trigger: TRIGGER_NO_PETS_LEFT,
+                    target: Target::Friend,
+                    position: Position::First,
+                    action: Action::Conditional(
+                        LogicType::IfNot(ConditionType::Team(
+                            Target::Friend,
+                            TeamCondition::CounterEqual("Trumpets".to_owned(), 0),
+                        )),
+                        Box::new(Action::Multiple(vec![
+                            Action::Summon(SummonType::CustomPet(
+                                PetName::GoldenRetriever,
+                                StatChangeType::OnTeamCounter("Trumpets".to_owned()),
+                                1,
+                            )),
+                            Action::AddToCounter(Target::Friend, "Trumpets".to_owned(), -50),
+                        ])),
+                        Box::new(Action::None),
+                    ),
+                    uses: Some(1),
+                    temp: true,
+                };
+                let mut one_pet_left = no_pet_left.clone();
+                one_pet_left.trigger = TRIGGER_ONE_PET_LEFT;
 
-    vec![no_pet_left, one_pet_left]
+                vec![no_pet_left, one_pet_left]
+            }
+            _ => Vec::default(),
+        }
+    }
 }
 
 fn knockout_pet_caused_knockout(team: &Team, pet: &Arc<RwLock<Pet>>) -> bool {
@@ -298,10 +309,9 @@ impl TeamEffects for Team {
                     friend.read().unwrap().stats.attack > enemy.read().unwrap().stats.attack
                 }
             } else {
-                return Err(SAPTestError::InvalidTeamAction {
-                    subject: "No Pets Trigger Effects".to_string(),
-                    reason: "One or more teams is missing pets to trigger effects.".to_string(),
-                })?;
+                // Default to player if no pets on either team. Should not be significant?
+                // Needs to have some default condition as some effects activate when no pets are present on a team.
+                false
             };
 
         let mut friend_item_triggers = VecDeque::new();
@@ -478,6 +488,10 @@ impl TeamEffects for Team {
             .iter()
             .cloned()
             .filter_map(|mut effect| {
+                // Check if persistent effect can be activated.
+                if !effect.check_activates(trigger) {
+                    return None;
+                }
                 // Take the first friend regardless if alive or not.
                 if let Some(Some(pet)) = self.friends.first() {
                     effect.assign_owner(Some(pet));
