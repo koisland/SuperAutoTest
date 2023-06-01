@@ -212,10 +212,10 @@ fn test_verbose_digraph() {
     7 [ label = "PetNode { id: Ant_2, team: Ants_copy }" ]
     8 [ label = "PetNode { id: Ant_3, team: Ants_copy }" ]
     9 [ label = "PetNode { id: Ant_4, team: Ants_copy }" ]
-    5 -> 0 [ label = "(Attack, Remove(SetStatistics(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-    0 -> 5 [ label = "(Attack, Remove(SetStatistics(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-    0 -> 3 [ label = "(Faint, Add(SetStatistics(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
-    5 -> 8 [ label = "(Faint, Add(SetStatistics(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 0 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 5 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 3 [ label = "(Faint, Add(Static(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 8 [ label = "(Faint, Add(Static(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
 }
 "#;
     assert_eq!(digraph, exp_digraph)

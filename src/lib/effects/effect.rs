@@ -101,7 +101,7 @@ impl Effect {
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
     ///     Position::Any(ItemCondition::None),
-    ///     Action::Add(StatChangeType::SetStatistics(Statistics {attack: 2, health: 1})),
+    ///     Action::Add(StatChangeType::Static(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false
     /// );

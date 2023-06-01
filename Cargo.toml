@@ -43,3 +43,7 @@ members = [
     "docs/examples",
     ".",
 ]
+
+[features]
+default = ["hard_mode"]
+hard_mode = []

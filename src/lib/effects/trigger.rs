@@ -344,6 +344,17 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead hurt.
+pub const TRIGGER_AHEAD_HURT: Outcome = Outcome {
+    status: Status::Hurt,
+    position: Position::Nearest(1),
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};
+
 /// Trigger for when the current [`Pet`](crate::pets::pet::Pet) is summoned.
 pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     status: Status::Summoned,

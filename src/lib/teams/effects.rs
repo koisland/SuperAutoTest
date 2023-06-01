@@ -53,10 +53,10 @@ impl From<Pack> for Vec<Effect> {
                         Box::new(Action::Multiple(vec![
                             Action::Summon(SummonType::CustomPet(
                                 PetName::GoldenRetriever,
-                                StatChangeType::OnTeamCounter("Trumpets".to_owned()),
+                                StatChangeType::TeamCounter("Trumpets".to_owned()),
                                 1,
                             )),
-                            Action::AddToCounter(Target::Friend, "Trumpets".to_owned(), -50),
+                            Action::AddToCounter("Trumpets".to_owned(), -50),
                         ])),
                         Box::new(Action::None),
                     ),

@@ -104,7 +104,7 @@ fn test_food_override_effect() {
             trigger: TRIGGER_NONE,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(StatChangeType::SetStatistics(Statistics {
+            action: Action::Add(StatChangeType::Static(Statistics {
                 attack: 5,
                 health: 5,
             })),

@@ -888,8 +888,9 @@ impl TeamShopping for Team {
             .map(|slot| slot.as_ref().map(|pet| pet.read().unwrap().clone()))
             .collect_vec();
 
-        // Reset coins.
-        self.shop.coins = DEFAULT_COIN_COUNT;
+        // Reset coins adding saved coins.
+        self.shop.coins = DEFAULT_COIN_COUNT + self.shop.saved_coins;
+        self.shop.saved_coins = 0;
         self.shop.state = ShopState::Closed;
 
         Ok(self)

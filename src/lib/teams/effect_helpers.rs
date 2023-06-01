@@ -1003,6 +1003,7 @@ impl EffectApplyHelpers for Team {
                     item.cost = item.cost.saturating_sub(*discount)
                 }
             }
+            Action::SaveGold { limit } => self.shop.saved_coins = self.shop.coins.clamp(0, *limit),
             Action::FreeRoll(n_rolls) => {
                 for _ in 0..*n_rolls {
                     self.shop.free_rolls += 1;
@@ -1035,6 +1036,7 @@ impl EffectApplyHelpers for Team {
 
         Ok(())
     }
+
     fn apply_single_effect(
         &mut self,
         affected_pet: &Arc<RwLock<Pet>>,
@@ -1063,7 +1065,7 @@ impl EffectApplyHelpers for Team {
                     stat_change.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
 
                 // Update action for digraph with static value.
-                modified_effect.action = Action::Add(StatChangeType::SetStatistics(added_stats));
+                modified_effect.action = Action::Add(StatChangeType::Static(added_stats));
 
                 // If effect is temporary, store stats to be removed from referenced pet on reopening shop.
                 if effect.temp
@@ -1103,8 +1105,7 @@ impl EffectApplyHelpers for Team {
                     }
                 }
                 // Update with remaining modifiers.
-                modified_effect.action =
-                    Action::Remove(StatChangeType::SetStatistics(remove_stats));
+                modified_effect.action = Action::Remove(StatChangeType::Static(remove_stats));
 
                 let mut atk_outcome = affected_pet.write().unwrap().indirect_attack(&remove_stats);
                 {
@@ -1113,9 +1114,8 @@ impl EffectApplyHelpers for Team {
                 }
 
                 // Update for digraph to show health loss.
-                modified_effect.action = Action::Remove(StatChangeType::SetStatistics(
-                    atk_outcome.friend_stat_change,
-                ));
+                modified_effect.action =
+                    Action::Remove(StatChangeType::Static(atk_outcome.friend_stat_change));
 
                 // Update triggers from where they came from.
                 if let Some(opponent) = opponent.as_mut() {
@@ -1131,9 +1131,20 @@ impl EffectApplyHelpers for Team {
 
                 affected_pets.push(affected_pet.clone());
             }
+            Action::Set(stat_change) => {
+                let new_stats = {
+                    let pet = affected_pet.read().unwrap();
+                    let team_counters = if pet.team.as_ref() == Some(&self.name) {
+                        Some(&self.counters)
+                    } else {
+                        opponent.as_ref().map(|team| &team.counters)
+                    };
+                    stat_change.to_stats(Some(pet.stats), team_counters)?
+                };
+                affected_pet.write().unwrap().stats = new_stats;
+            }
             Action::Gain(gain_food_type) => {
                 let mut food = self.convert_gain_type_to_food(gain_food_type, afflicting_pet)?;
-
                 {
                     let pet = affected_pet.read().unwrap();
                     if food.is_none() {
@@ -1143,7 +1154,6 @@ impl EffectApplyHelpers for Team {
                         food.ability.assign_owner(Some(affected_pet));
                     }
                 }
-
                 affected_pet.write().unwrap().item = food;
                 affected_pets.push(affected_pet.clone());
             }
@@ -1161,7 +1171,7 @@ impl EffectApplyHelpers for Team {
                     pet.state = ItemState::Normal
                 }
                 let buffed_stats = *stats * Statistics::new(min_tier, min_tier)?;
-                modified_effect.action = Action::Add(StatChangeType::SetStatistics(buffed_stats));
+                modified_effect.action = Action::Add(StatChangeType::Static(buffed_stats));
                 affected_pets.extend(self.apply_single_effect(
                     affected_pet,
                     afflicting_pet,
@@ -1193,7 +1203,7 @@ impl EffectApplyHelpers for Team {
                         }
                         ItemSlot::Food(food) => {
                             // If stats adds some static value, multiply it by the mulitplier
-                            if let Action::Add(StatChangeType::SetStatistics(mut stats)) =
+                            if let Action::Add(StatChangeType::Static(mut stats)) =
                                 food.read().unwrap().ability.action
                             {
                                 let stat_multiplier = Statistics::new(*multiplier, *multiplier)?;
@@ -1383,8 +1393,9 @@ impl EffectApplyHelpers for Team {
             }
             Action::Debuff(perc_stats) => {
                 let mut pet = affected_pet.write().unwrap();
-                let debuff_stats = pet.stats.mult_perc(perc_stats);
-                modified_effect.action = Action::Debuff(debuff_stats);
+                // TODO: Change so modifier can be on afflicting or affected pet. Current only affected.
+                let debuff_stats = perc_stats.to_stats(Some(pet.stats), Some(&self.counters))?;
+                modified_effect.action = Action::Debuff(StatChangeType::Static(debuff_stats));
 
                 pet.stats -= debuff_stats;
                 info!(target: "run", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, pet, perc_stats);
@@ -1401,9 +1412,8 @@ impl EffectApplyHelpers for Team {
                     .iter()
                     .map(|pet| pet.read().unwrap().lvl)
                     .sum();
-                let lvl_dmg_action = Action::Remove(StatChangeType::SetStatistics(
-                    Statistics::new(opponent_lvls, 0)?,
-                ));
+                let lvl_dmg_action =
+                    Action::Remove(StatChangeType::Static(Statistics::new(opponent_lvls, 0)?));
                 modified_effect.action = lvl_dmg_action;
 
                 self.apply_single_effect(
@@ -1455,8 +1465,7 @@ impl EffectApplyHelpers for Team {
                 turn_mult_stats.health *= turn_multiplier;
 
                 // Modify action to add turn-multiplied stats and apply effect.
-                modified_effect.action =
-                    Action::Add(StatChangeType::SetStatistics(turn_mult_stats));
+                modified_effect.action = Action::Add(StatChangeType::Static(turn_mult_stats));
                 let pets = if let Some(opponent) = opponent.as_mut() {
                     self.apply_single_effect(
                         affected_pet,
@@ -1492,7 +1501,7 @@ impl EffectApplyHelpers for Team {
                 affected_pet.write().unwrap().stats.invert();
                 affected_pets.push(affected_pet.clone());
             }
-            Action::AddToCounter(target, counter, count_change) => {
+            Action::AddToCounter(counter, count_change) => {
                 let modify_count = |count: &mut usize| {
                     if count_change.is_negative() {
                         let count_change = (-*count_change).try_into().unwrap_or(0);
@@ -1508,7 +1517,7 @@ impl EffectApplyHelpers for Team {
                     modify_count(&mut new_cnt);
                     new_cnt
                 };
-                match target {
+                match effect.target {
                     Target::Friend => {
                         self.counters
                             .entry(counter.to_owned())
@@ -1532,7 +1541,7 @@ impl EffectApplyHelpers for Team {
                     _ => {
                         return Err(SAPTestError::InvalidTeamAction {
                             subject: "No Counter".to_string(),
-                            reason: format!("Target ({target:?}) has no counter."),
+                            reason: format!("Target ({:?}) has no counter.", effect.target),
                         })
                     }
                 }
@@ -1541,7 +1550,7 @@ impl EffectApplyHelpers for Team {
             _ => {
                 return Err(SAPTestError::InvalidTeamAction {
                     subject: "Action Not Implemented".to_string(),
-                    reason: format!("Single action ({:?}) not implemented yet.", &effect.action),
+                    reason: format!("Single action ({:?}) not implemented.", &effect.action),
                 })
             }
         }

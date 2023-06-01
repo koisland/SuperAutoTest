@@ -1520,3 +1520,53 @@ pub fn test_komodo_team() -> Team {
 pub fn test_ostrich_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Ostrich).unwrap())], 5).unwrap()
 }
+
+pub fn test_bulldog_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Bulldog).unwrap())], 5).unwrap()
+}
+
+pub fn test_chipmunk_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Chipmunk).unwrap())], 5).unwrap()
+}
+
+pub fn test_groundhog_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Groundhog).unwrap())], 5).unwrap()
+}
+
+pub fn test_cone_snail_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::ConeSnail).unwrap()),
+            Some(Pet::try_from(PetName::Groundhog).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_goose_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Goose).unwrap())], 5).unwrap()
+}
+
+pub fn test_pied_tamarin_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::PiedTamarin).unwrap())], 5).unwrap()
+}
+
+pub fn test_opossum_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Opossum).unwrap())], 5).unwrap()
+}
+
+pub fn test_silkmoth_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Opossum).unwrap()),
+            Some(Pet::try_from(PetName::Silkmoth).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
+pub fn test_magpie_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Magpie).unwrap())], 5).unwrap()
+}

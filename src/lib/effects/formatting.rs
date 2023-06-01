@@ -36,13 +36,15 @@ impl std::fmt::Display for Status {
 impl std::fmt::Display for StatChangeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StatChangeType::SetStatistics(stats) => write!(f, "{stats}"),
-            StatChangeType::SelfMultStatistics(stats) => {
-                write!(f, "({}%, {}%) of Self Stats", stats.attack, stats.health)
+            StatChangeType::Static(stats) => write!(f, "{stats}"),
+            StatChangeType::Multiplier(stats) => {
+                write!(f, "({}%, {}%) of Stats", stats.attack, stats.health)
             }
-            StatChangeType::SetAttack(atk) => write!(f, "({atk}, 0)"),
-            StatChangeType::SetHealth(health) => write!(f, "(0, {health})"),
-            StatChangeType::OnTeamCounter(counter_key) => write!(f, "Based on {counter_key}"),
+            StatChangeType::StaticAttack(atk) => write!(f, "({atk}, 0)"),
+            StatChangeType::StaticHealth(health) => write!(f, "(0, {health})"),
+            StatChangeType::CurrentAttack => write!(f, "To Current Attack"),
+            StatChangeType::CurrentHealth => write!(f, "To Current Health"),
+            StatChangeType::TeamCounter(counter_key) => write!(f, "Based on {counter_key}"),
         }
     }
 }
@@ -137,11 +139,7 @@ impl std::fmt::Display for Action {
             Action::Add(stat_change) => write!(f, "Add {stat_change}"),
             Action::Set(stat_change) => write!(f, "Set {stat_change}"),
             Action::Remove(stat_change) => write!(f, "Damage {stat_change}"),
-            Action::Debuff(stat_debuff) => write!(
-                f,
-                "Debuff ({}%, {}%)",
-                stat_debuff.attack, stat_debuff.health
-            ),
+            Action::Debuff(stat_change) => write!(f, "Debuff {stat_change}"),
             Action::Shuffle(shuffle_type) => write!(f, "Shuffle {shuffle_type:?}"),
             Action::Swap(swap_type) => write!(f, "Swap {swap_type:?}"),
             Action::Push(pos) => write!(f, "Push from Current to {pos:?} Position"),
@@ -167,6 +165,7 @@ impl std::fmt::Display for Action {
             Action::Discount(item_type, gold) => {
                 write!(f, "Discount {gold} Gold from {item_type:?}")
             }
+            Action::SaveGold { limit } => write!(f, "Save Remaining Gold up to {limit} Gold"),
             Action::FreeRoll(rolls) => write!(f, "Gain {rolls} Free Rolls"),
             Action::Summon(summon_type) => write!(f, "Summon {summon_type}"),
             Action::Multiple(actions) => {
@@ -197,8 +196,8 @@ impl std::fmt::Display for Action {
                     )
                 }
             }
-            Action::AddToCounter(target, counter, count_change) => {
-                write!(f, "Adjust {target:?} {counter} by {count_change}")
+            Action::AddToCounter(counter, count_change) => {
+                write!(f, "Adjust {counter} by {count_change}")
             }
         }
     }
@@ -270,23 +269,23 @@ mod test {
 
     #[test]
     fn test_stat_change_type_formatting() {
-        let add_action = Action::Add(StatChangeType::SelfMultStatistics(Statistics {
+        let add_action = Action::Add(StatChangeType::Multiplier(Statistics {
             attack: 50,
             health: 0,
         }));
-        assert_eq!("Add (50%, 0%) of Self Stats", format!("{add_action}"));
+        assert_eq!("Add (50%, 0%) of Stats", format!("{add_action}"));
 
-        let remove_action = Action::Remove(StatChangeType::SetStatistics(Statistics {
+        let remove_action = Action::Remove(StatChangeType::Static(Statistics {
             attack: 10,
             health: 0,
         }));
         assert_eq!("Damage (10, 0)", format!("{remove_action}"));
 
-        let debuff_action = Action::Debuff(Statistics {
+        let debuff_action = Action::Debuff(StatChangeType::Multiplier(Statistics {
             attack: 50,
             health: 50,
-        });
-        assert_eq!("Debuff (50%, 50%)", format!("{debuff_action}"));
+        }));
+        assert_eq!("Debuff (50%, 50%) of Stats", format!("{debuff_action}"));
     }
 
     #[test]
@@ -496,7 +495,7 @@ mod test {
 
         let summon_custom_pet = Action::Summon(SummonType::CustomPet(
             PetName::Chick,
-            StatChangeType::SetStatistics(Statistics {
+            StatChangeType::Static(Statistics {
                 attack: 12,
                 health: 1,
             }),
@@ -550,7 +549,7 @@ mod test {
             Position::All(ItemCondition::None),
         );
         assert_eq!(
-            "Copy [Effect (Uses: Some(1)): Action: Damage (50%, 0%) of Self Stats on Either (Multiple([Relative(1), Relative(-1)])), Trigger: [Status: Faint, Position: OnSelf, Affected: None, From: None]] at Lvl 2 to All(None) Pet(s) on Friend Team.",
+            "Copy [Effect (Uses: Some(1)): Action: Damage (50%, 0%) of Stats on Either (Multiple([Relative(1), Relative(-1)])), Trigger: [Status: Faint, Position: OnSelf, Affected: None, From: None]] at Lvl 2 to All(None) Pet(s) on Friend Team.",
             format!("{copy_effect_action}")
         );
 
@@ -601,7 +600,7 @@ mod test {
                 ItemCondition::Equal(EqualityCondition::Name(EntityName::Food(FoodName::Garlic))),
             )),
             Box::new(Action::Gain(GainType::DefaultItem(FoodName::Weak))),
-            Box::new(Action::Remove(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Remove(StatChangeType::Static(Statistics {
                 attack: 10,
                 health: 10,
             }))),
@@ -619,7 +618,7 @@ mod test {
                     ItemCondition::Equal(EqualityCondition::Tier(6)),
                 ]),
             )),
-            Box::new(Action::Add(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 1,
                 health: 1,
             }))),
@@ -636,11 +635,11 @@ mod test {
                 Target::Either,
                 ItemCondition::Equal(EqualityCondition::Tier(2)),
             )),
-            Box::new(Action::Remove(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Remove(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
-            Box::new(Action::Add(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
@@ -655,7 +654,7 @@ mod test {
                 Target::Friend,
                 TeamCondition::PreviousBattle(TeamFightOutcome::Loss),
             )),
-            Box::new(Action::Add(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
@@ -674,7 +673,7 @@ mod test {
                     ItemCondition::Equal(EqualityCondition::Trigger(Status::Faint)),
                 ]),
             )),
-            Box::new(Action::Add(StatChangeType::SetStatistics(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),

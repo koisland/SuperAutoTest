@@ -31,16 +31,19 @@ pub enum CopyType {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum StatChangeType {
     /// Change to a static [`Statistics`] value.
-    SetStatistics(Statistics),
-    /// Change [`Statistics`] by a given percentage of the stats of the owner of this `Action`.
-    /// * Example: `Lion` or `Leopard`
-    SelfMultStatistics(Statistics),
-    /// Set only [`Statistics`] attack.
-    SetAttack(isize),
-    /// Set only [`Statistics`] health.
-    SetHealth(isize),
+    Static(Statistics),
+    /// Change stats by a multiplier.
+    Multiplier(Statistics),
+    /// Change only [`Statistics`] attack.
+    StaticAttack(isize),
+    /// Change only [`Statistics`] health.
+    StaticHealth(isize),
+    /// Change both stats to current attack.
+    CurrentAttack,
+    /// Change both stats to current health.
+    CurrentHealth,
     /// Set statistics based on a given team counter.
-    OnTeamCounter(String),
+    TeamCounter(String),
 }
 
 impl StatChangeType {
@@ -51,19 +54,42 @@ impl StatChangeType {
         team_counters: Option<&HashMap<String, usize>>,
     ) -> Result<Statistics, SAPTestError> {
         Ok(match self {
-            StatChangeType::SetStatistics(stats) => *stats,
-            StatChangeType::SelfMultStatistics(stats) => {
-                pet_stats.map_or_else(Statistics::default, |pet_stats| pet_stats.mult_perc(stats))
-            }
-            StatChangeType::SetAttack(atk) => Statistics {
+            StatChangeType::Static(stats) => *stats,
+            StatChangeType::Multiplier(multiplier) => pet_stats
+                .map(|pet_stats| pet_stats.mult_perc(multiplier))
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "No Pet Stats".to_owned(),
+                    reason: "Multiplier needs pet stats.".to_owned(),
+                })?,
+            StatChangeType::StaticAttack(atk) => Statistics {
                 attack: *atk,
                 health: 0,
             },
-            StatChangeType::SetHealth(health) => Statistics {
+            StatChangeType::StaticHealth(health) => Statistics {
                 attack: 0,
                 health: *health,
             },
-            StatChangeType::OnTeamCounter(counter_key) => {
+            StatChangeType::CurrentAttack => pet_stats
+                .map(|pet_stats| {
+                    let mut new_stats = pet_stats;
+                    new_stats.health = pet_stats.attack;
+                    new_stats
+                })
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "No Pet Stats".to_owned(),
+                    reason: "Needs pet stats current attack.".to_owned(),
+                })?,
+            StatChangeType::CurrentHealth => pet_stats
+                .map(|pet_stats| {
+                    let mut new_stats = pet_stats;
+                    new_stats.attack = pet_stats.health;
+                    new_stats
+                })
+                .ok_or(SAPTestError::InvalidTeamAction {
+                    subject: "No Pet Stats".to_owned(),
+                    reason: "Needs pet stats current health.".to_owned(),
+                })?,
+            StatChangeType::TeamCounter(counter_key) => {
                 let counter_value = team_counters
                     .and_then(|counters| counters.get(counter_key))
                     .ok_or(SAPTestError::InvalidTeamAction {
@@ -72,7 +98,6 @@ impl StatChangeType {
                     })?;
 
                 let counter_value = TryInto::<isize>::try_into(*counter_value)?;
-
                 Statistics {
                     attack: counter_value,
                     health: counter_value,
@@ -197,7 +222,7 @@ pub enum Action {
     /// * Altering stats this way creates hurt trigger [`Outcome`](crate::effects::state::Outcome)s.
     Remove(StatChangeType),
     /// Debuff a [`Pet`] by subtracting some **percent** of [`Statistics`] from it.
-    Debuff(Statistics),
+    Debuff(StatChangeType),
     /// Shuffle all pets on a specific [`RandomizeType`].
     Shuffle(RandomizeType),
     /// Swap two pets on a specific [`RandomizeType`].
@@ -264,6 +289,11 @@ pub enum Action {
     Discount(Entity, usize),
     /// Free roll(s) for the [`Shop`](crate::Shop).
     FreeRoll(usize),
+    /// Save remaining gold up to a given limit. This gold is then available on the next turn.
+    SaveGold {
+        /// Gold limit.
+        limit: usize,
+    },
     /// Summon a [`Pet`] of a [`SummonType`].
     Summon(SummonType),
     /// Do multiple [`Action`]s.
@@ -289,7 +319,7 @@ pub enum Action {
     ///         Target::Enemy,
     ///         TeamCondition::NumberFaintedMultiple(2),
     ///     )),
-    ///     Box::new(Action::Remove(StatChangeType::SetStatistics(effect_stats))),
+    ///     Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
     ///     Box::new(Action::None),
     /// );
     /// ```
@@ -305,7 +335,7 @@ pub enum Action {
     ///             ItemCondition::Equal(EqualityCondition::Tier(6)),
     ///         ]),
     ///     )),
-    ///     Box::new(Action::Add(StatChangeType::SetStatistics(effect_stats))),
+    ///     Box::new(Action::Add(StatChangeType::Static(effect_stats))),
     ///     Box::new(Action::None),
     /// );
     /// ```
@@ -343,12 +373,11 @@ pub enum Action {
     /// * Used for the [`Pepper`](crate::FoodName::Pepper).
     Endure,
     /// Adjust counter for a team.
-    /// 1. Target team. Only [`Target::Friend`] or [`Target::Enemy`] are supported.
     /// 2. Counter name to modify.
     ///     * If this counter does not exist, a new entry is created.
     /// 3. Amount to modify counter by.
     ///     * Positive values increment, while negative values decrement the count.
-    AddToCounter(Target, String, isize),
+    AddToCounter(String, isize),
     #[default]
     /// No action to take.
     None,

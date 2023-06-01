@@ -8,6 +8,7 @@ use crate::{
 };
 
 #[allow(missing_docs)]
+#[cfg(feature = "hard_mode")]
 /// Possible Hard Mode Options
 pub enum HardModeOption {
     Boomerang,
@@ -24,6 +25,7 @@ pub enum HardModeOption {
     Unicycle,
 }
 
+#[cfg(feature = "hard_mode")]
 impl From<HardModeOption> for Effect {
     fn from(value: HardModeOption) -> Self {
         match value {
@@ -33,12 +35,10 @@ impl From<HardModeOption> for Effect {
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::Healthiest),
                 action: Action::Multiple(vec![
-                    Action::Remove(StatChangeType::SetStatistics(
-                        Statistics {
-                            attack: 30,
-                            health: 0
-                        }
-                    ));
+                    Action::Remove(StatChangeType::Static(Statistics {
+                        attack: 30,
+                        health: 0
+                    }));
                     2
                 ]),
                 uses: Some(1),
@@ -50,12 +50,10 @@ impl From<HardModeOption> for Effect {
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::Illest),
                 action: Action::Multiple(vec![
-                    Action::Remove(StatChangeType::SetStatistics(
-                        Statistics {
-                            attack: 30,
-                            health: 0
-                        }
-                    ));
+                    Action::Remove(StatChangeType::Static(Statistics {
+                        attack: 30,
+                        health: 0
+                    }));
                     2
                 ]),
                 uses: Some(1),
@@ -66,7 +64,7 @@ impl From<HardModeOption> for Effect {
                 trigger: TRIGGER_ANY_FAINT,
                 target: Target::Friend,
                 position: Position::Nearest(-1),
-                action: Action::Remove(StatChangeType::SetStatistics(Statistics {
+                action: Action::Remove(StatChangeType::Static(Statistics {
                     attack: 3,
                     health: 0,
                 })),
@@ -78,7 +76,7 @@ impl From<HardModeOption> for Effect {
                 trigger: TRIGGER_START_BATTLE,
                 target: Target::Friend,
                 position: Position::All(ItemCondition::None),
-                action: Action::Set(StatChangeType::SetHealth(5)),
+                action: Action::Set(StatChangeType::StaticHealth(5)),
                 uses: Some(1),
                 temp: true,
             },
@@ -109,7 +107,7 @@ impl From<HardModeOption> for Effect {
                     targets: 1,
                     random: false,
                 },
-                action: Action::Set(StatChangeType::SelfMultStatistics(Statistics {
+                action: Action::Set(StatChangeType::Multiplier(Statistics {
                     attack: 400,
                     health: 400,
                 })),

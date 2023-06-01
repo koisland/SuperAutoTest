@@ -186,7 +186,7 @@ fn test_view_item_attr() {
             && horse.attack_stat().unwrap() == 2
             && horse.health_stat().unwrap() == 1
             && horse.actions()[0]
-                == Action::Add(StatChangeType::SetStatistics(Statistics {
+                == Action::Add(StatChangeType::Static(Statistics {
                     attack: 1,
                     health: 0
                 }))
@@ -197,7 +197,7 @@ fn test_view_item_attr() {
             && pizza.attack_stat().unwrap() == 2
             && pizza.health_stat().unwrap() == 2
             && pizza.actions()[0]
-                == Action::Add(StatChangeType::SetStatistics(Statistics {
+                == Action::Add(StatChangeType::Static(Statistics {
                     attack: 2,
                     health: 2
                 }))
@@ -209,7 +209,7 @@ fn test_view_item_attr() {
             && chili.attack_stat().unwrap() == 5
             && chili.health_stat().unwrap() == 0
             && chili.actions()[0]
-                == Action::Remove(StatChangeType::SetStatistics(Statistics {
+                == Action::Remove(StatChangeType::Static(Statistics {
                     attack: 5,
                     health: 0
                 }))
@@ -371,7 +371,7 @@ fn test_view_by_cond() {
     let gives_2_2_stats = shop
         .get_shop_items_by_cond(
             &ItemCondition::Equal(EqualityCondition::Action(Box::new(Action::Add(
-                StatChangeType::SetStatistics(Statistics::new(2, 2).unwrap()),
+                StatChangeType::Static(Statistics::new(2, 2).unwrap()),
             )))),
             &Entity::Food,
         )

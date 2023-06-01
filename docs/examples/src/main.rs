@@ -14,16 +14,16 @@ use rhino::rhino;
 
 fn main() {
     // Rhino ability.
-    let rhino_team = rhino();
+    let _rhino_team = rhino();
     // Food abilities and summon order.
-    let deer_team = deer_fly_mushroom();
+    let _deer_team = deer_fly_mushroom();
     // Expanded team sizes.
-    let blowfish_team = ninety_nine_blowfish_battle();
+    let _blowfish_team = ninety_nine_blowfish_battle();
     // Shops and turn orders.
-    let permanent_coconut_team = permanent_coconut();
+    let _permanent_coconut_team = permanent_coconut();
     // Battle mechanics
-    let scorpion_team = mushroom_scorpion();
+    let _scorpion_team = mushroom_scorpion();
 
     // Generate all 5-pet combinations from the Turtle pack.
-    let teams = five_pet_combinations();
+    let _teams = five_pet_combinations();
 }

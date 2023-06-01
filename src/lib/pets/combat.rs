@@ -207,7 +207,7 @@ pub trait PetCombat {
     ///     effects::actions::{Action, StatChangeType}
     /// };
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
-    /// let add_action = Action::Add(StatChangeType::SetStatistics(Statistics::new(2,1).unwrap()));
+    /// let add_action = Action::Add(StatChangeType::Static(Statistics::new(2,1).unwrap()));
     ///
     /// assert!(ant_1.has_effect_ability(&add_action, true))
     /// ```

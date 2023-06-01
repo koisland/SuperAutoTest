@@ -222,7 +222,7 @@ pub trait TeamViewer {
     ///     TRIGGER_START_BATTLE,
     ///     Target::Enemy,
     ///     Position::Last,
-    ///     Action::Remove(StatChangeType::SetStatistics(Statistics { attack: 8, health: 0 })),
+    ///     Action::Remove(StatChangeType::Static(Statistics { attack: 8, health: 0 })),
     ///     Some(1),
     ///     true
     /// );

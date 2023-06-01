@@ -76,9 +76,7 @@ fn test_create_def_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::None),
-                action: Action::Add(StatChangeType::SetStatistics(
-                    Statistics::new(2, 1).unwrap()
-                )),
+                action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],
@@ -101,9 +99,7 @@ fn test_get_effect() {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(ItemCondition::None),
-            action: Action::Add(StatChangeType::SetStatistics(
-                Statistics::new(2, 1).unwrap()
-            )),
+            action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
             uses: Some(1),
             temp: false
         },],
@@ -117,7 +113,7 @@ fn test_levelup() {
 
     // Lvl 1 effect adds (2,1)
     assert_eq!(test_ant.lvl, 1);
-    if let Action::Add(StatChangeType::SetStatistics(stats)) =
+    if let Action::Add(StatChangeType::Static(stats)) =
         &test_ant.effect.first().as_ref().unwrap().action
     {
         assert_eq!(
@@ -133,7 +129,7 @@ fn test_levelup() {
 
     // Lvl 2 effect adds (4,2)
     assert_eq!(test_ant.lvl, 2);
-    if let Action::Add(StatChangeType::SetStatistics(stats)) =
+    if let Action::Add(StatChangeType::Static(stats)) =
         &test_ant.effect.first().as_ref().unwrap().action
     {
         assert_eq!(
@@ -187,9 +183,7 @@ fn test_create_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::None),
-                action: Action::Add(StatChangeType::SetStatistics(
-                    Statistics::new(2, 1).unwrap()
-                )),
+                action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],

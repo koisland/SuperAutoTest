@@ -163,6 +163,8 @@ pub struct Shop {
     pub(crate) temp_stats: Vec<(String, Statistics)>,
     /// Free rolls.
     pub free_rolls: usize,
+    /// Saved coins.
+    pub saved_coins: usize,
 }
 
 impl Default for Shop {
@@ -178,6 +180,7 @@ impl Default for Shop {
             foods: Vec::with_capacity(MAX_SHOP_FOODS),
             free_rolls: 0,
             packs: vec![Pack::Turtle],
+            saved_coins: 0,
         }
     }
 }

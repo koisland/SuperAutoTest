@@ -129,15 +129,13 @@ impl TeamHistoryHelpers for Team {
                 affected_pet,
                 afflicting_pet,
                 &trigger.status,
-                &Action::Remove(StatChangeType::SetStatistics(
-                    atk_outcome.friend_stat_change,
-                )),
+                &Action::Remove(StatChangeType::Static(atk_outcome.friend_stat_change)),
             )?;
             self.add_action_edge(
                 afflicting_pet,
                 affected_pet,
                 &trigger.status,
-                &Action::Remove(StatChangeType::SetStatistics(atk_outcome.enemy_stat_change)),
+                &Action::Remove(StatChangeType::Static(atk_outcome.enemy_stat_change)),
             )?;
         }
 

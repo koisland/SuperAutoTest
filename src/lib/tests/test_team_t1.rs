@@ -14,6 +14,8 @@ use crate::{
     Entity, Food, ItemCondition, Position, ShopItemViewer, ShopViewer, TeamShopping,
 };
 
+use super::common::{test_bulldog_team, test_chipmunk_team};
+
 #[test]
 fn test_battle_ant_team() {
     let mut team = test_ant_team();
@@ -721,5 +723,78 @@ fn test_shop_pillbug_team() {
                 health: 2
             }
         )
+    }
+}
+
+#[test]
+fn test_battle_bulldog_team() {
+    let mut team = test_bulldog_team();
+    let mut enemy_team = test_cockroach_team();
+
+    let bulldog = team.first().unwrap();
+    let roach = enemy_team.first().unwrap();
+
+    assert_eq!(roach.write().unwrap().stats.attack, 1);
+    assert_eq!(
+        bulldog.read().unwrap().stats,
+        Statistics {
+            attack: 1,
+            health: 3
+        }
+    );
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Bulldog attack now = new health + 1 (lvl)
+    assert_eq!(
+        bulldog.read().unwrap().stats,
+        Statistics {
+            attack: 3,
+            health: 2
+        }
+    );
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Second attack drops health to 1.
+    assert_eq!(
+        bulldog.read().unwrap().stats,
+        Statistics {
+            attack: 2,
+            health: 1
+        }
+    );
+}
+
+#[test]
+fn test_shop_chipmunk() {
+    let mut team = test_chipmunk_team();
+
+    team.set_shop_seed(Some(21))
+        .open_shop()
+        .unwrap()
+        // Give cocnut to chipmunk
+        .set_item(
+            &Position::First,
+            Some(Food::try_from(FoodName::Coconut).unwrap()),
+        )
+        .unwrap();
+
+    // Shop originally has apple.
+    {
+        let shop = team.get_shop();
+        let first_item = shop.foods.first().unwrap();
+        assert_eq!(first_item.name(), EntityName::Food(FoodName::Apple));
+        assert_eq!(first_item.cost(), 3)
+    }
+
+    team.sell(&Position::First).unwrap();
+
+    // Now has free coconut.
+    {
+        let shop = team.get_shop();
+        let first_item = shop.foods.first().unwrap();
+        assert_eq!(first_item.name(), EntityName::Food(FoodName::Coconut));
+        assert_eq!(first_item.cost(), 0)
     }
 }

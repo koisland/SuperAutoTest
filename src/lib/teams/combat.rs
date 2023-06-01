@@ -4,6 +4,7 @@ use std::sync::Arc;
 use crate::{
     effects::{
         actions::{Action, SummonType},
+        state::Status,
         trigger::*,
     },
     error::SAPTestError,
@@ -355,11 +356,31 @@ impl BattlePhases for Team {
             info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
             // Update outcomes with weak references.
+            // Create triggers for pet behind if pet hurt.
             for trigger in atk_outcome.friends.iter_mut() {
                 trigger.set_affected(&pet).set_afflicting(&opponent_pet);
+                if trigger.status == Status::Hurt {
+                    if let Some(pet_behind) = self.nth(1) {
+                        self.triggers.push_back({
+                            let mut trigger = TRIGGER_AHEAD_HURT;
+                            trigger.set_affected(&pet_behind);
+                            trigger
+                        })
+                    }
+                }
             }
             for trigger in atk_outcome.opponents.iter_mut() {
                 trigger.set_affected(&opponent_pet).set_afflicting(&pet);
+
+                if trigger.status == Status::Hurt {
+                    if let Some(pet_behind) = opponent.nth(1) {
+                        opponent.triggers.push_back({
+                            let mut trigger = TRIGGER_AHEAD_HURT;
+                            trigger.set_affected(&pet_behind);
+                            trigger
+                        })
+                    }
+                }
             }
 
             if CONFIG.general.build_graph {
@@ -372,20 +393,18 @@ impl BattlePhases for Team {
 
             // Add triggers for pet behind.
             if let Some(pet_behind) = opponent.nth(1) {
-                opponent.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
+                opponent.triggers.push_back({
+                    let mut trigger = TRIGGER_AHEAD_ATTACK;
+                    trigger.set_affected(&pet_behind);
+                    trigger
+                })
             }
             if let Some(pet_behind) = self.nth(1) {
-                self.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
+                self.triggers.push_back({
+                    let mut trigger = TRIGGER_AHEAD_ATTACK;
+                    trigger.set_affected(&pet_behind);
+                    trigger
+                })
             }
 
             // Apply effect triggers from combat phase.
