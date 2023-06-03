@@ -44,20 +44,9 @@ pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
     [self_trigger, any_trigger, any_enemy_trigger]
 }
 
-/// Trigger for when no pets left on team.
-pub const TRIGGER_NO_PETS_LEFT: Outcome = Outcome {
-    status: Status::IsTeam(TeamCondition::NumberPetsEqual(0)),
-    affected_pet: None,
-    affected_team: Target::Friend,
-    afflicting_pet: None,
-    afflicting_team: Target::Enemy,
-    position: Position::None,
-    stat_diff: None,
-};
-
 /// Trigger for when one pet left on team.
-pub const TRIGGER_ONE_PET_LEFT: Outcome = Outcome {
-    status: Status::IsTeam(TeamCondition::NumberPetsEqual(1)),
+pub const TRIGGER_ONE_OR_ZERO_PET_LEFT: Outcome = Outcome {
+    status: Status::IsTeam(TeamCondition::NumberPetsLessEqual(1)),
     affected_pet: None,
     affected_team: Target::Friend,
     afflicting_pet: None,

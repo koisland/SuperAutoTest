@@ -293,7 +293,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
-                position: Position::None,
+                // Must have a position to activate effect.
+                position: Position::TriggerAffected,
                 action: Action::AddToCounter(String::from("Trumpets"), record.lvl.try_into()?),
                 uses: None,
                 temp: record.temp_effect,
@@ -316,26 +317,58 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: None,
                 temp: record.temp_effect,
             }],
-            PetName::PiedTamarin => vec![Effect {
-                owner: None,
-                trigger: TRIGGER_SELF_FAINT,
-                target: Target::Enemy,
-                position: Position::N {
-                    condition: ItemCondition::None,
-                    targets: record.lvl,
-                    random: true,
+            PetName::PiedTamarin => vec![
+                // Ranged attack.
+                Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Enemy,
+                    position: Position::N {
+                        condition: ItemCondition::None,
+                        targets: record.lvl,
+                        random: true,
+                    },
+                    action: Action::Conditional(
+                        LogicType::If(ConditionType::Shop(ShopCondition::InState(
+                            ShopState::Closed,
+                        ))),
+                        Box::new(Action::Conditional(
+                            LogicType::IfNot(ConditionType::Team(
+                                Target::Enemy,
+                                TeamCondition::CounterEqual(String::from("Trumpets"), 0),
+                            )),
+                            Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
+                            Box::new(Action::None),
+                        )),
+                        Box::new(Action::None),
+                    ),
+                    uses: None,
+                    temp: record.temp_effect,
                 },
-                action: Action::Conditional(
-                    LogicType::IfNot(ConditionType::Team(
-                        Target::Friend,
-                        TeamCondition::CounterEqual(String::from("Trumpets"), 0),
-                    )),
-                    Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
-                    Box::new(Action::None),
-                ),
-                uses: None,
-                temp: record.temp_effect,
-            }],
+                // Decrement trumpets.
+                Effect {
+                    owner: None,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::TriggerAffected,
+                    action: Action::Conditional(
+                        LogicType::If(ConditionType::Shop(ShopCondition::InState(
+                            ShopState::Closed,
+                        ))),
+                        Box::new(Action::Conditional(
+                            LogicType::IfNot(ConditionType::Team(
+                                Target::Friend,
+                                TeamCondition::CounterEqual(String::from("Trumpets"), 0),
+                            )),
+                            Box::new(Action::AddToCounter(String::from("Trumpets"), -1)),
+                            Box::new(Action::None),
+                        )),
+                        Box::new(Action::None),
+                    ),
+                    uses: None,
+                    temp: record.temp_effect,
+                },
+            ],
             PetName::Opossum => vec![Effect {
                 owner: None,
                 trigger: TRIGGER_SELF_PET_SOLD,
@@ -349,7 +382,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             PetName::Silkmoth => vec![Effect {
                 owner: None,
-                trigger: TRIGGER_AHEAD_ATTACK, // TODO: TRIGGER_AHEAD_HURT
+                trigger: TRIGGER_AHEAD_HURT,
                 target: Target::Friend,
                 position: Position::Nearest(1),
                 action: Action::Add(StatChangeType::Static(effect_stats)),

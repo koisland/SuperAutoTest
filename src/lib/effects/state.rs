@@ -42,6 +42,8 @@ pub enum TeamCondition {
     OpenSpaceEqual(usize),
     /// Has this many pets on team.
     NumberPetsEqual(usize),
+    /// Has this many or fewer pets on team.
+    NumberPetsLessEqual(usize),
     /// Has this many or more pets on team.
     NumberPetsGreaterEqual(usize),
     /// Number of fainted pets is a multiple of this value.

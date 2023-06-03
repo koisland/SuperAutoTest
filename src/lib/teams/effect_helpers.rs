@@ -720,6 +720,7 @@ impl EffectApplyHelpers for Team {
                     *des_num_open == team.open_slots()
                 }
                 TeamCondition::NumberPetsEqual(num_pets) => *num_pets == team.filled_slots(),
+                TeamCondition::NumberPetsLessEqual(num_pets) => *num_pets >= team.filled_slots(),
                 TeamCondition::NumberPetsGreaterEqual(num_pets) => *num_pets <= team.filled_slots(),
                 TeamCondition::NumberFaintedMultiple(multiple) => {
                     team.fainted.len() % *multiple == 0

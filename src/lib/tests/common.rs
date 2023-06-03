@@ -1549,7 +1549,16 @@ pub fn test_goose_team() -> Team {
 }
 
 pub fn test_pied_tamarin_team() -> Team {
-    Team::new(&[Some(Pet::try_from(PetName::PiedTamarin).unwrap())], 5).unwrap()
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Groundhog).unwrap()),
+            Some(Pet::try_from(PetName::PiedTamarin).unwrap()),
+            Some(Pet::try_from(PetName::Cricket).unwrap()),
+            Some(Pet::try_from(PetName::Cricket).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
 }
 
 pub fn test_opossum_team() -> Team {

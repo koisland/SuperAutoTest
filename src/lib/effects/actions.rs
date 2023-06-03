@@ -373,10 +373,29 @@ pub enum Action {
     /// * Used for the [`Pepper`](crate::FoodName::Pepper).
     Endure,
     /// Adjust counter for a team.
-    /// 2. Counter name to modify.
+    /// 1. Counter name to modify.
     ///     * If this counter does not exist, a new entry is created.
-    /// 3. Amount to modify counter by.
+    /// 2. Amount to modify counter by.
     ///     * Positive values increment, while negative values decrement the count.
+    ///
+    /// **NOTE**: When creating an effect with this action, a [`Position`] must be set that targets an existing pet.
+    /// * This is because internally, all effects target a pet.
+    /// ```
+    /// use saptest::{
+    ///     Effect, Position,
+    ///     effects::{trigger::*, state::Target, actions::Action}
+    /// };
+    /// let add_trumpets_effect = Effect {
+    ///     owner: None,
+    ///     trigger: TRIGGER_SELF_FAINT,
+    ///     target: Target::Friend,
+    ///     // Doesn't target pet but is required.
+    ///     position: Position::TriggerAffected,
+    ///     action: Action::AddToCounter(String::from("Trumpets"), 2),
+    ///     uses: Some(1),
+    ///     temp: true,
+    /// }
+    /// ```
     AddToCounter(String, isize),
     #[default]
     /// No action to take.

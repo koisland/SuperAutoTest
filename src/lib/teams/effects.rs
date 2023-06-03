@@ -3,11 +3,11 @@ use crate::{
     effects::{
         actions::{Action, ConditionType, LogicType, StatChangeType, SummonType},
         effect::{Effect, EffectModify},
-        state::{Outcome, Position, Status, Target, TeamCondition},
+        state::{Outcome, Position, ShopCondition, Status, Target, TeamCondition},
         trigger::*,
     },
     error::SAPTestError,
-    shop::trigger::*,
+    shop::{store::ShopState, trigger::*},
     teams::{
         effect_helpers::{is_pet_effect_exception, EffectApplyHelpers},
         team::Team,
@@ -39,13 +39,16 @@ const NON_COMBAT_TRIGGERS: [Outcome; 11] = [
 impl From<Pack> for Vec<Effect> {
     fn from(pack: Pack) -> Self {
         match pack {
-            Pack::Golden => {
-                let no_pet_left = Effect {
-                    owner: None,
-                    trigger: TRIGGER_NO_PETS_LEFT,
-                    target: Target::Friend,
-                    position: Position::First,
-                    action: Action::Conditional(
+            Pack::Golden => vec![Effect {
+                owner: None,
+                trigger: TRIGGER_ONE_OR_ZERO_PET_LEFT,
+                target: Target::Friend,
+                position: Position::First,
+                action: Action::Conditional(
+                    LogicType::If(ConditionType::Shop(ShopCondition::InState(
+                        ShopState::Closed,
+                    ))),
+                    Box::new(Action::Conditional(
                         LogicType::IfNot(ConditionType::Team(
                             Target::Friend,
                             TeamCondition::CounterEqual("Trumpets".to_owned(), 0),
@@ -59,15 +62,12 @@ impl From<Pack> for Vec<Effect> {
                             Action::AddToCounter("Trumpets".to_owned(), -50),
                         ])),
                         Box::new(Action::None),
-                    ),
-                    uses: Some(1),
-                    temp: true,
-                };
-                let mut one_pet_left = no_pet_left.clone();
-                one_pet_left.trigger = TRIGGER_ONE_PET_LEFT;
-
-                vec![no_pet_left, one_pet_left]
-            }
+                    )),
+                    Box::new(Action::None),
+                ),
+                uses: Some(1),
+                temp: true,
+            }],
             _ => Vec::default(),
         }
     }
@@ -485,17 +485,20 @@ impl TeamEffects for Team {
         // Add persistent effects. Owner always first on team. Not sure if best choice but must work for golden pack.
         let mut applied_effects: Vec<Effect> = self
             .persistent_effects
-            .iter()
-            .cloned()
-            .filter_map(|mut effect| {
+            .iter_mut()
+            .filter_map(|effect| {
                 // Check if persistent effect can be activated.
-                if !effect.check_activates(trigger) {
+                if !effect.check_activates(trigger) || effect.uses == Some(0) {
                     return None;
                 }
+                let mut effect_copy = effect.clone();
+                // Decrease uses.
+                effect.remove_uses(1);
+
                 // Take the first friend regardless if alive or not.
                 if let Some(Some(pet)) = self.friends.first() {
-                    effect.assign_owner(Some(pet));
-                    Some(effect)
+                    effect_copy.assign_owner(Some(pet));
+                    Some(effect_copy)
                 } else {
                     None
                 }
@@ -609,6 +612,20 @@ impl TeamEffects for Team {
                 } else {
                     self.get_pets_by_effect(trigger, effect, None)?
                 };
+                // Allow effects to activate if no available target.
+                if target_pets.is_empty() {
+                    let Some(Some(target_pet)) = self.friends.first().cloned() else {
+                        return Ok(affected_pets);
+                    };
+
+                    affected_pets.extend(self.apply_single_effect(
+                        &target_pet,
+                        &target_pet,
+                        effect,
+                        None,
+                    )?)
+                }
+
                 let afflicting_pet = effect.try_into()?;
                 if let Some(opponent) = opponent {
                     for target_pet in target_pets.into_iter() {

@@ -5,16 +5,16 @@ use crate::{
     teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_beaver_team, test_beetle_team, test_bluebird_team,
-        test_chinchilla_team, test_cockroach_team, test_cricket_horse_team, test_duck_team,
-        test_duckling_team, test_fish_team, test_frilled_dragon_team, test_frog_team,
-        test_hummingbird_team, test_iguana_seahorse_team, test_kiwi_team, test_ladybug_team,
-        test_marmoset_team, test_mosq_team, test_moth_team, test_mouse_team, test_pig_team,
-        test_pillbug_team,
+        test_bulldog_team, test_chinchilla_team, test_chipmunk_team, test_cockroach_team,
+        test_cone_snail_team, test_cricket_horse_team, test_duck_team, test_duckling_team,
+        test_fish_team, test_frilled_dragon_team, test_frog_team, test_goose_team,
+        test_groundhog_team, test_hummingbird_team, test_iguana_seahorse_team, test_kiwi_team,
+        test_ladybug_team, test_magpie_team, test_marmoset_team, test_mosq_team, test_moth_team,
+        test_mouse_team, test_opossum_team, test_pied_tamarin_team, test_pig_team,
+        test_pillbug_team, test_silkmoth_team,
     },
-    Entity, Food, ItemCondition, Position, ShopItemViewer, ShopViewer, TeamShopping,
+    Entity, Food, ItemCondition, Pet, Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
 };
-
-use super::common::{test_bulldog_team, test_chipmunk_team};
 
 #[test]
 fn test_battle_ant_team() {
@@ -767,7 +767,7 @@ fn test_battle_bulldog_team() {
 }
 
 #[test]
-fn test_shop_chipmunk() {
+fn test_shop_chipmunk_team() {
     let mut team = test_chipmunk_team();
 
     team.set_shop_seed(Some(21))
@@ -797,4 +797,164 @@ fn test_shop_chipmunk() {
         assert_eq!(first_item.name(), EntityName::Food(FoodName::Coconut));
         assert_eq!(first_item.cost(), 0)
     }
+}
+
+#[test]
+fn test_battle_groundhog_team() {
+    let mut team = test_groundhog_team();
+    let mut enemy_team = test_ant_team();
+
+    assert_eq!(Some(0), team.counters.get("Trumpets").copied());
+    // One groundhog.
+    assert_eq!(team.all().len(), 1);
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Groundhog faints providing one trumpet which is consumed when it faints.
+    assert_eq!(Some(0), team.counters.get("Trumpets").copied());
+    let golden_retriever = team.first().unwrap();
+    assert_eq!(
+        golden_retriever.read().unwrap().stats,
+        Statistics {
+            attack: 1,
+            health: 1
+        }
+    );
+}
+
+#[test]
+fn test_battle_cone_snail_team() {
+    let mut team = test_cone_snail_team();
+    let mut enemy_team = test_ant_team();
+
+    let pet_behind_cone_snail = team.nth(1).unwrap();
+    let prev_stats = pet_behind_cone_snail.read().unwrap().stats;
+
+    // Trigger start of battle effects.
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    let new_stats = pet_behind_cone_snail.read().unwrap().stats;
+    let stat_change = Statistics {
+        attack: 0,
+        health: 2,
+    };
+    // Pet behind cone snail gains 2 health.
+    assert_eq!(new_stats, prev_stats + stat_change)
+}
+
+#[test]
+fn test_battle_goose_team() {
+    let mut team = test_goose_team();
+    let mut enemy_team = test_ant_team();
+
+    let first_enemy = enemy_team.first().unwrap();
+    let prev_stats = first_enemy.read().unwrap().stats;
+
+    // Trigger start of battle effects.
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    let new_stats = first_enemy.read().unwrap().stats;
+    let stat_change = Statistics {
+        attack: 1,
+        health: 0,
+    };
+    // First enemy pet loses 1 atk.
+    assert_eq!(new_stats, prev_stats - stat_change)
+}
+
+#[test]
+fn test_battle_pied_tamarin_team() {
+    let mut team = test_pied_tamarin_team();
+    let mut enemy_team = Team::new(
+        &vec![
+            Some(Pet::try_from(PetName::Duck).unwrap()),
+            Some(Pet::try_from(PetName::Duck).unwrap()),
+        ],
+        5,
+    )
+    .unwrap();
+
+    // First attack kills groundhog providing one trumpet.
+    team.fight(&mut enemy_team).unwrap();
+
+    assert_eq!(team.counters.get("Trumpets").copied(), Some(1));
+    // Two ducks remaining.
+    assert_eq!(enemy_team.all().len(), 2);
+
+    // Tamarin and duck fight.
+    team.fight(&mut enemy_team).unwrap();
+    // Pied tamarin faints, consumed one trumpet and range attacks remaining duck.
+    assert!(enemy_team.all().is_empty())
+}
+
+#[test]
+fn test_shop_opossum_team() {
+    let mut team = test_opossum_team();
+
+    team.set_shop_seed(Some(13)).open_shop().unwrap();
+
+    // Cricket is only faint pet in shop.
+    {
+        let shop = team.get_shop();
+        let cricket = shop.pets.get(1).unwrap();
+        assert!(cricket.attack_stat() == Some(1) && cricket.health_stat() == Some(2));
+    }
+
+    // Sell opossum.
+    team.sell(&Position::First).unwrap();
+
+    // Cricket gains (1,1)
+    {
+        let shop = team.get_shop();
+        let cricket = shop.pets.get(1).unwrap();
+        assert!(cricket.attack_stat() == Some(2) && cricket.health_stat() == Some(3));
+    }
+}
+
+#[test]
+fn test_battle_silkmoth_team() {
+    let mut team = test_silkmoth_team();
+    let mut enemy_team = test_ant_team();
+
+    let pet_ahead_silkmoth = team.first().unwrap();
+    let original_stats = pet_ahead_silkmoth.read().unwrap().stats;
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // Stats identical because silkmoth restores pets health lost from ant attack.
+    assert_eq!(original_stats, pet_ahead_silkmoth.read().unwrap().stats);
+}
+
+#[test]
+fn test_shop_magpie_team() {
+    let mut team = test_magpie_team();
+
+    let roll_n_times = |n: usize, team: &mut Team| {
+        for _ in 0..n {
+            team.roll_shop().unwrap();
+        }
+    };
+
+    // First round.
+    team.open_shop().unwrap();
+    assert_eq!(team.gold(), 10);
+
+    // One gold left.
+    roll_n_times(9, &mut team);
+    assert_eq!(team.gold(), 1);
+    team.close_shop().unwrap();
+
+    // Next round.
+    // Save one gold from previous round.
+    team.open_shop().unwrap();
+    assert_eq!(team.gold(), 11);
+
+    // Roll 9 times leaving 2 gold.
+    roll_n_times(9, &mut team);
+    assert_eq!(team.gold(), 2);
+    team.close_shop().unwrap();
+
+    // Only save up to 1 gold as magpie lvl 1.
+    team.open_shop().unwrap();
+    assert_eq!(team.gold(), 11);
 }

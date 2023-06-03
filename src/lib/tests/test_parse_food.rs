@@ -30,7 +30,7 @@ Foods in Pack 2 and not in any pack are subject to change.
 |-
 |1
 |{{IconSAP|Apple}}
-|Give one [[Pets|pet]] +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
+|Give one [[Pets|pet]] +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].
 |Yes
 |Yes
 |Yes (summoned)
@@ -57,7 +57,7 @@ const CUPCAKE_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Cupcake}}
 | turtlepack = yes | puppypack = yes
-| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
+| ability = Give one pet +3 [[File:Attack.png|20x20px]] and +3 [[File:Health.png|20x20px]] until end of battle.
 }}
 ";
 
@@ -65,7 +65,7 @@ const BROCCOLI_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Broccoli}}
 | starpack = yes
-| ability = Give one pet -1 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}}.
+| ability = Give one pet -1 [[File:Attack.png|20x20px]] and +3 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -73,7 +73,7 @@ const SHRIMP_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Fried Shrimp}}
 | starpack = yes
-| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and -1 {{IconSAP|health|nolink=yes}}.
+| ability = Give one pet +3 [[File:Attack.png|20x20px]] and -1 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -97,7 +97,7 @@ const CARROT_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Carrot}}
 | starpack = yes
-| ability = Give one pet {{IconSAP|Carrot}}. Gain +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}} at end of turn.
+| ability = Give one pet {{IconSAP|Carrot}}. Gain +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]] at end of turn.
 }}
 ";
 
@@ -105,7 +105,7 @@ const SUSHI_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Sushi}}
 | turtlepack = yes | puppypack = yes
-| ability = Give three random pets +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
+| ability = Give three random pets +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -155,7 +155,7 @@ fn test_get_table() {
     // Cols, table_1, table_2, ...
     let exp_res = [
         "{| class=\"sortable fandom-table\"\n!Tier\n!Name\n!Effect\n!Turtle Pack\n!Puppy Pack\n!Star Pack\n",
-        "\n|1\n|{{IconSAP|Apple}}\n|Give one [[Pets|pet]] +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.\n|Yes\n|Yes\n|Yes (summoned)\n",
+        "\n|1\n|{{IconSAP|Apple}}\n|Give one [[Pets|pet]] +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].\n|Yes\n|Yes\n|Yes (summoned)\n",
         "\n|N/A\n|{{IconSAP|Peanuts}}\n|Knockout any pet attacked and hurt by this.\n|Yes (summoned)\n|Yes\n(summoned)\n|Yes (summoned)\n|}"
     ];
 

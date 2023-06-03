@@ -2,6 +2,7 @@ use log::info;
 use std::sync::Arc;
 
 use crate::{
+    db::pack::Pack,
     effects::{
         actions::{Action, SummonType},
         state::Status,
@@ -11,7 +12,7 @@ use crate::{
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
     teams::{effect_helpers::EffectApplyHelpers, history::TeamHistoryHelpers},
-    PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
+    Effect, PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
 };
 
 const BATTLE_PHASE_COMPLETE_OUTCOMES: [TeamFightOutcome; 3] = [
@@ -177,6 +178,13 @@ impl TeamCombat for Team {
         // Set current battle phase to 1.
         self.history.curr_phase = 1;
         self.history.pet_count = self.stored_friends.len();
+
+        // Clear counters.
+        self.counters.clear();
+
+        // Reset golden pack effect. Note user added effects are removed.
+        let golden_effect: Vec<Effect> = Pack::Golden.into();
+        self.persistent_effects.extend(golden_effect);
         self
     }
 
@@ -421,17 +429,11 @@ impl BattlePhases for Team {
         opponent.history.curr_phase += 1;
 
         // Add triggers if no pets or one pet left.
-        let num_pets_left = self.all().len();
-        if num_pets_left == 0 {
-            self.triggers.push_back(TRIGGER_NO_PETS_LEFT)
-        } else if num_pets_left == 1 {
-            self.triggers.push_back(TRIGGER_ONE_PET_LEFT)
+        if self.all().len() <= 1 {
+            self.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT)
         }
-        let num_opp_pets_left = opponent.all().len();
-        if num_opp_pets_left == 0 {
-            opponent.triggers.push_back(TRIGGER_NO_PETS_LEFT)
-        } else if num_pets_left == 1 {
-            opponent.triggers.push_back(TRIGGER_ONE_PET_LEFT)
+        if opponent.all().len() <= 1 {
+            opponent.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT)
         }
 
         self.trigger_all_effects(opponent)?;
