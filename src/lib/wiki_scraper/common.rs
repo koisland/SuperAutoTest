@@ -13,9 +13,8 @@ pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
 /// * Ex. `{IconSAP|Turtle}` -> `Turtle`
 pub fn remove_icon_names(line: &str) -> String {
     let mut final_line = line.to_string();
-    let final_line_copy = final_line.clone();
 
-    for cap in RGX_ICON_NAME.captures_iter(&final_line_copy) {
+    for cap in RGX_ICON_NAME.captures_iter(line) {
         // If an arg exists for icon, capture it.
         let icon_arg = cap.get(2).map(|cap| cap.as_str()).unwrap_or("");
         // If no name arg exists for icon, substitute icon name.
