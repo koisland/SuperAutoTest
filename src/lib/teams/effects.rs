@@ -612,9 +612,19 @@ impl TeamEffects for Team {
                 } else {
                     self.get_pets_by_effect(trigger, effect, None)?
                 };
-                // Allow effects to activate if no available target.
-                if target_pets.is_empty() {
-                    let Some(Some(target_pet)) = self.friends.first().cloned() else {
+
+                // Allow effect to activate if one or fewer pets remain.
+                if effect.trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
+                    && target_pets.is_empty()
+                {
+                    let target_pet = if effect.target == Target::Enemy {
+                        opponent.as_ref().map(|team| team.friends.first())
+                    } else {
+                        Some(self.friends.first())
+                    };
+
+                    // Return if no pets to target.
+                    let Some(Some(target_pet)) = target_pet.flatten().cloned() else {
                         return Ok(affected_pets);
                     };
 

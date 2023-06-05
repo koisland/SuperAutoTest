@@ -385,16 +385,15 @@ pub enum Action {
     ///     Effect, Position,
     ///     effects::{trigger::*, state::Target, actions::Action}
     /// };
-    /// let add_trumpets_effect = Effect {
-    ///     owner: None,
-    ///     trigger: TRIGGER_SELF_FAINT,
-    ///     target: Target::Friend,
+    /// let add_trumpets_effect = Effect::new(
+    ///     TRIGGER_SELF_FAINT,
+    ///     Target::Friend,
     ///     // Doesn't target pet but is required.
-    ///     position: Position::TriggerAffected,
-    ///     action: Action::AddToCounter(String::from("Trumpets"), 2),
-    ///     uses: Some(1),
-    ///     temp: true,
-    /// }
+    ///     Position::TriggerAffected,
+    ///     Action::AddToCounter(String::from("Trumpets"), 2),
+    ///     Some(1),
+    ///     true,
+    /// );
     /// ```
     AddToCounter(String, isize),
     #[default]

@@ -36,14 +36,18 @@ pub fn clean_link_text(text: &str) -> String {
             if i == 0 {
                 continue;
             }
-            let food_name = mtch
+            let icon_name = mtch
                 .map_or("", |m| m.as_str())
                 .split('|')
-                .last()
+                .next()
+                .and_then(|name| name.strip_prefix("File:"))
+                .and_then(|name| name.strip_suffix(".png"))
                 .unwrap_or("");
+            let icon_name = icon_name.to_ascii_lowercase();
+
             // Update line copy replacing links wiht food name.
             text_copy = RGX_FOOD_LINK_NAME
-                .replacen(&text_copy, 1, food_name)
+                .replacen(&text_copy, 1, icon_name)
                 .to_string();
         }
     }

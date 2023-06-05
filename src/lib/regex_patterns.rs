@@ -29,8 +29,8 @@ pub static RGX_TOKEN_SPAN_COLS: &LRegex = regex!(r#"!\s(col|row)span="(\d+)"\s\|
 pub static RGX_SUMMON_STATS: &LRegex = regex!(r#"\|\scolspan="(\d+)"\s\|([\d\w]+/[\d\w]+)\n"#);
 
 // Stats
-pub static RGX_ATK: &LRegex = regex!(r#"([\d-]+)%*\s+attack"#);
-pub static RGX_HEALTH: &LRegex = regex!(r#"([\d-]+)%*\s+health"#);
+pub static RGX_ATK: &LRegex = regex!(r#"([\d-]+)%*\s+attack|\[\[File:Attack"#);
+pub static RGX_HEALTH: &LRegex = regex!(r#"([\d-]+)%*\s+health|\[\[File:Health"#);
 pub static RGX_ATK_HEALTH: &LRegex = regex!(r#"([\d-]+)%*\s+attack\sand\shealth"#);
 pub static RGX_DMG: &LRegex = regex!(r#"(\d+)%*\sdamage"#);
 pub static RGX_DMG_REDUCE: &LRegex = regex!(r#"(\d+)%*\sless\sdamage"#);

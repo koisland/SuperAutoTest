@@ -473,6 +473,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         owner: None,
                         trigger: TRIGGER_SELF_FAINT,
                         target: Target::Enemy,
+                        // TODO: This isn't correct behavior.
                         position: Position::OnSelf,
                         action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
                             PetName::DirtyRat,

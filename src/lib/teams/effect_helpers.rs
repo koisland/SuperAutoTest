@@ -864,27 +864,15 @@ impl EffectApplyHelpers for Team {
         let num_actions = match logic_type {
             LogicType::ForEach(cond_type) => num_actions_for_each(cond_type, self, &opponent)?,
             LogicType::If(cond_type) => {
-                if self.check_condition(cond_type, affected_pet, &opponent)? {
-                    1
-                } else {
-                    0
-                }
+                usize::from(self.check_condition(cond_type, affected_pet, &opponent)?)
             }
             LogicType::IfNot(cond_type) => {
-                if !self.check_condition(cond_type, affected_pet, &opponent)? {
-                    1
-                } else {
-                    0
-                }
+                usize::from(!self.check_condition(cond_type, affected_pet, &opponent)?)
             }
             LogicType::IfAny(cond_type) => match cond_type {
                 ConditionType::Pet(target, cond) => {
                     // If any pet matches condition, run action.
-                    if !self.get_matching_pets(target, cond, &opponent)?.is_empty() {
-                        1
-                    } else {
-                        0
-                    }
+                    usize::from(!self.get_matching_pets(target, cond, &opponent)?.is_empty())
                 }
                 _ => {
                     return Err(SAPTestError::InvalidTeamAction {

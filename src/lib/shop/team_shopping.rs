@@ -530,7 +530,7 @@ impl TeamShoppingHelpers for Team {
             } else {
                 // Pet target exists. If position is last, make sure put after pet.
                 // Otherwise, add pet in front of position.
-                let adj_idx = if let Position::Last = to_pos { 1 } else { 0 };
+                let adj_idx = usize::from(Position::Last == *to_pos);
                 let pos = affected_pet.read().unwrap().pos.unwrap_or(0) + adj_idx;
                 self.add_pet(pet.read().unwrap().clone(), pos, None)?;
                 self.nth(pos)

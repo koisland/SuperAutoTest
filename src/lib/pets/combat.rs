@@ -224,9 +224,7 @@ impl PetCombat for Pet {
             return AttackOutcome::default();
         }
         // Get food status modifier. ex. Melon/Garlic
-        let stat_modifier = self
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
+        let stat_modifier = self.get_food_stat_modifier().unwrap_or_default();
 
         let min_enemy_dmg = min_dmg_received(self);
         let max_enemy_dmg = max_dmg_received(self);
@@ -401,12 +399,8 @@ impl PetCombat for Pet {
 
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {
         // Get stat modifier from food.
-        let stat_modifier = self
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
-        let enemy_stat_modifier = enemy
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
+        let stat_modifier = self.get_food_stat_modifier().unwrap_or_default();
+        let enemy_stat_modifier = enemy.get_food_stat_modifier().unwrap_or_default();
 
         let min_enemy_dmg = min_dmg_received(self);
         let min_dmg = min_dmg_received(enemy);
