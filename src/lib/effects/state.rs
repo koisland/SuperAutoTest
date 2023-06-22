@@ -310,6 +310,8 @@ pub enum Status {
     BeforeAttack,
     /// Pet is attacking.
     Attack,
+    /// After pet attacks
+    AfterAttack,
     /// A battle food effect. ex. Chili
     BattleFoodEffect,
     /// Any damage calculation

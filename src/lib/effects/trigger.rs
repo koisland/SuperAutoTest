@@ -310,6 +310,17 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// Trigger for after the current [`Pet`](crate::pets::pet::Pet) attacks.
+pub const TRIGGER_SELF_AFTER_ATTACK: Outcome = Outcome {
+    status: Status::AfterAttack,
+    position: Position::OnSelf,
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};
+
 /// Trigger for before any [`Pet`](crate::pets::pet::Pet) attacks.
 /// * Ignore self.
 pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {

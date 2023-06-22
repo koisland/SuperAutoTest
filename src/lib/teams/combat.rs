@@ -399,6 +399,18 @@ impl BattlePhases for Team {
             self.triggers.extend(atk_outcome.friends.into_iter());
             opponent.triggers.extend(atk_outcome.opponents.into_iter());
 
+            // Add triggers for after attack.
+            self.triggers.push_back({
+                let mut trigger = TRIGGER_SELF_AFTER_ATTACK;
+                trigger.set_affected(&pet);
+                trigger
+            });
+            opponent.triggers.push_back({
+                let mut trigger = TRIGGER_SELF_AFTER_ATTACK;
+                trigger.set_affected(&opponent_pet);
+                trigger
+            });
+
             // Add triggers for pet behind.
             if let Some(pet_behind) = opponent.nth(1) {
                 opponent.triggers.push_back({
