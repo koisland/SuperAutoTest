@@ -583,7 +583,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 }]
             }
-            // TODO:
+            // TODO: After gain perk implemented, change trigger.
             PetName::TabbyCat => {
                 vec![Effect {
                     owner: None,
@@ -1354,6 +1354,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
             }],
+            // TODO: Moose action must change. Consider adding unfreeze shop action and using Action::Multiple().
             PetName::Moose => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -2056,6 +2057,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     }
                 }
             }
+            // TODO: Add new Lionfish action. No way currently to implement with existing code. :/
             PetName::Lionfish => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -2065,7 +2067,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: None,
             }],
-            // TODO: 
+            // TODO: Refactor using more modular query or hard-code behavior as new SummonType variant.
             PetName::Eagle => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -2153,12 +2155,14 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::Any(ItemCondition::NotEqual(EqualityCondition::Name(
-                    EntityName::Pet(PetName::Alpaca),
-                ))),
-                action: Action::Experience(record.lvl),
+                position: Position::Any(ItemCondition::None),
+                // Experience hard-coded. Would need to be added to db.
+                action: Action::Experience(1),
                 uses: None,
             }],
+
+            // TODO: Cat needs to have limit. Try to reimplement so not hard-coded effect.
+
             PetName::Tapir => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -2329,7 +2333,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Chicken => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
-                trigger: trigger_any_pet_bought_tier(1),
+                trigger: TRIGGER_SELF_FAINT,
                 target: Target::Shop,
                 position: Position::None,
                 action: Action::AddShopStats(effect_stats),

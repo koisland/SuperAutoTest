@@ -205,6 +205,7 @@ pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// TODO: Needs to work if pet faints.
 /// Trigger for when a [`Pet`](crate::pets::pet::Pet) knocks out another pet.
 pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
     status: Status::KnockOut,
@@ -310,6 +311,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// TODO: Needs to work if pet faints.
 /// Trigger for after the current [`Pet`](crate::pets::pet::Pet) attacks.
 pub const TRIGGER_SELF_AFTER_ATTACK: Outcome = Outcome {
     status: Status::AfterAttack,
@@ -344,6 +346,7 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
+/// TODO: Needs to work if pet faints.
 /// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead hurt.
 pub const TRIGGER_AHEAD_HURT: Outcome = Outcome {
     status: Status::Hurt,

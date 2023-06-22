@@ -426,6 +426,7 @@ impl Pet {
 
             // Add exp accumulated by from pet.
             // * Experience + 1 from pet itself.
+            // TODO: Needs to be reworked.
             self.add_experience(from.exp + 1)?;
 
             // Refresh effects.
