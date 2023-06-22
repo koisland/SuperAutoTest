@@ -150,6 +150,20 @@ pub enum SummonType {
     SelfTeamPet(Option<Statistics>, Option<usize>, PetName),
 }
 
+struct PetSelector {
+    position_filter: Option<(Position, Target)>,
+    item_filter: Vec<ItemCondition>
+}
+
+mod pet_sel_example {
+    use super::PetSelector;
+
+    #[test]
+    fn test_pet_selector() {
+
+    }
+}
+
 /// Types of item gains for [`Action::Gain`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum GainType {
