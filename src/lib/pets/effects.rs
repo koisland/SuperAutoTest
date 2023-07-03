@@ -959,17 +959,15 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
             }],
-            PetName::Squirrel => vec![
-                Effect {
-                    owner: None,
-                    temp: record.temp_effect,
-                    trigger: TRIGGER_START_TURN,
-                    target: Target::Shop,
-                    position: Position::All(ItemCondition::None),
-                    action: Action::Discount(Entity::Food, record.lvl),
-                    uses: Some(record.n_triggers),
-                },
-            ],
+            PetName::Squirrel => vec![Effect {
+                owner: None,
+                temp: record.temp_effect,
+                trigger: TRIGGER_START_TURN,
+                target: Target::Shop,
+                position: Position::All(ItemCondition::None),
+                action: Action::Discount(Entity::Food, record.lvl),
+                uses: Some(record.n_triggers),
+            }],
             PetName::Worm => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -2162,7 +2160,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
 
             // TODO: Cat needs to have limit. Try to reimplement so not hard-coded effect.
-
             PetName::Tapir => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,

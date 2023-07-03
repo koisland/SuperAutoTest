@@ -8,6 +8,9 @@ mod test_parse_food;
 mod test_parse_token;
 
 #[cfg(test)]
+mod test_parse_toy;
+
+#[cfg(test)]
 mod test_parse_names;
 
 #[cfg(test)]

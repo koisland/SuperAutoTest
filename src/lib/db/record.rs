@@ -1,4 +1,4 @@
-use crate::{db::pack::Pack, error::SAPTestError, Effect, FoodName, PetName};
+use crate::{db::pack::Pack, error::SAPTestError, toys::names::ToyName, Effect, FoodName, PetName};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -134,4 +134,36 @@ pub struct PetRecord {
     pub img_url: String,
     /// Is pet a token?
     pub is_token: bool,
+}
+
+/// A record with information about a toy from Super Auto Pets.
+/// * Both hard-mode and friendly toys are included.
+///
+/// This information is queried and parsed from the Super Auto Pets Fandom wiki.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ToyRecord {
+    /// Name of toy.
+    pub name: ToyName,
+    /// Tier of toy.
+    pub tier: usize,
+    /// Toy effect trigger.
+    pub effect_trigger: Option<String>,
+    /// Toy effect.
+    pub effect: Option<String>,
+    /// Effect attack
+    pub effect_atk: usize,
+    /// Effect health
+    pub effect_health: usize,
+    /// The number of triggers the toy's effect has.
+    pub n_triggers: usize,
+    /// If the effect the toy has is temporary.
+    pub temp_effect: bool,
+    /// Toy level.
+    pub lvl: usize,
+    /// Toy source
+    pub source: Option<String>,
+    /// Most recent image url.
+    pub img_url: String,
+    /// Is hard mode toy?
+    pub hard_mode: bool,
 }

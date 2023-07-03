@@ -2,7 +2,7 @@ use crate::{error::SAPTestError, regex_patterns::*};
 use itertools::Itertools;
 use log::info;
 
-const TABLE_ENTRY_DELIM: &str = "|-";
+pub const TABLE_ENTRY_DELIM: &str = "|-";
 
 pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");

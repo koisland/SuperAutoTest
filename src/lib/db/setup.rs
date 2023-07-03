@@ -6,7 +6,7 @@ use crate::{
     error::SAPTestError,
     wiki_scraper::{
         parse_food::parse_food_info, parse_names::parse_names_info, parse_pet::parse_pet_info,
-        parse_tokens::parse_token_info,
+        parse_tokens::parse_token_info, parse_toy::parse_toy_info,
     },
     Entity, CONFIG,
 };
@@ -17,6 +17,7 @@ use std::path::Path;
 const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
 const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
 const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
+const TOYS_URL: &str = "https://superautopets.fandom.com/wiki/Toys?action=raw";
 const NAMES_URL: &str = "https://superautopets.fandom.com/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.
@@ -57,6 +58,7 @@ impl SapDB {
             db.create_tables()?
                 .update_food_info()?
                 .update_pet_info()?
+                .update_toy_info()?
                 .update_name_info()?;
         }
 
@@ -119,6 +121,22 @@ impl SapDB {
                 cost INTEGER NOT NULL,
                 img_url TEXT,
                 CONSTRAINT unq UNIQUE (name, pack)
+            );
+            CREATE TABLE IF NOT EXISTS toys (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                tier INTEGER NOT NULL,
+                effect_trigger TEXT NOT NULL,
+                effect TEXT NOT NULL,
+                effect_atk INTEGER NOT NULL,
+                effect_health INTEGER NOT NULL,
+                n_triggers INTEGER NOT NULL,
+                temp_effect BOOLEAN NOT NULL,
+                lvl INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                img_url TEXT,
+                hard_mode BOOLEAN NOT NULL,
+                CONSTRAINT unq UNIQUE (name, lvl)
             );",
         )?;
 
@@ -266,6 +284,78 @@ impl SapDB {
                     &pet.cost.to_string(),
                     &pet.img_url.to_string(),
                     &pet.is_token.to_string(),
+                ],
+            )?;
+            n_rows_updated += n_rows;
+        }
+        info!(target: "db", "{} rows updated in \"pet\" table.", n_rows_updated);
+        Ok(self)
+    }
+
+    /// Update toy information in the database.
+    /// * Scrapes toy (hard and normal) information from the Fandom wiki.
+    /// * Inserts a new record for each pet by `level`
+    /// * Changes in any field aside from `name` and `level` will update an entry.
+    fn update_toy_info(&self) -> Result<&Self, SAPTestError> {
+        let conn = self.pool.get()?;
+        // Read in insert or replace SQL.
+        let sql_insert_pet = "
+            INSERT INTO toys (
+                name, tier, effect_trigger, effect, effect_atk, effect_health,
+                n_triggers, temp_effect,
+                lvl, source, img_url, hard_mode
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+            ON CONFLICT(name, lvl) DO UPDATE SET
+                tier = ?2,
+                effect_trigger = ?3,
+                effect = ?4,
+                effect_atk = ?5,
+                effect_health = ?6,
+                n_triggers = ?7,
+                temp_effect = ?8,
+                source = ?10,
+                img_url = ?11,
+                hard_mode = ?12
+            WHERE
+                tier != ?2 OR
+                effect_atk != ?5 OR
+                effect_health != ?6 OR
+                effect_trigger != ?3 OR
+                effect != ?4
+            ;
+        ";
+        let mut n_rows_updated: usize = 0;
+
+        // Use older version if available.
+        let toys_url = CONFIG
+            .database
+            .toys_version
+            .map_or_else(|| TOYS_URL.to_owned(), |id| format!("{PET_URL}&oldid={id}"));
+
+        let toys = parse_toy_info(&toys_url)?;
+
+        // Add each toy.
+        for toy in toys.iter() {
+            // Creating a new row for each pack and level a pet belongs to.
+            // Each pet constrained by name and pack so will replace if already exists.
+            let n_rows = conn.execute(
+                sql_insert_pet,
+                [
+                    &toy.name.to_string(),
+                    &toy.tier.to_string(),
+                    &toy.effect_trigger
+                        .clone()
+                        .unwrap_or_else(|| "None".to_string()),
+                    &toy.effect.clone().unwrap_or_else(|| "None".to_string()),
+                    &toy.effect_atk.to_string(),
+                    &toy.effect_health.to_string(),
+                    &toy.n_triggers.to_string(),
+                    &toy.temp_effect.to_string(),
+                    &toy.lvl.to_string(),
+                    &toy.source.clone().unwrap_or_else(|| "None".to_string()),
+                    &toy.img_url.to_string(),
+                    &toy.hard_mode.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;

@@ -1,11 +1,20 @@
-use std::sync::{RwLock, Weak};
+use std::{
+    str::FromStr,
+    sync::{RwLock, Weak},
+};
 
 use crate::{
     effects::{
         state::{ItemCondition, Outcome, Position, Status, Target},
         stats::Statistics,
     },
-    Pet,
+    error::SAPTestError,
+    shop::trigger::{
+        trigger_self_food_ate_name, TRIGGER_ANY_FOOD_BOUGHT, TRIGGER_ANY_FOOD_EATEN,
+        TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_ROLL, TRIGGER_SELF_FOOD_EATEN,
+        TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD, TRIGGER_SHOP_TIER_UPGRADED,
+    },
+    FoodName, Pet,
 };
 
 use super::state::{EqualityCondition, TeamCondition};
@@ -42,6 +51,76 @@ pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
         any_enemy_trigger.affected_pet,
     ) = (Some(pet.clone()), Some(pet.clone()), Some(pet));
     [self_trigger, any_trigger, any_enemy_trigger]
+}
+
+/// Outcomes
+pub struct Outcomes(Vec<Outcome>);
+
+impl FromStr for Outcomes {
+    type Err = SAPTestError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut outcomes: Vec<Outcome> = Vec::with_capacity(3);
+
+        match s {
+            "Sell" => outcomes.push(TRIGGER_SELF_PET_SOLD),
+            "Level up" => outcomes.push(TRIGGER_SELF_LEVELUP),
+            "Friend summoned" => outcomes.push(TRIGGER_ANY_SUMMON),
+            "Start of battle" => outcomes.push(TRIGGER_START_BATTLE),
+            "Buy" => outcomes.push(TRIGGER_SELF_PET_BOUGHT),
+            "Eat shop food" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
+            "End turn" => outcomes.push(TRIGGER_END_TURN),
+            "Shop food bought" => outcomes.push(TRIGGER_ANY_FOOD_BOUGHT),
+            "Start of turn" => outcomes.push(TRIGGER_START_TURN),
+            "Enemy summoned or pushed" => {
+                outcomes.extend([TRIGGER_ANY_ENEMY_SUMMON, TRIGGER_ANY_ENEMY_PUSHED])
+            }
+            "Shop tier upgraded" => outcomes.push(TRIGGER_SHOP_TIER_UPGRADED),
+            "Hurt" => outcomes.push(TRIGGER_SELF_HURT),
+            "Friend ahead hurt" => outcomes.push(TRIGGER_AHEAD_HURT),
+            "None" => outcomes.push(TRIGGER_NONE),
+            "Before attack" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
+
+            // TODO:
+            "Before faint" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+
+            "Friend sold" => outcomes.push(TRIGGER_ANY_PET_SOLD),
+            "Pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
+            "Friend hurt" => outcomes.push(TRIGGER_ANY_HURT),
+            "Friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
+
+            // TODO:
+            "Empty Front Space" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+
+            "Friend ahead attacks" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+            "Friend ahead faints" => outcomes.push(TRIGGER_AHEAD_FAINT),
+            "Shop food eaten" => outcomes.push(TRIGGER_ANY_FOOD_EATEN),
+            "Enemy summoned" => outcomes.push(TRIGGER_ANY_ENEMY_SUMMON),
+            "Roll" => outcomes.push(TRIGGER_ROLL),
+            "Friendly pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
+            "Enemy hurt" => outcomes.push(TRIGGER_ANY_ENEMY_HURT),
+            "Knock out" => outcomes.push(TRIGGER_KNOCKOUT),
+            "Hurt & Faint" => outcomes.extend([TRIGGER_SELF_HURT, TRIGGER_SELF_FAINT]),
+            "Eats Apple" => outcomes.push(trigger_self_food_ate_name(FoodName::Apple)),
+            "Friend faints" => outcomes.push(TRIGGER_ANY_FAINT),
+            "End turn & Start of battle" => {
+                outcomes.extend([TRIGGER_END_TURN, TRIGGER_START_BATTLE])
+            }
+            "Summoned" => outcomes.push(TRIGGER_SELF_SUMMON),
+
+            // TODO:
+            "Before friend attacks" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
+
+            // Two friends faint is handled by conditional Effect.
+            "Two friends faint" => outcomes.push(TRIGGER_ANY_FAINT),
+            "Buy & Sell" => outcomes.extend([TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD]),
+            // Conditional action determines outcome.
+            "Tier 1 friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
+            _ => {}
+        }
+
+        Ok(Outcomes(outcomes))
+    }
 }
 
 /// Trigger for when one pet left on team.

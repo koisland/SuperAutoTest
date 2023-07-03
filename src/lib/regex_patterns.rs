@@ -8,11 +8,19 @@ pub static RGX_MULT_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*?\|\}"#);
 
 // Food
 pub static RGX_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*\|\}"#);
+pub static RGX_TIER_TABLE: &LRegex =
+    regex!(r#"\|-\|Tier (\d)+(?:\w|\W|\d)*?(\{\| class="sortable fandom-table"[\w\W]*?\|\})"#);
 pub static RGX_FOOD_LINK_NAME: &LRegex = regex!(r#"\[\[(.*?)\]\]"#);
 // TODO: This breaks if end of row template curly braces on same line as ability.
 pub static RGX_FOOD_ROW: &LRegex = regex!(r#"\{\{:Foods/row([\s\W|\w]*?)\n\}\}"#);
 pub static RGX_FOOD_NAME: &LRegex = regex!(r#"food\s*=\s*(.*?)\n*\|"#);
 pub static RGX_FOOD_EFFECT: &LRegex = regex!(r#"ability\s*=\s*([\s\W|\w]*)"#);
+
+// Toy
+// Reuses some regex from Pet that follows same syntax.
+pub static RGX_TOY_ROW: &LRegex = regex!(r#"\{\{:Toys/row([\s\W|\w]*?)\n\}\}"#);
+pub static RGX_TOY_NAME: &LRegex = regex!(r#"name\s*=\s*(.*?)\n*\|"#);
+pub static RGX_TOY_SOURCE: &LRegex = regex!(r#"source\s*=\s*(.*?)\n*\|"#);
 
 // Pet
 pub static RGX_TIER: &LRegex = regex!(r#"<!--\sTIER\s(\d)\s-->"#);

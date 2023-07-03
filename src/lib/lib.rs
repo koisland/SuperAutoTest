@@ -157,6 +157,7 @@ pub mod foods;
 pub mod pets;
 pub mod shop;
 pub mod teams;
+pub mod toys;
 pub mod visualization;
 
 #[doc(inline)]
