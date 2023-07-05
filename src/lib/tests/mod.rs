@@ -11,6 +11,9 @@ mod test_parse_token;
 mod test_parse_toy;
 
 #[cfg(test)]
+mod test_parse_hard_mode_toys;
+
+#[cfg(test)]
 mod test_parse_names;
 
 #[cfg(test)]

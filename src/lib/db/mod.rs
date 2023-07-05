@@ -112,7 +112,7 @@
 //!     cost INTEGER NOT NULL,
 //!     img_url TEXT,
 //!     CONSTRAINT unq UNIQUE (name, pack)
-//! );"
+//! );
 //! ```
 //! * `name`
 //!     * Name of a food.
@@ -148,6 +148,54 @@
 //!     * The cost of the food.
 //! * `img_url`
 //!     * Current image url displayed on page.
+//!
+//! #### Toys
+//! Toy records. Includes both hard mode and normal toys.
+//!
+//! ```sql
+//! CREATE TABLE toys (
+//!     id INTEGER PRIMARY KEY,
+//!     name TEXT NOT NULL,
+//!     tier INTEGER NOT NULL,
+//!     effect_trigger TEXT NOT NULL,
+//!     effect TEXT NOT NULL,
+//!     effect_atk INTEGER NOT NULL,
+//!     effect_health INTEGER NOT NULL,
+//!     n_triggers INTEGER NOT NULL,
+//!     temp_effect BOOLEAN NOT NULL,
+//!     lvl INTEGER NOT NULL,
+//!     source TEXT NOT NULL,
+//!     img_url TEXT,
+//!     hard_mode BOOLEAN NOT NULL,
+//!     CONSTRAINT unq UNIQUE (name, lvl)
+//! );
+//! ```
+//! * `name`
+//!     * Name of toy.
+//! * `tier`
+//!     * Tier of toy.
+//!     * All hard mode toys are set to tier 1.
+//! * `effect_trigger`
+//!     * Toy effect trigger.
+//! * `effect`
+//!     * Toy effect.
+//! * `effect_atk`
+//!     * Toy effect attack
+//! * `effect_health`
+//!     * Toy effect health
+//! * `n_triggers`
+//!     * The number of triggers the toy's effect has.
+//! * `temp_effect`
+//!     * If the effect this toy has is temporary.
+//! * `lvl`
+//!     * Toy level.
+//! * `source`
+//!     * Toy source
+//!     * This is set to "None" for hard mode toys.
+//! * `img_url`
+//!     * Most recent image url.
+//! * `hard_mode`
+//!     * Is this a hard mode toy?
 //!
 //! ### Conversion
 //! * Any record can be converted into [`Food`](crate::Food)s or [Pet](crate::Pet)s.
@@ -191,6 +239,12 @@
 //!
 //! # https://superautopets.fandom.com/wiki/Tokens
 //! # tokens_version = ?
+//!
+//! # https://superautopets.fandom.com/wiki/Toys
+//! # toys_version = ?
+//!
+//! # https://superautopets.fandom.com/wiki/Hard_Mode_(Toys)
+//! # toys_hard_mode_version = ?
 //!
 //! filename = "./sap.db"
 //! update_on_startup = false

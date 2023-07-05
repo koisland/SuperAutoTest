@@ -107,11 +107,11 @@ pub fn parse_pet_effects(line: &str, pet_effect_found: bool) -> Vec<String> {
 /// Extracts effect information.
 ///
 /// **Note: This only gets raw stats**
-pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, bool) {
-    let effect = effect.clone().unwrap_or_else(|| "None".to_string());
+pub fn extract_pet_effect_info(effect: Option<&str>) -> (Statistics, usize, bool) {
+    let effect = effect.unwrap_or("None");
 
     // Check if end of battle.
-    let end_of_battle_effect = RGX_END_OF_BATTLE.is_match(&effect);
+    let end_of_battle_effect = RGX_END_OF_BATTLE.is_match(effect);
 
     // Remove '%' and " of " so pattern for num_regex can work for percentages.
     let pet_effect = effect.replace(" of ", " ").replace('%', "");
@@ -144,7 +144,7 @@ pub fn extract_pet_effect_info(effect: &Option<String>) -> (Statistics, usize, b
         if RGX_ATK_HEALTH.is_match(&pet_effect) {
             (raw_stats.0, raw_stats.0)
         } else if raw_stats.0.is_some() || raw_stats.1.is_some() {
-            if RGX_ATK_HEALTH.is_match(&effect) {
+            if RGX_ATK_HEALTH.is_match(effect) {
                 (raw_stats.0, raw_stats.0)
             } else {
                 raw_stats
@@ -213,7 +213,7 @@ pub fn parse_single_pet(
                 let pet_lvl_effect = pet_effects.get(lvl).cloned();
 
                 let (effect_stats, n_triggers, temp_effect) =
-                    extract_pet_effect_info(&pet_lvl_effect);
+                    extract_pet_effect_info(pet_lvl_effect.as_deref());
                 let pet = PetRecord {
                     name: PetName::from_str(pet_name)?,
                     tier: *curr_tier,

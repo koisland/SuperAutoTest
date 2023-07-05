@@ -5,8 +5,9 @@ use crate::{
     },
     error::SAPTestError,
     wiki_scraper::{
-        parse_food::parse_food_info, parse_names::parse_names_info, parse_pet::parse_pet_info,
-        parse_tokens::parse_token_info, parse_toy::parse_toy_info,
+        parse_food::parse_food_info, parse_hard_mode_toys::parse_hard_mode_toy_info,
+        parse_names::parse_names_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
+        parse_toy::parse_toy_info,
     },
     Entity, CONFIG,
 };
@@ -18,6 +19,8 @@ const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
 const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
 const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
 const TOYS_URL: &str = "https://superautopets.fandom.com/wiki/Toys?action=raw";
+const TOYS_HARD_MODE_URL: &str =
+    "https://superautopets.fandom.com/wiki/Hard_Mode_(Toys)?action=raw";
 const NAMES_URL: &str = "https://superautopets.fandom.com/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.
@@ -328,12 +331,18 @@ impl SapDB {
         let mut n_rows_updated: usize = 0;
 
         // Use older version if available.
-        let toys_url = CONFIG
-            .database
-            .toys_version
-            .map_or_else(|| TOYS_URL.to_owned(), |id| format!("{PET_URL}&oldid={id}"));
+        let toys_url = CONFIG.database.toys_version.map_or_else(
+            || TOYS_URL.to_owned(),
+            |id| format!("{TOYS_URL}&oldid={id}"),
+        );
+        let hard_mode_toys_url = CONFIG.database.toys_version.map_or_else(
+            || TOYS_HARD_MODE_URL.to_owned(),
+            |id| format!("{TOYS_HARD_MODE_URL}&oldid={id}"),
+        );
 
-        let toys = parse_toy_info(&toys_url)?;
+        let mut toys = parse_toy_info(&toys_url)?;
+        let hard_mode_toys = parse_hard_mode_toy_info(&hard_mode_toys_url)?;
+        toys.extend(hard_mode_toys);
 
         // Add each toy.
         for toy in toys.iter() {

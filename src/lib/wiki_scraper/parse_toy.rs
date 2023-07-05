@@ -11,8 +11,6 @@ use super::{
     IMG_URLS,
 };
 
-pub fn parse_hard_mode_toys() {}
-
 pub fn parse_single_toy_row(
     rec: &str,
     curr_tier: usize,
@@ -43,7 +41,8 @@ pub fn parse_single_toy_row(
     // If effect at a level is missing, still create three records.
     for lvl in 0..3 {
         let toy_lvl_effect = toy_effects.get(lvl).cloned();
-        let (effect_stats, n_triggers, temp_effect) = extract_pet_effect_info(&toy_lvl_effect);
+        let (effect_stats, n_triggers, temp_effect) =
+            extract_pet_effect_info(toy_lvl_effect.as_deref());
 
         toys.push(ToyRecord {
             name: ToyName::from_str(name)?,
