@@ -53,8 +53,16 @@ pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
     [self_trigger, any_trigger, any_enemy_trigger]
 }
 
-/// Outcomes
+/// Wrapper for [`Vec<Outcomes>`].
 pub struct Outcomes(Vec<Outcome>);
+
+impl std::ops::Deref for Outcomes {
+    type Target = Vec<Outcome>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 
 impl FromStr for Outcomes {
     type Err = SAPTestError;

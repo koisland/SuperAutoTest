@@ -8,6 +8,7 @@ use crate::{
     pets::pet::{reassign_effects, Pet},
     shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
     teams::{history::History, viewer::TeamViewer},
+    toys::toy::Toy,
     wiki_scraper::parse_names::WordType,
     Effect, Food, Shop, CONFIG, SAPDB,
 };
@@ -117,6 +118,9 @@ pub struct Team {
     /// Apply a persistent effect.
     /// * These effects are **ALWAYS** applied during trigger_effects.
     pub persistent_effects: Vec<Effect>,
+    /// Toys for a team.
+    /// Can include hard-mode or normal toys.
+    pub toys: Vec<Toy>,
     /// Counters.
     /// * These can be used with effects.
     pub counters: HashMap<String, usize>,
@@ -143,6 +147,7 @@ impl Default for Team {
             seed,
             curr_pet: None,
             persistent_effects: Vec::default(),
+            toys: Vec::default(),
             // Add trumpets.
             counters: HashMap::from_iter([("Trumpets".to_owned(), 0)]),
         }
@@ -221,6 +226,7 @@ impl Clone for Team {
             curr_pet: None,
             shop: self.shop.clone(),
             persistent_effects: self.persistent_effects.clone(),
+            toys: self.toys.clone(),
             counters: self.counters.clone(),
         };
         // Reassign references.

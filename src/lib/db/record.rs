@@ -136,7 +136,7 @@ pub struct PetRecord {
     pub is_token: bool,
 }
 
-/// A record with information about a toy from Super Auto Pets.
+/// A record with information about Toys from Super Auto Pets.
 /// * Both hard-mode and friendly toys are included.
 ///
 /// This information is queried and parsed from the Super Auto Pets Fandom wiki.
