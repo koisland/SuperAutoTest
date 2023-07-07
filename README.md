@@ -219,6 +219,8 @@ python setup.py install
 
 ## TODO:
 * Add trait for randomly generating teams.
+* Add method to iterate through record fields/fieldnames and build macro to construct SQL statements.
+    * Manually adding fields is tedious and error-prone.
 
 ---
 ## Sources

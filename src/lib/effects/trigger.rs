@@ -124,12 +124,24 @@ impl FromStr for Outcomes {
             "Buy & Sell" => outcomes.extend([TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD]),
             // Conditional action determines outcome.
             "Tier 1 friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
+            "All enemies fainted" => outcomes.push(TRIGGER_NO_ENEMIES_LEFT),
             _ => {}
         }
 
         Ok(Outcomes(outcomes))
     }
 }
+
+/// Trigger for when one pet left on team.
+pub const TRIGGER_NO_ENEMIES_LEFT: Outcome = Outcome {
+    status: Status::IsTeam(TeamCondition::NumberPetsEqual(0)),
+    affected_pet: None,
+    affected_team: Target::Enemy,
+    afflicting_pet: None,
+    afflicting_team: Target::Friend,
+    position: Position::None,
+    stat_diff: None,
+};
 
 /// Trigger for when one pet left on team.
 pub const TRIGGER_ONE_OR_ZERO_PET_LEFT: Outcome = Outcome {

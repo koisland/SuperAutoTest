@@ -35,7 +35,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::Relative(-1),
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses,
-
                 trigger: TRIGGER_BATTLE_FOOD,
                 temp: record.end_of_battle,
             },
@@ -45,7 +44,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Invincible,
                 uses,
-
                 trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -55,7 +53,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Negate(effect_stats),
                 uses,
-
                 trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -65,7 +62,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::TriggerAffected,
                 action: Action::Summon(SummonType::DefaultPet(PetName::Bee)),
                 uses,
-
                 trigger: TRIGGER_SELF_FAINT,
                 temp: record.end_of_battle,
             },
@@ -75,7 +71,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses,
-
                 trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -85,7 +80,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Negate(effect_stats),
                 uses,
-
                 trigger: TRIGGER_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -102,7 +96,6 @@ impl TryFrom<&FoodRecord> for Effect {
                     false,
                 )),
                 uses,
-
                 trigger: TRIGGER_SELF_FAINT,
                 temp: record.end_of_battle,
             },
@@ -112,7 +105,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Kill,
                 uses,
-
                 trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -122,7 +114,6 @@ impl TryFrom<&FoodRecord> for Effect {
                 position: Position::OnSelf,
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses,
-
                 trigger: TRIGGER_ATK_DMG_CALC,
                 temp: record.end_of_battle,
             },
@@ -134,7 +125,6 @@ impl TryFrom<&FoodRecord> for Effect {
 
                 Effect {
                     owner: None,
-
                     trigger: TRIGGER_DMG_CALC,
                     target: Target::Friend,
                     position: Position::OnSelf,
@@ -145,7 +135,6 @@ impl TryFrom<&FoodRecord> for Effect {
             }
             FoodName::SleepingPill => Effect {
                 owner: None,
-
                 trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -155,7 +144,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Croissant | FoodName::Cucumber | FoodName::Carrot => Effect {
                 owner: None,
-
                 trigger: TRIGGER_END_TURN,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -165,17 +153,15 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Grapes => Effect {
                 owner: None,
-
                 trigger: TRIGGER_START_TURN,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit(1),
+                action: Action::AlterGold(1),
                 uses,
                 temp: record.end_of_battle,
             },
             FoodName::Chocolate => Effect {
                 owner: None,
-
                 trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -185,7 +171,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Pepper => Effect {
                 owner: None,
-
                 trigger: TRIGGER_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -195,7 +180,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::CannedFood => Effect {
                 owner: None,
-
                 trigger: TRIGGER_NONE,
                 target: Target::Shop,
                 position: Position::None,
@@ -205,7 +189,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::FortuneCookie => Effect {
                 owner: None,
-
                 trigger: TRIGGER_ATK_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -215,7 +198,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Cheese => Effect {
                 owner: None,
-
                 trigger: TRIGGER_ATK_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -225,7 +207,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Pineapple => Effect {
                 owner: None,
-
                 trigger: TRIGGER_INDIR_DMG_CALC,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -242,7 +223,6 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::HotDog
             | FoodName::Orange => Effect {
                 owner: None,
-
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
                 position: Position::N {
@@ -263,7 +243,6 @@ impl TryFrom<&FoodRecord> for Effect {
             | FoodName::Peach
             | FoodName::ChickenLeg => Effect {
                 owner: None,
-
                 trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -273,7 +252,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Strawberry => Effect {
                 owner: None,
-
                 trigger: TRIGGER_NONE,
                 target: Target::Friend,
                 position: Position::None,
@@ -283,7 +261,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Lollipop => Effect {
                 owner: None,
-
                 trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -293,7 +270,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             FoodName::Popcorns => Effect {
                 owner: None,
-
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -303,7 +279,6 @@ impl TryFrom<&FoodRecord> for Effect {
             },
             _ => Effect {
                 owner: None,
-
                 trigger: TRIGGER_NONE,
                 target: Target::None,
                 position: Position::None,

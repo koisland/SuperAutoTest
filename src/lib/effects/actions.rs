@@ -281,8 +281,8 @@ pub enum Action {
     AddShopPet(SummonType),
     /// Clear [`Shop`](crate::Shop) items of a specified [type](crate::effects::effect::Entity).
     ClearShop(Entity),
-    /// Get gold for the [`Shop`](crate::Shop).
-    Profit(usize),
+    /// Alter gold for the [`Shop`](crate::Shop).
+    AlterGold(isize),
     /// Reduce cost of [`Shop`](crate::Shop) a [`ShopItem`](crate::shop::store::ShopItem).
     /// 1. Item type to discount.
     /// 2. Gold to discount by.

@@ -161,7 +161,7 @@ impl std::fmt::Display for Action {
             Action::AddShopFood(food) => write!(f, "Add {food} to Shop"),
             Action::AddShopPet(pet) => write!(f, "Add {pet} to Shop"),
             Action::ClearShop(item_type) => write!(f, "Clear Shop {item_type:?}"),
-            Action::Profit(gold) => write!(f, "Gain {gold} Gold"),
+            Action::AlterGold(gold_change) => write!(f, "Alter gold by {gold_change}"),
             Action::Discount(item_type, gold) => {
                 write!(f, "Discount {gold} Gold from {item_type:?}")
             }
@@ -419,8 +419,8 @@ mod test {
         let shop_clear_action = Action::ClearShop(Entity::Food);
         assert_eq!("Clear Shop Food", format!("{shop_clear_action}"));
 
-        let shop_profit_action = Action::Profit(3);
-        assert_eq!("Gain 3 Gold", format!("{shop_profit_action}"));
+        let shop_profit_action = Action::AlterGold(3);
+        assert_eq!("Alter gold by 3", format!("{shop_profit_action}"));
 
         let shop_discount_action = Action::Discount(Entity::Food, 3);
         assert_eq!(

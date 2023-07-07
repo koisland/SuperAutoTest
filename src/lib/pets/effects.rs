@@ -91,7 +91,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_PET_SOLD,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit(record.lvl),
+                action: Action::AlterGold(record.lvl.try_into()?),
                 uses: Some(record.n_triggers),
                 temp: record.temp_effect,
             }],
@@ -541,7 +541,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     trigger: TRIGGER_START_TURN,
                     target: Target::Shop,
                     position: Position::None,
-                    action: Action::Profit(record.lvl),
+                    action: Action::AlterGold(record.lvl.try_into()?),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
                 }]
@@ -1368,7 +1368,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_PET_BOUGHT,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit(record.lvl),
+                action: Action::AlterGold(record.lvl.try_into()?),
                 uses: Some(record.n_triggers),
             }],
             PetName::Poodle => {
@@ -1405,7 +1405,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ROLL,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit(1),
+                action: Action::AlterGold(1),
                 uses: Some(record.n_triggers),
             }],
             PetName::PolarBear => vec![Effect {
@@ -2342,7 +2342,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_FOOD_BOUGHT,
                 target: Target::Shop,
                 position: Position::None,
-                action: Action::Profit(record.lvl),
+                action: Action::AlterGold(record.lvl.try_into()?),
                 uses: Some(record.n_triggers),
             }],
             PetName::Tyrannosaurus => vec![Effect {
@@ -2365,7 +2365,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Target::Friend,
                         ItemCondition::Equal(EqualityCondition::Level(3)),
                     )),
-                    Box::new(Action::Profit(record.lvl * 3)),
+                    Box::new(Action::AlterGold((record.lvl * 3).try_into()?)),
                     Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),

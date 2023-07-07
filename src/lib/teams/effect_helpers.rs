@@ -970,11 +970,15 @@ impl EffectApplyHelpers for Team {
                 }
                 info!(target: "run", "(\"{}\")\nCleared shop {item_type:?}.", self.name)
             }
-            Action::Profit(coins) => {
-                for _ in 0..*coins {
-                    self.shop.coins += 1;
-                    info!(target: "run", "(\"{}\")\nIncreased shop coins by 1. New coin count: {}", self.name, self.shop.coins)
+            Action::AlterGold(coins) => {
+                if coins.is_negative() {
+                    let coin_change: usize = (-*coins).try_into()?;
+                    self.shop.coins = self.shop.coins.saturating_sub(coin_change);
+                } else {
+                    let coin_change: usize = (*coins).try_into()?;
+                    self.shop.coins += coin_change;
                 }
+                info!(target: "run", "(\"{}\")\nAltered shop gold by {}. New coin count: {}", self.name, coins, self.shop.coins)
             }
             Action::Discount(entity, discount) => {
                 // Method only gets immutable refs.
