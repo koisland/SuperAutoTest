@@ -15,6 +15,8 @@ use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
 
+use super::record::ToyRecord;
+
 const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
 const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
 const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
@@ -415,7 +417,7 @@ impl SapDB {
     /// Food Query
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
-
+    ///
     /// let mut query = SAPQuery::builder();
     /// query.set_table(Entity::Food)
     ///     .set_param("name", vec![FoodName::Apple])
@@ -425,6 +427,20 @@ impl SapDB {
     ///
     /// let Some(SAPRecord::Food(record)) = foods.first() else { panic!("No Record found.")};
     /// assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
+    /// ```
+    /// ---
+    /// Toy Query
+    /// ```
+    /// use saptest::{SAPDB, SAPQuery, Entity, ToyName, db::record::SAPRecord};
+    /// let mut query = SAPQuery::builder();
+    /// query.set_table(Entity::Toy)
+    ///     .set_param("name", vec![ToyName::Balloon])
+    ///     .set_param("lvl", vec![2]);
+    ///
+    /// let toys = SAPDB.execute_query(query).unwrap();
+    ///
+    /// let Some(SAPRecord::Toy(record)) = toys.first() else { panic!("No Record found.")};
+    /// assert!(record.name == ToyName::Balloon && record.lvl == 1)
     /// ```
     pub fn execute_query(&self, sap_query: SAPQuery) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;
@@ -439,6 +455,7 @@ impl SapDB {
             let record = match table {
                 Entity::Pet => SAPRecord::Pet(row.try_into()?),
                 Entity::Food => SAPRecord::Food(row.try_into()?),
+                Entity::Toy => SAPRecord::Toy(row.try_into()?),
             };
             records.push(record);
         }
@@ -461,6 +478,8 @@ impl SapDB {
                 SAPRecord::Pet(record)
             } else if let Ok(record) = TryInto::<FoodRecord>::try_into(row) {
                 SAPRecord::Food(record)
+            } else if let Ok(record) = TryInto::<ToyRecord>::try_into(row) {
+                SAPRecord::Toy(record)
             } else {
                 return Err(SAPTestError::QueryFailure {
                     subject: "Invalid Record Conversion".to_string(),
@@ -479,8 +498,9 @@ mod test {
         db::{
             pack::Pack,
             query::SAPQuery,
-            record::{FoodRecord, PetRecord, SAPRecord},
+            record::{FoodRecord, PetRecord, SAPRecord, ToyRecord},
         },
+        toys::names::ToyName,
         Entity, FoodName, PetName, SAPDB,
     };
 
@@ -529,6 +549,20 @@ mod test {
     }
 
     #[test]
+    fn test_query_params_toys() {
+        let mut toy_query = SAPQuery::builder();
+
+        toy_query
+            .set_table(Entity::Toy)
+            .set_param("name", vec![ToyName::Balloon])
+            .set_param("lvl", vec![1]);
+
+        let toys = SAPDB.execute_query(toy_query).unwrap();
+        let SAPRecord::Toy(record) = toys.first().unwrap() else { panic!("No Record found.")};
+        assert!(record.name == ToyName::Balloon && record.lvl == 1)
+    }
+
+    #[test]
     fn test_query_sql_foods() {
         let sql = "SELECT * FROM foods";
         let params: Vec<String> = vec![];
@@ -549,6 +583,16 @@ mod test {
     }
 
     #[test]
+    fn test_query_sql_toys() {
+        let sql = "SELECT * FROM toys";
+        let params: Vec<String> = vec![];
+        let records = SAPDB.execute_sql_query(sql, &params).unwrap();
+        let first_record = &records[0];
+        assert!(TryInto::<FoodRecord>::try_into(first_record.clone()).is_err());
+        assert!(TryInto::<ToyRecord>::try_into(first_record.clone()).is_ok())
+    }
+
+    #[test]
     fn test_update_foods() {
         assert!(SAPDB.update_pet_info().is_ok())
     }
@@ -561,5 +605,10 @@ mod test {
     #[test]
     fn test_update_names() {
         assert!(SAPDB.update_name_info().is_ok())
+    }
+
+    #[test]
+    fn test_update_toys() {
+        assert!(SAPDB.update_toy_info().is_ok())
     }
 }

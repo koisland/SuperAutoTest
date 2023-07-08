@@ -599,6 +599,8 @@ impl TeamShopping for Team {
             let items_empty = match item_type {
                 Entity::Pet => self.shop.pets.is_empty(),
                 Entity::Food => self.shop.foods.is_empty(),
+                // Entities unobtainable in shop.
+                _ => true,
             };
             let err_msg = if items_empty {
                 format!("No {item_type:?} items left to purchase.")
@@ -632,6 +634,7 @@ impl TeamShopping for Team {
                 .shop
                 .foods
                 .retain(|food| !selected_items.contains(food)),
+            _ => unreachable!(),
         }
 
         // Buy the item and check if sufficient funds.

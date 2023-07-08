@@ -4,6 +4,7 @@ use crate::{
         state::{Outcome, Position, Target},
     },
     error::SAPTestError,
+    toys::names::ToyName,
     FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,8 @@ pub enum Entity {
     Pet,
     /// A [`Food`](crate::foods::food::Food).
     Food,
+    /// A [`Toy`](crate::toys::toy::Toy)
+    Toy,
 }
 
 impl std::fmt::Display for Entity {
@@ -32,6 +35,8 @@ pub enum EntityName {
     Pet(PetName),
     /// Food name.
     Food(FoodName),
+    /// Toy name.
+    Toy(ToyName),
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.

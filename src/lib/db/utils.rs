@@ -4,10 +4,13 @@ use crate::{
         record::{FoodRecord, PetRecord},
     },
     error::SAPTestError,
+    toys::names::ToyName,
     FoodName, PetName,
 };
 use rusqlite::Row;
 use std::str::FromStr;
+
+use super::record::ToyRecord;
 
 impl TryFrom<&Row<'_>> for PetRecord {
     type Error = SAPTestError;
@@ -63,6 +66,33 @@ impl TryFrom<&Row<'_>> for FoodRecord {
             turn_effect: turn_effect_str == *"true",
             cost: food_row.get(13)?,
             img_url: food_row.get(14)?,
+        })
+    }
+}
+
+impl TryFrom<&Row<'_>> for ToyRecord {
+    type Error = SAPTestError;
+
+    fn try_from(toy_row: &Row<'_>) -> Result<Self, Self::Error> {
+        let toy_name: String = toy_row.get(1)?;
+        let toy_effect_trigger: String = toy_row.get(3)?;
+        let toy_effect: String = toy_row.get(4)?;
+        let is_temp_effect: String = toy_row.get(8)?;
+        let source: String = toy_row.get(10)?;
+        let is_hard_mode: String = toy_row.get(12)?;
+        Ok(ToyRecord {
+            name: ToyName::from_str(&toy_name)?,
+            tier: toy_row.get(2)?,
+            effect_trigger: Some(toy_effect_trigger),
+            effect: Some(toy_effect),
+            effect_atk: toy_row.get(5)?,
+            effect_health: toy_row.get(6)?,
+            n_triggers: toy_row.get(7)?,
+            temp_effect: is_temp_effect == *"true",
+            lvl: toy_row.get(9)?,
+            source: Some(source),
+            img_url: toy_row.get(11)?,
+            hard_mode: is_hard_mode == *"true",
         })
     }
 }

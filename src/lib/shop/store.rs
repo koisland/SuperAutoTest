@@ -424,6 +424,12 @@ impl Shop {
             let items = match item_type {
                 Entity::Pet => self.pets.iter(),
                 Entity::Food => self.foods.iter(),
+                _ => {
+                    return Err(SAPTestError::InvalidPetAction {
+                        subject: String::from("Invalid Freeze Entity"),
+                        reason: format!("Shop does not contain {item_type}."),
+                    })
+                }
             };
             items
                 .enumerate()
@@ -553,6 +559,7 @@ impl Shop {
                 let stmt = query.as_sql().unwrap();
                 (query, stmt)
             }
+            _ => unreachable!(),
         };
         let flat_params = query.flat_params().into_iter().cloned().collect();
         (stmt, flat_params)

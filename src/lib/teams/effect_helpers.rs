@@ -967,6 +967,12 @@ impl EffectApplyHelpers for Team {
                 match item_type {
                     Entity::Pet => self.shop.pets.clear(),
                     Entity::Food => self.shop.foods.clear(),
+                    _ => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: String::from("Invalid Shop Entity"),
+                            reason: format!("{item_type} cannot be cleared."),
+                        })
+                    }
                 }
                 info!(target: "run", "(\"{}\")\nCleared shop {item_type:?}.", self.name)
             }
@@ -991,6 +997,12 @@ impl EffectApplyHelpers for Team {
                 let shop_items = match entity {
                     Entity::Pet => self.shop.pets.iter_mut(),
                     Entity::Food => self.shop.foods.iter_mut(),
+                    _ => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: String::from("Invalid Shop Entity"),
+                            reason: format!("{entity} cannot be discounted."),
+                        })
+                    }
                 };
                 for item in shop_items.filter(|item| affected_items_copy.contains(item)) {
                     item.cost = item.cost.saturating_sub(*discount)
@@ -1178,6 +1190,12 @@ impl EffectApplyHelpers for Team {
                 let possible_items = match item_type {
                     Entity::Pet => &mut self.shop.pets,
                     Entity::Food => &mut self.shop.foods,
+                    _ => {
+                        return Err(SAPTestError::InvalidPetAction {
+                            subject: String::from("Invalid Fox Free Entity"),
+                            reason: format!("Fox cannot obtain {item_type}."),
+                        })
+                    }
                 };
                 if let Some(stolen_item) = (0..possible_items.len())
                     .choose(&mut rng)

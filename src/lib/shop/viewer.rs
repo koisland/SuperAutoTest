@@ -125,6 +125,12 @@ impl ShopViewer for Shop {
         let all_items = match item_type {
             Entity::Pet => self.pets.iter(),
             Entity::Food => self.foods.iter(),
+            _ => {
+                return Err(SAPTestError::InvalidPetAction {
+                    subject: String::from("Invalid Entity"),
+                    reason: format!("Shop does not contain {item_type}."),
+                })
+            }
         };
 
         match cond {

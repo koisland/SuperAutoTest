@@ -380,6 +380,7 @@ impl TeamViewer for Team {
                                 .map_or(false, |food| &food.name == item_name)
                         }
                     }
+                    _ => false,
                 })
                 .collect_vec(),
             EqualityCondition::Level(lvl) => all_pets

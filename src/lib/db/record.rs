@@ -8,6 +8,8 @@ pub enum SAPRecord {
     Food(FoodRecord),
     /// A [`PetRecord`].
     Pet(PetRecord),
+    /// A [`ToyRecord`]
+    Toy(ToyRecord),
 }
 
 impl TryFrom<SAPRecord> for Vec<Effect> {
@@ -17,6 +19,7 @@ impl TryFrom<SAPRecord> for Vec<Effect> {
         match value {
             SAPRecord::Food(food_record) => Ok(vec![Effect::try_from(&food_record)?]),
             SAPRecord::Pet(pet_record) => pet_record.try_into(),
+            SAPRecord::Toy(toy_record) => toy_record.try_into(),
         }
     }
 }
@@ -46,6 +49,21 @@ impl TryFrom<SAPRecord> for PetRecord {
             Err(SAPTestError::QueryFailure {
                 subject: "Invalid Record Type".to_string(),
                 reason: format!("Record {value:?} doesn't contain PetRecord"),
+            })
+        }
+    }
+}
+
+impl TryFrom<SAPRecord> for ToyRecord {
+    type Error = SAPTestError;
+
+    fn try_from(value: SAPRecord) -> Result<Self, Self::Error> {
+        if let SAPRecord::Toy(record) = value {
+            Ok(record)
+        } else {
+            Err(SAPTestError::QueryFailure {
+                subject: "Invalid Record Type".to_string(),
+                reason: format!("Record {value:?} doesn't contain ToyRecord"),
             })
         }
     }
