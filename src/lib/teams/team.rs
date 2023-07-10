@@ -392,6 +392,8 @@ impl Team {
 
     /// Set a `u64` seed for a team allowing for reproducibility of events.
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
+    /// * Uses [`ChaCha12Rng`].
+    ///
     /// # Examples
     ///  ```
     /// use saptest::{Pet, PetName, Team, TeamEffects, effects::trigger::TRIGGER_START_BATTLE};

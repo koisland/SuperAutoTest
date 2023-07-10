@@ -425,6 +425,35 @@ impl TeamEffects for Team {
             activated_effects.extend(start_of_battle_effects);
             activated_effects.extend(tiger_effects.into_iter().map(|effect| (team, effect)))
         }
+
+        // TODO: Persistent effects.
+
+        // Add toy effects.
+        for team in [Target::Friend, Target::Enemy] {
+            // Get a team's toys and first pet, if any.
+            let (toys, first_pet) = match team {
+                Target::Friend => (self.toys.iter(), self.first()),
+                Target::Enemy => (opponent.toys.iter(), opponent.first()),
+                _ => unreachable!("Not possible to have other targets."),
+            };
+
+            let effects = toys.flat_map(|toy| {
+                toy.effect.iter().filter_map(|effect| {
+                    let mut effect = effect.clone();
+
+                    // Only include effect if a pet is on the team.
+                    if effect.trigger.status == Status::StartOfBattle && first_pet.is_some() {
+                        effect.assign_owner(first_pet.as_ref());
+                        Some((team, effect))
+                    } else {
+                        None
+                    }
+                })
+            });
+
+            activated_effects.extend(effects)
+        }
+
         for (team, effect) in activated_effects.iter() {
             match team {
                 Target::Friend => {
@@ -482,28 +511,36 @@ impl TeamEffects for Team {
         trigger: &Outcome,
         mut opponent: Option<&mut Team>,
     ) -> Result<&mut Self, SAPTestError> {
+        let check_effect = |effect: &mut Effect| {
+            // Check if persistent effect can be activated.
+            if !effect.check_activates(trigger) || effect.uses == Some(0) {
+                return None;
+            }
+            let mut effect_copy = effect.clone();
+            // Decrease uses.
+            effect.remove_uses(1);
+
+            // Take the first friend regardless if alive or not.
+            if let Some(Some(pet)) = self.friends.first() {
+                effect_copy.assign_owner(Some(pet));
+                Some(effect_copy)
+            } else {
+                None
+            }
+        };
         // Add persistent effects. Owner always first on team. Not sure if best choice but must work for golden pack.
         let mut applied_effects: Vec<Effect> = self
             .persistent_effects
             .iter_mut()
-            .filter_map(|effect| {
-                // Check if persistent effect can be activated.
-                if !effect.check_activates(trigger) || effect.uses == Some(0) {
-                    return None;
-                }
-                let mut effect_copy = effect.clone();
-                // Decrease uses.
-                effect.remove_uses(1);
-
-                // Take the first friend regardless if alive or not.
-                if let Some(Some(pet)) = self.friends.first() {
-                    effect_copy.assign_owner(Some(pet));
-                    Some(effect_copy)
-                } else {
-                    None
-                }
-            })
+            .filter_map(check_effect)
             .collect();
+
+        // Apply toy effects.
+        applied_effects.extend(
+            self.toys
+                .iter_mut()
+                .flat_map(|toy| toy.effect.iter_mut().filter_map(check_effect)),
+        );
 
         // Get petname and position of trigger.
         let (trigger_pet_name, trigger_pet_pos) = if let Some(Some(trigger_pet)) =

@@ -26,6 +26,9 @@ mod test_food;
 mod test_shop;
 
 #[cfg(test)]
+mod test_toys;
+
+#[cfg(test)]
 mod test_team_shop;
 
 #[cfg(test)]

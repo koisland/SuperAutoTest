@@ -182,6 +182,8 @@ pub use crate::shop::{
     team_shopping::TeamShopping,
     viewer::{ShopItemViewer, ShopViewer},
 };
+#[doc(inline)]
+pub use crate::toys::{names::ToyName, toy::Toy};
 
 #[doc(inline)]
 pub use crate::visualization::{digraph::create_battle_digraph, tsv::create_battle_df};
