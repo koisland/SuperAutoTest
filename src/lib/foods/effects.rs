@@ -268,7 +268,7 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
-            FoodName::Popcorns => Effect {
+            FoodName::Popcorn => Effect {
                 owner: None,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,

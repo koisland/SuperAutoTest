@@ -486,7 +486,7 @@ mod test {
             Pet::try_from(PetName::Ant).unwrap(),
         )));
         assert_eq!(
-            "Summon [Ant: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]",
+            "Summon [Ant: (2,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]",
             format!("{summon_stored_pet_action}")
         );
 
