@@ -13,8 +13,24 @@ use crate::{
 
 #[test]
 fn test_attack_pet() {
-    let mut ant_t1 = Pet::try_from(PetName::Ant).unwrap();
-    let mut ant_t2 = Pet::try_from(PetName::Ant).unwrap();
+    let mut ant_t1 = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
+    let mut ant_t2 = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
 
     // Set 2nd ant health to survive attack.
     ant_t2.stats.health = 3;
@@ -55,36 +71,9 @@ fn test_attack_pet() {
 
 #[test]
 fn test_create_def_pet() {
-    let mut pet = Pet::try_from(PetName::Ant).unwrap();
-    pet.seed = Some(0);
-
     assert_eq!(
-        pet,
-        Pet {
-            id: None,
-            name: PetName::Ant,
-            tier: 1,
-            stats: Statistics {
-                attack: 2,
-                health: 1,
-            },
-            lvl: 1,
-            exp: 0,
-            cost: 3,
-            effect: vec![Effect {
-                owner: None,
-                trigger: TRIGGER_SELF_FAINT,
-                target: Target::Friend,
-                position: Position::Any(ItemCondition::None),
-                action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
-                uses: Some(1),
-                temp: false
-            },],
-            item: None,
-            pos: None,
-            seed: Some(0),
-            team: None
-        }
+        Pet::try_from(PetName::Ant).unwrap(),
+        Pet::new(PetName::Ant, None, 1).unwrap()
     )
 }
 
@@ -99,7 +88,7 @@ fn test_get_effect() {
             trigger: TRIGGER_SELF_FAINT,
             target: Target::Friend,
             position: Position::Any(ItemCondition::None),
-            action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
+            action: Action::Add(StatChangeType::Static(Statistics::new(1, 1).unwrap())),
             uses: Some(1),
             temp: false
         },],
@@ -111,7 +100,7 @@ fn test_get_effect() {
 fn test_levelup() {
     let mut test_ant = Pet::try_from(PetName::Ant).unwrap();
 
-    // Lvl 1 effect adds (2,1)
+    // Lvl 1 effect adds (1,1)
     assert_eq!(test_ant.lvl, 1);
     if let Action::Add(StatChangeType::Static(stats)) =
         &test_ant.effect.first().as_ref().unwrap().action
@@ -119,7 +108,7 @@ fn test_levelup() {
         assert_eq!(
             *stats,
             Statistics {
-                attack: 2,
+                attack: 1,
                 health: 1
             }
         )
@@ -127,7 +116,7 @@ fn test_levelup() {
 
     test_ant.set_level(2).unwrap();
 
-    // Lvl 2 effect adds (4,2)
+    // Lvl 2 effect adds (2,2)
     assert_eq!(test_ant.lvl, 2);
     if let Action::Add(StatChangeType::Static(stats)) =
         &test_ant.effect.first().as_ref().unwrap().action
@@ -135,7 +124,7 @@ fn test_levelup() {
         assert_eq!(
             *stats,
             Statistics {
-                attack: 4,
+                attack: 2,
                 health: 2
             }
         )
@@ -183,7 +172,7 @@ fn test_create_pet() {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::None),
-                action: Action::Add(StatChangeType::Static(Statistics::new(2, 1).unwrap())),
+                action: Action::Add(StatChangeType::Static(Statistics::new(1, 1).unwrap())),
                 uses: Some(1),
                 temp: false
             },],
@@ -254,7 +243,9 @@ fn test_merge_pets() {
     let other_pet = Pet::try_from(PetName::Gorilla).unwrap();
 
     assert!(pet.merge(&other_pet).is_ok());
-    assert_eq!(pet.stats, Statistics::new(7, 10).unwrap())
+    assert_eq!(pet.stats, Statistics::new(8, 11).unwrap());
+    // Gain 1 experience.
+    assert_eq!(pet.exp, 1)
 }
 
 #[test]
@@ -262,14 +253,14 @@ fn test_swap_pet_stats() {
     let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
     let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
     assert!(
-        pet_1.stats == Statistics::new(6, 9).unwrap()
+        pet_1.stats == Statistics::new(7, 10).unwrap()
             && pet_2.stats == Statistics::new(10, 4).unwrap()
     );
 
     pet_1.swap_stats(&mut pet_2);
     assert!(
         pet_1.stats == Statistics::new(10, 4).unwrap()
-            && pet_2.stats == Statistics::new(6, 9).unwrap()
+            && pet_2.stats == Statistics::new(7, 10).unwrap()
     );
 }
 #[test]
