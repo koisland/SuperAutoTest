@@ -447,12 +447,18 @@ impl TeamShoppingHelpers for Team {
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
                 let mut trigger_self_food_name =
                     trigger_self_food_ate_name(food.read().unwrap().name.clone());
+                let mut trigger_gained_perk = TRIGGER_FRIEND_GAIN_PERK;
+                trigger_gained_perk.set_affected(&pet);
                 trigger_self_food.set_affected(&pet);
                 trigger_any_food.set_affected(&pet);
                 trigger_self_food_name.set_affected(&pet);
 
-                self.triggers
-                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
+                self.triggers.extend([
+                    trigger_self_food,
+                    trigger_any_food,
+                    trigger_self_food_name,
+                    trigger_gained_perk,
+                ]);
             }
         } else if food.read().unwrap().name == FoodName::CannedFood {
             // Applying any effect requires an owner so assign current pet.
@@ -525,7 +531,7 @@ impl TeamShoppingHelpers for Team {
         let purchased_pet = if let Some(affected_pet) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.read().unwrap().name == pet.read().unwrap().name {
-                self.merge_behavior(affected_pet, &pet)?;
+                self.merge_behavior(&pet, affected_pet)?;
                 Some(affected_pet.clone())
             } else {
                 // Pet target exists. If position is last, make sure put after pet.

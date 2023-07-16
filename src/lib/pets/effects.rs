@@ -143,10 +143,9 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 uses: None,
                 temp: record.temp_effect,
             }],
-            // TODO: Gains perk. Add trigger in shop buy.
             PetName::Ladybug => vec![Effect {
                 owner: None,
-                trigger: TRIGGER_ANY_FOOD_BOUGHT,
+                trigger: TRIGGER_FRIEND_GAIN_PERK,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Add(StatChangeType::Static(effect_stats)),

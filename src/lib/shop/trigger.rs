@@ -152,3 +152,14 @@ pub const TRIGGER_SHOP_TIER_UPGRADED: Outcome = Outcome {
     position: Position::None,
     stat_diff: None,
 };
+
+/// Trigger when any friend gains food perk.
+pub const TRIGGER_FRIEND_GAIN_PERK: Outcome = Outcome {
+    status: Status::GainPerk,
+    affected_pet: None,
+    affected_team: Target::Friend,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::None,
+    stat_diff: None,
+};

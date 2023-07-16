@@ -11,8 +11,9 @@ use crate::{
     error::SAPTestError,
     shop::trigger::{
         trigger_self_food_ate_name, TRIGGER_ANY_FOOD_BOUGHT, TRIGGER_ANY_FOOD_EATEN,
-        TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_ROLL, TRIGGER_SELF_FOOD_EATEN,
-        TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD, TRIGGER_SHOP_TIER_UPGRADED,
+        TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_FRIEND_GAIN_PERK, TRIGGER_ROLL,
+        TRIGGER_SELF_FOOD_EATEN, TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD,
+        TRIGGER_SHOP_TIER_UPGRADED,
     },
     FoodName, Pet,
 };
@@ -88,7 +89,7 @@ impl FromStr for Outcomes {
             "Friend ahead hurt" => outcomes.push(TRIGGER_AHEAD_HURT),
             "None" => outcomes.push(TRIGGER_NONE),
             "Before attack" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
-
+            "Friend gained perk" => outcomes.push(TRIGGER_FRIEND_GAIN_PERK),
             // TODO:
             "Before faint" => outcomes.push(TRIGGER_AHEAD_ATTACK),
 
