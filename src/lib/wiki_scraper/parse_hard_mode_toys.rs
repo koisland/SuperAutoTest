@@ -9,8 +9,7 @@ use crate::{
 };
 
 use super::{
-    common::{get_page_info, TABLE_ENTRY_DELIM},
-    parse_food::clean_link_text,
+    common::{clean_link_text, get_page_info, TABLE_ENTRY_DELIM},
     parse_pet::extract_pet_effect_info,
     IMG_URLS,
 };

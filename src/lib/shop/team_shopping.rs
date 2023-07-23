@@ -447,8 +447,11 @@ impl TeamShoppingHelpers for Team {
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
                 let mut trigger_self_food_name =
                     trigger_self_food_ate_name(food.read().unwrap().name.clone());
-                let mut trigger_gained_perk = TRIGGER_FRIEND_GAIN_PERK;
-                trigger_gained_perk.set_affected(&pet);
+                let mut trigger_any_gained_perk = TRIGGER_ANY_GAIN_PERK;
+                let mut trigger_self_gained_perk = TRIGGER_SELF_GAIN_PERK;
+
+                trigger_any_gained_perk.set_affected(&pet);
+                trigger_self_gained_perk.set_affected(&pet);
                 trigger_self_food.set_affected(&pet);
                 trigger_any_food.set_affected(&pet);
                 trigger_self_food_name.set_affected(&pet);
@@ -457,7 +460,8 @@ impl TeamShoppingHelpers for Team {
                     trigger_self_food,
                     trigger_any_food,
                     trigger_self_food_name,
-                    trigger_gained_perk,
+                    trigger_any_gained_perk,
+                    trigger_self_gained_perk,
                 ]);
             }
         } else if food.read().unwrap().name == FoodName::CannedFood {

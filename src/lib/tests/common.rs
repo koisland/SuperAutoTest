@@ -131,22 +131,46 @@ pub fn test_elephant_peacock_team() -> Team {
 }
 
 pub fn test_dodo_team() -> Team {
-    Team::new(
-        &[
-            Some(Pet::try_from(PetName::Dodo).unwrap()),
-            Some(Pet::try_from(PetName::Dodo).unwrap()),
-        ],
-        5,
-    )
-    .unwrap()
+    let dodo = Some(
+        Pet::new(
+            PetName::Dodo,
+            Some(Statistics {
+                attack: 4,
+                health: 2,
+            }),
+            1,
+        )
+        .unwrap(),
+    );
+    Team::new(&[dodo.clone(), dodo], 5).unwrap()
 }
 
 pub fn test_flamingo_team() -> Team {
     Team::new(
         &[
             Some(Pet::try_from(PetName::Flamingo).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
         ],
         5,
     )
@@ -184,7 +208,15 @@ pub fn test_atlantic_puffin_team() -> Team {
 }
 
 pub fn test_dove_team() -> Team {
-    let mut strawberry_ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut strawberry_ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
     strawberry_ant.item = Some(Food::try_from(FoodName::Strawberry).unwrap());
 
     Team::new(
@@ -221,7 +253,15 @@ pub fn test_panda_team() -> Team {
 }
 
 pub fn test_pug_team() -> Team {
-    let mut exp_1_ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut exp_1_ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
     exp_1_ant.add_experience(1).unwrap();
 
     Team::new(
@@ -236,7 +276,7 @@ pub fn test_stork_team() -> Team {
 }
 
 pub fn test_racoon_team() -> Team {
-    Team::new(&[Some(Pet::try_from(PetName::Racoon).unwrap())], 5).unwrap()
+    Team::new(&[Some(Pet::try_from(PetName::Raccoon).unwrap())], 5).unwrap()
 }
 
 pub fn test_toucan_team() -> Team {
@@ -256,8 +296,28 @@ pub fn test_toucan_team() -> Team {
 pub fn test_shrimp_team() -> Team {
     Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
             Some(Pet::try_from(PetName::Shrimp).unwrap()),
         ],
         5,
@@ -269,8 +329,6 @@ pub fn test_swan_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Swan).unwrap())], 5).unwrap()
 }
 
-// Frigatebird uses peacock.
-
 pub fn test_goldfish_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::GoldFish).unwrap())], 5).unwrap()
 }
@@ -279,11 +337,42 @@ pub fn test_dromedary_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Dromedary).unwrap())], 5).unwrap()
 }
 
+pub fn test_frigate_bird_team() -> Team {
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Frigatebird).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
+}
+
 pub fn test_tabby_cat_team() -> Team {
     Team::new(
         &[
-            Some(Pet::try_from(PetName::Ant).unwrap()),
-            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
+            Some(
+                Pet::new(
+                    PetName::Ant,
+                    Some(Statistics {
+                        attack: 2,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
             Some(Pet::try_from(PetName::TabbyCat).unwrap()),
         ],
         5,
@@ -323,7 +412,17 @@ pub fn test_crab_team() -> Team {
     big_ant.stats.health = 50;
     Team::new(
         &[
-            Some(Pet::try_from(PetName::Crab).unwrap()),
+            Some(
+                Pet::new(
+                    PetName::Crab,
+                    Some(Statistics {
+                        attack: 4,
+                        health: 1,
+                    }),
+                    1,
+                )
+                .unwrap(),
+            ),
             Some(big_ant),
             Some(Pet::try_from(PetName::Ant).unwrap()),
         ],

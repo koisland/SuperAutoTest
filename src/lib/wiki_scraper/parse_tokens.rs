@@ -7,10 +7,7 @@ use crate::{
     db::{pack::Pack, record::PetRecord},
     error::SAPTestError,
     regex_patterns::*,
-    wiki_scraper::{
-        common::{get_largest_table, get_page_info},
-        parse_food::clean_link_text,
-    },
+    wiki_scraper::common::{clean_link_text, get_largest_table, get_page_info},
     PetName,
 };
 

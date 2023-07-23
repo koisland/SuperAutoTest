@@ -5,8 +5,7 @@ use log::error;
 use crate::{db::record::ToyRecord, error::SAPTestError, regex_patterns::*, toys::names::ToyName};
 
 use super::{
-    common::get_page_info,
-    parse_food::clean_link_text,
+    common::{clean_link_text, get_page_info},
     parse_pet::{extract_pet_effect_info, parse_pet_effect_trigger, parse_pet_effects},
     IMG_URLS,
 };

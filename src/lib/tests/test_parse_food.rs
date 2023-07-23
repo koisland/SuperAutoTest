@@ -2,11 +2,10 @@ use crate::{
     db::{pack::Pack, record::FoodRecord},
     regex_patterns::RGX_FOOD_ROW,
     wiki_scraper::{
-        common::get_largest_table,
+        common::{clean_link_text, get_largest_table},
         parse_food::{
-            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
-            get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
-            parse_one_food_entry,
+            get_effect_attack, get_effect_health, get_food_cost, get_random_n_effect,
+            is_holdable_item, is_temp_single_use, is_turn_effect, parse_one_food_entry,
         },
     },
     FoodName,

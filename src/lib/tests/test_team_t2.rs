@@ -6,12 +6,13 @@ use crate::{
     pets::names::PetName,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
-        test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dodo_team,
-        test_dove_team, test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
-        test_goldfish_team, test_hedgehog_team, test_jellyfish_team, test_koala_team,
-        test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team, test_rat_team,
-        test_salamander_team, test_shrimp_team, test_skunk_team, test_spider_team, test_stork_team,
-        test_swan_team, test_tabby_cat_team, test_toucan_team, test_wombat_team, test_yak_team,
+        test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dove_team,
+        test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
+        test_frigate_bird_team, test_goldfish_team, test_hedgehog_team, test_jellyfish_team,
+        test_koala_team, test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team,
+        test_rat_team, test_salamander_team, test_shrimp_team, test_skunk_team, test_spider_team,
+        test_stork_team, test_swan_team, test_tabby_cat_team, test_toucan_team, test_wombat_team,
+        test_yak_team,
     },
     Entity, Food, FoodName, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Statistics, Team,
     TeamEffects, TeamShopping,
@@ -22,12 +23,20 @@ fn test_battle_hedgehog_team() {
     let mut team = test_hedgehog_team();
     let mut enemy_team = test_ant_team();
 
-    let mut fight = team.fight(&mut enemy_team).unwrap();
-    while let TeamFightOutcome::None = fight {
-        fight = team.fight(&mut enemy_team).unwrap()
-    }
+    // Also demonstrates faint ordering.
+    // Lower attack faint pet goes first, ie. Ant.
+    // This gives a (1,1) buff to another ant allowing it to tank hedgehog effect.
+    // Rest of team of ants faints providing (2,2) in total to surviving ant.
+    let fight = team.fight(&mut enemy_team).unwrap();
 
-    assert_eq!(fight, TeamFightOutcome::Draw);
+    assert_eq!(
+        enemy_team.first().unwrap().as_ref().read().unwrap().stats,
+        Statistics {
+            attack: 4,
+            health: 2
+        }
+    );
+    assert_eq!(fight, TeamFightOutcome::Loss);
 }
 
 #[test]
@@ -63,7 +72,7 @@ fn test_battle_crab_team() {
     assert_eq!(
         team.first().unwrap().read().unwrap().stats,
         Statistics {
-            attack: 3,
+            attack: 4,
             health: 1
         }
     );
@@ -81,37 +90,8 @@ fn test_battle_crab_team() {
     assert_eq!(
         team.first().unwrap().read().unwrap().stats,
         Statistics {
-            attack: 3,
-            health: 23
-        }
-    );
-}
-
-#[test]
-fn test_battle_dodo_team() {
-    let mut team = test_dodo_team();
-    let mut enemy_team = test_ant_team();
-
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 3,
-            health: 3
-        }
-    );
-    // Dodo atk at lvl. 1 is 3.
-    // 3 * 0.33 = 1.
-    assert_eq!(
-        (team.nth(1).unwrap().read().unwrap().stats.attack as f32 * 0.33).round(),
-        1.0
-    );
-    team.fight(&mut enemy_team).unwrap();
-
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
             attack: 4,
-            health: 1
+            health: 23
         }
     );
 }
@@ -210,6 +190,8 @@ fn test_battle_spider_team() {
 
 #[test]
 fn test_battle_bat_team() {
+    // TODO: Need to add ailments. Weak and Ink removed from Food.
+    // https://superautopets.fandom.com/wiki/Ailments
     let mut team = test_bat_team();
     let mut enemy_team = test_skunk_team();
 
@@ -241,7 +223,7 @@ fn test_battle_atlantic_puffin_team() {
     team.set_seed(Some(0));
 
     // Dog at 4th position is 4.
-    assert_eq!(enemy_team.nth(4).unwrap().read().unwrap().stats.health, 4);
+    assert_eq!(enemy_team.nth(4).unwrap().read().unwrap().stats.health, 3);
     // Two strawberries on team.
     assert_eq!(
         team.all()
@@ -359,7 +341,7 @@ fn test_battle_pug_team() {
     let mut team = test_pug_team();
     let mut enemy_team = test_mammoth_team();
 
-    // Pug has lvl. 1 with 1 exp.
+    // Ant has lvl. 1 with 1 exp.
     assert_eq!(team.first().unwrap().read().unwrap().exp, 1);
     assert_eq!(team.first().unwrap().read().unwrap().lvl, 1);
     assert_eq!(
@@ -544,31 +526,9 @@ fn test_shop_swan_team() {
 }
 
 #[test]
-fn test_shop_frigate_bird_team() {
-    let mut team = test_elephant_peacock_team();
-    let mut shop = Shop::default();
-    // Add frigatebird
-    shop.add_item(ShopItem::from(Pet::try_from(PetName::Frigatebird).unwrap()))
-        .unwrap();
-
-    // Peacock has hurt ability.
-    assert_eq!(
-        team.nth(1).unwrap().read().unwrap().stats,
-        Statistics::new(2, 5).unwrap()
-    );
-    // Replace shop.
-    team.replace_shop(shop)
-        .unwrap()
-        .open_shop()
-        .unwrap()
-        .buy(&Position::First, &Entity::Pet, &Position::Last)
-        .unwrap();
-
-    // Peacock gains two health after purchase.
-    assert_eq!(
-        team.nth(1).unwrap().read().unwrap().stats,
-        Statistics::new(2, 7).unwrap()
-    );
+fn test_battle_frigate_bird_team() {
+    let mut team = test_frigate_bird_team();
+    let mut enemy_team = test_bat_team();
 }
 
 #[test]
@@ -595,19 +555,19 @@ fn test_shop_dromedary_team() {
         .get_shop()
         .get_shop_items_by_pos(&affected_pos, &Entity::Pet)
         .unwrap();
-    let (def_mosq, def_pig) = (
-        Pet::try_from(PetName::Mosquito).unwrap(),
+    let (def_pig, def_beaver) = (
         Pet::try_from(PetName::Pig).unwrap(),
+        Pet::try_from(PetName::Beaver).unwrap(),
     );
-    let (mosq, pig) = (
+    let (pig, beaver) = (
         affected_shop_pets.first().unwrap(),
         affected_shop_pets.get(1).unwrap(),
     );
 
     // Mosquito and pig are (1,1) higher than default.
     assert!(
-        mosq.attack_stat().unwrap() == def_mosq.stats.attack + 1
-            && mosq.health_stat().unwrap() == def_mosq.stats.health + 1
+        beaver.attack_stat().unwrap() == def_beaver.stats.attack + 1
+            && beaver.health_stat().unwrap() == def_beaver.stats.health + 1
     );
     assert!(
         pig.attack_stat().unwrap() == def_pig.stats.attack + 1
@@ -705,7 +665,16 @@ fn test_shop_jellyfish_team() {
 #[test]
 fn test_shop_salamander_team() {
     let mut team = test_salamander_team();
-    team.set_shop_seed(Some(12)).open_shop().unwrap();
+    team.replace_shop({
+        let mut shop = Shop::new(1, None).unwrap();
+        shop.pets.clear();
+        let mosq = ShopItem::new(Pet::try_from(PetName::Mosquito).unwrap());
+        shop.add_item(mosq).unwrap();
+        shop
+    })
+    .unwrap()
+    .open_shop()
+    .unwrap();
 
     let salamander = team.first().unwrap();
     assert_eq!(

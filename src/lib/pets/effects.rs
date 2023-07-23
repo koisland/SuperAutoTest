@@ -145,7 +145,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             PetName::Ladybug => vec![Effect {
                 owner: None,
-                trigger: TRIGGER_FRIEND_GAIN_PERK,
+                trigger: TRIGGER_ANY_GAIN_PERK,
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Add(StatChangeType::Static(effect_stats)),
@@ -545,11 +545,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 }]
             }
-            // TODO: Add trigger for ailment.
             PetName::Frigatebird => {
                 vec![Effect {
                     owner: None,
-                    trigger: TRIGGER_SELF_PET_BOUGHT,
+                    trigger: TRIGGER_ANY_GAIN_PERK,
                     target: Target::Friend,
                     position: Position::Any(ItemCondition::Equal(EqualityCondition::Trigger(
                         Status::Hurt,
@@ -586,7 +585,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::TabbyCat => {
                 vec![Effect {
                     owner: None,
-                    trigger: TRIGGER_SELF_FOOD_EATEN,
+                    trigger: TRIGGER_SELF_GAIN_PERK,
                     target: Target::Friend,
                     position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
                     action: Action::Add(StatChangeType::Static(effect_stats)),
@@ -1735,8 +1734,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     uses: Some(record.n_triggers),
                 }]
             }
-            // TODO: Correct misspelling.
-            PetName::Racoon => vec![
+            PetName::Raccoon => vec![
                 Effect {
                     owner: None,
                     temp: record.temp_effect,

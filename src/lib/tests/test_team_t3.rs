@@ -8,17 +8,47 @@ use crate::{
     tests::common::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
         test_blowfish_team, test_camel_team, test_capybara_team, test_cassowary_team,
-        test_clownfish_team, test_cricket_horse_team, test_dog_team, test_dolphin_team,
-        test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team, test_gorilla_team,
-        test_hatching_chick_team, test_hippo_team, test_hummingbird_team, test_kangaroo_team,
-        test_leech_team, test_mouse_team, test_okapi_team, test_owl_team, test_ox_team,
-        test_puppy_team, test_rabbit_team, test_seagull_team, test_sheep_team, test_starfish_team,
-        test_toad_team, test_tropicalfish_team, test_wasp_team, test_woodpecker_self_hurt_team,
-        test_woodpecker_team,
+        test_clownfish_team, test_cricket_horse_team, test_dodo_team, test_dog_team,
+        test_dolphin_team, test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team,
+        test_gorilla_team, test_hatching_chick_team, test_hippo_team, test_hummingbird_team,
+        test_kangaroo_team, test_leech_team, test_mouse_team, test_okapi_team, test_owl_team,
+        test_ox_team, test_puppy_team, test_rabbit_team, test_seagull_team, test_sheep_team,
+        test_starfish_team, test_toad_team, test_tropicalfish_team, test_wasp_team,
+        test_woodpecker_self_hurt_team, test_woodpecker_team,
     },
     Entity, ItemCondition, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
     TeamShopping,
 };
+
+#[test]
+fn test_battle_dodo_team() {
+    let mut team = test_dodo_team();
+    let mut enemy_team = test_ant_team();
+
+    let first_dodo = team.first().unwrap();
+    assert_eq!(
+        first_dodo.read().unwrap().stats,
+        Statistics {
+            attack: 4,
+            health: 2
+        }
+    );
+    // Dodo atk behind first dodo at lvl. 1 is 4.
+    // 4 * 0.50 = 2.
+    assert_eq!(
+        (team.nth(1).unwrap().read().unwrap().stats.attack as f32 * 0.50).round(),
+        2.0
+    );
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    assert_eq!(
+        first_dodo.read().unwrap().stats,
+        Statistics {
+            attack: 6,
+            health: 2
+        }
+    );
+}
 
 #[test]
 fn test_battle_dolphin_team() {
