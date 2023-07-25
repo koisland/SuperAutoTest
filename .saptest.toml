@@ -4,16 +4,19 @@
 # 3. Hovering over the "prev" link.
 
 [database]
-# https://superautopets.fandom.com/wiki/Team_Names
+# https://superautopets.wiki.gg/wiki/Team_Names
 # names_version = ?
 
-# https://superautopets.fandom.com/wiki/Pets
+# https://superautopets.wiki.gg/wiki/Pets
 # pets_version = ?
 
-# https://superautopets.fandom.com/wiki/Food
+# https://superautopets.wiki.gg/wiki/Food
 # foods_version = ?
 
-# https://superautopets.fandom.com/wiki/Tokens
+# https://superautopets.wiki.gg/wiki/Ailments
+# ailments_version = ?
+
+# https://superautopets.wiki.gg/wiki/Tokens
 # tokens_version = ?
 
 filename = "./sap.db"

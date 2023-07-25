@@ -5,9 +5,9 @@ use crate::{
     },
     error::SAPTestError,
     wiki_scraper::{
-        parse_food::parse_food_info, parse_hard_mode_toys::parse_hard_mode_toy_info,
-        parse_names::parse_names_info, parse_pet::parse_pet_info, parse_tokens::parse_token_info,
-        parse_toy::parse_toy_info,
+        parse_ailment::parse_ailment_info, parse_food::parse_food_info,
+        parse_hard_mode_toys::parse_hard_mode_toy_info, parse_names::parse_names_info,
+        parse_pet::parse_pet_info, parse_tokens::parse_token_info, parse_toy::parse_toy_info,
     },
     Entity, CONFIG,
 };
@@ -17,13 +17,13 @@ use std::path::Path;
 
 use super::record::ToyRecord;
 
-const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
-const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
-const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
-const TOYS_URL: &str = "https://superautopets.fandom.com/wiki/Toys?action=raw";
-const TOYS_HARD_MODE_URL: &str =
-    "https://superautopets.fandom.com/wiki/Hard_Mode_(Toys)?action=raw";
-const NAMES_URL: &str = "https://superautopets.fandom.com/wiki/Team_Names?action=raw";
+const PET_URL: &str = "https://superautopets.wiki.gg/wiki/Pets?action=raw";
+const FOOD_URL: &str = "https://superautopets.wiki.gg/wiki/Food?action=raw";
+const AILMENTS_URL: &str = "https://superautopets.wiki.gg/wiki/Ailments?action=raw";
+const TOKEN_URL: &str = "https://superautopets.wiki.gg/wiki/Tokens?action=raw";
+const TOYS_URL: &str = "https://superautopets.wiki.gg/wiki/Toys?action=raw";
+const TOYS_HARD_MODE_URL: &str = "https://superautopets.wiki.gg/wiki/Hard_Mode_(Toys)?action=raw";
+const NAMES_URL: &str = "https://superautopets.wiki.gg/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.
 pub struct SapDB {
@@ -125,6 +125,7 @@ impl SapDB {
                 turn_effect BOOLEAN NOT NULL,
                 cost INTEGER NOT NULL,
                 img_url TEXT,
+                is_ailment BOOLEAN NOT NULL,
                 CONSTRAINT unq UNIQUE (name, pack)
             );
             CREATE TABLE IF NOT EXISTS toys (
@@ -159,9 +160,10 @@ impl SapDB {
                 holdable, single_use, end_of_battle,
                 random, n_targets,
                 effect_atk, effect_health,
-                turn_effect, cost, img_url
+                turn_effect, cost, img_url,
+                is_ailment
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
             ON CONFLICT(name, pack) DO UPDATE SET
                 tier = ?2,
                 effect = ?3,
@@ -175,7 +177,8 @@ impl SapDB {
                 effect_health = ?11,
                 turn_effect = ?12,
                 cost = ?13,
-                img_url = ?14
+                img_url = ?14,
+                is_ailment = ?15
             WHERE
                 tier != ?2 OR
                 effect != ?3
@@ -188,8 +191,13 @@ impl SapDB {
             || FOOD_URL.to_owned(),
             |id| format!("{FOOD_URL}&oldid={id}"),
         );
+        let ailments_url = CONFIG.database.ailments_version.map_or_else(
+            || AILMENTS_URL.to_owned(),
+            |id| format!("{AILMENTS_URL}&oldid={id}"),
+        );
         let foods = parse_food_info(&food_url)?;
-        for food in foods.iter() {
+        let ailments = parse_ailment_info(&ailments_url)?;
+        for food in foods.iter().chain(ailments.iter()) {
             let n_rows = conn.execute(
                 sql_insert_food,
                 [
@@ -207,6 +215,7 @@ impl SapDB {
                     &food.turn_effect.to_string(),
                     &food.cost.to_string(),
                     &food.img_url.to_string(),
+                    &food.is_ailment.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;

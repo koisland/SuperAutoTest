@@ -5,6 +5,9 @@ mod test_parse_pet;
 mod test_parse_food;
 
 #[cfg(test)]
+mod test_parse_ailment;
+
+#[cfg(test)]
 mod test_parse_token;
 
 #[cfg(test)]

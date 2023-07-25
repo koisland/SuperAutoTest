@@ -27,6 +27,9 @@ pub struct Food {
     pub cost: usize,
     /// Number of targets this food affects.
     pub n_targets: usize,
+    /// Whether this food is an ailment.
+    /// * Ex. [`FoodName::Ink`]
+    pub is_ailment: bool,
 }
 impl TryFrom<FoodName> for Food {
     type Error = SAPTestError;
@@ -106,6 +109,7 @@ impl Food {
             holdable: food_record.holdable,
             cost: food_record.cost,
             n_targets: food_record.n_targets,
+            is_ailment: food_record.is_ailment,
         })
     }
 }

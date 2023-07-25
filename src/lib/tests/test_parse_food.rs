@@ -203,7 +203,8 @@ fn test_parse_food_entry() {
                 cost: 3,
                 img_url: String::from(
                     "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                )
+                ),
+                is_ailment: false
             },
             FoodRecord {
                 name: FoodName::Cupcake,
@@ -221,7 +222,8 @@ fn test_parse_food_entry() {
                 cost: 3,
                 img_url: String::from(
                     "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                )
+                ),
+                is_ailment: false
             }
         ]
     )
@@ -231,7 +233,6 @@ fn test_parse_food_entry() {
 fn food_cost() {
     assert_eq!(3, get_food_cost("Cupcake"));
     assert_eq!(1, get_food_cost("Sleeping Pill"));
-    assert_eq!(0, get_food_cost("Weak"))
 }
 
 #[test]

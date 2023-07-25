@@ -2,10 +2,10 @@
 //!
 //! This database relies on information from the Super Auto Pets Fandom wiki.
 //! * All information is parsed from the following pages:
-//!     * [`pets`](https://superautopets.fandom.com/wiki/Pets)
-//!     * [`tokens`](https://superautopets.fandom.com/wiki/Tokens)
+//!     * [`pets`](https://superautopets.wiki.gg/wiki/Pets)
+//!     * [`tokens`](https://superautopets.wiki.gg/wiki/Tokens)
 //!         * Tokens are placed under the `pets` table and given a tier of `0`.
-//!     * [`foods`](https://superautopets.fandom.com/wiki/Foods)
+//!     * [`foods`](https://superautopets.wiki.gg/wiki/Foods)
 //!
 //! ### Schema
 //! To view via `sqlite`.
@@ -89,7 +89,7 @@
 //! * `img_url`
 //!     * Current image url displayed on page.
 //! * `is_token`
-//!     * Is current pet a [token](https://superautopets.fandom.com/wiki/Tokens)?
+//!     * Is current pet a [token](https://superautopets.wiki.gg/wiki/Tokens)?
 //!
 //! #### Foods
 //! Food records.
@@ -111,6 +111,7 @@
 //!     turn_effect BOOLEAN NOT NULL,
 //!     cost INTEGER NOT NULL,
 //!     img_url TEXT,
+//!     is_ailment BOOLEAN NOT NULL,
 //!     CONSTRAINT unq UNIQUE (name, pack)
 //! );
 //! ```
@@ -148,6 +149,9 @@
 //!     * The cost of the food.
 //! * `img_url`
 //!     * Current image url displayed on page.
+//! * `is_ailment`
+//!     * This food is an ailment.
+//!     * Due to way Food page was originally structured. See page revision [6774](https://superautopets.fandom.com/wiki/Food?oldid=6774)
 //!
 //! #### Toys
 //! Toy records. Includes both hard mode and normal toys.
@@ -218,32 +222,35 @@
 //! To modify [`SapDB`](struct@crate::SapDB) behavior, create a `.saptest.toml`.
 //! * Specific page version to query.
 //!     * All pages on the Fandom wiki are version controlled and have an associated id.
-//!         * ex. <https://superautopets.fandom.com/wiki/Pets?oldid=4883>
+//!         * ex. <https://superautopets.wiki.gg/wiki/Pets?oldid=4883>
 //!     * In the case that a page is altered with incorrect information, this can be used to find a valid version.
 //!     * Leaving this blank will default to the latest version.
-//!         * ex. <https://superautopets.fandom.com/wiki/Pets>
+//!         * ex. <https://superautopets.wiki.gg/wiki/Pets>
 //! * Toggle recurring updates on startup.
 //!     * By default, the database is updated on startup.
 //! * Database filename.
 //!
 //! ```toml
 //! [database]
-//! # https://superautopets.fandom.com/wiki/Team_Names
+//! # https://superautopets.wiki.gg/wiki/Team_Names
 //! # names_version = ?
 //!
-//! # https://superautopets.fandom.com/wiki/Pets
+//! # https://superautopets.wiki.gg/wiki/Pets
 //! # pets_version = ?
 //!
-//! # https://superautopets.fandom.com/wiki/Food
+//! # https://superautopets.wiki.gg/wiki/Food
 //! # foods_version = ?
 //!
-//! # https://superautopets.fandom.com/wiki/Tokens
+//! //! # https://superautopets.wiki.gg/wiki/Ailments
+//! # ailments_version = ?
+//!
+//! # https://superautopets.wiki.gg/wiki/Tokens
 //! # tokens_version = ?
 //!
-//! # https://superautopets.fandom.com/wiki/Toys
+//! # https://superautopets.wiki.gg/wiki/Toys
 //! # toys_version = ?
 //!
-//! # https://superautopets.fandom.com/wiki/Hard_Mode_(Toys)
+//! # https://superautopets.wiki.gg/wiki/Hard_Mode_(Toys)
 //! # toys_hard_mode_version = ?
 //!
 //! filename = "./sap.db"

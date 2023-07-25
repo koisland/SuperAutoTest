@@ -10,6 +10,7 @@ use crate::{
 use self::parse_icons::WikiImgData;
 
 pub mod common;
+pub mod parse_ailment;
 pub mod parse_food;
 pub mod parse_hard_mode_toys;
 pub mod parse_icons;

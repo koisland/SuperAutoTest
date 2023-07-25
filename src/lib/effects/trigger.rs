@@ -523,3 +523,15 @@ pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
+
+/// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) gains an ailment.
+pub const TRIGGER_ANY_GAIN_AILMENT: Outcome = Outcome {
+    status: Status::GainAilment,
+    position: Position::Any(ItemCondition::None),
+    // Gets replaced at runtime.
+    affected_pet: None,
+    afflicting_pet: None,
+    stat_diff: None,
+    affected_team: Target::Friend,
+    afflicting_team: Target::None,
+};

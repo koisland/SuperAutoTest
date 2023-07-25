@@ -19,7 +19,7 @@ use super::common::clean_link_text;
 use super::IMG_URLS;
 
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
-const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
+const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 2] = ["Coconut", "Peanut"];
 const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
 const DEFAULT_FOOD_COST: usize = 3;
 
@@ -167,6 +167,7 @@ pub fn parse_one_food_entry(
             turn_effect,
             cost,
             img_url: url.clone(),
+            is_ailment: false,
         });
     }
     Ok(())

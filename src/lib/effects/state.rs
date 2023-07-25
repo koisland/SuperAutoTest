@@ -326,8 +326,10 @@ pub enum Status {
     BuyFood,
     /// Food eaten.
     AteFood,
-    /// Pet gains Food perk. ex. Honey
+    /// Pet gains an effect perk. ex. [`FoodName::Honey`]
     GainPerk,
+    /// Pet gains an ailment. ex. [`FoodName::Ink`]
+    GainAilment,
     /// Specific food eaten.
     AteSpecificFood(FoodName),
     /// Team State

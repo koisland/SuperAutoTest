@@ -109,6 +109,11 @@ pub struct FoodRecord {
     pub cost: usize,
     /// Most recent image url.
     pub img_url: String,
+    /// Is this food an ailment?
+    /// * Ex. [`Weak`](crate::foods::names::FoodName::Weak)
+    /// * Due to old way effect perks were stored on Fandom wiki.
+    ///     * All foods and ailments were grouped on single table.
+    pub is_ailment: bool,
 }
 
 /// A record with information about a pet from Super Auto Pets.

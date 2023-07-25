@@ -51,6 +51,8 @@ impl TryFrom<&Row<'_>> for FoodRecord {
         let end_of_battle_str: String = food_row.get(7)?;
         let random_str: String = food_row.get(8)?;
         let turn_effect_str: String = food_row.get(12)?;
+        let is_ailment_str: String = food_row.get(15)?;
+
         Ok(FoodRecord {
             name: FoodName::from_str(&food_name)?,
             tier: food_row.get(2)?,
@@ -66,6 +68,7 @@ impl TryFrom<&Row<'_>> for FoodRecord {
             turn_effect: turn_effect_str == *"true",
             cost: food_row.get(13)?,
             img_url: food_row.get(14)?,
+            is_ailment: is_ailment_str == *"true",
         })
     }
 }

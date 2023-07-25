@@ -528,7 +528,48 @@ fn test_shop_swan_team() {
 #[test]
 fn test_battle_frigate_bird_team() {
     let mut team = test_frigate_bird_team();
+    team.set_seed(Some(123));
+
     let mut enemy_team = test_bat_team();
+
+    let all_pets = team.all();
+    // No pets have any items/effects.
+    assert!(all_pets
+        .iter()
+        .all(|pet| pet.read().unwrap().item.is_none()));
+    // Trigger bat effect. One random pet gets weakness.
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+    // Frigatebird removes ailment. No pets have any items/effects.
+    assert!(all_pets
+        .iter()
+        .all(|pet| pet.read().unwrap().item.is_none()));
+    // Reset
+    team.restore();
+    enemy_team.restore();
+
+    // Upgrade bat to level 2. Two pets get weakness at start of battle
+    enemy_team
+        .first()
+        .unwrap()
+        .write()
+        .unwrap()
+        .set_level(2)
+        .unwrap();
+
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    // Only one pet gets weakness due to frigatebird.
+    assert_eq!(
+        all_pets
+            .iter()
+            .map(|pet| if pet.read().unwrap().item.is_none() {
+                0
+            } else {
+                1
+            })
+            .sum::<usize>(),
+        1
+    );
 }
 
 #[test]

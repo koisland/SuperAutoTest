@@ -7,7 +7,7 @@ pub static RGX_ICON_NAME: &LRegex = regex!(r#"\{\{IconSAP\|(.*?)[\|\}]+.*?([\w\|
 pub static RGX_MULT_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*?\|\}"#);
 pub static RGX_TABLE: &LRegex = regex!(r#"\{\|(.|\W)*\|\}"#);
 pub static RGX_TIER_TABLE: &LRegex =
-    regex!(r#"\|-\|Tier (\d)+(?:\w|\W|\d)*?(\{\| class="sortable fandom-table"[\w\W]*?\|\})"#);
+    regex!(r#"\|-\|Tier (\d)+(?:\w|\W|\d)*?(\{\| class="sortable wikitable"[\w\W]*?\|\})"#);
 pub static RGX_TIER: &LRegex = regex!(r#"<!--\s*TIER\s*(\d)\s-->"#);
 pub static RGX_LINK_NAME: &LRegex = regex!(r#"\[\[(.*?)\]\]"#);
 

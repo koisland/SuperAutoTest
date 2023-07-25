@@ -548,12 +548,11 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Frigatebird => {
                 vec![Effect {
                     owner: None,
-                    trigger: TRIGGER_ANY_GAIN_PERK,
+                    trigger: TRIGGER_ANY_GAIN_AILMENT,
                     target: Target::Friend,
-                    position: Position::Any(ItemCondition::Equal(EqualityCondition::Trigger(
-                        Status::Hurt,
-                    ))),
-                    action: Action::Add(StatChangeType::Static(effect_stats)),
+                    position: Position::TriggerAffected,
+                    // Remove ailment.
+                    action: Action::Gain(GainType::NoItem),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
                 }]

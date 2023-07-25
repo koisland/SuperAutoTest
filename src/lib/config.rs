@@ -5,6 +5,7 @@ pub(crate) const DEFAULT_CONFIG: LibConfig = LibConfig {
     database: DatabaseConfig {
         pets_version: None,
         foods_version: None,
+        ailments_version: None,
         tokens_version: None,
         names_version: None,
         toys_version: None,
@@ -25,6 +26,7 @@ pub struct LibConfig {
 pub struct DatabaseConfig {
     pub pets_version: Option<u16>,
     pub foods_version: Option<u16>,
+    pub ailments_version: Option<u16>,
     pub tokens_version: Option<u16>,
     pub toys_version: Option<u16>,
     pub toys_hard_mode_version: Option<u16>,

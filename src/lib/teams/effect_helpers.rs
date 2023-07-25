@@ -1157,6 +1157,13 @@ impl EffectApplyHelpers for Team {
                     } else if let Some(food) = food.as_mut() {
                         info!(target: "run", "(\"{}\")\nGave {} to {}.", self.name, food, pet);
                         food.ability.assign_owner(Some(affected_pet));
+
+                        // Check if given an ailment.
+                        if food.is_ailment {
+                            let mut trigger_ailment = TRIGGER_ANY_GAIN_AILMENT;
+                            trigger_ailment.set_affected(affected_pet);
+                            self.triggers.push_back(trigger_ailment)
+                        }
                     }
                 }
                 affected_pet.write().unwrap().item = food;
