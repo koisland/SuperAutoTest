@@ -19,7 +19,7 @@ const PAGE_INFO: &str = "
 |}
 
 Foods in Pack 2 and not in any pack are subject to change.
-{| class=\"sortable fandom-table\"
+{| class=\"sortable wikitable\"
 !Tier
 !Name
 !Effect
@@ -153,7 +153,7 @@ fn test_get_table() {
     let res = get_largest_table(PAGE_INFO).unwrap();
     // Cols, table_1, table_2, ...
     let exp_res = [
-        "{| class=\"sortable fandom-table\"\n!Tier\n!Name\n!Effect\n!Turtle Pack\n!Puppy Pack\n!Star Pack\n",
+        "{| class=\"sortable wikitable\"\n!Tier\n!Name\n!Effect\n!Turtle Pack\n!Puppy Pack\n!Star Pack\n",
         "\n|1\n|{{IconSAP|Apple}}\n|Give one [[Pets|pet]] +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].\n|Yes\n|Yes\n|Yes (summoned)\n",
         "\n|N/A\n|{{IconSAP|Peanuts}}\n|Knockout any pet attacked and hurt by this.\n|Yes (summoned)\n|Yes\n(summoned)\n|Yes (summoned)\n|}"
     ];
@@ -201,9 +201,7 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from(
-                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                ),
+                img_url: String::from("https://superautopets.wiki.gg/images/8/8a/Cupcake_Icon.png"),
                 is_ailment: false
             },
             FoodRecord {
@@ -220,9 +218,7 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from(
-                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                ),
+                img_url: String::from("https://superautopets.wiki.gg/images/8/8a/Cupcake_Icon.png"),
                 is_ailment: false
             }
         ]

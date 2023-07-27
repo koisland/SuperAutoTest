@@ -567,14 +567,15 @@ impl TeamEffects for Team {
                 .effect
                 .iter_mut()
                 .filter_map(|effect| {
-                    if !effect.check_activates(trigger)
-                        || is_pet_effect_exception(
-                            trigger,
-                            trigger_pet_name.as_ref(),
-                            effect,
-                            same_pet_as_trigger,
-                        )
-                    {
+                    let effect_exception = is_pet_effect_exception(
+                        trigger,
+                        trigger_pet_name.as_ref(),
+                        effect,
+                        same_pet_as_trigger,
+                    );
+
+                    let trigger_doesnt_activate_effect = !effect.check_activates(trigger);
+                    if trigger_doesnt_activate_effect || effect_exception {
                         None
                     } else {
                         // Drop uses by one if possible.

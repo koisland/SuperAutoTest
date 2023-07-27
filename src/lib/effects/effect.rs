@@ -186,7 +186,7 @@ impl Effect {
             && self.trigger.affected_team == trigger.affected_team
             && self.trigger.status == trigger.status;
         // Either match and not out of uses.
-        exact_match || non_specific_match && self.uses != Some(0)
+        (exact_match || non_specific_match) && self.uses != Some(0)
     }
 }
 

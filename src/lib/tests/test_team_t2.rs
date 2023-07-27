@@ -531,6 +531,7 @@ fn test_battle_frigate_bird_team() {
     team.set_seed(Some(123));
 
     let mut enemy_team = test_bat_team();
+    enemy_team.set_seed(Some(123));
 
     let all_pets = team.all();
     // No pets have any items/effects.

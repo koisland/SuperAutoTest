@@ -4,7 +4,7 @@ use crate::{
 };
 
 const HARD_MODE_TOYS_TABLE: &str = r#"
-{| class="sortable fandom-table"
+{| class="sortable wikitable"
 ! class="sortable" style="text-align: center;" | Name
 ! class="sortable" style="text-align: center;" | Trigger
 ! class="unsortable" colspan="2" | Effect
@@ -38,9 +38,7 @@ fn test_parse_hard_mode_toys() {
             temp_effect: false,
             lvl: 1,
             source: None,
-            img_url:
-                "https://static.wikia.nocookie.net/superautopets/images/e/ed/Action_Figure_Icon.png"
-                    .to_owned(),
+            img_url: "https://superautopets.wiki.gg/images/e/ed/Action_Figure_Icon.png".to_owned(),
             hard_mode: true,
         },
         ToyRecord {
@@ -54,8 +52,7 @@ fn test_parse_hard_mode_toys() {
             temp_effect: false,
             lvl: 1,
             source: None,
-            img_url: "https://static.wikia.nocookie.net/superautopets/images/a/ad/Dice_Icon.png"
-                .to_owned(),
+            img_url: "https://superautopets.wiki.gg/images/a/ad/Dice_Icon.png".to_owned(),
             hard_mode: true,
         },
     ];

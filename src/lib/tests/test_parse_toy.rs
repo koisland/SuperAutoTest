@@ -6,7 +6,7 @@ use crate::{
 };
 
 const TOY_TABLE: &str = r#"
-{| class="sortable fandom-table" style="width: 100%; margin-bottom: 1em;"
+{| class="sortable wikitable" style="width: 100%; margin-bottom: 1em;"
 |-
 ! rowspan="2" width="17.5%" | Name
 ! colspan="2" | Ability
@@ -43,7 +43,7 @@ const TOY_TABS: &str = r#"
 === {{IconSAP|Tier 1|name=Tier 1 Toys|nolink=yes}} ===
 
 
-{| class="sortable fandom-table" style="width: 100%; margin-bottom: 1em;"
+{| class="sortable wikitable" style="width: 100%; margin-bottom: 1em;"
 |-
 ! rowspan="2" width="17.5%" | Name
 ! colspan="2" | Ability
@@ -68,7 +68,7 @@ const TOY_TABS: &str = r#"
 
 === {{IconSAP|Tier 2|name=Tier 2 Toys|nolink=yes}} ===
 
-{| class="sortable fandom-table" style="width: 100%; margin-bottom: 1em;"
+{| class="sortable wikitable" style="width: 100%; margin-bottom: 1em;"
 |-
 ! rowspan="2" width="17.5%" | Name
 ! colspan="2" | Ability
@@ -108,8 +108,7 @@ fn test_parse_toys() {
             temp_effect: false,
             lvl,
             source: Some("Ferret".to_owned()),
-            img_url: "https://static.wikia.nocookie.net/superautopets/images/b/bf/Balloon_Icon.png"
-                .to_owned(),
+            img_url: "https://superautopets.wiki.gg/images/b/bf/Balloon_Icon.png".to_owned(),
             hard_mode: false,
         })
         .collect_vec();
@@ -124,8 +123,7 @@ fn test_parse_toys() {
         temp_effect: false,
         lvl,
         source: Some("Lemur".to_owned()),
-        img_url:
-            "https://static.wikia.nocookie.net/superautopets/images/5/51/Radio_Icon.png".to_owned(),
+        img_url: "https://superautopets.wiki.gg/images/5/51/Radio_Icon.png".to_owned(),
         hard_mode: false,
     }));
 
@@ -159,8 +157,7 @@ fn test_parse_toy_table_rows() {
             temp_effect: false,
             lvl,
             source: Some("Ferret".to_owned()),
-            img_url: "https://static.wikia.nocookie.net/superautopets/images/b/bf/Balloon_Icon.png"
-                .to_owned(),
+            img_url: "https://superautopets.wiki.gg/images/b/bf/Balloon_Icon.png".to_owned(),
             hard_mode: false,
         })
         .collect_vec();

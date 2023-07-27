@@ -10,7 +10,7 @@ use crate::{
 };
 
 const TOKEN_TABLE: &str = "
-{| class=\"sortable fandom-table\"
+{| class=\"sortable wikitable\"
 ! rowspan=\"2\" |Name
 ! colspan=\"3\" |[[File:AttackHealth.png|frameless|53x53px]]
 ! rowspan=\"2\" |Summoned From
@@ -73,9 +73,7 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 1,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/f0/Bus_Icon.png"),
             is_token: true,
         },
         PetRecord {
@@ -92,9 +90,7 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 2,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/f0/Bus_Icon.png"),
             is_token: true,
         },
         PetRecord {
@@ -111,9 +107,7 @@ fn test_parse_single_token_explicit_lvl_stats() {
             temp_effect: false,
             lvl: 3,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/f0/Bus_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/f0/Bus_Icon.png"),
             is_token: true,
         },
     ];
@@ -152,9 +146,7 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 1,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/3/3d/Butterfly_Icon.png"),
             is_token: true,
         },
         PetRecord {
@@ -173,9 +165,7 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 2,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/3/3d/Butterfly_Icon.png"),
             is_token: true,
         },
         PetRecord {
@@ -194,9 +184,7 @@ fn test_parse_single_token_colspan() {
             temp_effect: false,
             lvl: 3,
             cost: 0,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/3/3d/Butterfly_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/3/3d/Butterfly_Icon.png"),
             is_token: true,
         },
     ];
