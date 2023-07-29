@@ -8,11 +8,11 @@ use crate::{
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dove_team,
         test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
-        test_frigate_bird_team, test_goldfish_team, test_hedgehog_team, test_jellyfish_team,
-        test_koala_team, test_mammoth_team, test_panda_team, test_pug_team, test_racoon_team,
-        test_rat_team, test_salamander_team, test_shrimp_team, test_skunk_team, test_spider_team,
-        test_stork_team, test_swan_team, test_tabby_cat_team, test_toucan_team, test_wombat_team,
-        test_yak_team,
+        test_frigate_bird_team, test_goldfish_team, test_hedgehog_team, test_hippo_team,
+        test_jellyfish_team, test_koala_team, test_mammoth_team, test_mouse_team, test_panda_team,
+        test_pug_team, test_racoon_team, test_rat_team, test_salamander_team, test_shrimp_team,
+        test_skunk_team, test_spider_team, test_stork_team, test_swan_team, test_tabby_cat_team,
+        test_toucan_team, test_wombat_team, test_yak_team,
     },
     Entity, Food, FoodName, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Statistics, Team,
     TeamEffects, TeamShopping,
@@ -772,5 +772,61 @@ fn test_shop_yak_team() {
             attack: 4,
             health: 4
         }
+    );
+}
+
+#[test]
+fn test_shop_snail_team() {
+    let mut team = test_mouse_team();
+    let mut enemy_team = test_hippo_team();
+
+    let mut outcome = team.fight(&mut enemy_team).unwrap();
+    while let TeamFightOutcome::None = outcome {
+        outcome = team.fight(&mut enemy_team).unwrap()
+    }
+
+    // Team loses.
+    assert!(outcome == TeamFightOutcome::Loss);
+
+    let mut shop = Shop::default();
+    shop.add_item(ShopItem::from(Pet::try_from(PetName::Snail).unwrap()))
+        .unwrap();
+
+    team.replace_shop(shop).unwrap();
+    team.open_shop().unwrap();
+
+    let pets = team.all();
+    let (mouse, ant) = (pets.first().unwrap(), pets.last().unwrap());
+
+    let mouse_stats = mouse.read().unwrap().stats;
+    let ant_stats = ant.read().unwrap().stats;
+
+    team.buy(&Position::First, &Entity::Pet, &Position::First)
+        .unwrap();
+
+    let snail = team.first().unwrap();
+    let snail_stats = snail.read().unwrap().stats;
+
+    // End turn.
+    team.close_shop().unwrap();
+
+    // Snail has same stats.
+    assert_eq!(snail_stats, snail.read().unwrap().stats);
+    // Other pets gain (0, 1)
+    assert_eq!(
+        mouse.read().unwrap().stats,
+        mouse_stats
+            + Statistics {
+                attack: 0,
+                health: 1
+            }
+    );
+    assert_eq!(
+        ant.read().unwrap().stats,
+        ant_stats
+            + Statistics {
+                attack: 0,
+                health: 1
+            }
     );
 }

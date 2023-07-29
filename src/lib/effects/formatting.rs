@@ -157,6 +157,7 @@ impl std::fmt::Display for Action {
             Action::Kill => write!(f, "Faint"),
             Action::Invincible => write!(f, "Invincibility"),
             Action::Gain(gain_type) => write!(f, "Gain {gain_type}"),
+            Action::GetToy(get_toy_type) => write!(f, "Get a toy {get_toy_type:?}"),
             Action::AddShopStats(stats) => write!(f, "Add Shop {stats}"),
             Action::AddShopFood(food) => write!(f, "Add {food} to Shop"),
             Action::AddShopPet(pet) => write!(f, "Add {pet} to Shop"),

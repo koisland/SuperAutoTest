@@ -4,7 +4,7 @@ use std::fmt::Write;
 use crate::{error::SAPTestError, Entity};
 
 /// Query constructor for [`SapDB::execute_query`](crate::SapDB::execute_query).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SAPQuery {
     pub(crate) table: Option<Entity>,
     pub(crate) params: IndexMap<String, Vec<String>>,

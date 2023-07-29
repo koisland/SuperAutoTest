@@ -857,11 +857,23 @@ impl TeamShopping for Team {
         // Trigger start of turn.
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
+
+        // Decrease duration of toys.
+        for toy in self.toys.iter_mut() {
+            if let Some(duration) = toy.duration.as_mut() {
+                *duration = duration.saturating_sub(1);
+            }
+        }
+
+        // Activate all effects given a trigger.
         while let Some(trigger) = self.triggers.pop_front() {
             self.trigger_effects(&trigger, None)?;
             self.trigger_items(&trigger, None)?;
         }
         self.clear_team();
+
+        // Clear toys that have run out.
+        self.toys.retain_mut(|toy| toy.duration != Some(0));
 
         Ok(self)
     }

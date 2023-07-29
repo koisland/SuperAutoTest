@@ -8,8 +8,6 @@ pub mod effects;
 pub mod serialize;
 /// [`Team`](crate::Team) of [`Pet`](crate::Pet)s.
 pub mod team;
-/// Implements [`Toy`](crate::toys::toy::Toy) mechanics.
-pub mod toys;
 /// View a [`Team`](crate::Team)'s [`Pet`](crate::Pet)s.
 pub mod viewer;
 

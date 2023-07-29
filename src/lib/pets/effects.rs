@@ -5,7 +5,7 @@ use crate::{
     effects::{
         actions::{
             Action, ConditionType, CopyType, GainType, LogicType, RandomizeType, StatChangeType,
-            SummonType,
+            SummonType, ToyType,
         },
         effect::{Effect, Entity, EntityName},
         state::{
@@ -814,18 +814,16 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 }))),
                 uses: Some(record.n_triggers),
             }],
-            // TODO: Toys
             PetName::Puppy => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
-                trigger: TRIGGER_END_TURN,
-                target: Target::Friend,
-                position: Position::OnSelf,
-                action: Action::Conditional(
-                    LogicType::If(ConditionType::Shop(ShopCondition::GoldGreaterEqual(2))),
-                    Box::new(Action::Add(StatChangeType::Static(effect_stats))),
-                    Box::new(Action::None),
-                ),
+                trigger: TRIGGER_SELF_PET_BOUGHT,
+                target: Target::Shop,
+                position: Position::None,
+                action: Action::GetToy(ToyType::QueryOneToy {
+                    sql: String::from("SELECT * FROM toys WHERE source = ? and lvl = ?"),
+                    params: vec![PetName::Puppy.to_string(), record.lvl.to_string()],
+                }),
                 uses: Some(record.n_triggers),
             }],
             PetName::TropicalFish => vec![Effect {

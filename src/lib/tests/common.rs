@@ -1277,17 +1277,6 @@ pub fn test_owl_team() -> Team {
     .unwrap()
 }
 
-pub fn test_puppy_team() -> Team {
-    Team::new(
-        &[
-            Some(Pet::try_from(PetName::Puppy).unwrap()),
-            Some(Pet::try_from(PetName::Puppy).unwrap()),
-        ],
-        5,
-    )
-    .unwrap()
-}
-
 pub fn test_tropicalfish_team() -> Team {
     Team::new(
         &[

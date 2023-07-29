@@ -7,7 +7,7 @@ use crate::{
     error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
-    Entity, PetName,
+    Entity, PetName, ToyName,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -178,6 +178,28 @@ pub enum GainType {
     NoItem,
 }
 
+/// Types of ways to get a [`Toy`](crate::Toy).
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+pub enum ToyType {
+    /// Get toy at default level of 1.
+    DefaultToy {
+        /// Name of toy.
+        name: ToyName,
+    },
+    /// Get a random toy from any tier.
+    RandomToy {
+        /// Level of toy.
+        lvl: Option<usize>,
+    },
+    /// Query toy based on given SQL.
+    QueryOneToy {
+        /// SQL string
+        sql: String,
+        /// Params.
+        params: Vec<String>,
+    },
+}
+
 /// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can randomize pets.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum RandomizeType {
@@ -271,6 +293,9 @@ pub enum Action {
     Invincible,
     /// Gain a [`Food`] item specified by [`GainType`].
     Gain(GainType),
+    /// Gain a [`Toy`](crate::Toy).
+    /// * NOTE: This only works with [`Target::Shop`]
+    GetToy(ToyType),
     /// Add permanent [`Statistics`] to shop.
     /// * The action of the [`Canned Food`](crate::FoodName::CannedFood).
     /// * Also, immediately buffs the current [`Pet`]s in the [`Shop`](crate::Shop)

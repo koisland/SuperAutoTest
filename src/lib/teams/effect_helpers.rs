@@ -1,9 +1,9 @@
 use crate::{
-    db::record::{FoodRecord, PetRecord},
+    db::record::{FoodRecord, PetRecord, ToyRecord},
     effects::{
         actions::{
             Action, ConditionType, CopyType, GainType, LogicType, RandomizeType, StatChangeType,
-            SummonType,
+            SummonType, ToyType,
         },
         effect::{Effect, EffectModify, Entity},
         state::{ItemCondition, Outcome, Position, ShopCondition, Status, Target, TeamCondition},
@@ -20,8 +20,8 @@ use crate::{
         team_shopping::TeamShoppingHelpers,
     },
     teams::{history::TeamHistoryHelpers, team::Team, viewer::TeamViewer},
-    Food, Pet, PetCombat, ShopItem, ShopItemViewer, ShopViewer, TeamEffects, TeamShopping, CONFIG,
-    SAPDB,
+    Food, Pet, PetCombat, SAPQuery, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
+    TeamShopping, Toy, CONFIG, SAPDB,
 };
 
 use itertools::Itertools;
@@ -85,6 +85,8 @@ pub(crate) trait EffectApplyHelpers {
         targets: Vec<Arc<RwLock<Pet>>>,
         receiving_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
+
+    fn convert_toy_type_to_toy(&self, toy_type: &ToyType) -> Result<Option<Toy>, SAPTestError>;
 
     fn convert_gain_type_to_food(
         &self,
@@ -387,6 +389,44 @@ impl EffectApplyHelpers for Team {
         Ok(tiger_doubled_effects)
     }
 
+    fn convert_toy_type_to_toy(&self, toy_type: &ToyType) -> Result<Option<Toy>, SAPTestError> {
+        Ok(match toy_type {
+            ToyType::DefaultToy { name } => Some(Toy::try_from(name.clone())?),
+            ToyType::RandomToy { lvl } => {
+                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
+                let mut query = SAPQuery::builder();
+                query.set_table(Entity::Toy);
+                if let Some(lvl) = lvl {
+                    query.set_param("lvl", vec![lvl.to_string()]);
+                };
+                let rec: ToyRecord = SAPDB
+                    .execute_query(query)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .choose(&mut rng)
+                    .ok_or(SAPTestError::QueryFailure {
+                        subject: String::from("No Toy Found"),
+                        reason: format!("No toy found for random toy query {toy_type:?}"),
+                    })?;
+                Some(rec.try_into()?)
+            }
+            ToyType::QueryOneToy { sql, params } => {
+                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
+
+                let rec: ToyRecord = SAPDB
+                    .execute_sql_query(sql, params)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .choose(&mut rng)
+                    .ok_or(SAPTestError::QueryFailure {
+                        subject: String::from("No Toy Found"),
+                        reason: format!("No toy found for random toy query {toy_type:?}"),
+                    })?;
+
+                Some(rec.try_into()?)
+            }
+        })
+    }
     fn convert_gain_type_to_food(
         &self,
         gain_type: &GainType,
@@ -1006,6 +1046,11 @@ impl EffectApplyHelpers for Team {
                 };
                 for item in shop_items.filter(|item| affected_items_copy.contains(item)) {
                     item.cost = item.cost.saturating_sub(*discount)
+                }
+            }
+            Action::GetToy(toy_type) => {
+                if let Some(toy) = self.convert_toy_type_to_toy(toy_type)? {
+                    self.toys.push(toy)
                 }
             }
             Action::SaveGold { limit } => self.shop.saved_coins = self.shop.coins.clamp(0, *limit),

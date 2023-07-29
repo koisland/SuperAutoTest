@@ -174,3 +174,14 @@ pub const TRIGGER_SELF_GAIN_PERK: Outcome = Outcome {
     position: Position::OnSelf,
     stat_diff: None,
 };
+
+/// Trigger when self pet gains food perk.
+pub const TRIGGER_TOY_BREAK: Outcome = Outcome {
+    status: Status::BrokeToy,
+    affected_pet: None,
+    affected_team: Target::Shop,
+    afflicting_pet: None,
+    afflicting_team: Target::None,
+    position: Position::OnSelf,
+    stat_diff: None,
+};

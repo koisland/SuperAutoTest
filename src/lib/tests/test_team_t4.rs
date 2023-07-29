@@ -13,17 +13,38 @@ use crate::{
     teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_bison_team,
-        test_buffalo_team, test_caterpillar_team, test_crow_team, test_deer_team,
-        test_doberman_highest_tier_team, test_doberman_team, test_donkey_team, test_dragonfly_team,
-        test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team, test_jerboa_team,
-        test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team, test_orangutan_team,
-        test_ox_team, test_parrot_team, test_pelican_team, test_penguin_team, test_platypus_team,
-        test_porcupine_team, test_praying_mantis_team, test_rooster_team, test_skunk_team,
-        test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team, test_worm_team,
+        test_blowfish_team, test_buffalo_team, test_caterpillar_team, test_crow_team,
+        test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,
+        test_dragonfly_team, test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team,
+        test_jerboa_team, test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team,
+        test_orangutan_team, test_ox_team, test_parrot_team, test_pelican_team, test_penguin_team,
+        test_platypus_team, test_porcupine_team, test_praying_mantis_team, test_rooster_team,
+        test_skunk_team, test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team,
+        test_worm_team,
     },
     Effect, EntityName, Food, ItemCondition, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Team,
     TeamShopping,
 };
+
+#[test]
+fn test_battle_blowfish_team() {
+    let mut team = test_blowfish_team();
+    let mut enemy_team = test_ant_team();
+
+    let start_blowfish_health = team.nth(1).unwrap().read().unwrap().stats.health;
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // One pet dies to blowfish indirect attack.
+    // Another dies to elephant attack.
+    assert_eq!(enemy_team.all().len(), 1);
+
+    // Blowfish takes 1 dmg.
+    assert_eq!(
+        team.nth(1).unwrap().read().unwrap().stats.health,
+        start_blowfish_health - 1
+    );
+}
 
 #[test]
 fn test_battle_deer_team() {

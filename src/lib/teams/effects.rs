@@ -536,11 +536,20 @@ impl TeamEffects for Team {
             .collect();
 
         // Apply toy effects.
-        applied_effects.extend(
-            self.toys
-                .iter_mut()
-                .flat_map(|toy| toy.effect.iter_mut().filter_map(check_effect)),
-        );
+        applied_effects.extend(self.toys.iter_mut().flat_map(|toy|
+                    // Go thru each toy effect
+                    toy.effect
+                        .iter_mut()
+                        .filter_map(|effect| {
+                            // If duration of toy is 0, check if it is activated by breaking.
+                            // * NOTE: The duration is dropped during the start of a shop turn.
+                            // Otherwise just decrease the uses of that toy's effects.
+                            if toy.duration == Some(0) {
+                                effect.check_activates(&TRIGGER_TOY_BREAK).then(|| effect.clone())
+                            } else {
+                                check_effect(effect)
+                            }
+                        })));
 
         // Get petname and position of trigger.
         let (trigger_pet_name, trigger_pet_pos) = if let Some(Some(trigger_pet)) =

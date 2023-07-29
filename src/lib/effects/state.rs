@@ -351,6 +351,8 @@ pub enum Status {
     Summoned,
     /// Pet pushed.
     Pushed,
+    /// Toy broke.
+    BrokeToy,
     /// No status change.
     None,
 }
