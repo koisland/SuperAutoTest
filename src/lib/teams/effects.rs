@@ -535,21 +535,30 @@ impl TeamEffects for Team {
             .filter_map(check_effect)
             .collect();
 
-        // Apply toy effects.
-        applied_effects.extend(self.toys.iter_mut().flat_map(|toy|
-                    // Go thru each toy effect
-                    toy.effect
-                        .iter_mut()
-                        .filter_map(|effect| {
-                            // If duration of toy is 0, check if it is activated by breaking.
-                            // * NOTE: The duration is dropped during the start of a shop turn.
-                            // Otherwise just decrease the uses of that toy's effects.
-                            if toy.duration == Some(0) {
-                                effect.check_activates(&TRIGGER_TOY_BREAK).then(|| effect.clone())
+        let valid_toy_effects = self.toys.iter_mut().flat_map(|toy|
+                // Go thru each toy effect
+                toy.effect
+                    .iter_mut()
+                    .filter_map(|effect|
+                        // If duration of toy is 0, check if it is activated by breaking.
+                        // * NOTE: The duration is dropped during the start of a shop turn.
+                        // Otherwise just decrease the uses of that toy's effects.
+                        if toy.duration == Some(0) {
+                            // Take the first friend regardless if alive or not.
+                            if let Some(Some(pet)) = self.friends.first() {
+                                let mut effect_copy = effect.clone();
+                                effect_copy.assign_owner(Some(pet));
+                                Some(effect_copy)
                             } else {
-                                check_effect(effect)
+                                None
                             }
-                        })));
+                        } else {
+                            check_effect(effect)
+                        }
+                    ));
+
+        // Apply toy effects.
+        applied_effects.extend(valid_toy_effects);
 
         // Get petname and position of trigger.
         let (trigger_pet_name, trigger_pet_pos) = if let Some(Some(trigger_pet)) =

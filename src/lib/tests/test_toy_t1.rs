@@ -2,8 +2,32 @@ use itertools::Itertools;
 
 use crate::{
     toys::{names::ToyName, toy::Toy},
-    Pet, PetName, Statistics, Team, TeamEffects, TeamViewer,
+    Pet, PetName, Statistics, Team, TeamEffects, TeamShopping, TeamViewer,
 };
+
+use super::common::test_ant_team;
+
+#[test]
+fn test_toy_balloon() {
+    let mut team = test_ant_team();
+    team.toys.push(Toy::try_from(ToyName::Balloon).unwrap());
+
+    let first_ant = team.first().unwrap();
+    let first_ant_stats = first_ant.read().unwrap().stats;
+
+    // First turn. Then second to break toy.
+    team.open_shop().unwrap().close_shop().unwrap();
+    team.open_shop().unwrap().close_shop().unwrap();
+
+    assert_eq!(
+        first_ant.read().unwrap().stats,
+        first_ant_stats
+            + Statistics {
+                attack: 1,
+                health: 1
+            }
+    );
+}
 
 #[test]
 fn test_toy_tennis_ball() {

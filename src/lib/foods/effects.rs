@@ -235,12 +235,15 @@ impl TryFrom<&FoodRecord> for Effect {
                 temp: record.end_of_battle,
             },
             FoodName::Apple
+            | FoodName::Pear
             | FoodName::Bacon
             | FoodName::Cookie
             | FoodName::Broccoli
             | FoodName::FriedShrimp
             | FoodName::Cupcake
             | FoodName::Peach
+            | FoodName::Milk
+            | FoodName::Lasagna
             | FoodName::ChickenLeg => Effect {
                 owner: None,
                 trigger: TRIGGER_SELF_FOOD_EATEN,
@@ -277,6 +280,27 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
+            FoodName::Ink => todo!(),
+            FoodName::Egg => todo!(),
+            FoodName::Blueberry => todo!(),
+            FoodName::Cherry => todo!(),
+            FoodName::ChocolateCake => todo!(),
+            FoodName::Rice => todo!(),
+            FoodName::Avocado => todo!(),
+            FoodName::Eggplant => todo!(),
+            FoodName::Lettuce => todo!(),
+            FoodName::Banana => todo!(),
+            FoodName::Potato => todo!(),
+            FoodName::Waffle => todo!(),
+            FoodName::Pie => todo!(),
+            FoodName::Salt => todo!(),
+            FoodName::Donut => todo!(),
+            FoodName::Onion => todo!(),
+            FoodName::PitaBread => todo!(),
+            FoodName::Pretzel => todo!(),
+            FoodName::Tomato => todo!(),
+            FoodName::Pancakes => todo!(),
+            FoodName::Skewer => todo!(),
             _ => Effect {
                 owner: None,
                 trigger: TRIGGER_NONE,

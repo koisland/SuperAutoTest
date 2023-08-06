@@ -29,7 +29,22 @@ mod test_food;
 mod test_shop;
 
 #[cfg(test)]
-mod test_toys;
+mod test_toy_t1;
+
+#[cfg(test)]
+mod test_toy_t2;
+
+#[cfg(test)]
+mod test_toy_t3;
+
+#[cfg(test)]
+mod test_toy_t4;
+
+#[cfg(test)]
+mod test_toy_t5;
+
+#[cfg(test)]
+mod test_toy_t6;
 
 #[cfg(test)]
 mod test_team_shop;

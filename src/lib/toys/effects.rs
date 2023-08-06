@@ -53,23 +53,21 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     }
                     ToyName::GarlicPress => {
                         base_effect.target = Target::Friend;
-                        base_effect.position = Position::First;
+                        base_effect.position = Position::Range(-(toy_lvl - 1)..=0);
                         base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Garlic));
                     }
                     ToyName::ToiletPaper => {
                         base_effect.target = Target::Enemy;
                         // Use toy level to get number of positions relative to first enemy pet.
-                        base_effect.position =
-                            Position::Multiple((0..-toy_lvl).map(Position::Relative).collect());
+                        base_effect.position = Position::Range(-(toy_lvl - 1)..=0);
                         base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Weak));
                     }
                     ToyName::OvenMitts => {
-                        // TODO: Add lasagna
                         base_effect.target = Target::Shop;
                         base_effect.position = Position::None;
                         base_effect.action = Action::Multiple(vec![
                             Action::AddShopFood(
-                                GainType::DefaultItem(FoodName::Custom("Lasagnas".to_owned()))
+                                GainType::DefaultItem(FoodName::Lasagna)
                             );
                             self.lvl
                         ]);
@@ -77,8 +75,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     ToyName::MelonHelmet => {
                         base_effect.target = Target::Friend;
                         // Use toy level to get number of positions relative to first enemy pet.
-                        base_effect.position =
-                            Position::Multiple((0..-toy_lvl).map(Position::Relative).collect());
+                        base_effect.position = Position::Range(-(toy_lvl - 1)..=0);
                         base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Melon));
                     }
                     ToyName::FoamSword => {
@@ -111,7 +108,6 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                         base_effect.action = Action::Add(StatChangeType::Static(effect_stats));
                     }
                     ToyName::StinkySock => {
-                        // TODO: Syntax of effect differs from Skunk? Dunno if dev or user? Hard-code in meantime.
                         base_effect.target = Target::Enemy;
                         base_effect.position = Position::N {
                             condition: ItemCondition::Healthiest,
@@ -119,10 +115,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             random: false,
                         };
                         base_effect.action =
-                            Action::Debuff(StatChangeType::Multiplier(Statistics {
-                                attack: 40,
-                                health: 40,
-                            }));
+                            Action::Debuff(StatChangeType::Multiplier(effect_stats));
                     }
                     ToyName::Television => {
                         base_effect.target = Target::Friend;
@@ -131,14 +124,12 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     }
                     ToyName::PeanutJar => {
                         base_effect.target = Target::Friend;
-                        base_effect.position =
-                            Position::Multiple((0..-toy_lvl).map(Position::Relative).collect());
+                        base_effect.position = Position::Range(-(toy_lvl - 1)..=0);
                         base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Peanut));
                     }
                     ToyName::AirPalmTree => {
                         base_effect.target = Target::Friend;
-                        base_effect.position =
-                            Position::Multiple((0..-toy_lvl).map(Position::Relative).collect());
+                        base_effect.position = Position::Range(-(toy_lvl - 1)..=0);
                         base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Coconut));
                     }
                     // Hard mode.

@@ -13,7 +13,7 @@ use crate::{
         trigger_self_food_ate_name, TRIGGER_ANY_FOOD_BOUGHT, TRIGGER_ANY_FOOD_EATEN,
         TRIGGER_ANY_GAIN_PERK, TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_ROLL,
         TRIGGER_SELF_FOOD_EATEN, TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD,
-        TRIGGER_SHOP_TIER_UPGRADED,
+        TRIGGER_SHOP_TIER_UPGRADED, TRIGGER_TOY_BREAK,
     },
     FoodName, Pet,
 };
@@ -84,6 +84,7 @@ impl FromStr for Outcomes {
             "Enemy summoned or pushed" => {
                 outcomes.extend([TRIGGER_ANY_ENEMY_SUMMON, TRIGGER_ANY_ENEMY_PUSHED])
             }
+            "On break" => outcomes.push(TRIGGER_TOY_BREAK),
             "Shop tier upgraded" => outcomes.push(TRIGGER_SHOP_TIER_UPGRADED),
             "Hurt" => outcomes.push(TRIGGER_SELF_HURT),
             "Friend ahead hurt" => outcomes.push(TRIGGER_AHEAD_HURT),
