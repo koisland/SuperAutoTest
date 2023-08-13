@@ -74,4 +74,7 @@ mod test_team_t6;
 mod test_hard_mode;
 
 #[cfg(test)]
+mod test_hard_mode_toy_t1;
+
+#[cfg(test)]
 pub mod common;

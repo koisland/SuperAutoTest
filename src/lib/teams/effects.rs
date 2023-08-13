@@ -51,7 +51,7 @@ impl From<Pack> for Vec<Effect> {
                     Box::new(Action::Conditional(
                         LogicType::IfNot(ConditionType::Team(
                             Target::Friend,
-                            TeamCondition::CounterEqual("Trumpets".to_owned(), 0),
+                            TeamCondition::Counter("Trumpets".to_owned(), Some(0)),
                         )),
                         Box::new(Action::Multiple(vec![
                             Action::Summon(SummonType::CustomPet(

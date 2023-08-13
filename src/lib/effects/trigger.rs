@@ -136,7 +136,7 @@ impl FromStr for Outcomes {
 
 /// Trigger for when one pet left on team.
 pub const TRIGGER_NO_ENEMIES_LEFT: Outcome = Outcome {
-    status: Status::IsTeam(TeamCondition::NumberPetsEqual(0)),
+    status: Status::IsTeam(TeamCondition::NumberPets(Some(0))),
     affected_pet: None,
     affected_team: Target::Enemy,
     afflicting_pet: None,

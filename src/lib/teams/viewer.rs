@@ -1,5 +1,5 @@
 use crate::{
-    effects::state::{EqualityCondition, Outcome, Target},
+    effects::state::{EqualityCondition, FrontToBackCondition, Outcome, Target},
     error::SAPTestError,
     shop::store::ItemSlot,
     teams::effect_helpers::EffectApplyHelpers,
@@ -831,6 +831,23 @@ impl TeamViewer for Team {
                         })
                         .collect_vec(),
                 )
+            }
+            (Target::Friend | Target::Enemy, Position::FrontToBack(front_back_cond)) => {
+                let num_pets = match front_back_cond {
+                    FrontToBackCondition::Shop(shop_cond) => shop_cond.to_num(team) as isize,
+                    FrontToBackCondition::Team(team_cond) => team_cond.to_num(team) as isize,
+                };
+
+                if num_pets > 0 {
+                    pets.extend(team.get_pets_by_pos(
+                        curr_pet,
+                        target,
+                        // Select first pet and num pets behind.
+                        &Position::Range(-(num_pets - 1)..=0),
+                        trigger,
+                        None,
+                    )?);
+                }
             }
             (Target::Friend | Target::Enemy, Position::Adjacent) => {
                 let friends = if *target == Target::Friend {

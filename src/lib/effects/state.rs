@@ -9,7 +9,7 @@ use crate::{
     pets::pet::Pet,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
-    FoodName,
+    FoodName, Team, TeamViewer,
 };
 
 use super::actions::Action;
@@ -37,19 +37,54 @@ pub enum EqualityCondition {
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
     /// Previous team fight was some outcome.
+    /// * If used for [`Position::FrontToBack`], returns the number of previous [`TeamFightOutcome`] equal to the provided outcome.
     PreviousBattle(TeamFightOutcome),
-    /// Has this many open slots.
-    OpenSpaceEqual(usize),
-    /// Has this many pets on team.
-    NumberPetsEqual(usize),
+    /// Number of open slots on team.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current number of open slots on team.
+    /// * If used for [`Action::Conditional`], checks if current number of open slots is equal to provided value.
+    OpenSpace(Option<usize>),
+    /// Number of pets on team.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current number of pets on team.
+    /// * If used for [`Action::Conditional`], checks if current number of pets is equal to provided value.
+    NumberPets(Option<usize>),
     /// Has this many or fewer pets on team.
     NumberPetsLessEqual(usize),
     /// Has this many or more pets on team.
     NumberPetsGreaterEqual(usize),
     /// Number of fainted pets is a multiple of this value.
     NumberFaintedMultiple(usize),
-    /// Counter is equal to this value.
-    CounterEqual(String, usize),
+    /// Counter.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current counter value.
+    /// * If used for [`Action::Conditional`], checks if current counter value is equal to provided value.
+    Counter(String, Option<usize>),
+    /// Number of turns.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current team turn.
+    /// * If used for [`Action::Conditional`], checks if current turn is equal to provided value.
+    NumberTurns(Option<usize>),
+}
+
+impl TeamCondition {
+    /// Convert to usize.
+    pub(crate) fn to_num(&self, team: &Team) -> usize {
+        match self {
+            TeamCondition::PreviousBattle(outcome) => team
+                .history
+                .fight_outcomes
+                .iter()
+                .filter(|prev_outcome| outcome == *prev_outcome)
+                .count(),
+            TeamCondition::OpenSpace(num_spaces) => num_spaces.unwrap_or_else(|| team.open_slots()),
+            TeamCondition::NumberPets(num_pets) => num_pets.unwrap_or_else(|| team.all().len()),
+            TeamCondition::NumberPetsLessEqual(num)
+            | TeamCondition::NumberPetsGreaterEqual(num) => *num,
+            // Return divisor.
+            TeamCondition::NumberFaintedMultiple(multiple) => team.fainted.len() / multiple,
+            TeamCondition::Counter(counter, num) => {
+                num.unwrap_or_else(|| *team.counters.get(counter).unwrap_or(&0))
+            }
+            TeamCondition::NumberTurns(turns) => turns.unwrap_or(team.history.curr_turn),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -57,10 +92,40 @@ pub enum TeamCondition {
 pub enum ShopCondition {
     /// Shop is in this state.
     InState(ShopState),
-    /// Gold is equal to this amount.
-    GoldEqual(usize),
+    /// Gold.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current shop gold.
+    /// * If used for [`Action::Conditional`], checks if current shop gold is equal to provided value.
+    Gold(Option<usize>),
     /// Gold is greater than or equal to this amount.
     GoldGreaterEqual(usize),
+    /// Shop tier.
+    /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current shop tier.
+    /// * If used for [`Action::Conditional`], checks if current shop tier is equal to provided value.
+    Tier(Option<usize>),
+    /// Shop tier multiple of given size.
+    TierMultiple(usize),
+}
+
+impl ShopCondition {
+    pub(crate) fn to_num(&self, team: &Team) -> usize {
+        match self {
+            ShopCondition::InState(_) => panic!("Can't convert shop state to num."),
+            ShopCondition::Gold(gold) => gold.unwrap_or(team.shop.coins),
+            ShopCondition::GoldGreaterEqual(gold) => *gold,
+            ShopCondition::Tier(tier) => tier.unwrap_or_else(|| team.shop.tier()),
+            // Return divisor. Num times multiple goes into tier.
+            ShopCondition::TierMultiple(tier_multiple) => team.shop.tier() / tier_multiple,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Conditions for [`Position::FrontToBack`]
+pub enum FrontToBackCondition {
+    /// Shop condition.
+    Shop(ShopCondition),
+    /// Team condition.
+    Team(TeamCondition),
 }
 
 /// Conditions to select [`Pet`]s or [`ShopItem`](crate::shop::store::ShopItem) by.
@@ -135,6 +200,8 @@ pub enum Position {
     Multiple(Vec<Position>),
     /// All [`Pet`]'s adjacent to current index.
     Adjacent,
+    /// Select pets front-to-back based on a given condition.
+    FrontToBack(FrontToBackCondition),
     #[default]
     /// No position.
     None,

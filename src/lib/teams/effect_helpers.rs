@@ -755,21 +755,25 @@ impl EffectApplyHelpers for Team {
                         false
                     }
                 }
-                TeamCondition::OpenSpaceEqual(des_num_open) => {
-                    // Number of spaces open.
-                    *des_num_open == team.open_slots()
+                TeamCondition::OpenSpace(num_open) => {
+                    num_open.map_or(false, |num_open| num_open == team.open_slots())
                 }
-                TeamCondition::NumberPetsEqual(num_pets) => *num_pets == team.filled_slots(),
+                TeamCondition::NumberPets(num_pets) => {
+                    num_pets.map_or(false, |num_pets| num_pets == team.filled_slots())
+                }
                 TeamCondition::NumberPetsLessEqual(num_pets) => *num_pets >= team.filled_slots(),
                 TeamCondition::NumberPetsGreaterEqual(num_pets) => *num_pets <= team.filled_slots(),
                 TeamCondition::NumberFaintedMultiple(multiple) => {
                     team.fainted.len() % *multiple == 0
                 }
-                TeamCondition::CounterEqual(counter_name, num_counts) => team
+                TeamCondition::Counter(counter_name, num_counts) => team
                     .counters
                     .get(counter_name)
-                    .map(|count| count == num_counts)
+                    .map(|count| Some(count) == num_counts.as_ref())
                     .unwrap_or(false),
+                TeamCondition::NumberTurns(turns) => {
+                    turns.map_or(false, |turns| team.history.curr_turn == turns)
+                }
             }
         }
         match condition_type {
@@ -791,8 +795,15 @@ impl EffectApplyHelpers for Team {
             }
             ConditionType::Shop(cond) => match cond {
                 ShopCondition::InState(state) => Ok(self.shop.state == *state),
-                ShopCondition::GoldEqual(gold) => Ok(self.gold() == *gold),
+                ShopCondition::Gold(gold) => Ok(gold.map_or(false, |gold| self.gold() == gold)),
                 ShopCondition::GoldGreaterEqual(gold) => Ok(self.gold() >= *gold),
+                // Default to false if tier is None.
+                ShopCondition::Tier(tier) => {
+                    Ok(tier.map_or(false, |tier| tier == self.shop_tier()))
+                }
+                ShopCondition::TierMultiple(tier_multiple) => {
+                    Ok(self.shop_tier() % tier_multiple == 0)
+                }
             },
         }
     }
@@ -874,22 +885,7 @@ impl EffectApplyHelpers for Team {
                             reason: format!("Opponent must be known for this action or invalid target {target:?} for {cond_type:?}."),
                         });
                     };
-                    match cond {
-                        TeamCondition::PreviousBattle(outcome) => {
-                            let matching_outcomes = selected_team
-                                .history
-                                .fight_outcomes
-                                .iter()
-                                .filter(|fight_outcome| *fight_outcome == outcome)
-                                .count();
-
-                            Ok(matching_outcomes)
-                        }
-                        _ => Err(SAPTestError::InvalidTeamAction {
-                            subject: "Not Implemented".to_string(),
-                            reason: format!("{cond:?} not implemented for {cond_type:?}."),
-                        }),
-                    }
+                    Ok(cond.clone().to_num(selected_team))
                 }
                 _ => Err(SAPTestError::InvalidTeamAction {
                     subject: "Not Implemented".to_string(),

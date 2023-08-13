@@ -3,8 +3,10 @@ use std::str::FromStr;
 use crate::{
     db::record::ToyRecord,
     effects::{
-        actions::{Action, GainType, RandomizeType, StatChangeType, SummonType},
-        state::Target,
+        actions::{
+            Action, ConditionType, GainType, LogicType, RandomizeType, StatChangeType, SummonType,
+        },
+        state::{FrontToBackCondition, ShopCondition, Target, TeamCondition},
         trigger::Outcomes,
     },
     error::SAPTestError,
@@ -161,17 +163,19 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             self.n_triggers
                         ])
                     }
-                    ToyName::Handerkerchief => {
+                    ToyName::Handkerchief => {
                         base_effect.target = Target::Friend;
-                        base_effect.position = Position::All(ItemCondition::None);
-                        // TODO:
-                        base_effect.action = Action::None
+                        base_effect.position = Position::FrontToBack(FrontToBackCondition::Shop(
+                            ShopCondition::Tier(None),
+                        ));
+                        base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Weak))
                     }
                     ToyName::Pen => {
                         base_effect.target = Target::Friend;
-                        base_effect.position = Position::All(ItemCondition::None);
-                        // TODO:
-                        base_effect.action = Action::None
+                        base_effect.position = Position::FrontToBack(FrontToBackCondition::Shop(
+                            ShopCondition::Tier(None),
+                        ));
+                        base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Ink))
                     }
                     ToyName::PogoStick => {
                         base_effect.target = Target::Enemy;
@@ -188,15 +192,15 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     ToyName::RockBag => {
                         base_effect.target = Target::Friend;
                         base_effect.position = Position::Any(ItemCondition::None);
-                        // base_effect.action = Action::Conditional(
-                        //     LogicType::ForEach(ConditionType::Team(
-                        //         // TODO:
-                        //         Target::Friend,
-                        //         todo!(),
-                        //     )),
-                        //     Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
-                        //     Box::new(Action::None),
-                        // )
+                        base_effect.action = Action::Conditional(
+                            LogicType::ForEach(ConditionType::Team(
+                                Target::Friend,
+                                TeamCondition::NumberTurns(None),
+                            )),
+                            Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
+                            Box::new(Action::None),
+                        );
+                        base_effect.uses = None
                     }
                     ToyName::Scissors => {
                         base_effect.target = Target::Friend;
@@ -213,10 +217,11 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                         base_effect.action = Action::Remove(StatChangeType::Static(effect_stats))
                     }
                     ToyName::Unicycle => {
-                        base_effect.target = Target::Friend;
-                        base_effect.position = Position::All(ItemCondition::None);
-                        // TODO:
-                        base_effect.action = Action::None
+                        base_effect.target = Target::Enemy;
+                        base_effect.position = Position::FrontToBack(FrontToBackCondition::Team(
+                            TeamCondition::NumberTurns(None),
+                        ));
+                        base_effect.action = Action::Add(StatChangeType::Static(effect_stats))
                     }
                     ToyName::YoYo => {
                         base_effect.target = Target::Friend;
@@ -224,10 +229,11 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                         base_effect.action = Action::Kill
                     }
                     ToyName::ActionFigure => {
-                        base_effect.target = Target::Friend;
-                        base_effect.position = Position::All(ItemCondition::None);
-                        // TODO:
-                        base_effect.action = Action::None
+                        base_effect.target = Target::Enemy;
+                        base_effect.position = Position::FrontToBack(FrontToBackCondition::Shop(
+                            ShopCondition::TierMultiple(2),
+                        ));
+                        base_effect.action = Action::Gain(GainType::DefaultItem(FoodName::Coconut))
                     }
                     ToyName::Dice | ToyName::OpenPiggyBank => {
                         base_effect.target = Target::Shop;

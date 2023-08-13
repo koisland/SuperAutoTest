@@ -354,7 +354,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Enemy,
-                                TeamCondition::CounterEqual(String::from("Trumpets"), 0),
+                                TeamCondition::Counter(String::from("Trumpets"), Some(0)),
                             )),
                             Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
                             Box::new(Action::None),
@@ -377,7 +377,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Friend,
-                                TeamCondition::CounterEqual(String::from("Trumpets"), 0),
+                                TeamCondition::Counter(String::from("Trumpets"), Some(0)),
                             )),
                             Box::new(Action::AddToCounter(String::from("Trumpets"), -1)),
                             Box::new(Action::None),
@@ -1041,7 +1041,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Conditional(
                     LogicType::IfNot(ConditionType::Team(
                         Target::Friend,
-                        TeamCondition::OpenSpaceEqual(0),
+                        TeamCondition::OpenSpace(Some(0)),
                     )),
                     Box::new(Action::Add(StatChangeType::Static(effect_stats))),
                     Box::new(Action::None),
