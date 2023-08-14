@@ -441,11 +441,19 @@ impl BattlePhases for Team {
         opponent.history.curr_phase += 1;
 
         // Add triggers if no pets or one pet left.
-        if self.all().len() <= 1 {
-            self.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT)
+        let enemy_pets = opponent.all();
+        let pets = self.all();
+        if pets.len() <= 1 {
+            self.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT);
+            if pets.is_empty() {
+                opponent.triggers.push_back(TRIGGER_NO_ENEMIES_LEFT);
+            }
         }
-        if opponent.all().len() <= 1 {
-            opponent.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT)
+        if enemy_pets.len() <= 1 {
+            opponent.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT);
+            if enemy_pets.is_empty() {
+                self.triggers.push_back(TRIGGER_NO_ENEMIES_LEFT);
+            }
         }
 
         self.trigger_all_effects(opponent)?;

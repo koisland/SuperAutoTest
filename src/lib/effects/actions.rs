@@ -63,10 +63,10 @@ impl StatChangeType {
                 })?,
             StatChangeType::StaticAttack(atk) => Statistics {
                 attack: *atk,
-                health: 0,
+                health: pet_stats.map_or(0, |stats| stats.health),
             },
             StatChangeType::StaticHealth(health) => Statistics {
-                attack: 0,
+                attack: pet_stats.map_or(0, |stats| stats.attack),
                 health: *health,
             },
             StatChangeType::CurrentAttack => pet_stats

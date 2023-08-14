@@ -280,7 +280,22 @@ impl TryFrom<&FoodRecord> for Effect {
                 uses,
                 temp: record.end_of_battle,
             },
-            FoodName::Ink => todo!(),
+            FoodName::Ink => {
+                // Invert attack to health and reverse so reduced attack done.
+                let mut attack_stats = effect_stats;
+                attack_stats.invert();
+                attack_stats.attack = -attack_stats.attack;
+
+                Effect {
+                    owner: None,
+                    trigger: TRIGGER_DMG_CALC,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Remove(StatChangeType::Static(attack_stats)),
+                    uses,
+                    temp: record.end_of_battle,
+                }
+            }
             FoodName::Egg => todo!(),
             FoodName::Blueberry => todo!(),
             FoodName::Cherry => todo!(),

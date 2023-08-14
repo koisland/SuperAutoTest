@@ -441,41 +441,37 @@ impl TeamViewer for Team {
             let all_pets = self.all().into_iter();
             match cond {
                 ItemCondition::Healthiest => all_pets
-                    .max_by(|pet_1, pet_2| {
+                    .max_set_by(|pet_1, pet_2| {
                         pet_1
                             .read().unwrap()
                             .stats
                             .health
                             .cmp(&pet_2.read().unwrap().stats.health)
-                    })
-                    .map_or(vec![], |found| vec![found]),
+                    }),
                 ItemCondition::Illest => all_pets
-                    .min_by(|pet_1, pet_2| {
+                    .min_set_by(|pet_1, pet_2| {
                         pet_1
                             .read().unwrap()
                             .stats
                             .health
                             .cmp(&pet_2.read().unwrap().stats.health)
-                    })
-                    .map_or(vec![], |found| vec![found]),
+                    }),
                 ItemCondition::Strongest => all_pets
-                    .max_by(|pet_1, pet_2| {
+                    .max_set_by(|pet_1, pet_2| {
                         pet_1
                             .read().unwrap()
                             .stats
                             .attack
                             .cmp(&pet_2.read().unwrap().stats.attack)
-                    })
-                    .map_or(vec![], |found| vec![found]),
+                    }),
                 ItemCondition::Weakest => all_pets
-                    .min_by(|pet_1, pet_2| {
+                    .min_set_by(|pet_1, pet_2| {
                         pet_1
                             .read().unwrap()
                             .stats
                             .attack
                             .cmp(&pet_2.read().unwrap().stats.attack)
-                    })
-                    .map_or(vec![], |found| vec![found]),
+                    }),
                 ItemCondition::Equal(eq_cond) => self.filter_matching_pets(all_pets, eq_cond),
                 ItemCondition::NotEqual(eq_cond) => {
                     let eqiv_pets = self.filter_matching_pets(all_pets.clone(), eq_cond);
@@ -487,11 +483,9 @@ impl TeamViewer for Team {
                 // Allow all if condition is None.
                 ItemCondition::None => all_pets.collect_vec(),
                 ItemCondition::HighestTier => all_pets
-                    .max_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier))
-                    .map_or(vec![], |found| vec![found]),
+                    .max_set_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier)),
                 ItemCondition::LowestTier => all_pets
-                    .min_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier))
-                    .map_or(vec![], |found| vec![found]),
+                    .min_set_by(|pet_1, pet_2| pet_1.read().unwrap().tier.cmp(&pet_2.read().unwrap().tier)),
                 _ => unimplemented!("ItemCondition not implemented for Team pets or attempted to nest multiple ItemCondition::Multiple*s."),
             }
         }
@@ -834,18 +828,18 @@ impl TeamViewer for Team {
             }
             (Target::Friend | Target::Enemy, Position::FrontToBack(front_back_cond)) => {
                 let num_pets = match front_back_cond {
-                    FrontToBackCondition::Shop(shop_cond) => shop_cond.to_num(team) as isize,
-                    FrontToBackCondition::Team(team_cond) => team_cond.to_num(team) as isize,
+                    FrontToBackCondition::Shop(shop_cond) => shop_cond.to_num(self) as isize,
+                    FrontToBackCondition::Team(team_cond) => team_cond.to_num(self) as isize,
                 };
 
                 if num_pets > 0 {
-                    pets.extend(team.get_pets_by_pos(
+                    pets.extend(self.get_pets_by_pos(
                         curr_pet,
                         target,
                         // Select first pet and num pets behind.
                         &Position::Range(-(num_pets - 1)..=0),
                         trigger,
-                        None,
+                        Some(opponent),
                     )?);
                 }
             }
