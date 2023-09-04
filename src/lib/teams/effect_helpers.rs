@@ -319,7 +319,8 @@ impl EffectApplyHelpers for Team {
 
                     // Then split into two pet chunks and swap pets.
                     for mut chunk in &found_pets.iter().chunks(2) {
-                        let (Some(first_pet), Some(second_pet)) = (chunk.next(), chunk.next()) else {
+                        let (Some(first_pet), Some(second_pet)) = (chunk.next(), chunk.next())
+                        else {
                             continue;
                         };
                         first_pet
@@ -1651,7 +1652,8 @@ impl EffectApplyHelpers for Team {
             Position::First => (!self.friends.is_empty()).then_some(0),
             Position::Last => Some(self.friends.len().saturating_sub(1)),
             Position::Relative(idx) => {
-                let Some((Target::Friend, adj_idx)) = self.cvt_rel_idx_to_adj_idx(0, *idx).ok() else {
+                let Some((Target::Friend, adj_idx)) = self.cvt_rel_idx_to_adj_idx(0, *idx).ok()
+                else {
                     return None;
                 };
                 Some(adj_idx)

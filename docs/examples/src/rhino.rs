@@ -138,7 +138,9 @@ pub fn rhino() -> Team {
     chunk_wigs.fight(&mut sour_sailors).unwrap();
 
     let chunky_wigs_post_battle_pets = chunk_wigs.all();
-    let [bus, bee, zcricket, ram_1, ram_2] = &chunky_wigs_post_battle_pets[..] else { panic!()};
+    let [bus, bee, zcricket, ram_1, ram_2] = &chunky_wigs_post_battle_pets[..] else {
+        panic!()
+    };
     assert!(
         bus.read().unwrap().stats == Statistics::new(10, 10).unwrap()
             && bee.read().unwrap().stats == Statistics::new(1, 1).unwrap()

@@ -715,7 +715,9 @@ fn test_shop_chicken() {
             .shop
             .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
             .unwrap();
-        let [pet_1, pet_2] = shop_pets.get(range).unwrap() else {panic!()};
+        let [pet_1, pet_2] = shop_pets.get(range).unwrap() else {
+            panic!()
+        };
         (
             Statistics::new(pet_1.attack_stat().unwrap(), pet_1.health_stat().unwrap()).unwrap(),
             Statistics::new(pet_2.attack_stat().unwrap(), pet_2.health_stat().unwrap()).unwrap(),

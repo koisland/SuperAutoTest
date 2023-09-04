@@ -129,7 +129,10 @@ impl SAPQuery {
             table_name.push('s');
             table_name
         }) else {
-            return Err(SAPTestError::QueryFailure { subject: "No Table".to_string(), reason: "Query requires a table.".to_string() })
+            return Err(SAPTestError::QueryFailure {
+                subject: "No Table".to_string(),
+                reason: "Query requires a table.".to_string(),
+            });
         };
         let mut sql_stmt = format!("SELECT * FROM {}", table);
         // If params.

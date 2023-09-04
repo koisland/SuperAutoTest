@@ -174,7 +174,10 @@ pub fn parse_single_pet(
     pets: &mut Vec<PetRecord>,
 ) -> Result<(), Box<dyn Error>> {
     // If a pet name is found.
-    let Some(pet_name) = RGX_PET_NAME.captures(block).and_then(|cap| cap.get(1).map(|mtch| mtch.as_str())) else {
+    let Some(pet_name) = RGX_PET_NAME
+        .captures(block)
+        .and_then(|cap| cap.get(1).map(|mtch| mtch.as_str()))
+    else {
         return Err(Box::new(SAPTestError::ParserFailure {
             subject: "Missing Pet Name".to_string(),
             reason: format!("Unable to get pet name in: {block}"),

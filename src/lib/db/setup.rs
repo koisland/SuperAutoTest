@@ -538,7 +538,9 @@ mod test {
 
         let foods = SAPDB.execute_query(food_query).unwrap();
 
-        let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
+        let SAPRecord::Food(record) = foods.first().unwrap() else {
+            panic!("No Record found.")
+        };
         assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
     }
 
@@ -553,7 +555,9 @@ mod test {
             .set_param("pack", vec![Pack::Turtle]);
 
         let pets = SAPDB.execute_query(pet_query).unwrap();
-        let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
+        let SAPRecord::Pet(record) = pets.first().unwrap() else {
+            panic!("No Record found.")
+        };
         assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
     }
 
@@ -567,7 +571,9 @@ mod test {
             .set_param("lvl", vec![1]);
 
         let toys = SAPDB.execute_query(toy_query).unwrap();
-        let SAPRecord::Toy(record) = toys.first().unwrap() else { panic!("No Record found.")};
+        let SAPRecord::Toy(record) = toys.first().unwrap() else {
+            panic!("No Record found.")
+        };
         assert!(record.name == ToyName::Balloon && record.lvl == 1)
     }
 

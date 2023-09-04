@@ -16,7 +16,10 @@ pub fn parse_single_toy_row(
     toys: &mut Vec<ToyRecord>,
 ) -> Result<(), SAPTestError> {
     let cleaned_rec = clean_link_text(rec);
-    let Some(name) = RGX_TOY_NAME.captures(&cleaned_rec).and_then(|cap| cap.get(1).map(|mtch| mtch.as_str())) else {
+    let Some(name) = RGX_TOY_NAME
+        .captures(&cleaned_rec)
+        .and_then(|cap| cap.get(1).map(|mtch| mtch.as_str()))
+    else {
         return Err(SAPTestError::ParserFailure {
             subject: "Missing Toy Name".to_string(),
             reason: format!("Unable to get pet name in: {cleaned_rec}"),

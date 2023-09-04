@@ -1855,7 +1855,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 Effect {
                     owner: None,
                     temp: record.temp_effect,
-                    trigger: TRIGGER_SELF_FAINT,
+                    trigger: TRIGGER_START_BATTLE,
                     target: Target::Friend,
                     position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
                     action: Action::Add(StatChangeType::Static(effect_stats)),

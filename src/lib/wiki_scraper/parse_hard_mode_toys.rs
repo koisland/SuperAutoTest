@@ -21,7 +21,12 @@ pub fn parse_single_hard_mode_toy_row(
 ) -> Result<(), SAPTestError> {
     let cleaned_rec = clean_link_text(rec);
     // Expect three lines name, trigger, and effect preceded by '|'.
-    let Some((name, trigger, effect)) = cleaned_rec.lines().filter_map(|line| line.strip_prefix('|').map(|line| line.trim())).take(3).collect_tuple() else {
+    let Some((name, trigger, effect)) = cleaned_rec
+        .lines()
+        .filter_map(|line| line.strip_prefix('|').map(|line| line.trim()))
+        .take(3)
+        .collect_tuple()
+    else {
         return Err(SAPTestError::ParserFailure {
             subject: "Missing Toy Fields".to_string(),
             reason: format!("Unable to get name, trigger, or effect in: {cleaned_rec}"),

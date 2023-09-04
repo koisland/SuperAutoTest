@@ -507,8 +507,10 @@ impl TeamViewer for Team {
                 let Some(enemy_team) = opponent else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Enemy Team Provided".to_string(),
-                        reason: format!("Enemy team is required for finding pets by target {target:?}")
-                    })
+                        reason: format!(
+                            "Enemy team is required for finding pets by target {target:?}"
+                        ),
+                    });
                 };
                 enemy_team
             }
@@ -575,8 +577,8 @@ impl TeamViewer for Team {
                     let pos = pos.clone();
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Trigger Provided".to_string(),
-                        reason: format!("Trigger required for finding pets by {pos:?}")
-                    })
+                        reason: format!("Trigger required for finding pets by {pos:?}"),
+                    });
                 };
                 let trigger_pet = if let Position::TriggerAffected = pos {
                     trigger.affected_pet.as_ref()
@@ -809,8 +811,8 @@ impl TeamViewer for Team {
                 let Some(Some(curr_pos)) = curr_pet.map(|pet| pet.read().unwrap().pos) else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Pet Position Idx".to_string(),
-                        reason: format!("Pet position required for finding pets by {pos:?}")
-                    })
+                        reason: format!("Pet position required for finding pets by {pos:?}"),
+                    });
                 };
                 pets.extend(
                     self.friends
@@ -852,8 +854,8 @@ impl TeamViewer for Team {
                 let Some(Some(pos)) = curr_pet.map(|pet| pet.read().unwrap().pos) else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "No Pet Position Idx".to_string(),
-                        reason: format!("Pet position required for finding pets by {pos:?}")
-                    })
+                        reason: format!("Pet position required for finding pets by {pos:?}"),
+                    });
                 };
                 // Get pet ahead and behind.
                 if let Some(Some(prev_pet)) = pos.checked_sub(1).map(|idx| {

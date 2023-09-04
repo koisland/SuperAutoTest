@@ -19,7 +19,12 @@ pub fn parse_one_ailment_entry(
     ailments: &mut Vec<FoodRecord>,
 ) -> Result<(), Box<dyn Error>> {
     // Split ailment info by '|'. Skipping first element which will be newline.
-    let Some((name, effect, _)) = ailment_info.split('|').skip(1).map(|txt| txt.trim()).collect_tuple() else {
+    let Some((name, effect, _)) = ailment_info
+        .split('|')
+        .skip(1)
+        .map(|txt| txt.trim())
+        .collect_tuple()
+    else {
         return Err(format!("No name or ability for text: {ailment_info}").into());
     };
     let img_url = IMG_URLS
@@ -61,8 +66,14 @@ pub fn parse_ailment_info(url: &str) -> Result<Vec<FoodRecord>, SAPTestError> {
 
     let mut ailments: Vec<FoodRecord> = vec![];
 
-    let Some(ailment_tbl) = RGX_TABLE.captures(&response).and_then(|cap| cap.get(0).map(|mtch| mtch.as_str())) else {
-        return Err(SAPTestError::ParserFailure { subject: String::from("Missing Ailment Table"), reason: format!("No ailment table found at {url}.") });
+    let Some(ailment_tbl) = RGX_TABLE
+        .captures(&response)
+        .and_then(|cap| cap.get(0).map(|mtch| mtch.as_str()))
+    else {
+        return Err(SAPTestError::ParserFailure {
+            subject: String::from("Missing Ailment Table"),
+            reason: format!("No ailment table found at {url}."),
+        });
     };
 
     // Remove icon labels.

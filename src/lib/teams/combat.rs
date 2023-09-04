@@ -396,8 +396,8 @@ impl BattlePhases for Team {
             }
 
             // Add triggers to team from outcome of battle.
-            self.triggers.extend(atk_outcome.friends.into_iter());
-            opponent.triggers.extend(atk_outcome.opponents.into_iter());
+            self.triggers.extend(atk_outcome.friends);
+            opponent.triggers.extend(atk_outcome.opponents);
 
             // Add triggers for after attack.
             self.triggers.push_back({

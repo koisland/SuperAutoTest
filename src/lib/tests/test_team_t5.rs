@@ -11,13 +11,85 @@ use crate::{
         test_goat_team, test_hamster_team, test_hyena_team, test_lion_highest_tier_team,
         test_lion_lowest_tier_team, test_lionfish_team, test_mammoth_team, test_microbe_team,
         test_monkey_team, test_moose_team, test_polar_bear_team, test_poodle_team, test_rhino_team,
-        test_scorpion_team, test_seal_team, test_shark_team, test_shoebill_team,
+        test_rooster_team, test_scorpion_team, test_seal_team, test_shark_team, test_shoebill_team,
         test_siberian_husky_team, test_skunk_team, test_swordfish_team, test_triceratops_team,
         test_turkey_team, test_vulture_team,
     },
     Entity, EntityName, Food, ItemCondition, Pet, Shop, ShopItemViewer, ShopViewer, Team,
     TeamEffects, TeamShopping,
 };
+
+#[test]
+fn test_battle_rooster_lvl_1_team() {
+    let mut team = test_rooster_team();
+    let mut enemy_team = test_rooster_team();
+    {
+        let rooster = team.first().unwrap();
+        assert!(
+            rooster.read().unwrap().name == PetName::Rooster
+                && rooster.read().unwrap().stats
+                    == Statistics {
+                        attack: 6,
+                        health: 4
+                    }
+        )
+    }
+
+    team.fight(&mut enemy_team).unwrap();
+
+    let chick = team.first().unwrap();
+    // 50% of base lvl.1 rooster is 3 . Health is 1.
+    assert!(
+        chick.read().unwrap().name == PetName::Chick
+            && chick.read().unwrap().stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    )
+}
+
+#[test]
+fn test_battle_rooster_lvl_2_team() {
+    let mut team = test_rooster_team();
+    let mut enemy_team = test_rooster_team();
+    {
+        team.set_level(&Position::First, 2).unwrap();
+        let rooster = team.first().unwrap();
+        // Level 2 now. Will spawn 2 chicks.
+        assert!(
+            rooster.read().unwrap().name == PetName::Rooster
+                && rooster.read().unwrap().stats
+                    == Statistics {
+                        attack: 6,
+                        health: 3
+                    }
+                && rooster.read().unwrap().lvl == 2
+        )
+    }
+
+    team.fight(&mut enemy_team).unwrap();
+
+    let chick = team.first().unwrap();
+    let chick_2 = team.nth(1).unwrap();
+    // 50% of base lvl.1 rooster is 3. Health is 1.
+    assert!(
+        chick.read().unwrap().name == PetName::Chick
+            && chick.read().unwrap().stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    );
+    assert!(
+        chick_2.read().unwrap().name == PetName::Chick
+            && chick_2.read().unwrap().stats
+                == Statistics {
+                    attack: 3,
+                    health: 1
+                }
+    )
+}
 
 #[test]
 fn test_battle_croc_team() {
@@ -561,7 +633,9 @@ fn test_shop_seal_team() {
     team.set_shop_seed(Some(12)).open_shop().unwrap();
 
     let pets = team.all();
-    let [ant_1, ant_2, seal] = pets.get(0..3).unwrap() else { panic!() };
+    let [ant_1, ant_2, seal] = pets.get(0..3).unwrap() else {
+        panic!()
+    };
     let (ant_1_start_stats, ant_2_start_stats, seal_start_stats) = (
         ant_1.read().unwrap().stats,
         ant_2.read().unwrap().stats,
@@ -667,13 +741,9 @@ fn test_shop_poodle_team() {
     team.set_seed(Some(12)).open_shop().unwrap();
 
     let pets = team.all();
-    let [
-        ant,
-        dog_1,
-        dog_2,
-        poodle,
-        tiger
-        ] = pets.get(0..5).unwrap() else { panic!() };
+    let [ant, dog_1, dog_2, poodle, tiger] = pets.get(0..5).unwrap() else {
+        panic!()
+    };
 
     const POODLE_BUFF: Statistics = Statistics {
         attack: 1,
@@ -874,7 +944,9 @@ fn test_shop_siberian_husky_team() {
         .unwrap();
 
     let all_pets = team.all();
-    let [ant, dog, husky, tiger] = all_pets.get(0..4).unwrap() else { panic!() };
+    let [ant, dog, husky, tiger] = all_pets.get(0..4).unwrap() else {
+        panic!()
+    };
     let (ant_start_stats, dog_start_stats, husky_start_stats, tiger_start_stats) = all_pets
         .iter()
         .map(|pet| pet.read().unwrap().stats)

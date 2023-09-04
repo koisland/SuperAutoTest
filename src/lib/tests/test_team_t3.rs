@@ -762,7 +762,9 @@ fn test_shop_capybara_team() {
 
     // Item stats.
     for idx in 0..3 {
-        let EntityName::Pet(pet_name) = shop_pets[idx].name() else { panic!("No pet name.") };
+        let EntityName::Pet(pet_name) = shop_pets[idx].name() else {
+            panic!("No pet name.")
+        };
 
         assert_eq!(
             Statistics::new(
