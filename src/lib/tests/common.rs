@@ -1361,7 +1361,7 @@ pub fn test_worm_team() -> Team {
 pub fn test_orangutan_team() -> Team {
     Team::new(
         &[
-            Some(Pet::try_from(PetName::Worm).unwrap()),
+            Some(Pet::try_from(PetName::Dog).unwrap()),
             Some(Pet::try_from(PetName::Orangutan).unwrap()),
             Some(Pet::try_from(PetName::Ant).unwrap()),
         ],
@@ -1398,7 +1398,16 @@ pub fn test_jerboa_team() -> Team {
 // No mole team.
 
 pub fn test_buffalo_team() -> Team {
-    Team::new(&[Some(Pet::try_from(PetName::Buffalo).unwrap())], 5).unwrap()
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Buffalo).unwrap()),
+        ],
+        5,
+    )
+    .unwrap()
 }
 
 pub fn test_llama_team() -> Team {

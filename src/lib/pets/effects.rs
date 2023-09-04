@@ -967,8 +967,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 temp: record.temp_effect,
                 trigger: TRIGGER_START_TURN,
-                target: Target::Friend,
-                position: Position::OnSelf,
+                target: Target::Shop,
+                position: Position::None,
                 action: Action::AddShopFood(GainType::StoredItem(Box::new({
                     let mut apple = Food::try_from(FoodName::Apple)?;
                     // Replace apple action with buffed effect based on record level.
@@ -977,6 +977,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         // Multiple by current level to create better apples.
                         let new_apple_stats = add_stats * Statistics::new(record.lvl, record.lvl)?;
                         apple.ability.action = Action::Add(StatChangeType::Static(new_apple_stats));
+                        // Apple is discounted.
+                        apple.cost = 2;
                     };
                     apple
                 }))),
@@ -1029,8 +1031,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_ANY_PET_SOLD,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Add(StatChangeType::Static(effect_stats)),
-                uses: Some(record.n_triggers),
+                action: Action::Conditional(
+                    LogicType::If(ConditionType::Shop(ShopCondition::NumberSoldMultiple(3))),
+                    Box::new(Action::Add(StatChangeType::Static(effect_stats))),
+                    Box::new(Action::None),
+                ),
+                uses: None,
             }],
             PetName::Llama => vec![Effect {
                 owner: None,

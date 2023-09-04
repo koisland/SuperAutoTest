@@ -805,6 +805,9 @@ impl EffectApplyHelpers for Team {
                 ShopCondition::TierMultiple(tier_multiple) => {
                     Ok(self.shop_tier() % tier_multiple == 0)
                 }
+                ShopCondition::NumberSoldMultiple(sold_multiple) => {
+                    Ok(self.sold.len() % sold_multiple == 0)
+                }
             },
         }
     }

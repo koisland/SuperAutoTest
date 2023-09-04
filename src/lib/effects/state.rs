@@ -104,6 +104,8 @@ pub enum ShopCondition {
     Tier(Option<usize>),
     /// Shop tier multiple of given size.
     TierMultiple(usize),
+    /// Number of pets sold.
+    NumberSoldMultiple(usize),
 }
 
 impl ShopCondition {
@@ -115,6 +117,8 @@ impl ShopCondition {
             ShopCondition::Tier(tier) => tier.unwrap_or_else(|| team.shop.tier()),
             // Return divisor. Num times multiple goes into tier.
             ShopCondition::TierMultiple(tier_multiple) => team.shop.tier() / tier_multiple,
+            // Return divisor. Num times multiple goes into num sold pets.
+            ShopCondition::NumberSoldMultiple(num_sold_mult) => team.sold.len() / num_sold_mult,
         }
     }
 }

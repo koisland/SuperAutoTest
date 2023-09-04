@@ -88,8 +88,8 @@ impl ShopViewer for Shop {
         self.pets.len()
     }
 
-    /// TODO: Needs to be larger. Alsoinclude other shop changes. Too lazy to mark inline.
-    /// https://steamcommunity.com/app/1714040/eventcomments/3812906855243976215?snr=1_2108_9__2107
+    /// TODO: Needs to be larger. Also include other shop changes. Too lazy to mark inline.
+    /// * https://steamcommunity.com/app/1714040/eventcomments/3812906855243976215?snr=1_2108_9__2107
     fn max_food_slots(&self) -> usize {
         if self.tier() < 2 {
             1

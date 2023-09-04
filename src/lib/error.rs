@@ -2,6 +2,7 @@
 
 use thiserror::Error;
 
+#[allow(clippy::large_enum_variant)]
 /// Error types.
 #[derive(Error, Debug)]
 pub enum SAPTestError {

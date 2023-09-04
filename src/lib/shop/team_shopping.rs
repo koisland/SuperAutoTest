@@ -835,6 +835,9 @@ impl TeamShopping for Team {
         let calc_tier = ((self.history.curr_turn / 2) + (self.history.curr_turn % 2))
             .clamp(MIN_SHOP_TIER, MAX_SHOP_TIER);
 
+        // Remove sold pets from prev round.
+        self.sold.clear();
+
         // Shop tier upgraded.
         if self.shop.tier() + 1 == calc_tier {
             self.triggers.push_back(TRIGGER_SHOP_TIER_UPGRADED)
