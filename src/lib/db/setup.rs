@@ -22,7 +22,7 @@ const FOOD_URL: &str = "https://superautopets.wiki.gg/wiki/Food?action=raw";
 const AILMENTS_URL: &str = "https://superautopets.wiki.gg/wiki/Ailments?action=raw";
 const TOKEN_URL: &str = "https://superautopets.wiki.gg/wiki/Tokens?action=raw";
 const TOYS_URL: &str = "https://superautopets.wiki.gg/wiki/Toys?action=raw";
-const TOYS_HARD_MODE_URL: &str = "https://superautopets.wiki.gg/wiki/Hard_Mode_(Toys)?action=raw";
+const TOYS_HARD_MODE_URL: &str = "https://superautopets.wiki.gg/wiki/Hard_Mode_Toys?action=raw";
 const NAMES_URL: &str = "https://superautopets.wiki.gg/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.

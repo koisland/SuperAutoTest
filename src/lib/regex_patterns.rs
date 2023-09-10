@@ -34,8 +34,7 @@ pub static RGX_PET_EFFECT: &LRegex = regex!(r#"→\s*(.*?)\n"#);
 pub static RGX_PET_EFFECT_TRIGGERLESS: &LRegex = regex!(r#"\|\s*([^[=]]*?\.*)\n"#);
 
 // Token
-pub static RGX_TOKEN_SPAN_COLS: &LRegex = regex!(r#"!\s*(col|row)span="(\d+)"\s*\|(.*?)\n"#);
-pub static RGX_SUMMON_STATS: &LRegex = regex!(r#"\|\s*colspan="(\d+)"\s*\|([\d\w]+/[\d\w]+)\n"#);
+pub static RGX_SUMMON_STATS: &LRegex = regex!(r#"\|\s*colspan="(\d+)"\s*\|\s*([\d\w]+/[\d\w]+)"#);
 
 // Stats
 pub static RGX_ATK: &LRegex = regex!(r#"([\d-]+)%*\s+attack|\[\[File:Attack"#);
