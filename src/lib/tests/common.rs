@@ -1468,6 +1468,7 @@ pub fn test_seal_team() -> Team {
         &[
             Some(Pet::try_from(PetName::Ant).unwrap()),
             Some(Pet::try_from(PetName::Ant).unwrap()),
+            Some(Pet::try_from(PetName::Ant).unwrap()),
             Some(Pet::try_from(PetName::Seal).unwrap()),
         ],
         5,

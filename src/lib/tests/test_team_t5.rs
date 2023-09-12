@@ -9,9 +9,9 @@ use crate::{
     tests::common::{
         count_pets, test_cricket_horse_team, test_crocodile_team, test_eagle_team, test_fox_team,
         test_goat_team, test_hamster_team, test_hyena_team, test_lion_highest_tier_team,
-        test_lion_lowest_tier_team, test_lionfish_team, test_mammoth_team, test_microbe_team,
-        test_monkey_team, test_moose_team, test_polar_bear_team, test_poodle_team, test_rhino_team,
-        test_rooster_team, test_scorpion_team, test_seal_team, test_shark_team, test_shoebill_team,
+        test_lion_lowest_tier_team, test_microbe_team, test_monkey_team, test_moose_team,
+        test_polar_bear_team, test_poodle_team, test_rhino_team, test_rooster_team,
+        test_scorpion_team, test_seal_team, test_shark_team, test_shoebill_team,
         test_siberian_husky_team, test_skunk_team, test_swordfish_team, test_triceratops_team,
         test_turkey_team, test_vulture_team,
     },
@@ -23,29 +23,29 @@ use crate::{
 fn test_battle_rooster_lvl_1_team() {
     let mut team = test_rooster_team();
     let mut enemy_team = test_rooster_team();
-    {
-        let rooster = team.first().unwrap();
-        assert!(
-            rooster.read().unwrap().name == PetName::Rooster
-                && rooster.read().unwrap().stats
-                    == Statistics {
-                        attack: 6,
-                        health: 4
-                    }
-        )
-    }
+    let rooster = team.first().unwrap();
+    let rooster_stats = rooster.read().unwrap().stats;
+
+    assert!(
+        rooster.read().unwrap().name == PetName::Rooster
+            && rooster.read().unwrap().stats
+                == Statistics {
+                    attack: 6,
+                    health: 4
+                }
+    );
 
     team.fight(&mut enemy_team).unwrap();
 
     let chick = team.first().unwrap();
+    let chick_exp_stats = Statistics {
+        attack: rooster_stats.attack / 2,
+        health: 1,
+    };
     // 50% of base lvl.1 rooster is 3 . Health is 1.
     assert!(
         chick.read().unwrap().name == PetName::Chick
-            && chick.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
+            && chick.read().unwrap().stats == chick_exp_stats
     )
 }
 
@@ -53,41 +53,30 @@ fn test_battle_rooster_lvl_1_team() {
 fn test_battle_rooster_lvl_2_team() {
     let mut team = test_rooster_team();
     let mut enemy_team = test_rooster_team();
-    {
-        team.set_level(&Position::First, 2).unwrap();
-        let rooster = team.first().unwrap();
-        // Level 2 now. Will spawn 2 chicks.
-        assert!(
-            rooster.read().unwrap().name == PetName::Rooster
-                && rooster.read().unwrap().stats
-                    == Statistics {
-                        attack: 6,
-                        health: 3
-                    }
-                && rooster.read().unwrap().lvl == 2
-        )
-    }
+
+    let rooster = team.first().unwrap();
+    let rooster_stats = rooster.read().unwrap().stats;
+    team.set_level(&Position::First, 2).unwrap();
+
+    // Level 2 now. Will spawn 2 chicks.
+    assert!(rooster.read().unwrap().name == PetName::Rooster && rooster.read().unwrap().lvl == 2);
 
     team.fight(&mut enemy_team).unwrap();
 
     let chick = team.first().unwrap();
     let chick_2 = team.nth(1).unwrap();
+    let chick_exp_stats = Statistics {
+        attack: rooster_stats.attack / 2,
+        health: 1,
+    };
     // 50% of base lvl.1 rooster is 3. Health is 1.
     assert!(
         chick.read().unwrap().name == PetName::Chick
-            && chick.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
+            && chick.read().unwrap().stats == chick_exp_stats
     );
     assert!(
         chick_2.read().unwrap().name == PetName::Chick
-            && chick_2.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
+            && chick_2.read().unwrap().stats == chick_exp_stats
     )
 }
 
@@ -122,15 +111,8 @@ fn test_battle_rhino_team() {
     let outcome = team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(outcome, TeamFightOutcome::None);
-    // Only one damage from first cricket to trigger chain of faint triggers.
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 5,
-            health: 7
-        }
-    );
     // All pets mowed down by rhino. After horse faints, zombie crickets spawn.
+    assert_eq!(enemy_team.fainted.len(), 3);
     assert!(enemy_team
         .all()
         .iter()
@@ -170,16 +152,17 @@ fn test_battle_rhino_against_token_team() {
 
 #[test]
 fn test_battle_chili_rhino() {
-    const RHINO_DMG: Statistics = Statistics {
+    let _rhino = Pet::new(PetName::Rhino, None, 1).unwrap();
+    let rhino_dmg: Statistics = Statistics {
         attack: 0,
-        health: -5,
+        health: -(_rhino.stats.attack),
     };
     const RHINO_KNOCKOUT_DMG: Statistics = Statistics {
         attack: 0,
         health: -4,
     };
 
-    let mut team = Team::new(&[Some(Pet::new(PetName::Rhino, None, 1).unwrap())], 5).unwrap();
+    let mut team = Team::new(&[Some(_rhino)], 5).unwrap();
     let chili = Food::try_from(FoodName::Chili).unwrap();
     team.set_item(&Position::First, Some(chili)).unwrap();
 
@@ -198,7 +181,7 @@ fn test_battle_chili_rhino() {
 
     // Rhino knockout dmg triggers because dog dies behind mammoth.
     assert_eq!(
-        mammoth_start_stats + RHINO_DMG + RHINO_KNOCKOUT_DMG,
+        mammoth_start_stats + rhino_dmg + RHINO_KNOCKOUT_DMG,
         mammoth.read().unwrap().stats
     );
 }
@@ -300,7 +283,7 @@ fn test_battle_turkey_team() {
     assert_eq!(
         zombie_cricket.read().unwrap().stats,
         Statistics {
-            attack: 4,
+            attack: 3,
             health: 4
         }
     );
@@ -387,38 +370,11 @@ fn test_battle_hyena_team() {
     let horse = enemy_team.first().unwrap();
     assert!(
         gorilla.read().unwrap().name == PetName::Gorilla
-            && gorilla.read().unwrap().stats == Statistics::new(9, 6).unwrap()
+            && gorilla.read().unwrap().stats == Statistics::new(10, 7).unwrap()
     );
     assert!(
         horse.read().unwrap().name == PetName::Horse
             && horse.read().unwrap().stats == Statistics::new(1, 2).unwrap()
-    );
-}
-
-#[test]
-fn test_battle_lionfish_team() {
-    let mut team = test_lionfish_team();
-    let mut enemy_team = test_mammoth_team();
-
-    // Enemy team's mammoth has no item.
-    let mammoth = enemy_team.first().unwrap();
-    assert_eq!(mammoth.read().unwrap().item, None);
-    assert_eq!(
-        mammoth.read().unwrap().stats,
-        Statistics::new(3, 10).unwrap()
-    );
-
-    team.fight(&mut enemy_team).unwrap();
-
-    // Prior to Dog at position 0 of team attacking, lionfish ability activates giving weakness to frontline mammoth.
-    // Mammoth takes additional damage as a result.
-    let mut example_weakness = Food::try_from(FoodName::Weak).unwrap();
-    example_weakness.ability.assign_owner(Some(&mammoth));
-
-    assert_eq!(mammoth.read().unwrap().item, Some(example_weakness));
-    assert_eq!(
-        mammoth.read().unwrap().stats,
-        Statistics::new(3, 4).unwrap()
     );
 }
 
@@ -430,7 +386,8 @@ fn test_battle_eagle_team() {
     team.fight(&mut enemy_team).unwrap();
 
     let summoned_pet = team.first().unwrap();
-    assert_eq!(summoned_pet.read().unwrap().tier, 6);
+    // All teams start at tier 1. Eagle summons tier 2 (1+1) pet.
+    assert_eq!(summoned_pet.read().unwrap().tier, 2);
 }
 
 #[test]
@@ -532,28 +489,26 @@ fn test_battle_triceratops_team() {
     let mut enemy_team = test_cricket_horse_team();
 
     let triceratops = team.first().unwrap();
+    let triceratops_stats = triceratops.read().unwrap().stats;
+    const BUFF: Statistics = Statistics {
+        attack: 3,
+        health: 3,
+    };
     let gorilla = team.nth(1).unwrap();
-
-    assert_eq!(
-        triceratops.read().unwrap().stats,
-        Statistics::new(5, 6).unwrap()
-    );
-    assert_eq!(
-        gorilla.read().unwrap().stats,
-        Statistics::new(6, 9).unwrap()
-    );
+    let gorilla_stats = gorilla.read().unwrap().stats;
 
     team.fight(&mut enemy_team).unwrap();
 
     // Triceratops takes 1 dmg. Gorilla behind gets (3,3) buff.
     assert_eq!(
         triceratops.read().unwrap().stats,
-        Statistics::new(5, 5).unwrap()
+        triceratops_stats
+            - Statistics {
+                attack: 0,
+                health: 1
+            }
     );
-    assert_eq!(
-        gorilla.read().unwrap().stats,
-        Statistics::new(9, 12).unwrap()
-    );
+    assert_eq!(gorilla.read().unwrap().stats, gorilla_stats + BUFF);
 }
 
 #[test]
@@ -633,25 +588,27 @@ fn test_shop_seal_team() {
     team.set_shop_seed(Some(12)).open_shop().unwrap();
 
     let pets = team.all();
-    let [ant_1, ant_2, seal] = pets.get(0..3).unwrap() else {
+    let [ant_1, ant_2, ant_3, seal] = pets.get(0..4).unwrap() else {
         panic!()
     };
-    let (ant_1_start_stats, ant_2_start_stats, seal_start_stats) = (
+    let (ant_1_start_stats, ant_2_start_stats, ant_3_start_stats, seal_start_stats) = (
         ant_1.read().unwrap().stats,
         ant_2.read().unwrap().stats,
+        ant_3.read().unwrap().stats,
         seal.read().unwrap().stats,
     );
     const SEAL_BUFF: Statistics = Statistics {
         attack: 1,
-        health: 1,
+        health: 0,
     };
     team.buy(&Position::First, &Entity::Food, &Position::Last)
         .unwrap();
 
-    // Two ants get buff after seal eats food.
+    // Three ants get buff after seal eats food.
     assert!(
         ant_1_start_stats + SEAL_BUFF == ant_1.read().unwrap().stats
             && ant_2_start_stats + SEAL_BUFF == ant_2.read().unwrap().stats
+            && ant_3_start_stats + SEAL_BUFF == ant_3.read().unwrap().stats
             && seal_start_stats == seal.read().unwrap().stats
     );
 }
@@ -659,13 +616,7 @@ fn test_shop_seal_team() {
 #[test]
 fn test_shop_moose_team() {
     let mut team = test_moose_team();
-    let seed = Some(12);
-    team.set_seed(seed)
-        .set_shop_tier(6)
-        .unwrap()
-        .set_shop_seed(seed)
-        .open_shop()
-        .unwrap();
+    team.set_seed(Some(12)).open_shop().unwrap();
 
     let (freeze_pos, freeze_item_type) = (Position::All(ItemCondition::None), Entity::Pet);
     team.freeze_shop(&freeze_pos, &freeze_item_type).unwrap();
@@ -676,19 +627,15 @@ fn test_shop_moose_team() {
         .get_shop_items_by_pos(&freeze_pos, &freeze_item_type)
         .unwrap();
     assert!(items.iter().all(|item| item.is_frozen()));
-    // Min pet tier in shop is 4.
-    let min_tier = items
-        .iter()
-        .min_by(|item_1, item_2| item_1.tier().cmp(&item_2.tier()))
-        .map(|item| item.tier())
-        .unwrap();
-    assert_eq!(min_tier, 4);
+    // Number of tier 1 pets in shop is 3.
+    let num_tier_1_pets = items.iter().filter(|item| item.tier() == 1).count();
+    assert_eq!(num_tier_1_pets, 3);
 
     const MOOSE_BUFF: Statistics = Statistics {
-        attack: 1,
-        health: 1,
+        attack: 0,
+        health: 3,
     };
-    let mult_moose_buff = MOOSE_BUFF * Statistics::new(min_tier, min_tier).unwrap();
+    let mult_moose_buff = MOOSE_BUFF * Statistics::new(num_tier_1_pets, num_tier_1_pets).unwrap();
     let buff_target = team.nth(1).unwrap();
     let buff_target_start_stats = buff_target.read().unwrap().stats;
 
@@ -701,7 +648,7 @@ fn test_shop_moose_team() {
         .get_shop_items_by_pos(&freeze_pos, &freeze_item_type)
         .unwrap();
     assert!(items.iter().all(|item| !item.is_frozen()));
-    // Target gets (4,4) = (1,1) * 4.
+    // Target gets (0, 9) = (0, 3) * 3.
     assert_eq!(
         buff_target.read().unwrap().stats,
         buff_target_start_stats + mult_moose_buff

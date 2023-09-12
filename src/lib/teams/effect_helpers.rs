@@ -16,7 +16,7 @@ use crate::{
         pet::{reassign_effects, MAX_PET_STATS, MIN_PET_STATS},
     },
     shop::{
-        store::{ItemSlot, ItemState, ShopState, MAX_SHOP_TIER},
+        store::{ItemSlot, ItemState, ShopState, MAX_SHOP_TIER, MIN_SHOP_TIER},
         team_shopping::TeamShoppingHelpers,
     },
     teams::{history::TeamHistoryHelpers, team::Team, viewer::TeamViewer},
@@ -549,6 +549,27 @@ impl EffectApplyHelpers for Team {
                 } else {
                     return Err(SAPTestError::FallibleAction);
                 }
+            }
+            SummonType::ShopTierPet {
+                stats,
+                lvl,
+                tier_diff,
+            } => {
+                // Calculate new tier from tier diff and current shop tier.
+                let calculated_tier =
+                    (self.shop.tier() as isize).saturating_add(tier_diff.unwrap_or(0));
+                let summon_query_type = SummonType::QueryPet(
+                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
+                    vec![
+                        // Restrict to min and max shop tier.
+                        calculated_tier
+                            .clamp(MIN_SHOP_TIER as isize, MAX_SHOP_TIER as isize)
+                            .to_string(),
+                        lvl.unwrap_or(1).to_string(),
+                    ],
+                    *stats,
+                );
+                self.convert_summon_type_to_pet(&summon_query_type, target_pet)?
             }
         };
 
@@ -1214,20 +1235,19 @@ impl EffectApplyHelpers for Team {
                 affected_pet.write().unwrap().item = food;
                 affected_pets.push(affected_pet.clone());
             }
-            Action::Moose(stats) => {
+            Action::Moose { stats, tier } => {
                 // TODO: Separate into two different actions: Unfreeze shop + StatChangeType::MultShopTier
                 for item in self.shop.foods.iter_mut() {
                     item.state = ItemState::Normal
                 }
-                let mut min_tier = MAX_SHOP_TIER;
+                let mut num_tier = 0;
                 for pet in self.shop.pets.iter_mut() {
-                    let pet_tier = pet.tier();
-                    if pet_tier < min_tier {
-                        min_tier = pet_tier
+                    if pet.tier() == *tier {
+                        num_tier += 1
                     }
                     pet.state = ItemState::Normal
                 }
-                let buffed_stats = *stats * Statistics::new(min_tier, min_tier)?;
+                let buffed_stats = *stats * Statistics::new(num_tier, num_tier)?;
                 modified_effect.action = Action::Add(StatChangeType::Static(buffed_stats));
                 affected_pets.extend(self.apply_single_effect(
                     affected_pet,

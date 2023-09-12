@@ -15,15 +15,23 @@ use crate::{
         count_pets, test_alpaca_team, test_boar_team, test_cat_team, test_chicken_team,
         test_cricket_horse_team, test_dragon_team, test_fly_team, test_gorilla_team,
         test_hammershark_team, test_komodo_team, test_leopard_team, test_lioness_team,
-        test_mammoth_team, test_octopus_team, test_orca_team, test_ostrich_team, test_piranha_team,
-        test_reindeer_team, test_sabertooth_team, test_sauropod_team, test_scorpion_team,
-        test_sheep_team, test_snake_team, test_spinosaurus_team, test_stegosaurus_team,
-        test_tapir_team, test_tiger_team, test_tyrannosaurus_team, test_velociraptor_team,
-        test_walrus_team, test_white_tiger_team,
+        test_lionfish_team, test_mammoth_team, test_octopus_team, test_orca_team,
+        test_ostrich_team, test_piranha_team, test_reindeer_team, test_sabertooth_team,
+        test_sauropod_team, test_scorpion_team, test_sheep_team, test_snake_team,
+        test_spinosaurus_team, test_stegosaurus_team, test_tapir_team, test_tiger_team,
+        test_tyrannosaurus_team, test_velociraptor_team, test_walrus_team, test_white_tiger_team,
     },
     Entity, ItemCondition, Pet, ShopItem, ShopItemViewer, ShopViewer, Team, TeamEffects,
     TeamShopping,
 };
+
+#[test]
+fn test_battle_lionfish_team() {
+    let mut team = test_lionfish_team();
+    let mut enemy_team = test_mammoth_team();
+
+    todo!()
+}
 
 #[test]
 fn test_battle_boar_team() {

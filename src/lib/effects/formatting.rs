@@ -129,6 +129,20 @@ impl std::fmt::Display for SummonType {
                     "Any (Ignoring {ignore}) Team Pet {stats_str} at Level {lvl}"
                 )
             }
+            SummonType::ShopTierPet {
+                stats,
+                lvl,
+                tier_diff,
+            } => {
+                let stats_str =
+                    stats.map_or_else(|| "(Default Stats)".to_string(), |stats| stats.to_string());
+                let lvl = lvl.unwrap_or(1);
+                let tier_diff = tier_diff.unwrap_or(0);
+                write!(
+                    f,
+                    "Pet {stats_str} from Shop Tier ({tier_diff}) at Level {lvl}"
+                )
+            }
         }
     }
 }
@@ -179,7 +193,10 @@ impl std::fmt::Display for Action {
             Action::Lynx => write!(f, "Lynx (Damage Equal Sum Levels)"),
             Action::Stegosaurus(stats) => write!(f, "Stegosaurus (Add {stats} x Turns)"),
             Action::Cockroach => write!(f, "Cockroach (Set Attack Equal Shop Tier + Level)"),
-            Action::Moose(stats) => write!(f, "Moose (Unfreeze And Add {stats} x Lowest Tier)"),
+            Action::Moose { stats, tier } => write!(
+                f,
+                "Moose (Unfreeze And Add {stats} x Number of Tier {tier} Pets)"
+            ),
             Action::Fox(item_type, multiplier) => {
                 write!(f, "Fox (Steal {item_type:?} With {multiplier}x Stats)")
             }
@@ -371,12 +388,15 @@ mod test {
             format!("{cockroach_action}")
         );
 
-        let moose_action = Action::Moose(Statistics {
-            attack: 1,
-            health: 1,
-        });
+        let moose_action = Action::Moose {
+            stats: Statistics {
+                attack: 1,
+                health: 1,
+            },
+            tier: 1,
+        };
         assert_eq!(
-            "Moose (Unfreeze And Add (1, 1) x Lowest Tier)",
+            "Moose (Unfreeze And Add (1, 1) x Number of Tier 1 Pets)",
             format!("{moose_action}")
         );
 

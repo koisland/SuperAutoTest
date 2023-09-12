@@ -184,17 +184,13 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Mouse => {
                 let mut free_apple = Food::try_from(FoodName::Apple)?;
                 free_apple.cost = 0;
-                let food_multiplier = Statistics {
-                    attack: record.lvl.try_into()?,
-                    health: record.lvl.try_into()?,
+                if let Action::Add(stat_change_type) = &free_apple.ability.action {
+                    let add_stats = stat_change_type.to_stats(None, None)?;
+                    // Multiple by current level to create better apples.
+                    let new_apple_stats = add_stats * Statistics::new(record.lvl, record.lvl)?;
+                    free_apple.ability.action =
+                        Action::Add(StatChangeType::Static(new_apple_stats));
                 };
-                // TODO: Add TryFrom method to allow getting action stats.
-                free_apple.ability.action = Action::Add(StatChangeType::Static(
-                    Statistics {
-                        attack: 1,
-                        health: 1,
-                    } * food_multiplier,
-                ));
                 vec![Effect {
                     owner: None,
                     trigger: TRIGGER_SELF_PET_SOLD,
@@ -580,7 +576,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 }]
             }
-            // TODO: After gain perk implemented, change trigger.
             PetName::TabbyCat => {
                 vec![Effect {
                     owner: None,
@@ -1024,7 +1019,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
             }],
-            // TODO: Clear sold pets on end of turn. Conditional. Take mod 3 to trigger effect and if 0, activate.
             PetName::Buffalo => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -1347,7 +1341,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::N {
                     condition: ItemCondition::NotEqual(EqualityCondition::IsSelf),
-                    targets: 2,
+                    targets: 3,
                     random: true,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
@@ -1360,7 +1354,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_END_TURN,
                 target: Target::Friend,
                 position: Position::Any(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
-                action: Action::Moose(effect_stats),
+                action: Action::Moose {
+                    stats: effect_stats,
+                    tier: 1,
+                },
                 uses: None,
             }],
             PetName::Goat => vec![Effect {
@@ -1681,7 +1678,6 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             PetName::Koala => vec![Effect {
                 owner: None,
-
                 trigger: TRIGGER_ANY_HURT,
                 target: Target::Friend,
                 position: Position::OnSelf,
@@ -2065,18 +2061,17 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: None,
             }],
-            // TODO: Refactor using more modular query or hard-code behavior as new SummonType variant.
             PetName::Eagle => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 position: Position::OnSelf,
-                action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE tier = ? AND pack = 'Puppy' AND lvl = ?".to_string(),
-                    vec![6.to_string(), record.lvl.to_string()],
-                    None,
-                )),
+                action: Action::Summon(SummonType::ShopTierPet {
+                    stats: Some(effect_stats),
+                    lvl: Some(record.lvl),
+                    tier_diff: Some(1),
+                }),
                 uses: Some(record.n_triggers),
             }],
             PetName::Microbe => vec![Effect {

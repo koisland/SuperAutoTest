@@ -148,6 +148,18 @@ pub enum SummonType {
     /// 2. Pet `level`. Defaults to current [`Pet`] if omitted.
     /// 3. Ignore any [`Pet`]s on the [`Team`](crate::Team) with this [`PetName`].
     SelfTeamPet(Option<Statistics>, Option<usize>, PetName),
+    /// Summon a random pet at a [`Shop`](crate::Shop) `tier` from the current [`Team`](crate::Team). Used for [`Eagle`](crate::PetName::Eagle).
+    ShopTierPet {
+        /// Pet [`Statistics`]. Defaults to summoned [`Pet`]'s stats if omitted.
+        stats: Option<Statistics>,
+        /// Pet `level`. Defaults to summoned [`Pet`] if omitted.
+        lvl: Option<usize>,
+        /// Shop tier difference. Defaults to `0`.
+        /// * `+1` indicates the next shop tier of the current team.
+        /// * `0` indicates the shop tier of the current team.
+        /// * `-1` indicates the previous shop tier of the current team.
+        tier_diff: Option<isize>,
+    },
 }
 
 /// Types of item gains for [`Action::Gain`].
@@ -379,10 +391,13 @@ pub enum Action {
     /// <https://superautopets.fandom.com/wiki/Cockroach>
     Cockroach,
     /// Hardcoded moose ability
-    /// 1. [`Statistics`] buff.
-    ///
     /// <https://superautopets.fandom.com/wiki/Moose>
-    Moose(Statistics),
+    Moose {
+        /// [`Statistics`] buff.
+        stats: Statistics,
+        /// Shop pet `tier` to trigger buff.
+        tier: usize,
+    },
     /// Hardcoded Fox ability.
     /// 1. Item [type](crate::Entity) to steal.
     /// 2. Buff multiplier.
