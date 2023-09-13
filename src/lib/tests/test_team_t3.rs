@@ -7,7 +7,7 @@ use crate::{
         test_aardvark_team, test_ant_team, test_badger_team, test_bear_team, test_blobfish_team,
         test_camel_team, test_capybara_team, test_cassowary_team, test_clownfish_team,
         test_cricket_horse_team, test_dodo_team, test_dog_team, test_dolphin_team,
-        test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team,
+        test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team, test_goldfish_team,
         test_hatching_chick_team, test_hummingbird_team, test_kangaroo_team, test_leech_team,
         test_okapi_team, test_owl_team, test_ox_team, test_rabbit_team, test_seagull_team,
         test_sheep_team, test_starfish_team, test_toad_team, test_tropicalfish_team,
@@ -16,6 +16,19 @@ use crate::{
     Entity, EntityName, ItemCondition, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer,
     TeamEffects, TeamShopping, ToyName,
 };
+
+#[test]
+fn test_shop_goldfish_team() {
+    let mut team = test_goldfish_team();
+    let goldfish = team.first().unwrap();
+
+    team.open_shop().unwrap();
+
+    assert_eq!(goldfish.read().unwrap().cost, 3);
+    team.close_shop().unwrap();
+
+    assert_eq!(goldfish.read().unwrap().cost, 4);
+}
 
 #[test]
 fn test_battle_dodo_team() {

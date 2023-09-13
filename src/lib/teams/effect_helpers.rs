@@ -1235,6 +1235,25 @@ impl EffectApplyHelpers for Team {
                 affected_pet.write().unwrap().item = food;
                 affected_pets.push(affected_pet.clone());
             }
+            Action::AlterCost(cost_change) => {
+                let affected_pet_cost = affected_pet.read().unwrap().cost;
+                if cost_change.is_negative() {
+                    let coin_change: usize = (-*cost_change).try_into()?;
+                    affected_pet.write().unwrap().cost =
+                        affected_pet_cost.saturating_sub(coin_change);
+                } else {
+                    let coin_change: usize = (*cost_change).try_into()?;
+                    affected_pet.write().unwrap().cost += coin_change;
+                }
+                info!(
+                    target: "run",
+                    "(\"{}\")\nAltered cost of {:?} by {}. New coin count: {}",
+                    self.name,
+                    affected_pet.read().unwrap().id,
+                    cost_change,
+                    affected_pet.read().unwrap().cost
+                )
+            }
             Action::Moose { stats, tier } => {
                 // TODO: Separate into two different actions: Unfreeze shop + StatChangeType::MultShopTier
                 for item in self.shop.foods.iter_mut() {

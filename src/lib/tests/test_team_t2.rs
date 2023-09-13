@@ -8,11 +8,11 @@ use crate::{
     tests::common::{
         test_ant_team, test_atlantic_puffin_team, test_bat_team, test_crab_team, test_dove_team,
         test_dromedary_team, test_elephant_peacock_team, test_flamingo_team,
-        test_frigate_bird_team, test_goldfish_team, test_hedgehog_team, test_hippo_team,
-        test_jellyfish_team, test_koala_team, test_mammoth_team, test_mouse_team, test_panda_team,
-        test_pug_team, test_racoon_team, test_rat_team, test_salamander_team, test_shrimp_team,
-        test_skunk_team, test_spider_team, test_stork_team, test_swan_team, test_tabby_cat_team,
-        test_toucan_team, test_wombat_team, test_worm_team, test_yak_team,
+        test_frigate_bird_team, test_hedgehog_team, test_hippo_team, test_jellyfish_team,
+        test_koala_team, test_mammoth_team, test_mouse_team, test_panda_team, test_pug_team,
+        test_racoon_team, test_rat_team, test_salamander_team, test_shrimp_team, test_skunk_team,
+        test_spider_team, test_stork_team, test_swan_team, test_tabby_cat_team, test_toucan_team,
+        test_wombat_team, test_worm_team, test_yak_team,
     },
     Entity, Food, FoodName, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Statistics, Team,
     TeamEffects, TeamShopping,
@@ -590,20 +590,6 @@ fn test_battle_frigate_bird_team() {
             .sum::<usize>(),
         1
     );
-}
-
-#[test]
-fn test_shop_goldfish_team() {
-    let mut team = test_goldfish_team();
-    team.open_shop().unwrap();
-
-    let affected_pos = Position::Multiple(vec![Position::First, Position::Relative(-1)]);
-    let affected_shop_pets = team
-        .get_shop()
-        .get_shop_items_by_pos(&affected_pos, &Entity::Pet)
-        .unwrap();
-    // Pets are discounted by 1 gold from 3 gold to 2 gold.
-    assert!(affected_shop_pets.iter().all(|pet| pet.cost == 2));
 }
 
 #[test]

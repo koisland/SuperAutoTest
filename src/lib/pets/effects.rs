@@ -553,14 +553,13 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                 }]
             }
-            // TODO: Add new action to increase value of pet.
             PetName::GoldFish => {
                 vec![Effect {
                     owner: None,
-                    trigger: TRIGGER_START_TURN,
-                    target: Target::Shop,
-                    position: Position::Multiple(vec![Position::First, Position::Relative(-1)]),
-                    action: Action::Discount(Entity::Pet, record.lvl),
+                    trigger: TRIGGER_END_TURN,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::AlterCost(record.lvl.try_into()?),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
                 }]

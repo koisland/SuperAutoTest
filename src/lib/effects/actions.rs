@@ -320,6 +320,8 @@ pub enum Action {
     ClearShop(Entity),
     /// Alter gold for the [`Shop`](crate::Shop).
     AlterGold(isize),
+    /// Alter cost for a [`Pet`] when sold.
+    AlterCost(isize),
     /// Reduce cost of [`Shop`](crate::Shop) a [`ShopItem`](crate::shop::store::ShopItem).
     /// 1. Item type to discount.
     /// 2. Gold to discount by.

@@ -177,6 +177,7 @@ impl std::fmt::Display for Action {
             Action::AddShopPet(pet) => write!(f, "Add {pet} to Shop"),
             Action::ClearShop(item_type) => write!(f, "Clear Shop {item_type:?}"),
             Action::AlterGold(gold_change) => write!(f, "Alter gold by {gold_change}"),
+            Action::AlterCost(cost_change) => write!(f, "Alter cost by {cost_change}"),
             Action::Discount(item_type, gold) => {
                 write!(f, "Discount {gold} Gold from {item_type:?}")
             }
