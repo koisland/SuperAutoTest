@@ -1717,19 +1717,17 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
             }],
             PetName::Stork => {
-                // TODO: Not fully functional as needs team tier num.
                 vec![Effect {
                     owner: None,
                     temp: record.temp_effect,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
                     position: Position::OnSelf,
-                    action: Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets WHERE tier = ? AND pack = 'Star' AND lvl = ?"
-                            .to_string(),
-                        vec![(record.tier - 1).to_string(), record.lvl.to_string()],
-                        None,
-                    )),
+                    action: Action::Summon(SummonType::ShopTierPet {
+                        stats: None,
+                        lvl: Some(record.lvl),
+                        tier_diff: Some(-1)
+                    }),
                     uses: Some(record.n_triggers),
                 }]
             }
@@ -2148,12 +2146,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::Any(ItemCondition::None),
-                // Experience hard-coded. Would need to be added to db.
+                position: Position::TriggerAffected,
                 action: Action::Experience(1),
-                uses: None,
+                uses: Some(record.n_triggers),
             }],
-
             // TODO: Cat needs to have limit. Try to reimplement so not hard-coded effect.
             PetName::Tapir => vec![Effect {
                 owner: None,
@@ -2256,8 +2252,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Summon(SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ? AND is_token = ?"
-                        .to_string(),
+                    String::from("SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ? AND is_token = ?"),
                     vec![
                         1.to_string(),
                         1.to_string(),

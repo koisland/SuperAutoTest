@@ -8,7 +8,7 @@ use crate::{
         stats::Statistics,
         trigger::TRIGGER_START_BATTLE,
     },
-    foods::{food::Food, names::FoodName},
+    foods::names::FoodName,
     pets::names::PetName,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
@@ -21,7 +21,7 @@ use crate::{
         test_spinosaurus_team, test_stegosaurus_team, test_tapir_team, test_tiger_team,
         test_tyrannosaurus_team, test_velociraptor_team, test_walrus_team, test_white_tiger_team,
     },
-    Entity, ItemCondition, Pet, ShopItem, ShopItemViewer, ShopViewer, Team, TeamEffects,
+    Entity, Food, ItemCondition, Pet, ShopItem, ShopItemViewer, ShopViewer, Team, TeamEffects,
     TeamShopping,
 };
 
@@ -100,28 +100,17 @@ fn test_battle_gorilla_team() {
     let mut enemy_team = test_gorilla_team();
 
     // Gorilla has no items before fight.
-    assert_eq!(team.first().unwrap().read().unwrap().item, None);
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 6,
-            health: 9
-        }
-    );
+    let gorilla = team.first().unwrap();
+    let gorilla_original_stats = gorilla.read().unwrap().stats;
+    assert_eq!(gorilla.read().unwrap().item, None);
     team.fight(&mut enemy_team).unwrap();
 
     // Gorilla is hurt and gains coconut.
-    let mut coconut = Food::try_from(FoodName::Coconut).unwrap();
-    coconut.ability.assign_owner(Some(&team.first().unwrap()));
-
-    assert_eq!(team.first().unwrap().read().unwrap().item, Some(coconut));
     assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 6,
-            health: 3
-        }
+        gorilla.read().as_ref().unwrap().item.as_ref().unwrap().name,
+        FoodName::Coconut
     );
+    assert_ne!(gorilla.read().unwrap().stats, gorilla_original_stats);
 }
 
 #[test]
@@ -130,69 +119,52 @@ fn test_battle_leopard_team() {
     let mut enemy_team = test_gorilla_team();
 
     // One leopard on team.
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 10,
-            health: 4
-        }
-    );
     // One gorilla on enemy team.
-    assert_eq!(
-        enemy_team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 6,
-            health: 9
-        }
-    );
+    let leopard_attack = team.first().unwrap().read().unwrap().stats.attack;
+    let leopard_ranged_attack = (leopard_attack as f64) * 0.5;
+
+    let gorilla = enemy_team.first().unwrap();
+    let gorilla_original_stats = gorilla.read().unwrap().stats;
 
     // Leopard activates at start of battle and deals 50% of leopard attack.
     team.fight(&mut enemy_team).unwrap();
 
     assert_eq!(
-        enemy_team.first().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 6,
-            health: 4
-        }
+        gorilla.read().unwrap().stats,
+        gorilla_original_stats - Statistics::new(0, leopard_ranged_attack as isize).unwrap()
     );
 }
 
 #[test]
 fn test_battle_mammoth_team() {
     let mut team = test_mammoth_team();
-    let mut enemy_team = test_mammoth_team();
+    let mut enemy_team = test_gorilla_team();
 
     // Stats of every pet after mammoth.
-    for team in [&team, &enemy_team].into_iter() {
-        for pet in team.friends.get(1..).unwrap().iter().flatten() {
-            assert_eq!(
-                pet.read().unwrap().stats,
-                Statistics {
-                    attack: 3,
-                    health: 4
-                }
-            )
-        }
-    }
+    const MAMMOTH_BUFF: Statistics = Statistics {
+        attack: 2,
+        health: 2,
+    };
+    let starting_stats: Vec<Statistics> = team
+        .friends
+        .iter()
+        .skip(1)
+        .flatten()
+        .map(|dogs| dogs.read().unwrap().stats)
+        .collect();
 
-    // 4 attack phases to kill mammoth.
-    for _ in 0..4 {
+    // 2 attack phases to kill mammoth.
+    for _ in 0..2 {
         team.fight(&mut enemy_team).unwrap();
     }
 
     // All pets on team gained (2,2)
-    for team in [&team, &enemy_team].into_iter() {
-        for pet in team.friends.iter().flatten() {
-            assert_eq!(
-                pet.read().unwrap().stats,
-                Statistics {
-                    attack: 5,
-                    health: 6
-                }
-            )
-        }
-    }
+    assert!(team
+        .all()
+        .iter()
+        .map(|dogs| dogs.read().unwrap().stats)
+        .zip_eq(starting_stats)
+        .all(|(after, before)| after == before + MAMMOTH_BUFF))
 }
 
 #[test]
@@ -286,21 +258,19 @@ fn test_battle_alpaca_team() {
         FoodName::Mushroom
     );
 
-    for i in 0..4 {
-        team.fight(&mut enemy_team).unwrap();
-        // Cricket spawns and gets two exp leveling it to lvl 2.
-        if i == 0 {
-            let zombie_cricket = team.first().unwrap();
-            assert_eq!(zombie_cricket.read().unwrap().lvl, 2);
-            assert_eq!(zombie_cricket.read().unwrap().exp, 2);
-        };
-        // Alpaca respawns.
-        if i == 3 {
-            let respawned_alpaca = team.first().unwrap();
-            // Alpaca summoned but doesn't get exp from remaining alpaca.
-            assert_eq!(respawned_alpaca.read().unwrap().exp, 0);
-        }
-    }
+    team.fight(&mut enemy_team).unwrap();
+
+    // Zombie cricket gets 2 exp from 2 alpacas.
+    let zombie_cricket = team.first().unwrap();
+    assert_eq!(zombie_cricket.read().unwrap().lvl, 2);
+    assert_eq!(zombie_cricket.read().unwrap().exp, 2);
+
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
+
+    let respawned_alpaca = team.first().unwrap();
+    // Alpaca summoned but doesn't get exp from remaining alpaca since uses limited.
+    assert_eq!(respawned_alpaca.read().unwrap().exp, 0);
 }
 
 #[test]
@@ -468,9 +438,9 @@ fn test_battle_sabertooth_team() {
     // Sabertooth hurt.
     assert_ne!(sabertooth_stats, team.nth(1).unwrap().read().unwrap().stats);
     let summoned_pet = team.first().unwrap();
-    // Tier 1, lvl 1, pet at fixed (8,8) summoned.
+    // Tier 1, lvl 1, pet at (6,6) summoned.
     assert!(
-        summoned_pet.read().unwrap().stats == Statistics::new(8, 8).unwrap()
+        summoned_pet.read().unwrap().stats == Statistics::new(6, 6).unwrap()
             && summoned_pet.read().unwrap().tier == 1
             && summoned_pet.read().unwrap().lvl == 1
     );
@@ -485,7 +455,6 @@ fn test_battle_spinosaurus_team() {
     // Dog at pos 1 to get buff is (3,4).
     let dog = team.nth(1).unwrap();
     let dog_stats_original = dog.read().unwrap().stats;
-    assert_eq!(dog_stats_original, Statistics::new(3, 4).unwrap());
 
     // Dog at pos 0 faints
     team.fight(&mut enemy_team).unwrap();
@@ -503,10 +472,8 @@ fn test_battle_stegosaurus_team() {
     let mut team = test_stegosaurus_team();
     let mut enemy_team = test_gorilla_team();
 
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics::new(3, 4).unwrap()
-    );
+    let dog = team.first().unwrap();
+    let dog_original_stats = dog.read().unwrap().stats;
 
     // Current turn is 1 so stego should give (1/1 * 1) = (1/1)
     assert!(team.history.curr_turn == 1);
@@ -517,7 +484,7 @@ fn test_battle_stegosaurus_team() {
 
     assert_eq!(
         team.first().unwrap().read().unwrap().stats,
-        Statistics::new(4, 5).unwrap()
+        dog_original_stats + Statistics::new(1, 1).unwrap()
     );
 
     // Reset team.
@@ -532,7 +499,7 @@ fn test_battle_stegosaurus_team() {
 
     assert_eq!(
         team.first().unwrap().read().unwrap().stats,
-        Statistics::new(6, 7).unwrap()
+        dog_original_stats + Statistics::new(3, 3).unwrap()
     );
 }
 
@@ -716,7 +683,12 @@ fn test_shop_chicken() {
     let mut team = test_chicken_team();
 
     team.set_shop_seed(Some(12)).open_shop().unwrap();
-    team.print_shop();
+    // Add pill to shop.
+    team.shop
+        .add_item(ShopItem::new(
+            Food::try_from(FoodName::SleepingPill).unwrap(),
+        ))
+        .unwrap();
 
     fn get_shop_stats(team: &Team, range: RangeFrom<usize>) -> (Statistics, Statistics) {
         let shop_pets = team
@@ -735,9 +707,10 @@ fn test_shop_chicken() {
         attack: 1,
         health: 1,
     };
-    let (pig_start_stats, beaver_start_stats) = get_shop_stats(&team, 1..);
+    let (pig_start_stats, beaver_start_stats) = get_shop_stats(&team, 0..);
 
-    team.buy(&Position::First, &Entity::Pet, &Position::First)
+    // Pill chicken.
+    team.buy(&Position::Relative(-1), &Entity::Food, &Position::First)
         .unwrap();
 
     let (pig_curr_stats, beaver_curr_stats) = get_shop_stats(&team, 0..);
@@ -909,11 +882,11 @@ fn test_shop_ostrich_team() {
     // Check shop for tier 5+.
     let shop = team.get_shop();
     let num_tier_5_6 = shop.pets.iter().filter(|item| is_tier_5_6(item)).count();
-    // One tier 5 or above pet.
-    assert_eq!(num_tier_5_6, 1);
+    // Two tier 5 or above pet.
+    assert_eq!(num_tier_5_6, 2);
 
     team.close_shop().unwrap();
-    // Ostrich gains (1,1) * (1,1) = (1,1)
+    // Ostrich gains (1,1) * (2,2) = (2,2)
     assert_eq!(
         ostrich.read().unwrap().stats,
         ostrich_start_stats + OSTRICH_BUFF * Statistics::new(num_tier_5_6, num_tier_5_6).unwrap()

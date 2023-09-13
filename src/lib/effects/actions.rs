@@ -139,7 +139,7 @@ pub enum SummonType {
     /// 2. Pet `level`. Defaults to current [`Pet`] if omitted.
     /// 3. Keep item of current [`Pet`].
     SelfPet(Option<Statistics>, Option<usize>, bool),
-    /// Summon a random pet at the same `tier` as the current [`Pet`]. Used for [`Popcorns`](crate::FoodName::Popcorns).
+    /// Summon a random pet at the same `tier` as the current [`Pet`]. Used for [`Popcorns`](crate::FoodName::Popcorn).
     /// 1. Pet [`Statistics`]. Defaults to current [`Pet`] if omitted.
     /// 2. Pet `level`. Defaults to current [`Pet`] if omitted.
     SelfTierPet(Option<Statistics>, Option<usize>),

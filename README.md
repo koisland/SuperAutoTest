@@ -221,8 +221,13 @@ python setup.py install
 * Add trait for randomly generating teams.
 * Add method to iterate through record fields/fieldnames and build macro to construct SQL statements.
     * Manually adding fields is tedious and error-prone.
-
+* Build lexer to parse raw effect text into `Effect` struct.
+* Add feature flags for each pack.
+* Improve interface.
+    * Function arguments with impls like `AsRef` and `Into/TryInto`. ex. `Shop.add_item`
+    * Type state pattern with `Shop<Open/Close>`
 ---
+
 ## Sources
 * https://superautopets.fandom.com/wiki
 * https://emoji.supply/kitchen/

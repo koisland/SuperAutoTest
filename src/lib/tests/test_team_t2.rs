@@ -384,10 +384,10 @@ fn test_battle_pug_team() {
 fn test_battle_stork_team() {
     let mut team = test_stork_team();
     let mut enemy_team = test_mammoth_team();
+    team.set_shop_tier(2).unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 
-    // TODO: Currently, has no tier information so uses tier 1 ( (stork tier) 2 - 1) by default.
     assert_eq!(team.first().unwrap().read().unwrap().tier, 1);
     let first_fainted_pet = team.fainted.first().unwrap();
     assert_eq!(
