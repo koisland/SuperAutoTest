@@ -200,7 +200,7 @@ pub trait TeamViewer {
     /// ```
     fn get_effects(&self) -> Vec<Vec<Effect>>;
 
-    /// Get pets affected by an effect and a trigger.
+    /// Get pets affected by an [`Effect`].
     /// # Example
     /// ```
     /// use saptest::{
@@ -227,7 +227,7 @@ pub trait TeamViewer {
     ///     true
     /// );
     /// // Search for pets affected by effect.
-    /// let pets_found = team.get_pets_by_effect(&TRIGGER_NONE, &croc_effect, Some(&enemy_team)).unwrap();
+    /// let pets_found = team.get_pets_by_effect(&croc_effect, Some(&enemy_team)).unwrap();
     /// // As expected, the last enemy pet is the target of the effect.
     /// let pet_found = pets_found.first().unwrap();
     /// assert!(
@@ -237,7 +237,6 @@ pub trait TeamViewer {
     /// ```
     fn get_pets_by_effect(
         &self,
-        trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
@@ -902,7 +901,6 @@ impl TeamViewer for Team {
 
     fn get_pets_by_effect(
         &self,
-        trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
@@ -917,7 +915,7 @@ impl TeamViewer for Team {
             curr_pet,
             &effect.target,
             &effect.position,
-            Some(trigger),
+            Some(&effect.trigger),
             opponent,
         )
     }

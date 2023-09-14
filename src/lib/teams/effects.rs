@@ -228,12 +228,13 @@ pub trait TeamEffects {
     /// team.set_seed(Some(0));
     ///
     /// // Without a reference to the pet owning the effect, this will fail.
-    /// assert!(team.apply_effect(&TRIGGER_START_BATTLE, &no_ref_mosquito_effect, Some(&mut enemy_team)).is_err());
+    /// assert!(team.apply_effect(&no_ref_mosquito_effect, Some(&mut enemy_team)).is_err());
     ///
     /// // Get mosquito_effect with reference.
     /// // Apply effect of mosquito at position 0 to a pet on team to enemy team.
-    /// let mosquito_effect = team.first().unwrap().read().unwrap().effect.first().cloned().unwrap();
-    /// team.apply_effect(&TRIGGER_START_BATTLE, &mosquito_effect, Some(&mut enemy_team)).unwrap();
+    /// let mosquito = team.friends[0].as_ref().unwrap();
+    /// let mosquito_effect = mosquito.read().unwrap().effect[0].clone();
+    /// team.apply_effect(&mosquito_effect, Some(&mut enemy_team)).unwrap();
     ///
     /// // Last enemy mosquito takes one damage and opponent triggers gets updated.
     /// assert_eq!(
@@ -249,7 +250,6 @@ pub trait TeamEffects {
     /// ```
     fn apply_effect(
         &mut self,
-        trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
@@ -457,10 +457,10 @@ impl TeamEffects for Team {
         for (team, effect) in activated_effects.iter() {
             match team {
                 Target::Friend => {
-                    self.apply_effect(&TRIGGER_START_BATTLE, effect, Some(opponent))?;
+                    self.apply_effect(effect, Some(opponent))?;
                 }
                 Target::Enemy => {
-                    opponent.apply_effect(&TRIGGER_START_BATTLE, effect, Some(self))?;
+                    opponent.apply_effect(effect, Some(self))?;
                 }
                 _ => unreachable!("Not possible to have other targets."),
             }
@@ -495,11 +495,12 @@ impl TeamEffects for Team {
             };
         }
 
-        for effect in applied_effects.into_iter() {
+        for mut effect in applied_effects.into_iter() {
+            effect.trigger = trigger.clone();
             if let Some(opponent) = opponent.as_mut() {
-                self.apply_effect(trigger, &effect, Some(opponent))?;
+                self.apply_effect(&effect, Some(opponent))?;
             } else {
-                self.apply_effect(trigger, &effect, None)?;
+                self.apply_effect(&effect, None)?;
             }
         }
 
@@ -626,11 +627,12 @@ impl TeamEffects for Team {
             }
         };
 
-        for effect in applied_effects.into_iter() {
+        for mut effect in applied_effects.into_iter() {
+            effect.trigger = trigger.clone();
             if let Some(opponent) = opponent.as_mut() {
-                self.apply_effect(trigger, &effect, Some(opponent))?;
+                self.apply_effect(&effect, Some(opponent))?;
             } else {
-                self.apply_effect(trigger, &effect, None)?;
+                self.apply_effect(&effect, None)?;
             }
         }
         Ok(self)
@@ -638,7 +640,6 @@ impl TeamEffects for Team {
 
     fn apply_effect(
         &mut self,
-        trigger: &Outcome,
         effect: &Effect,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
@@ -649,14 +650,13 @@ impl TeamEffects for Team {
         match (&effect.target, &effect.action) {
             // Swapping pets only possible between two pets so place here where only activates once.
             (_, Action::Swap(swap_type)) => {
-                affected_pets.extend(self.swap_pets(swap_type, effect, trigger, opponent)?)
+                affected_pets.extend(self.swap_pets(swap_type, effect, opponent)?)
             }
             // Shuffle effects act on sets of pets so must be here to only activate once.
             (target_team, Action::Shuffle(shuffle_by)) => affected_pets.extend(self.shuffle_pets(
                 target_team,
                 shuffle_by,
                 effect,
-                trigger,
                 opponent,
             )?),
             // All shop actions go here.
@@ -664,13 +664,13 @@ impl TeamEffects for Team {
             // Effects applied to individual pets are here.
             _ => {
                 let target_pets = if let Some(opponent) = opponent.as_ref() {
-                    self.get_pets_by_effect(trigger, effect, Some(opponent))?
+                    self.get_pets_by_effect(effect, Some(opponent))?
                 } else {
-                    self.get_pets_by_effect(trigger, effect, None)?
+                    self.get_pets_by_effect(effect, None)?
                 };
 
                 // Allow effect to activate if one or fewer pets remain.
-                if trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
+                if effect.trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
                     && target_pets.is_empty()
                 {
                     let target_pet = if effect.target == Target::Enemy {

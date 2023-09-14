@@ -400,9 +400,11 @@ impl TeamShoppingHelpers for Team {
             // For pet effect of leveled up pet.
             for mut effect in to_pet.read().unwrap().get_effect(prev_lvl)? {
                 effect.assign_owner(Some(to_pet));
+
                 if effect.trigger.status == Status::Levelup {
+                    effect.trigger = levelup_trigger.clone();
                     // Apply pet effect directly here if trigger is levelup.
-                    self.apply_effect(&levelup_trigger, &effect, None)?;
+                    self.apply_effect(&effect, None)?;
                 }
             }
             // Increment level.

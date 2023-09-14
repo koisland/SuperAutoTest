@@ -240,23 +240,15 @@ fn test_apply_effect() {
 
     // Without a reference to the pet owning the effect, this will fail.
     assert!(team
-        .apply_effect(
-            &TRIGGER_START_BATTLE,
-            &no_ref_mosquito_effect,
-            Some(&mut enemy_team)
-        )
+        .apply_effect(&no_ref_mosquito_effect, Some(&mut enemy_team))
         .is_err());
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
     let mosquito = team.friends[0].as_ref().unwrap();
     let mosquito_effect = mosquito.read().unwrap().effect[0].clone();
-    team.apply_effect(
-        &TRIGGER_START_BATTLE,
-        &mosquito_effect,
-        Some(&mut enemy_team),
-    )
-    .unwrap();
+    team.apply_effect(&mosquito_effect, Some(&mut enemy_team))
+        .unwrap();
 
     // Last enemy mosquito takes one damage and opponent triggers gets updated.
     assert_eq!(

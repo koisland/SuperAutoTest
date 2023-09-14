@@ -104,7 +104,6 @@ pub(crate) trait EffectApplyHelpers {
         &mut self,
         swap_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
@@ -113,7 +112,6 @@ pub(crate) trait EffectApplyHelpers {
         target_team: &Target,
         shuffle_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
@@ -216,11 +214,7 @@ impl EffectApplyHelpers for Team {
             });
         if let Some(valid_food) = item {
             // Use effect on affected pets.
-            let affected_pets = self.get_pets_by_effect(
-                &valid_food.ability.trigger,
-                &valid_food.ability,
-                Some(opponent),
-            )?;
+            let affected_pets = self.get_pets_by_effect(&valid_food.ability, Some(opponent))?;
             for affected_pet in affected_pets.iter() {
                 if affected_pet.read().unwrap().team.as_ref() == Some(&self.name) {
                     self.apply_single_effect(
@@ -247,13 +241,12 @@ impl EffectApplyHelpers for Team {
         &mut self,
         swap_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let target_pets = if let Some(opponent) = opponent.as_ref() {
-            self.get_pets_by_effect(trigger, effect, Some(opponent))?
+            self.get_pets_by_effect(effect, Some(opponent))?
         } else {
-            self.get_pets_by_effect(trigger, effect, None)?
+            self.get_pets_by_effect(effect, None)?
         };
 
         if target_pets.len() != 2 {
@@ -287,7 +280,6 @@ impl EffectApplyHelpers for Team {
         target_team: &Target,
         shuffle_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let teams = match target_team {
@@ -310,7 +302,7 @@ impl EffectApplyHelpers for Team {
                 // Find pets on current team.
                 &Target::Friend,
                 &effect.position,
-                Some(trigger),
+                Some(&effect.trigger),
                 None,
             )?;
             match shuffle_type {
@@ -1048,7 +1040,7 @@ impl EffectApplyHelpers for Team {
                 )?;
             }
             _ => {
-                for pet in self.get_pets_by_effect(&TRIGGER_NONE, effect, None)? {
+                for pet in self.get_pets_by_effect(effect, None)? {
                     self.apply_single_effect(&pet, &effect_owner, effect, None)?;
                 }
             }
@@ -1542,9 +1534,9 @@ impl EffectApplyHelpers for Team {
                 modified_effect.target = *target;
 
                 let targets = if let Some(opponent) = opponent.as_mut() {
-                    self.get_pets_by_effect(&TRIGGER_NONE, &modified_effect, Some(opponent))?
+                    self.get_pets_by_effect(&modified_effect, Some(opponent))?
                 } else {
-                    self.get_pets_by_effect(&TRIGGER_NONE, &modified_effect, None)?
+                    self.get_pets_by_effect(&modified_effect, None)?
                 };
                 affected_pets.extend(self.copy_effect(attr, targets, affected_pet)?);
             }
