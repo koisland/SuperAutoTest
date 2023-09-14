@@ -1002,10 +1002,19 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             PetName::Jerboa => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
-                trigger: trigger_self_food_ate_name(FoodName::Apple),
+                trigger: TRIGGER_SELF_FOOD_EATEN,
                 target: Target::Friend,
                 position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
-                action: Action::Add(StatChangeType::Static(effect_stats)),
+                action: Action::Conditional(
+                    LogicType::If(
+                        ConditionType::Trigger(
+                            Entity::Food,
+                            EqualityCondition::Name(EntityName::Food(FoodName::Apple))
+                        )
+                    ),
+                    Box::new(Action::Add(StatChangeType::Static(effect_stats))),
+                    Box::new(Action::None)
+                ),
                 uses: Some(record.n_triggers),
             }],
             // TODO: Add remove perks action.

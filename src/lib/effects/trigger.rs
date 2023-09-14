@@ -10,12 +10,12 @@ use crate::{
     },
     error::SAPTestError,
     shop::trigger::{
-        trigger_self_food_ate_name, TRIGGER_ANY_FOOD_BOUGHT, TRIGGER_ANY_FOOD_EATEN,
-        TRIGGER_ANY_GAIN_PERK, TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_ROLL,
-        TRIGGER_SELF_FOOD_EATEN, TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD,
-        TRIGGER_SHOP_TIER_UPGRADED, TRIGGER_TOY_BREAK,
+        TRIGGER_ANY_FOOD_BOUGHT, TRIGGER_ANY_FOOD_EATEN, TRIGGER_ANY_GAIN_PERK,
+        TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_PET_SOLD, TRIGGER_ROLL, TRIGGER_SELF_FOOD_EATEN,
+        TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD, TRIGGER_SHOP_TIER_UPGRADED,
+        TRIGGER_TOY_BREAK,
     },
-    FoodName, Pet,
+    Pet,
 };
 
 use super::state::{EqualityCondition, TeamCondition};
@@ -111,7 +111,8 @@ impl FromStr for Outcomes {
             "Enemy hurt" => outcomes.push(TRIGGER_ANY_ENEMY_HURT),
             "Knock out" => outcomes.push(TRIGGER_KNOCKOUT),
             "Hurt & Faint" => outcomes.extend([TRIGGER_SELF_HURT, TRIGGER_SELF_FAINT]),
-            "Eats Apple" => outcomes.push(trigger_self_food_ate_name(FoodName::Apple)),
+            // TODO:
+            "Eats Apple" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
             "Friend faints" => outcomes.push(TRIGGER_ANY_FAINT),
             "End turn & Start of battle" => {
                 outcomes.extend([TRIGGER_END_TURN, TRIGGER_START_BATTLE])
@@ -143,6 +144,7 @@ pub const TRIGGER_NO_ENEMIES_LEFT: Outcome = Outcome {
     afflicting_team: Target::Friend,
     position: Position::None,
     stat_diff: None,
+    afflicting_food: None,
 };
 
 /// Trigger for when one pet left on team.
@@ -154,6 +156,7 @@ pub const TRIGGER_ONE_OR_ZERO_PET_LEFT: Outcome = Outcome {
     afflicting_team: Target::Enemy,
     position: Position::None,
     stat_diff: None,
+    afflicting_food: None,
 };
 
 /// Start of battle trigger.
@@ -163,6 +166,7 @@ pub const TRIGGER_START_BATTLE: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
 };
@@ -175,6 +179,7 @@ pub const TRIGGER_BEFORE_FIRST_BATTLE: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
 };
@@ -186,6 +191,7 @@ pub const TRIGGER_START_TURN: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
 };
@@ -197,6 +203,7 @@ pub const TRIGGER_END_TURN: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
 };
@@ -211,6 +218,7 @@ pub const TRIGGER_DMG_CALC: Outcome = Outcome {
     afflicting_team: Target::None,
     position: Position::OnSelf,
     stat_diff: None,
+    afflicting_food: None,
 };
 
 /// Triggers for only attack dmg calculation.
@@ -223,6 +231,7 @@ pub const TRIGGER_ATK_DMG_CALC: Outcome = Outcome {
     afflicting_team: Target::None,
     position: Position::OnSelf,
     stat_diff: None,
+    afflicting_food: None,
 };
 
 /// Triggers for only indirect attack calculation.
@@ -235,6 +244,7 @@ pub const TRIGGER_INDIR_DMG_CALC: Outcome = Outcome {
     afflicting_team: Target::None,
     position: Position::OnSelf,
     stat_diff: None,
+    afflicting_food: None,
 };
 
 /// Trigger for nothing?
@@ -245,6 +255,7 @@ pub const TRIGGER_NONE: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::None,
     afflicting_team: Target::None,
 };
@@ -256,6 +267,7 @@ pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -267,6 +279,7 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -278,6 +291,7 @@ pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -290,6 +304,7 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -302,6 +317,7 @@ pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Enemy,
     afflicting_team: Target::None,
 };
@@ -314,6 +330,7 @@ pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -325,6 +342,7 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Enemy,
     afflicting_team: Target::None,
 };
@@ -336,6 +354,7 @@ pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -347,6 +366,7 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -359,6 +379,7 @@ pub const TRIGGER_ANY_HURT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -371,6 +392,7 @@ pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Enemy,
     afflicting_team: Target::None,
 };
@@ -386,6 +408,7 @@ pub const TRIGGER_BATTLE_FOOD: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -397,6 +420,7 @@ pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -408,6 +432,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -420,6 +445,7 @@ pub const TRIGGER_SELF_AFTER_ATTACK: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -432,6 +458,7 @@ pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -443,6 +470,7 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -455,6 +483,7 @@ pub const TRIGGER_AHEAD_HURT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -466,6 +495,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -477,6 +507,7 @@ pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -488,6 +519,7 @@ pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Enemy,
     afflicting_team: Target::None,
 };
@@ -499,6 +531,7 @@ pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -510,6 +543,7 @@ pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Enemy,
     afflicting_team: Target::None,
 };
@@ -521,6 +555,7 @@ pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };
@@ -533,6 +568,7 @@ pub const TRIGGER_ANY_GAIN_AILMENT: Outcome = Outcome {
     affected_pet: None,
     afflicting_pet: None,
     stat_diff: None,
+    afflicting_food: None,
     affected_team: Target::Friend,
     afflicting_team: Target::None,
 };

@@ -257,6 +257,9 @@ impl std::fmt::Display for ConditionType {
             ConditionType::Pet(target, item_cond) => write!(f, "Pet ({target:?}) {item_cond}"),
             ConditionType::Team(target, team_cond) => write!(f, "{target:?} Team {team_cond}"),
             ConditionType::Shop(shop_cond) => write!(f, "Shop {shop_cond:?}"),
+            ConditionType::Trigger(entity, item_cond) => {
+                write!(f, "Trigger Entity ({entity:?}) {item_cond}")
+            }
         }
     }
 }

@@ -670,7 +670,7 @@ impl TeamEffects for Team {
                 };
 
                 // Allow effect to activate if one or fewer pets remain.
-                if effect.trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
+                if trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
                     && target_pets.is_empty()
                 {
                     let target_pet = if effect.target == Target::Enemy {

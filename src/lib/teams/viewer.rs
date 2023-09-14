@@ -357,11 +357,18 @@ impl TeamViewer for Team {
     where
         T: IntoIterator<Item = Arc<RwLock<Pet>>>,
     {
-        let all_pets = all_pets.into_iter();
+        let mut all_pets = all_pets.into_iter();
         match eq_cond {
-            EqualityCondition::IsSelf => all_pets
-                .filter(|pet| Arc::downgrade(pet).ptr_eq(self.curr_pet.as_ref().unwrap()))
-                .collect_vec(),
+            EqualityCondition::IsSelf => {
+                let Some(curr_pet) = self.curr_pet.as_ref() else {
+                    return vec![];
+                };
+                if let Some(pet) = all_pets.find(|pet| Arc::downgrade(pet).ptr_eq(curr_pet)) {
+                    vec![pet]
+                } else {
+                    vec![]
+                }
+            }
             EqualityCondition::Tier(tier) => all_pets
                 .filter(|pet| pet.read().unwrap().tier == *tier)
                 .collect_vec(),

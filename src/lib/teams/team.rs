@@ -535,7 +535,7 @@ impl Team {
         // If item, assign/activate item. Otherwise, set to None.
         if let Some(food) = item.as_ref() {
             self.buy_food_behavior(
-                Arc::new(RwLock::new(food.clone())),
+                &Arc::new(RwLock::new(food.clone())),
                 self.first(),
                 pos,
                 false,

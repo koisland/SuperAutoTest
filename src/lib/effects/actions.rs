@@ -1,13 +1,17 @@
 use crate::{
     effects::{
         effect::Effect,
-        state::{ItemCondition, Position, ShopCondition, Target, TeamCondition},
+        state::{
+            EqualityCondition, ItemCondition, Outcome, Position, ShopCondition, Target,
+            TeamCondition,
+        },
         stats::Statistics,
     },
     error::SAPTestError,
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
-    Entity, PetName, ToyName,
+    teams::effect_helpers::EffectApplyHelpers,
+    Entity, PetName, Team, ToyName,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -226,10 +230,72 @@ pub enum RandomizeType {
 pub enum ConditionType {
     /// Pet condition.
     Pet(Target, ItemCondition),
+    /// Trigger condition.
+    /// * For [`Entity::Pet`], only the affected pet is checked.
+    Trigger(Entity, EqualityCondition),
     /// Team condition.
     Team(Target, TeamCondition),
     /// Shop condition.
     Shop(ShopCondition),
+}
+
+impl ConditionType {
+    /// Get the number of actions given a [`ConditionType`].
+    pub(crate) fn num_actions_for_each(
+        &self,
+        team: &Team,
+        opponent: &Option<&mut Team>,
+        trigger: Option<&Outcome>,
+    ) -> Result<usize, SAPTestError> {
+        match self {
+            // Get number of pets matching condition
+            ConditionType::Pet(target, cond) => {
+                Ok(team.get_matching_pets(target, cond, opponent)?.len())
+            }
+            ConditionType::Team(target, cond) => {
+                let selected_team = if *target == Target::Friend {
+                    team
+                } else if let Some(opponent) = opponent.as_ref() {
+                    opponent
+                } else {
+                    return Err(SAPTestError::InvalidTeamAction {
+                        subject: format!("Incompatible Target {target:?} or Missing Opponent"),
+                        reason: format!("Opponent must be known for this action or invalid target {target:?} for {self:?}."),
+                    });
+                };
+                Ok(cond.to_num(selected_team))
+            }
+            ConditionType::Trigger(entity, cond) => {
+                let Some(trigger) = trigger else {
+                    return Ok(0);
+                };
+                let res = match entity {
+                    Entity::Pet => usize::from(
+                        trigger
+                            .affected_pet
+                            .as_ref()
+                            .and_then(|pet| pet.upgrade())
+                            .map(|pet| cond.matches_pet(&pet.read().unwrap()))
+                            .unwrap_or_default(),
+                    ),
+                    Entity::Food => usize::from(
+                        trigger
+                            .afflicting_food
+                            .as_ref()
+                            .and_then(|food| food.upgrade())
+                            .map(|food| cond.matches_food(&food.read().unwrap()))
+                            .unwrap_or_default(),
+                    ),
+                    Entity::Toy => todo!(),
+                };
+                Ok(res)
+            }
+            _ => Err(SAPTestError::InvalidTeamAction {
+                subject: "Not Implemented".to_string(),
+                reason: format!("ConditionType {self:?} not implemented for LogicType::ForEach."),
+            }),
+        }
+    }
 }
 
 /// Conditional logic for [`Action::Conditional`].

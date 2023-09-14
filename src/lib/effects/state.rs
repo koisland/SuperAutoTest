@@ -9,7 +9,7 @@ use crate::{
     pets::pet::Pet,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
-    FoodName, Team, TeamViewer,
+    Food, PetCombat, Team, TeamViewer,
 };
 
 use super::actions::Action;
@@ -31,6 +31,28 @@ pub enum EqualityCondition {
     Trigger(Status),
     /// Is frozen. Only available for shops.
     Frozen,
+}
+
+impl EqualityCondition {
+    pub(crate) fn matches_food(&self, food: &Food) -> bool {
+        match self {
+            EqualityCondition::Tier(tier) => food.tier == *tier,
+            EqualityCondition::Name(EntityName::Food(food_name)) => food.name == *food_name,
+            EqualityCondition::Action(action) => food.ability.action == **action,
+            EqualityCondition::Trigger(trigger) => food.ability.trigger.status == *trigger,
+            _ => false,
+        }
+    }
+
+    pub(crate) fn matches_pet(&self, pet: &Pet) -> bool {
+        match self {
+            EqualityCondition::Tier(tier) => pet.tier == *tier,
+            EqualityCondition::Name(EntityName::Pet(pet_name)) => pet.name == *pet_name,
+            EqualityCondition::Action(action) => pet.has_effect_ability(action, false),
+            EqualityCondition::Trigger(trigger) => pet.has_effect_trigger(trigger, false),
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
@@ -64,7 +86,7 @@ pub enum TeamCondition {
 }
 
 impl TeamCondition {
-    /// Convert to usize.
+    /// Count number of times a [`TeamCondition`] is met.
     pub(crate) fn to_num(&self, team: &Team) -> usize {
         match self {
             TeamCondition::PreviousBattle(outcome) => team
@@ -83,6 +105,36 @@ impl TeamCondition {
                 num.unwrap_or_else(|| *team.counters.get(counter).unwrap_or(&0))
             }
             TeamCondition::NumberTurns(turns) => turns.unwrap_or(team.history.curr_turn),
+        }
+    }
+    /// Check if [`TeamCondition`] is met.
+    pub(crate) fn matches_team(&self, team: &Team) -> bool {
+        match self {
+            TeamCondition::PreviousBattle(outcome) => {
+                // Get last battle outcome and if matches condition, apply effect.
+                if let Some(last_outcome) = team.history.fight_outcomes.last() {
+                    last_outcome == outcome
+                } else {
+                    false
+                }
+            }
+            TeamCondition::OpenSpace(num_open) => {
+                num_open.map_or(false, |num_open| num_open == team.open_slots())
+            }
+            TeamCondition::NumberPets(num_pets) => {
+                num_pets.map_or(false, |num_pets| num_pets == team.filled_slots())
+            }
+            TeamCondition::NumberPetsLessEqual(num_pets) => *num_pets >= team.filled_slots(),
+            TeamCondition::NumberPetsGreaterEqual(num_pets) => *num_pets <= team.filled_slots(),
+            TeamCondition::NumberFaintedMultiple(multiple) => team.fainted.len() % *multiple == 0,
+            TeamCondition::Counter(counter_name, num_counts) => team
+                .counters
+                .get(counter_name)
+                .map(|count| Some(count) == num_counts.as_ref())
+                .unwrap_or(false),
+            TeamCondition::NumberTurns(turns) => {
+                turns.map_or(false, |turns| team.history.curr_turn == turns)
+            }
         }
     }
 }
@@ -111,7 +163,6 @@ pub enum ShopCondition {
 impl ShopCondition {
     pub(crate) fn to_num(&self, team: &Team) -> usize {
         match self {
-            ShopCondition::InState(_) => panic!("Can't convert shop state to num."),
             ShopCondition::Gold(gold) => gold.unwrap_or(team.shop.coins),
             ShopCondition::GoldGreaterEqual(gold) => *gold,
             ShopCondition::Tier(tier) => tier.unwrap_or_else(|| team.shop.tier()),
@@ -119,6 +170,7 @@ impl ShopCondition {
             ShopCondition::TierMultiple(tier_multiple) => team.shop.tier() / tier_multiple,
             // Return divisor. Num times multiple goes into num sold pets.
             ShopCondition::NumberSoldMultiple(num_sold_mult) => team.sold.len() / num_sold_mult,
+            _ => panic!("Can't convert {self:?} to num."),
         }
     }
 }
@@ -261,7 +313,7 @@ pub struct Outcome {
     /// The affected team.
     pub affected_team: Target,
     #[serde(skip)]
-    /// The pet causing the status_update.
+    /// The pet causing the status update.
     pub(crate) afflicting_pet: Option<Weak<RwLock<Pet>>>,
     /// The team causing the status update.
     pub afflicting_team: Target,
@@ -269,6 +321,9 @@ pub struct Outcome {
     pub position: Position,
     /// Difference in [`Statistics`] after status update from initial state.
     pub(crate) stat_diff: Option<Statistics>,
+    #[serde(skip)]
+    /// The shop food causing the status update.
+    pub(crate) afflicting_food: Option<Weak<RwLock<Food>>>,
 }
 
 impl PartialEq for Outcome {
@@ -292,12 +347,13 @@ impl Default for Outcome {
     fn default() -> Self {
         Self {
             status: Status::None,
-            affected_pet: Default::default(),
+            affected_pet: None,
             affected_team: Target::None,
-            afflicting_pet: Default::default(),
+            afflicting_pet: None,
             afflicting_team: Target::None,
             position: Position::None,
-            stat_diff: Default::default(),
+            stat_diff: None,
+            afflicting_food: None,
         }
     }
 }
@@ -319,6 +375,12 @@ impl Outcome {
     /// ```
     pub fn set_affected(&mut self, pet: &Arc<RwLock<Pet>>) -> &mut Self {
         self.affected_pet = Some(Arc::downgrade(pet));
+        self
+    }
+
+    /// Attach the afflicting food to this trigger.
+    pub fn set_afflicting_food(&mut self, food: &Arc<RwLock<Food>>) -> &mut Self {
+        self.afflicting_food = Some(Arc::downgrade(food));
         self
     }
 
@@ -364,6 +426,7 @@ impl Outcome {
         self.afflicting_pet.as_ref().cloned()
     }
 }
+
 /// Status of [`Entity`](super::effect::Entity).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
 pub enum Status {
@@ -401,8 +464,6 @@ pub enum Status {
     GainPerk,
     /// Pet gains an ailment. ex. [`FoodName::Ink`]
     GainAilment,
-    /// Specific food eaten.
-    AteSpecificFood(FoodName),
     /// Team State
     IsTeam(TeamCondition),
     /// Pet bought.

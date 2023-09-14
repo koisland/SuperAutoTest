@@ -36,14 +36,14 @@ pub(crate) trait TeamShoppingHelpers {
     ) -> Result<(), SAPTestError>;
     fn buy_food_behavior(
         &mut self,
-        food: Arc<RwLock<Food>>,
+        food: &Arc<RwLock<Food>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError>;
     fn buy_pet_behavior(
         &mut self,
-        pet: Arc<RwLock<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError>;
@@ -422,7 +422,7 @@ impl TeamShoppingHelpers for Team {
     }
     fn buy_food_behavior(
         &mut self,
-        food: Arc<RwLock<Food>>,
+        food: &Arc<RwLock<Food>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
@@ -445,21 +445,25 @@ impl TeamShoppingHelpers for Team {
                 // Create trigger if food eaten.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
-                let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
                 let mut trigger_any_gained_perk = TRIGGER_ANY_GAIN_PERK;
                 let mut trigger_self_gained_perk = TRIGGER_SELF_GAIN_PERK;
 
-                trigger_any_gained_perk.set_affected(&pet);
-                trigger_self_gained_perk.set_affected(&pet);
-                trigger_self_food.set_affected(&pet);
-                trigger_any_food.set_affected(&pet);
-                trigger_self_food_name.set_affected(&pet);
+                trigger_any_gained_perk
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_self_gained_perk
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_self_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_any_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
 
                 self.triggers.extend([
                     trigger_self_food,
                     trigger_any_food,
-                    trigger_self_food_name,
                     trigger_any_gained_perk,
                     trigger_self_gained_perk,
                 ]);
@@ -475,12 +479,12 @@ impl TeamShoppingHelpers for Team {
             let mut food_ability = food.read().unwrap().ability.clone();
             // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
             let target_pos = if food.read().unwrap().n_targets == 1 {
-                to_pos.clone()
+                to_pos
             } else {
-                food_ability.position.clone()
+                &food_ability.position
             };
             let affected_pets =
-                self.get_pets_by_pos(curr_pet, &food_ability.target, &target_pos, None, None)?;
+                self.get_pets_by_pos(curr_pet, &food_ability.target, target_pos, None, None)?;
 
             // Hard-coded cat multiplier.
             // Repeat applying effect if action is to add stats.
@@ -507,14 +511,15 @@ impl TeamShoppingHelpers for Team {
                 // Pet triggers for eating food.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
-                let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
-                trigger_self_food.set_affected(&pet);
-                trigger_any_food.set_affected(&pet);
-                trigger_self_food_name.set_affected(&pet);
 
-                self.triggers
-                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
+                trigger_self_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_any_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+
+                self.triggers.extend([trigger_self_food, trigger_any_food]);
 
                 for _ in 0..(1 + cat_multiplier) {
                     self.apply_single_effect(&pet, &pet, &food_ability, None)?;
@@ -526,7 +531,7 @@ impl TeamShoppingHelpers for Team {
 
     fn buy_pet_behavior(
         &mut self,
-        pet: Arc<RwLock<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError> {
@@ -535,7 +540,7 @@ impl TeamShoppingHelpers for Team {
         let purchased_pet = if let Some(affected_pet) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.read().unwrap().name == pet.read().unwrap().name {
-                self.merge_behavior(&pet, affected_pet)?;
+                self.merge_behavior(pet, affected_pet)?;
                 Some(affected_pet.clone())
             } else {
                 // Pet target exists. If position is last, make sure put after pet.
@@ -648,11 +653,11 @@ impl TeamShopping for Team {
         }
 
         // Buy the item and check if sufficient funds.
-        for item in selected_items.into_iter() {
+        for item in selected_items.iter() {
             // Decrement coins.
             self.shop.coins -= item.cost;
 
-            match item.item {
+            match &item.item {
                 ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, self.first(), to)?,
                 ItemSlot::Food(food) => self.buy_food_behavior(food, self.first(), to, true)?,
             };
