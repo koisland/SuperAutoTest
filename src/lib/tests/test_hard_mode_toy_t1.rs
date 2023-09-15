@@ -66,13 +66,73 @@ fn test_toy_dodgeball() {
     let mut enemy_team = test_ant_team();
 
     team.toys.push(Toy::try_from(ToyName::Dodgeball).unwrap());
-    // println!("{team}");
 
+    // Trigger start of battle.
     team.trigger_start_battle_effects(&mut enemy_team).unwrap();
 
-    // println!("{team}");
+    // Two pets faint due to two triggers on dodgeball.
+    assert_eq!(
+        team.friends
+            .iter()
+            .flatten()
+            .filter(|pet| pet.read().unwrap().stats.health == 0)
+            .count(),
+        2
+    );
+}
 
-    todo!("Need to restore uses if kills first pet.")
+#[test]
+fn test_toy_dodgeball_strong_pet() {
+    const STARTING_STATS: Statistics = Statistics {
+        attack: 2,
+        health: 32,
+    };
+    let pets = vec![
+        Some(Pet::new(PetName::Bee, Some(STARTING_STATS), 1).unwrap()),
+        // One bee is slightly weaker.
+        Some(
+            Pet::new(
+                PetName::Bee,
+                Some(
+                    STARTING_STATS
+                        - Statistics {
+                            attack: 0,
+                            health: 1,
+                        },
+                ),
+                1,
+            )
+            .unwrap(),
+        ),
+    ];
+    let mut team = Team::new(&pets, 5).unwrap();
+    let mut enemy_team = test_ant_team();
+
+    team.toys.push(Toy::try_from(ToyName::Dodgeball).unwrap());
+
+    // Trigger start of battle.
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    // One big bee damaged twice and faints at start of battle.
+    let alive_pets = team.all();
+    assert_eq!(
+        team.friends
+            .get(1)
+            .unwrap()
+            .as_ref()
+            .unwrap()
+            .as_ref()
+            .read()
+            .unwrap()
+            .stats
+            .health,
+        0
+    );
+    // Other bee remains unaffected.
+    assert!(
+        alive_pets.len() == 1
+            && alive_pets.first().unwrap().read().unwrap().stats == STARTING_STATS
+    )
 }
 
 #[test]

@@ -25,7 +25,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
 
         Ok(outcomes
             .iter()
-            .map(|outcome| {
+            .flat_map(|outcome| {
                 // Base effect get created with each outcome for Toy triggers.
                 let mut base_effect = Effect {
                     trigger: outcome.clone(),
@@ -33,6 +33,8 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     temp: self.temp_effect,
                     ..Default::default()
                 };
+                // Certains effects require multiple effects. ex. Dodgeball
+                let mut effects = Vec::with_capacity(2);
                 match self.name {
                     ToyName::Balloon => {
                         base_effect.target = Target::Friend;
@@ -156,12 +158,11 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             targets: 1,
                             random: false,
                         };
-                        base_effect.action = Action::Multiple(vec![
-                            Action::Remove(
-                                StatChangeType::Static(effect_stats)
-                            );
-                            self.n_triggers
-                        ])
+                        base_effect.action = Action::Remove(StatChangeType::Static(effect_stats));
+                        // Dodgeball can trigger multiple times.
+                        for _ in 0..self.n_triggers.saturating_sub(1) {
+                            effects.push(base_effect.clone())
+                        }
                     }
                     ToyName::Handkerchief => {
                         base_effect.target = Target::Friend;
@@ -354,7 +355,8 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     }
                     ToyName::Custom(_) => todo!(),
                 }
-                base_effect
+                effects.push(base_effect);
+                effects
             })
             .collect())
     }

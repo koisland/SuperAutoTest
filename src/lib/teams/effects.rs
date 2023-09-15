@@ -576,7 +576,7 @@ impl TeamEffects for Team {
 
         // Iterate through pets in descending order by attack strength to collect valid effects.
         for pet in ordered_pets.iter() {
-            let same_pet_as_trigger = trigger.clone().affected_pet.map_or(false, |trigger_pet| {
+            let same_pet_as_trigger = trigger.affected_pet.as_ref().map_or(false, |trigger_pet| {
                 trigger_pet.ptr_eq(&Arc::downgrade(pet))
             });
 
