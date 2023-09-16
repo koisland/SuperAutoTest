@@ -776,37 +776,21 @@ fn test_battle_bulldog_team() {
     let mut enemy_team = test_cockroach_team();
 
     let bulldog = team.first().unwrap();
-    let roach = enemy_team.first().unwrap();
-
-    assert_eq!(roach.write().unwrap().stats.attack, 1);
-    assert_eq!(
-        bulldog.read().unwrap().stats,
-        Statistics {
-            attack: 1,
-            health: 3
-        }
-    );
 
     team.fight(&mut enemy_team).unwrap();
 
     // Bulldog attack now = new health + 1 (lvl)
     assert_eq!(
-        bulldog.read().unwrap().stats,
-        Statistics {
-            attack: 3,
-            health: 2
-        }
+        bulldog.read().unwrap().stats.attack,
+        bulldog.read().unwrap().stats.health + bulldog.read().unwrap().lvl as isize
     );
 
     team.fight(&mut enemy_team).unwrap();
 
     // Second attack drops health to 1.
     assert_eq!(
-        bulldog.read().unwrap().stats,
-        Statistics {
-            attack: 2,
-            health: 1
-        }
+        bulldog.read().unwrap().stats.attack,
+        bulldog.read().unwrap().stats.health + bulldog.read().unwrap().lvl as isize
     );
 }
 

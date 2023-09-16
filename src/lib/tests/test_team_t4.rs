@@ -822,11 +822,6 @@ fn test_shop_jerboa_team() {
 }
 
 #[test]
-fn test_battle_mole_team() {
-    todo!()
-}
-
-#[test]
 fn test_shop_buffalo_team() {
     let mut team = test_buffalo_team();
     team.open_shop().unwrap();

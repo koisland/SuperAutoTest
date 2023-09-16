@@ -229,6 +229,7 @@ impl TryFrom<&FoodRecord> for Effect {
                     condition: ItemCondition::None,
                     targets: record.n_targets,
                     random: true,
+                    exact_n_targets: false,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses,

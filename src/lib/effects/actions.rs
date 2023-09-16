@@ -42,9 +42,9 @@ pub enum StatChangeType {
     StaticAttack(isize),
     /// Change only [`Statistics`] health.
     StaticHealth(isize),
-    /// Change both stats to current attack.
+    /// Change health to current attack.
     CurrentAttack,
-    /// Change both stats to current health.
+    /// Change attack to current health.
     CurrentHealth,
     /// Set statistics based on a given team counter.
     TeamCounter(String),
@@ -67,10 +67,10 @@ impl StatChangeType {
                 })?,
             StatChangeType::StaticAttack(atk) => Statistics {
                 attack: *atk,
-                health: pet_stats.map_or(0, |stats| stats.health),
+                health: 0,
             },
             StatChangeType::StaticHealth(health) => Statistics {
-                attack: pet_stats.map_or(0, |stats| stats.attack),
+                attack: 0,
                 health: *health,
             },
             StatChangeType::CurrentAttack => pet_stats

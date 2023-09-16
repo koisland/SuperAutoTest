@@ -1354,10 +1354,6 @@ pub fn test_squirrel_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Squirrel).unwrap())], 5).unwrap()
 }
 
-pub fn test_worm_team() -> Team {
-    Team::new(&[Some(Pet::try_from(PetName::Worm).unwrap())], 5).unwrap()
-}
-
 pub fn test_orangutan_team() -> Team {
     Team::new(
         &[
@@ -1395,7 +1391,20 @@ pub fn test_jerboa_team() -> Team {
     .unwrap()
 }
 
-// No mole team.
+pub fn test_mole_team() -> Team {
+    let mut ant_with_honey = Pet::try_from(PetName::Ant).unwrap();
+    ant_with_honey.item = Some(Food::try_from(FoodName::Honey).unwrap());
+    Team::new(
+        &[
+            Some(Pet::try_from(PetName::Mole).unwrap()),
+            Some(ant_with_honey.clone()),
+            Some(ant_with_honey.clone()),
+            Some(ant_with_honey),
+        ],
+        5,
+    )
+    .unwrap()
+}
 
 pub fn test_buffalo_team() -> Team {
     Team::new(

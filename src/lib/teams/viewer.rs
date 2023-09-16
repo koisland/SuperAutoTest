@@ -356,6 +356,7 @@ impl TeamViewer for Team {
     where
         T: IntoIterator<Item = Arc<RwLock<Pet>>>,
     {
+        // TODO: Cleanup and move some repeated code to EqualityCondition matches_* funcs.
         let mut all_pets = all_pets.into_iter();
         match eq_cond {
             EqualityCondition::IsSelf => {
@@ -410,7 +411,10 @@ impl TeamViewer for Team {
                         .any(|effect| effect.action == **action)
                 })
                 .collect_vec(),
-            _ => unimplemented!("ItemCondition not implemented for Team pets."),
+            EqualityCondition::HasPerk => all_pets
+                .filter(|pet| eq_cond.matches_pet(&pet.read().unwrap()))
+                .collect_vec(),
+            _ => unimplemented!("ItemCondition {eq_cond} not implemented for Team pets."),
         }
     }
 
@@ -765,6 +769,7 @@ impl TeamViewer for Team {
                     condition,
                     targets,
                     random: randomize,
+                    exact_n_targets,
                 },
             ) => {
                 let mut self_pets = self.get_pets_by_cond(condition);
@@ -790,6 +795,10 @@ impl TeamViewer for Team {
                         pets.push(pet)
                     }
                 }
+                // Drop pets found if not exact num of targets.
+                if *exact_n_targets && pets.len() != *targets {
+                    pets.clear()
+                }
             }
             (
                 Target::Friend | Target::Enemy,
@@ -797,6 +806,7 @@ impl TeamViewer for Team {
                     condition,
                     targets,
                     random: randomize,
+                    exact_n_targets,
                 },
             ) => {
                 let mut found_pets = team.get_pets_by_cond(condition);
@@ -811,6 +821,10 @@ impl TeamViewer for Team {
                     if let Some(pet) = found_pets.next() {
                         pets.push(pet)
                     }
+                }
+                // Drop pets found if not exact num of targets.
+                if *exact_n_targets && pets.len() != *targets {
+                    pets.clear()
                 }
             }
             (Target::Friend | Target::Enemy, Position::Ahead) => {

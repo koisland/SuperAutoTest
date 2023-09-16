@@ -17,7 +17,7 @@ use super::actions::Action;
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Possible equality conditions to check.
 pub enum EqualityCondition {
-    /// Is same pet.
+    /// Is same pet. Pet only.
     IsSelf,
     /// Is this tier.
     Tier(usize),
@@ -29,8 +29,10 @@ pub enum EqualityCondition {
     Action(Box<Action>),
     /// Triggered by this [`Status`].
     Trigger(Status),
-    /// Is frozen. Only available for shops.
+    /// Is frozen. Shop only.
     Frozen,
+    /// Has perk. Pet only.
+    HasPerk,
 }
 
 impl EqualityCondition {
@@ -50,6 +52,7 @@ impl EqualityCondition {
             EqualityCondition::Name(EntityName::Pet(pet_name)) => pet.name == *pet_name,
             EqualityCondition::Action(action) => pet.has_effect_ability(action, false),
             EqualityCondition::Trigger(trigger) => pet.has_effect_trigger(trigger, false),
+            EqualityCondition::HasPerk => pet.item.as_ref().map_or(false, |item| item.holdable),
             _ => false,
         }
     }
@@ -83,6 +86,8 @@ pub enum TeamCondition {
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current team turn.
     /// * If used for [`Action::Conditional`], checks if current turn is equal to provided value.
     NumberTurns(Option<usize>),
+    /// Number of pets with a perk.
+    NumberPerkPets(Option<usize>),
 }
 
 impl TeamCondition {
@@ -105,6 +110,12 @@ impl TeamCondition {
                 num.unwrap_or_else(|| *team.counters.get(counter).unwrap_or(&0))
             }
             TeamCondition::NumberTurns(turns) => turns.unwrap_or(team.history.curr_turn),
+            TeamCondition::NumberPerkPets(num_perk_pets) => num_perk_pets.unwrap_or_else(|| {
+                team.all()
+                    .into_iter()
+                    .filter(|pet| EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap()))
+                    .count()
+            }),
         }
     }
     /// Check if [`TeamCondition`] is met.
@@ -134,6 +145,15 @@ impl TeamCondition {
                 .unwrap_or(false),
             TeamCondition::NumberTurns(turns) => {
                 turns.map_or(false, |turns| team.history.curr_turn == turns)
+            }
+            TeamCondition::NumberPerkPets(num_perk_pets) => {
+                num_perk_pets.map_or(false, |num_perk_pets| {
+                    team.all()
+                        .into_iter()
+                        .filter(|pet| EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap()))
+                        .count()
+                        .eq(&num_perk_pets)
+                })
             }
         }
     }
@@ -224,6 +244,8 @@ pub enum Position {
         targets: usize,
         /// Shuffle any found pets.
         random: bool,
+        /// Must be exact number of targets.
+        exact_n_targets: bool,
     },
     /// Any [`Pet`] that matches a given [`ItemCondition`].
     Any(ItemCondition),

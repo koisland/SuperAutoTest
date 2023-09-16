@@ -251,6 +251,7 @@ impl ShopViewer for Shop {
                 condition,
                 targets: number_items,
                 random: randomize,
+                exact_n_targets,
             } => {
                 let mut found_shop_items = self.get_shop_items_by_cond(condition, item)?;
                 if *randomize {
@@ -262,6 +263,9 @@ impl ShopViewer for Shop {
                     if let Some(item) = found_shop_items.next() {
                         found_items.push(item)
                     }
+                }
+                if *exact_n_targets && found_items.len() != *number_items {
+                    found_items.clear()
                 }
             }
             Position::Any(condition) => {

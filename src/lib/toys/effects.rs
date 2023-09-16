@@ -47,6 +47,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::None,
                             targets: 2,
                             random: true,
+                            exact_n_targets: false,
                         };
                         base_effect.action = Action::Remove(StatChangeType::Static(effect_stats));
                     }
@@ -88,6 +89,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Weakest,
                             targets: 1,
                             random: false,
+                            exact_n_targets: true,
                         };
                         base_effect.action = Action::Multiple(vec![
                             Action::Remove(
@@ -117,6 +119,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Healthiest,
                             targets: 1,
                             random: false,
+                            exact_n_targets: true,
                         };
                         base_effect.action =
                             Action::Debuff(StatChangeType::Multiplier(effect_stats));
@@ -143,6 +146,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Healthiest,
                             targets: 1,
                             random: false,
+                            exact_n_targets: true,
                         };
                         base_effect.action = Action::Remove(StatChangeType::Static(effect_stats))
                     }
@@ -157,6 +161,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Illest,
                             targets: 1,
                             random: false,
+                            exact_n_targets: true,
                         };
                         base_effect.action = Action::Remove(StatChangeType::Static(effect_stats));
                         // Dodgeball can trigger multiple times.
@@ -184,6 +189,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Illest,
                             targets: 1,
                             random: false,
+                            exact_n_targets: true,
                         };
                         base_effect.action = Action::Set(StatChangeType::Multiplier(Statistics {
                             attack: 400,
@@ -209,6 +215,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                             condition: ItemCondition::Healthiest,
                             targets: 2,
                             random: false,
+                            exact_n_targets: false,
                         };
                         base_effect.action = Action::Set(StatChangeType::StaticHealth(1))
                     }

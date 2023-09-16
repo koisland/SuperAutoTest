@@ -26,7 +26,7 @@ lazy_static! {
             let pet_imgs = list_page_images("Pets");
             let token_imgs = list_page_images("Tokens");
             let toy_imgs = list_page_images("Toys");
-            let hard_mode_imgs = list_page_images("Hard Mode (Toys)");
+            let hard_mode_imgs = list_page_images("Hard Mode Toys");
 
             food_imgs
                 .into_iter()

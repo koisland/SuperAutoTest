@@ -42,6 +42,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -65,6 +66,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::NotEqual(EqualityCondition::IsSelf),
                         targets: 2,
                         random: true,
+                        exact_n_targets: false
                     },
                     action: Action::Add(StatChangeType::Static(effect_stats)),
                     uses: Some(record.n_triggers),
@@ -230,6 +232,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -342,6 +345,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::None,
                         targets: record.lvl,
                         random: true,
+                        exact_n_targets: false
                     },
                     action: Action::Conditional(
                         LogicType::If(ConditionType::Shop(ShopCondition::InState(
@@ -425,6 +429,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::Healthiest,
                         targets: 1,
                         random: false,
+                        exact_n_targets: true
                     },
                 ),
                 uses: Some(record.n_triggers),
@@ -692,7 +697,8 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     position: Position::N {
                         condition: ItemCondition::Illest,
                         targets: 1,
-                        random: false
+                        random: false,
+                        exact_n_targets: true
                     },
                     action: Action::Remove(StatChangeType::Static(effect_stats)),
                     uses: Some(1),
@@ -944,6 +950,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ]),
                     targets: 2,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1017,16 +1024,30 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 ),
                 uses: Some(record.n_triggers),
             }],
-            // TODO: Add remove perks action.
-            PetName::Mole => vec![Effect {
-                owner: None,
-                temp: record.temp_effect,
-                trigger: TRIGGER_SELF_PET_BOUGHT,
-                target: Target::Friend,
-                position: Position::Adjacent,
-                action: Action::Add(StatChangeType::Static(effect_stats)),
-                uses: Some(record.n_triggers),
-            }],
+            PetName::Mole => vec![
+                Effect {
+                    owner: None,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Conditional(
+                        LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(3)))),
+                        Box::new(Action::Summon(SummonType::CustomPet(record.name.clone(), StatChangeType::Static(effect_stats), 1))),
+                        Box::new(Action::None)
+                    ),
+                    uses: Some(record.n_triggers),
+                },
+                Effect {
+                    owner: None,
+                    temp: record.temp_effect,
+                    trigger: TRIGGER_SELF_FAINT,
+                    target: Target::Friend,
+                    position: Position::N { condition: ItemCondition::Equal(EqualityCondition::HasPerk), targets: 3, random: false, exact_n_targets: true },
+                    action: Action::Gain(GainType::NoItem),
+                    uses: Some(record.n_triggers),
+                }
+            ],
             PetName::Buffalo => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -1209,6 +1230,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::Healthiest,
                     targets: 1,
                     random: false,
+                    exact_n_targets: true
                 },
                 action: Action::Debuff(StatChangeType::Multiplier(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1351,6 +1373,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::NotEqual(EqualityCondition::IsSelf),
                     targets: 3,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
@@ -1639,6 +1662,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: Some(record.n_triggers),
@@ -1679,6 +1703,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ))),
                     targets: 2,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1788,6 +1813,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ]),
                         targets: 1,
                         random: false,
+                        exact_n_targets: false
                     },
                 ),
                 uses: Some(record.n_triggers),
@@ -1959,6 +1985,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::Strongest,
                         targets: 1,
                         random: false,
+                        exact_n_targets: true
                     },
                 ),
                 uses: Some(1),
@@ -2121,6 +2148,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::Healthiest,
                     targets: 1,
                     random: false,
+                    exact_n_targets: true
                 };
                 vec![self_dmg_effect, enemy_dmg_effect]
             }
@@ -2181,6 +2209,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Peanut)),
                 uses: Some(record.n_triggers),
@@ -2203,6 +2232,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses: None,
@@ -2303,6 +2333,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ))),
                     targets: record.lvl,
                     random: true,
+                    exact_n_targets: false
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Coconut)),
                 uses: Some(record.n_triggers),

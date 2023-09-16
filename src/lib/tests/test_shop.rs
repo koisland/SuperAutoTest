@@ -426,6 +426,7 @@ fn test_view_by_pos() {
                 condition: ItemCondition::None,
                 targets: 3,
                 random: true,
+                exact_n_targets: false,
             },
             &Entity::Pet,
         )

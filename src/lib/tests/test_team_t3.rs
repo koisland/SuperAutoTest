@@ -8,14 +8,28 @@ use crate::{
         test_camel_team, test_capybara_team, test_cassowary_team, test_clownfish_team,
         test_cricket_horse_team, test_dodo_team, test_dog_team, test_dolphin_team,
         test_emperor_tamarin_team, test_filled_sheep_team, test_giraffe_team, test_goldfish_team,
-        test_hatching_chick_team, test_hummingbird_team, test_kangaroo_team, test_leech_team,
-        test_okapi_team, test_owl_team, test_ox_team, test_rabbit_team, test_seagull_team,
-        test_sheep_team, test_starfish_team, test_toad_team, test_tropicalfish_team,
-        test_wasp_team, test_woodpecker_self_hurt_team, test_woodpecker_team,
+        test_gorilla_team, test_hatching_chick_team, test_hummingbird_team, test_kangaroo_team,
+        test_leech_team, test_mole_team, test_okapi_team, test_owl_team, test_ox_team,
+        test_rabbit_team, test_seagull_team, test_sheep_team, test_starfish_team, test_toad_team,
+        test_tropicalfish_team, test_wasp_team, test_woodpecker_self_hurt_team,
+        test_woodpecker_team,
     },
     Entity, EntityName, ItemCondition, Pet, Position, Shop, ShopItem, ShopItemViewer, ShopViewer,
     TeamEffects, TeamShopping, ToyName,
 };
+
+#[test]
+fn test_battle_mole_team() {
+    let mut team = test_mole_team();
+    let mut enemy_team = test_gorilla_team();
+
+    println!("{team}");
+
+    team.fight(&mut enemy_team).unwrap();
+
+    println!("{team}");
+    todo!("Nearly done. Order and stats wrong.")
+}
 
 #[test]
 fn test_shop_goldfish_team() {

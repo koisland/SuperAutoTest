@@ -12,7 +12,7 @@ use crate::{
         test_koala_team, test_mammoth_team, test_mouse_team, test_panda_team, test_pug_team,
         test_racoon_team, test_rat_team, test_salamander_team, test_shrimp_team, test_skunk_team,
         test_spider_team, test_stork_team, test_swan_team, test_tabby_cat_team, test_toucan_team,
-        test_wombat_team, test_worm_team, test_yak_team,
+        test_wombat_team, test_yak_team,
     },
     Entity, Food, FoodName, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Statistics, Team,
     TeamEffects, TeamShopping,
@@ -20,20 +20,18 @@ use crate::{
 
 #[test]
 fn test_shop_worm_team() {
-    let mut team = test_worm_team();
+    // Worm must be level 2 from creation as open_shop restores pet original states.
+    let mut team = Team::new(&[Some(Pet::new(PetName::Worm, None, 2).unwrap())], 5).unwrap();
+
     // Open shop and add a better apple with (2,2)
-    team.set_level(&Position::First, 2)
-        .unwrap()
-        .open_shop()
-        .unwrap();
-    team.print_shop();
+    team.open_shop().unwrap();
 
     let items = team
         .shop
         .get_shop_items_by_pos(&Position::Last, &Entity::Food)
         .unwrap();
     let apple = items.first().unwrap();
-    team.print_shop();
+
     assert!(apple.attack_stat().unwrap() == 2 && apple.health_stat().unwrap() == 2);
 }
 
