@@ -1024,30 +1024,33 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 ),
                 uses: Some(record.n_triggers),
             }],
-            PetName::Mole => vec![
-                Effect {
-                    owner: None,
-                    temp: record.temp_effect,
-                    trigger: TRIGGER_SELF_FAINT,
-                    target: Target::Friend,
-                    position: Position::OnSelf,
-                    action: Action::Conditional(
-                        LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(3)))),
-                        Box::new(Action::Summon(SummonType::CustomPet(record.name.clone(), StatChangeType::Static(effect_stats), 1))),
-                        Box::new(Action::None)
-                    ),
-                    uses: Some(record.n_triggers),
-                },
-                Effect {
-                    owner: None,
-                    temp: record.temp_effect,
-                    trigger: TRIGGER_SELF_FAINT,
-                    target: Target::Friend,
-                    position: Position::N { condition: ItemCondition::Equal(EqualityCondition::HasPerk), targets: 3, random: false, exact_n_targets: true },
-                    action: Action::Gain(GainType::NoItem),
-                    uses: Some(record.n_triggers),
-                }
-            ],
+            PetName::Mole => {
+                const REQ_PERK_PETS: usize = 3;
+                vec![
+                    Effect {
+                        owner: None,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Conditional(
+                            LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(REQ_PERK_PETS)))),
+                            Box::new(Action::Summon(SummonType::CustomPet(record.name.clone(), StatChangeType::Static(effect_stats), 1))),
+                            Box::new(Action::None)
+                        ),
+                        uses: Some(record.n_triggers),
+                    },
+                    Effect {
+                        owner: None,
+                        temp: record.temp_effect,
+                        trigger: TRIGGER_SELF_FAINT,
+                        target: Target::Friend,
+                        position: Position::N { condition: ItemCondition::Equal(EqualityCondition::HasPerk), targets: REQ_PERK_PETS, random: false, exact_n_targets: true },
+                        action: Action::Gain(GainType::NoItem),
+                        uses: Some(record.n_triggers),
+                    }
+                ]
+            },
             PetName::Buffalo => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,

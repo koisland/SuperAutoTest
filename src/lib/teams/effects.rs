@@ -641,7 +641,7 @@ impl TeamEffects for Team {
     fn apply_effect(
         &mut self,
         effect: &Effect,
-        opponent: Option<&mut Team>,
+        mut opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         // Set current pet.
         self.curr_pet = effect.owner.clone();
@@ -670,26 +670,39 @@ impl TeamEffects for Team {
                 };
 
                 // Allow effect to activate if one or fewer pets remain.
-                if effect.trigger.status == Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
-                    && target_pets.is_empty()
+                if matches!(
+                    effect.trigger.status,
+                    Status::IsTeam(TeamCondition::NumberPets(Some(0)))
+                        | Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
+                ) && target_pets.is_empty()
                 {
-                    let target_pet = if effect.target == Target::Enemy {
-                        opponent.as_ref().map(|team| team.friends.first())
+                    if effect.target == Target::Enemy {
+                        // Return if no pets to target.
+                        let Some(opponent) = opponent.as_mut() else {
+                            return Ok(affected_pets);
+                        };
+                        let Some(Some(target_pet)) = opponent.friends.first().cloned() else {
+                            return Ok(affected_pets);
+                        };
+                        affected_pets.extend(opponent.apply_single_effect(
+                            &target_pet,
+                            &target_pet,
+                            effect,
+                            None,
+                        )?)
                     } else {
-                        Some(self.friends.first())
+                        let Some(Some(target_pet)) = self.friends.first().cloned() else {
+                            return Ok(affected_pets);
+                        };
+                        affected_pets.extend(self.apply_single_effect(
+                            &target_pet,
+                            &target_pet,
+                            effect,
+                            None,
+                        )?)
                     };
 
-                    // Return if no pets to target.
-                    let Some(Some(target_pet)) = target_pet.flatten().cloned() else {
-                        return Ok(affected_pets);
-                    };
-
-                    affected_pets.extend(self.apply_single_effect(
-                        &target_pet,
-                        &target_pet,
-                        effect,
-                        None,
-                    )?)
+                    return Ok(affected_pets);
                 }
 
                 let afflicting_pet = effect.try_into()?;

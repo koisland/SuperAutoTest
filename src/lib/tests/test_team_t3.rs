@@ -1,5 +1,11 @@
+use std::sync::Arc;
+
 use crate::{
-    effects::{state::Status, stats::Statistics, trigger::TRIGGER_START_BATTLE},
+    effects::{
+        state::{EqualityCondition, Status},
+        stats::Statistics,
+        trigger::TRIGGER_START_BATTLE,
+    },
     foods::{food::Food, names::FoodName},
     pets::names::PetName,
     teams::{combat::TeamCombat, team::TeamFightOutcome, viewer::TeamViewer},
@@ -23,12 +29,31 @@ fn test_battle_mole_team() {
     let mut team = test_mole_team();
     let mut enemy_team = test_gorilla_team();
 
-    println!("{team}");
+    let first_mole = team.first().unwrap();
+
+    // Number of pets with perks is 3.
+    let pets_w_perks = team.get_pets_by_cond(&ItemCondition::Equal(EqualityCondition::HasPerk));
+    assert_eq!(pets_w_perks.len(), 3);
+    assert!(pets_w_perks
+        .iter()
+        .all(|pet| pet.read().unwrap().item.as_ref().unwrap().name == FoodName::Honey));
 
     team.fight(&mut enemy_team).unwrap();
 
-    println!("{team}");
-    todo!("Nearly done. Order and stats wrong.")
+    // New mole spawned.
+    let spawned_mole = team.first().unwrap();
+    assert!(!Arc::ptr_eq(&first_mole, &spawned_mole));
+    assert_eq!(
+        spawned_mole.read().unwrap().stats,
+        Statistics {
+            attack: 8,
+            health: 8
+        }
+    );
+    // Perks removed.
+    assert!(pets_w_perks
+        .iter()
+        .all(|pet| pet.read().unwrap().item.is_none()));
 }
 
 #[test]

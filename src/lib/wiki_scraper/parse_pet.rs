@@ -119,7 +119,7 @@ pub fn extract_pet_effect_info(effect: Option<&str>) -> (Statistics, usize, bool
     let pet_effect = effect.replace(" of ", " ").replace('%', "");
 
     // If a pet has a summon effect, use attack and health stats from effect_stats.
-    let parsed_num_effect_stats = if pet_effect.contains("Summon") {
+    let parsed_num_effect_stats = if pet_effect.to_lowercase().contains("summon") {
         let raw_summon_stats = (
             num_regex(RGX_SUMMON_ATK, &pet_effect),
             num_regex(RGX_SUMMON_HEALTH, &pet_effect),
@@ -195,7 +195,6 @@ pub fn parse_single_pet(
 
     // Remove icon names in line so regex doesn't give false positive.
     let pet_effect_trigger = parse_pet_effect_trigger(block);
-
     let pet_effects = parse_pet_effects(block, pet_effect_trigger.is_some());
 
     // Create a new pet record for every level.
