@@ -80,4 +80,16 @@ mod test_hard_mode_toy_t1;
 mod test_hard_mode_toy_t2;
 
 #[cfg(test)]
+mod test_hard_mode_toy_t3;
+
+#[cfg(test)]
+mod test_hard_mode_toy_t4;
+
+#[cfg(test)]
+mod test_hard_mode_toy_t5;
+
+#[cfg(test)]
+mod test_hard_mode_toy_t6;
+
+#[cfg(test)]
 pub mod common;

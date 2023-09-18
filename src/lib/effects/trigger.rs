@@ -77,6 +77,7 @@ impl FromStr for Outcomes {
             "Friend summoned" => outcomes.push(TRIGGER_ANY_SUMMON),
             "Start of battle" => outcomes.push(TRIGGER_START_BATTLE),
             "Buy" => outcomes.push(TRIGGER_SELF_PET_BOUGHT),
+            "Buy from shop" => outcomes.extend([TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_FOOD_BOUGHT]),
             "Eat shop food" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
             "End turn" => outcomes.push(TRIGGER_END_TURN),
             "Shop food bought" => outcomes.push(TRIGGER_ANY_FOOD_BOUGHT),
