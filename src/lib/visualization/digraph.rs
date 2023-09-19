@@ -39,10 +39,10 @@ const DOT_PARAMS: &str = r#"
 ///     1 [ label = "Ant_0 - Ants", fillcolor = "yellow" ]
 ///     2 [ label = "Ant_3 - Ants", fillcolor = "yellow" ]
 ///     3 [ label = "Ant_3 - Ants_copy" ]
-///     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-///     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-///     1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-///     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+///     0 -> 1 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+///     1 -> 0 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+///     1 -> 2 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
+///     0 -> 3 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
 ///}
 /// "#;
 /// assert_eq!(digraph, exp_digraph);
@@ -198,6 +198,7 @@ fn test_verbose_digraph() {
 
     team.fight(&mut enemy_team).unwrap();
     let digraph = create_battle_digraph(&team, true);
+
     let exp_digraph = r#"digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
@@ -212,10 +213,10 @@ fn test_verbose_digraph() {
     7 [ label = "PetNode { id: Ant_2, team: Ants_copy }" ]
     8 [ label = "PetNode { id: Ant_3, team: Ants_copy }" ]
     9 [ label = "PetNode { id: Ant_4, team: Ants_copy }" ]
-    5 -> 0 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-    0 -> 5 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 1 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
-    0 -> 3 [ label = "(Faint, Add(Static(Statistics { attack: 2, health: 1 })), (1, 18), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
-    5 -> 8 [ label = "(Faint, Add(Static(Statistics { attack: 2, health: 1 })), (1, 26), Statistics { attack: 4, health: 2 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 0 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 2 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 5 [ label = "(Attack, Remove(Static(Statistics { attack: 0, health: 2 })), (1, 15), Statistics { attack: 2, health: 0 }, Statistics { attack: 2, health: 0 })" ]
+    0 -> 3 [ label = "(Faint, Add(Static(Statistics { attack: 1, health: 1 })), (1, 18), Statistics { attack: 3, health: 3 }, Statistics { attack: 2, health: 0 })" ]
+    5 -> 8 [ label = "(Faint, Add(Static(Statistics { attack: 1, health: 1 })), (1, 27), Statistics { attack: 3, health: 3 }, Statistics { attack: 2, health: 0 })" ]
 }
 "#;
     assert_eq!(digraph, exp_digraph)

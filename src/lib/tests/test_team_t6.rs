@@ -25,13 +25,13 @@ use crate::{
     TeamShopping,
 };
 
-#[test]
-fn test_battle_lionfish_team() {
-    let mut team = test_lionfish_team();
-    let mut enemy_team = test_mammoth_team();
+// #[test]
+// fn test_battle_lionfish_team() {
+//     let mut team = test_lionfish_team();
+//     let mut enemy_team = test_mammoth_team();
 
-    todo!()
-}
+//     todo!()
+// }
 
 #[test]
 fn test_battle_boar_team() {

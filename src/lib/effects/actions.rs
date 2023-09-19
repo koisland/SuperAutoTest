@@ -509,7 +509,7 @@ pub enum Action {
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
     ///     // Doesn't target pet but is required.
-    ///     Position::TriggerAffected,
+    ///     Position::TriggerAffected(None),
     ///     Action::AddToCounter(String::from("Trumpets"), 2),
     ///     Some(1),
     ///     true,

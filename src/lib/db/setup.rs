@@ -449,7 +449,7 @@ impl SapDB {
     /// let toys = SAPDB.execute_query(query).unwrap();
     ///
     /// let Some(SAPRecord::Toy(record)) = toys.first() else { panic!("No Record found.")};
-    /// assert!(record.name == ToyName::Balloon && record.lvl == 1)
+    /// assert!(record.name == ToyName::Balloon && record.lvl == 2)
     /// ```
     pub fn execute_query(&self, sap_query: SAPQuery) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;

@@ -1,19 +1,11 @@
-use crate::{tests::common::test_ant_team, Toy, ToyName};
+use crate::{tests::common::spawn_toy_test, PetName, ToyName};
 
 #[test]
 fn test_toy_cardboard_box() {
-    let mut team = test_ant_team();
-
-    team.toys
-        .push(Toy::try_from(ToyName::CardboardBox).unwrap());
-
-    todo!()
+    spawn_toy_test(ToyName::CardboardBox, PetName::Scorpion, 2);
 }
 
 #[test]
 fn test_toy_trampoline() {
-    let mut team = test_ant_team();
-
-    team.toys.push(Toy::try_from(ToyName::Trampoline).unwrap());
-    todo!()
+    spawn_toy_test(ToyName::Trampoline, PetName::Kangaroo, 1);
 }

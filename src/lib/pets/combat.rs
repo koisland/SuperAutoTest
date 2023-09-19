@@ -102,12 +102,12 @@ pub trait PetCombat {
     /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
     ///
     /// // Original stats and effect uses.
-    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 1);
+    /// assert!(ant_1.stats.health == 2 && ant_2.stats.health == 2);
     /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(1));
     ///
     /// // Attack alters attack, health, and held item uses.
     /// ant_1.attack(&mut ant_2);
-    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 0);
+    /// assert!(ant_1.stats.health == 2 && ant_2.stats.health == 0);
     /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(0));
     /// ```
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome;
@@ -119,7 +119,7 @@ pub trait PetCombat {
     /// use saptest::{Pet, PetName, PetCombat, Statistics};
     ///
     /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
-    /// assert_eq!(ant.stats.health, 1);
+    /// assert_eq!(ant.stats.health, 2);
     ///
     /// // Deal damage with attack value of 2.
     /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
@@ -135,7 +135,7 @@ pub trait PetCombat {
     ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// // New health is identical.
-    /// let outcome = ant_1.get_atk_outcomes(1);
+    /// let outcome = ant_1.get_atk_outcomes(2);
     /// // Unhurt trigger for friends.
     /// assert_eq!(
     ///     outcome.friends.front().unwrap(),
@@ -170,7 +170,7 @@ pub trait PetCombat {
     /// );
     /// ```
     /// ---
-    /// **MeatBone** - Gives `4` additional attack in damage calculation.
+    /// **MeatBone** - Gives `3` additional attack in damage calculation.
     /// ```
     /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
     ///
@@ -178,7 +178,7 @@ pub trait PetCombat {
     /// ant_1.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
-    ///     Some(Statistics::new(4, 0).unwrap())
+    ///     Some(Statistics::new(3, 0).unwrap())
     /// );
     /// ```
     fn get_food_stat_modifier(&self) -> Option<Statistics>;

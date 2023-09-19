@@ -1,16 +1,11 @@
-use crate::{tests::common::test_ant_team, Toy, ToyName};
+use crate::{tests::common::spawn_toy_test, PetName, ToyName};
 
 #[test]
 fn test_toy_stuffed_bear() {
-    let mut team = test_ant_team();
-    team.toys.push(Toy::try_from(ToyName::StuffedBear).unwrap());
-    todo!()
+    spawn_toy_test(ToyName::StuffedBear, PetName::Bear, 1)
 }
 
-#[test]
-fn test_toy_toy_mouse() {
-    let mut team = test_ant_team();
-
-    team.toys.push(Toy::try_from(ToyName::ToyMouse).unwrap());
-    todo!()
-}
+// #[test]
+// fn test_toy_toy_mouse() {
+//     todo!()
+// }

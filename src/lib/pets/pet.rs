@@ -139,7 +139,7 @@ impl Pet {
     ///
     /// let pet = Pet::new(
     ///     PetName::Ant,
-    ///     Some(Statistics::new(2, 1).unwrap()),
+    ///     Some(Statistics::new(2, 2).unwrap()),
     ///     1
     /// );
     /// let pet_with_no_stats = Pet::new(
@@ -234,7 +234,7 @@ impl Pet {
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
     /// assert_eq!(
     ///     *lvl_2_ant_action,
-    ///     Action::Add(StatChangeType::Static(Statistics::new(4,2).unwrap()))
+    ///     Action::Add(StatChangeType::Static(Statistics::new(2,2).unwrap()))
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
@@ -303,8 +303,8 @@ impl Pet {
     /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName};
-    /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
+    /// use saptest::{Pet, PetName, Statistics};
+    /// let mut pet = Pet::new(PetName::Ant, Some(Statistics { attack: 2, health:1 }), 1).unwrap();
     ///
     /// // Add single point.
     /// pet.add_experience(1).unwrap();
@@ -447,15 +447,13 @@ impl Pet {
     ///
     /// let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
     /// let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
-    /// assert!(
-    ///     pet_1.stats == Statistics::new(6, 9).unwrap() &&
-    ///     pet_2.stats == Statistics::new(10, 4).unwrap()
-    /// );
+    /// let pet_1_stats = pet_1.stats;
+    /// let pet_2_stats = pet_2.stats;
     ///
     /// pet_1.swap_stats(&mut pet_2);
     /// assert!(
-    ///     pet_1.stats == Statistics::new(10, 4).unwrap() &&
-    ///     pet_2.stats == Statistics::new(6, 9).unwrap()
+    ///     pet_1.stats == pet_2_stats &&
+    ///     pet_2.stats == pet_1_stats
     /// );
     /// ```
     pub fn swap_stats(&mut self, other: &mut Pet) -> &mut Self {

@@ -258,11 +258,11 @@ pub enum Position {
     ///
     /// Same pet.
     /// ```
-    /// let curr_pet = Position::TriggerAffected(None);
+    /// let curr_pet = saptest::Position::TriggerAffected(None);
     /// ```
     /// Two pets ahead of the trigger pet that are nearest.
     /// ```
-    /// let curr_pet = Position::TriggerAfflicting(Some(Box::new(Position::Nearest(2))));
+    /// let curr_pet = saptest::Position::TriggerAfflicting(Some(Box::new(saptest::Position::Nearest(2))));
     /// ```
     TriggerAffected(Option<Box<Position>>),
     /// Pet causing in [`Outcome`] trigger.
@@ -270,11 +270,11 @@ pub enum Position {
     ///
     /// Same pet.
     /// ```
-    /// let curr_pet = Position::TriggerAfflicting(None);
+    /// let curr_pet = saptest::Position::TriggerAfflicting(None);
     /// ```
     /// Pet behind trigger pet.
     /// ```
-    /// let curr_pet = Position::TriggerAfflicting(Some(Box::new(Position::Relative(-1))));
+    /// let curr_pet = saptest::Position::TriggerAfflicting(Some(Box::new(saptest::Position::Relative(-1))));
     /// ```
     TriggerAfflicting(Option<Box<Position>>),
     /// First pet on [`Team`](crate::teams::team::Team).

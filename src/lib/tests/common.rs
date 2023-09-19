@@ -28,7 +28,7 @@ pub fn spawn_toy_test(toy: ToyName, exp_pet_spawned: PetName, exp_number_spawned
     team.fight(&mut enemy_team).unwrap();
     let outcome = team.fight(&mut enemy_team).unwrap();
 
-    // Enemy wins because of spawned ants.
+    // Enemy wins because of spawned pets.
     assert_eq!(outcome, TeamFightOutcome::Loss);
     // Two ants.
     assert_eq!(

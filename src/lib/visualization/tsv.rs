@@ -37,10 +37,10 @@ const TSV_HEADER: [&str; 11] = [
 ///
 /// let tsv = create_battle_df(&team);
 /// let exp_tsv = "n_actions\tafflicting_id\tafflicting_team\tafflicting_stats\taffected_id\taffected_team\taffected_stats\ttrigger\taction\tn_phases\tn_cycles
-/// 0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-/// 1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-/// 2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(4, 2)\tFaint\tAdd (2, 1)\t1\t18
-/// 3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(4, 2)\tFaint\tAdd (2, 1)\t1\t26
+/// 0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+/// 1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+/// 2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(3, 3)\tFaint\tAdd (1, 1)\t1\t18
+/// 3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(3, 3)\tFaint\tAdd (1, 1)\t1\t27
 /// ";
 /// assert_eq!(tsv,  exp_tsv);
 /// ```
@@ -137,10 +137,10 @@ mod test {
 
         let tsv = create_battle_df(&team);
         let exp_tsv = "n_actions\tafflicting_id\tafflicting_team\tafflicting_stats\taffected_id\taffected_team\taffected_stats\ttrigger\taction\tn_phases\tn_cycles
-0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(4, 2)\tFaint\tAdd (2, 1)\t1\t18
-3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(4, 2)\tFaint\tAdd (2, 1)\t1\t26
+0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(3, 3)\tFaint\tAdd (1, 1)\t1\t18
+3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(3, 3)\tFaint\tAdd (1, 1)\t1\t27
 ";
         assert_eq!(tsv, exp_tsv);
     }

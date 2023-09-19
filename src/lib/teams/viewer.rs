@@ -171,7 +171,8 @@ pub trait TeamViewer {
     ///     &Position::N {
     ///         condition: ItemCondition::None,
     ///         targets: 2,
-    ///         random: true
+    ///         random: true,
+    ///         exact_n_targets: false
     ///     },
     ///     Some(Food::try_from(FoodName::Honey).unwrap())
     /// );
