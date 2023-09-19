@@ -52,10 +52,14 @@ pub enum StatChangeType {
 
 impl StatChangeType {
     /// Convert [`StatChangeType`] into [`Statistics`].
+    /// * `pet_stats`: Pet [`Statistics`].
+    /// * `team_counter`: `Team.counters` reference.
+    /// * `is_set_action`: If used with [`Action::Set`], keeps original stats.
     pub(crate) fn to_stats(
         &self,
         pet_stats: Option<Statistics>,
         team_counters: Option<&HashMap<String, usize>>,
+        is_set_action: bool,
     ) -> Result<Statistics, SAPTestError> {
         Ok(match self {
             StatChangeType::Static(stats) => *stats,
@@ -67,10 +71,18 @@ impl StatChangeType {
                 })?,
             StatChangeType::StaticAttack(atk) => Statistics {
                 attack: *atk,
-                health: 0,
+                health: if is_set_action {
+                    pet_stats.map_or(0, |stats| stats.health)
+                } else {
+                    0
+                },
             },
             StatChangeType::StaticHealth(health) => Statistics {
-                attack: 0,
+                attack: if is_set_action {
+                    pet_stats.map_or(0, |stats| stats.attack)
+                } else {
+                    0
+                },
                 health: *health,
             },
             StatChangeType::CurrentAttack => pet_stats

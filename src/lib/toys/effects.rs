@@ -259,8 +259,8 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     }
                     ToyName::BowlingBall => {
                         base_effect.target = Target::Friend;
-                        // This might be incorrect behavior. If a pet at the center is knocked out.
-                        base_effect.position = Position::Relative(-1);
+                        base_effect.position =
+                            Position::TriggerAffected(Some(Box::new(Position::Relative(-1))));
                         base_effect.action = Action::Remove(StatChangeType::Static(effect_stats))
                     }
                     ToyName::Glasses => {
@@ -283,7 +283,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                     }
                     ToyName::PaperShredder => {
                         base_effect.target = Target::Friend;
-                        base_effect.position = Position::TriggerAffected;
+                        base_effect.position = Position::TriggerAffected(None);
                         base_effect.action = Action::Kill;
                     }
                     ToyName::Spring => {

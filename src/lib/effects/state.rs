@@ -254,9 +254,29 @@ pub enum Position {
     /// Position of self.
     OnSelf,
     /// Pet affected in [`Outcome`] trigger.
-    TriggerAffected,
+    /// 1. Optional position relative to pet.
+    ///
+    /// Same pet.
+    /// ```
+    /// let curr_pet = Position::TriggerAffected(None);
+    /// ```
+    /// Two pets ahead of the trigger pet that are nearest.
+    /// ```
+    /// let curr_pet = Position::TriggerAfflicting(Some(Box::new(Position::Nearest(2))));
+    /// ```
+    TriggerAffected(Option<Box<Position>>),
     /// Pet causing in [`Outcome`] trigger.
-    TriggerAfflicting,
+    /// 1. Optional position relative to pet.
+    ///
+    /// Same pet.
+    /// ```
+    /// let curr_pet = Position::TriggerAfflicting(None);
+    /// ```
+    /// Pet behind trigger pet.
+    /// ```
+    /// let curr_pet = Position::TriggerAfflicting(Some(Box::new(Position::Relative(-1))));
+    /// ```
+    TriggerAfflicting(Option<Box<Position>>),
     /// First pet on [`Team`](crate::teams::team::Team).
     First,
     /// Last pet on [`Team`](crate::teams::team::Team).

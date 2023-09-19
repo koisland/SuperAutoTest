@@ -1,13 +1,40 @@
 use std::sync::{Arc, RwLock};
 
-use crate::{Food, FoodName, Pet, PetName, Position, Statistics, Team};
+use crate::{
+    teams::team::TeamFightOutcome, Food, FoodName, Pet, PetName, Position, Statistics, Team,
+    TeamCombat, Toy, ToyName,
+};
 
+/// Count number of pets.
 pub fn count_pets(friends: &[Option<Arc<RwLock<Pet>>>], pet_name: PetName) -> usize {
     friends
         .iter()
         .flatten()
         .filter_map(|pet| (pet.read().unwrap().name == pet_name).then_some(1))
         .sum()
+}
+
+/// Test to check if team loses due to spawned Pet on enemy team.
+pub fn spawn_toy_test(toy: ToyName, exp_pet_spawned: PetName, exp_number_spawned: usize) {
+    let mut team = test_gorilla_team();
+    let mut enemy_team = test_gorilla_team();
+
+    team.toys.push(Toy::try_from(toy).unwrap());
+
+    // No pets.
+    assert_eq!(count_pets(&enemy_team.friends, exp_pet_spawned.clone()), 0);
+
+    team.fight(&mut enemy_team).unwrap();
+    team.fight(&mut enemy_team).unwrap();
+    let outcome = team.fight(&mut enemy_team).unwrap();
+
+    // Enemy wins because of spawned ants.
+    assert_eq!(outcome, TeamFightOutcome::Loss);
+    // Two ants.
+    assert_eq!(
+        count_pets(&enemy_team.friends, exp_pet_spawned),
+        exp_number_spawned
+    );
 }
 
 pub fn test_ant_team() -> Team {

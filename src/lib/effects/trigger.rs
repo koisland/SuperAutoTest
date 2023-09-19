@@ -71,64 +71,64 @@ impl FromStr for Outcomes {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut outcomes: Vec<Outcome> = Vec::with_capacity(3);
 
-        match s {
-            "Sell" => outcomes.push(TRIGGER_SELF_PET_SOLD),
-            "Level up" => outcomes.push(TRIGGER_SELF_LEVELUP),
-            "Friend summoned" => outcomes.push(TRIGGER_ANY_SUMMON),
-            "Start of battle" => outcomes.push(TRIGGER_START_BATTLE),
-            "Buy" => outcomes.push(TRIGGER_SELF_PET_BOUGHT),
-            "Buy from shop" => outcomes.extend([TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_FOOD_BOUGHT]),
-            "Eat shop food" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
-            "End turn" => outcomes.push(TRIGGER_END_TURN),
-            "Shop food bought" => outcomes.push(TRIGGER_ANY_FOOD_BOUGHT),
-            "Start of turn" => outcomes.push(TRIGGER_START_TURN),
-            "Enemy summoned or pushed" => {
+        match s.to_lowercase().as_str() {
+            "sell" => outcomes.push(TRIGGER_SELF_PET_SOLD),
+            "level up" => outcomes.push(TRIGGER_SELF_LEVELUP),
+            "friend summoned" => outcomes.push(TRIGGER_ANY_SUMMON),
+            "start of battle" => outcomes.push(TRIGGER_START_BATTLE),
+            "buy" => outcomes.push(TRIGGER_SELF_PET_BOUGHT),
+            "buy from shop" => outcomes.extend([TRIGGER_ANY_PET_BOUGHT, TRIGGER_ANY_FOOD_BOUGHT]),
+            "eat shop food" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
+            "end turn" => outcomes.push(TRIGGER_END_TURN),
+            "shop food bought" => outcomes.push(TRIGGER_ANY_FOOD_BOUGHT),
+            "start of turn" => outcomes.push(TRIGGER_START_TURN),
+            "enemy summoned or pushed" => {
                 outcomes.extend([TRIGGER_ANY_ENEMY_SUMMON, TRIGGER_ANY_ENEMY_PUSHED])
             }
-            "On break" => outcomes.push(TRIGGER_TOY_BREAK),
-            "Shop tier upgraded" => outcomes.push(TRIGGER_SHOP_TIER_UPGRADED),
-            "Hurt" => outcomes.push(TRIGGER_SELF_HURT),
-            "Friend ahead hurt" => outcomes.push(TRIGGER_AHEAD_HURT),
-            "None" => outcomes.push(TRIGGER_NONE),
-            "Before attack" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
-            "Friend gained perk" => outcomes.push(TRIGGER_ANY_GAIN_PERK),
+            "on break" => outcomes.push(TRIGGER_TOY_BREAK),
+            "shop tier upgraded" => outcomes.push(TRIGGER_SHOP_TIER_UPGRADED),
+            "hurt" => outcomes.push(TRIGGER_SELF_HURT),
+            "friend ahead hurt" => outcomes.push(TRIGGER_AHEAD_HURT),
+            "none" => outcomes.push(TRIGGER_NONE),
+            "before attack" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
+            "friend gained perk" => outcomes.push(TRIGGER_ANY_GAIN_PERK),
             // TODO:
-            "Before faint" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+            "before faint" => outcomes.push(TRIGGER_AHEAD_ATTACK),
 
-            "Friend sold" => outcomes.push(TRIGGER_ANY_PET_SOLD),
-            "Pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
-            "Friend hurt" => outcomes.push(TRIGGER_ANY_HURT),
-            "Friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
+            "friend sold" => outcomes.push(TRIGGER_ANY_PET_SOLD),
+            "pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
+            "friend hurt" => outcomes.push(TRIGGER_ANY_HURT),
+            "friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
 
             // TODO:
-            "Empty Front Space" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+            "empty front space" => outcomes.push(TRIGGER_AHEAD_ATTACK),
 
-            "Friend ahead attacks" => outcomes.push(TRIGGER_AHEAD_ATTACK),
-            "Friend ahead faints" => outcomes.push(TRIGGER_AHEAD_FAINT),
-            "Shop food eaten" => outcomes.push(TRIGGER_ANY_FOOD_EATEN),
-            "Enemy summoned" => outcomes.push(TRIGGER_ANY_ENEMY_SUMMON),
-            "Roll" => outcomes.push(TRIGGER_ROLL),
-            "Friendly pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
-            "Enemy hurt" => outcomes.push(TRIGGER_ANY_ENEMY_HURT),
-            "Knock out" => outcomes.push(TRIGGER_KNOCKOUT),
-            "Hurt & Faint" => outcomes.extend([TRIGGER_SELF_HURT, TRIGGER_SELF_FAINT]),
+            "friend ahead attacks" => outcomes.push(TRIGGER_AHEAD_ATTACK),
+            "friend ahead faints" => outcomes.push(TRIGGER_AHEAD_FAINT),
+            "shop food eaten" => outcomes.push(TRIGGER_ANY_FOOD_EATEN),
+            "enemy summoned" => outcomes.push(TRIGGER_ANY_ENEMY_SUMMON),
+            "roll" => outcomes.push(TRIGGER_ROLL),
+            "friendly pet level-up" => outcomes.push(TRIGGER_ANY_LEVELUP),
+            "enemy hurt" => outcomes.push(TRIGGER_ANY_ENEMY_HURT),
+            "knock out" => outcomes.push(TRIGGER_KNOCKOUT),
+            "hurt & faint" => outcomes.extend([TRIGGER_SELF_HURT, TRIGGER_SELF_FAINT]),
             // TODO:
-            "Eats Apple" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
-            "Friend faints" => outcomes.push(TRIGGER_ANY_FAINT),
-            "End turn & Start of battle" => {
+            "eats apple" => outcomes.push(TRIGGER_SELF_FOOD_EATEN),
+            "friend faints" => outcomes.push(TRIGGER_ANY_FAINT),
+            "end turn & start of battle" => {
                 outcomes.extend([TRIGGER_END_TURN, TRIGGER_START_BATTLE])
             }
-            "Summoned" => outcomes.push(TRIGGER_SELF_SUMMON),
+            "summoned" => outcomes.push(TRIGGER_SELF_SUMMON),
 
             // TODO:
-            "Before friend attacks" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
+            "before friend attacks" => outcomes.push(TRIGGER_SELF_BEFORE_ATTACK),
 
             // Two friends faint is handled by conditional Effect.
-            "Two friends faint" => outcomes.push(TRIGGER_ANY_FAINT),
-            "Buy & Sell" => outcomes.extend([TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD]),
+            "two friends faint" => outcomes.push(TRIGGER_ANY_FAINT),
+            "buy & sell" => outcomes.extend([TRIGGER_SELF_PET_BOUGHT, TRIGGER_SELF_PET_SOLD]),
             // Conditional action determines outcome.
-            "Tier 1 friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
-            "All enemies fainted" => outcomes.push(TRIGGER_NO_ENEMIES_LEFT),
+            "tier 1 friend bought" => outcomes.push(TRIGGER_ANY_PET_BOUGHT),
+            "all enemies fainted" => outcomes.push(TRIGGER_NO_ENEMIES_LEFT),
             _ => {}
         }
 

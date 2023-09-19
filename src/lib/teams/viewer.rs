@@ -582,7 +582,7 @@ impl TeamViewer for Team {
                     pets.push(self_pet.clone())
                 }
             }
-            (_, Position::TriggerAfflicting) | (_, Position::TriggerAffected) => {
+            (_, Position::TriggerAfflicting(opt_pos)) | (_, Position::TriggerAffected(opt_pos)) => {
                 let Some(trigger) = trigger else {
                     let pos = pos.clone();
                     return Err(SAPTestError::InvalidTeamAction {
@@ -590,12 +590,27 @@ impl TeamViewer for Team {
                         reason: format!("Trigger required for finding pets by {pos:?}"),
                     });
                 };
-                let trigger_pet = if let Position::TriggerAffected = pos {
+                // Find what position to get desired trigger pet.
+                let trigger_pet = if std::mem::discriminant(&Position::TriggerAffected(None))
+                    == std::mem::discriminant(pos)
+                {
                     trigger.affected_pet.as_ref()
                 } else {
                     trigger.afflicting_pet.as_ref()
                 };
-                if let Some(Some(trigger_pet)) = trigger_pet.map(|pet_ref| pet_ref.upgrade()) {
+                let Some(Some(trigger_pet)) = trigger_pet.map(|pet_ref| pet_ref.upgrade()) else {
+                    return Ok(pets);
+                };
+                // If opt_pos given, use position and current trigger pet as curr_pet arg in finding remaining pets.
+                if let Some(opt_pos) = opt_pos {
+                    pets.extend(self.get_pets_by_pos(
+                        Some(trigger_pet),
+                        target,
+                        opt_pos,
+                        Some(trigger),
+                        Some(opponent),
+                    )?)
+                } else {
                     pets.push(trigger_pet)
                 }
             }

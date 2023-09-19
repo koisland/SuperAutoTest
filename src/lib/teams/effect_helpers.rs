@@ -489,8 +489,11 @@ impl EffectApplyHelpers for Team {
             SummonType::StoredPet(box_pet) => *box_pet.clone(),
             SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
             SummonType::CustomPet(name, stat_types, lvl) => {
-                let mut stats = stat_types
-                    .to_stats(Some(target_pet.read().unwrap().stats), Some(&self.counters))?;
+                let mut stats = stat_types.to_stats(
+                    Some(target_pet.read().unwrap().stats),
+                    Some(&self.counters),
+                    false,
+                )?;
                 Pet::new(
                     name.clone(),
                     Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
@@ -1073,8 +1076,11 @@ impl EffectApplyHelpers for Team {
                     return Ok(affected_pets);
                 }
                 // Convert stat change to stats with afflicting pet stats.
-                let added_stats =
-                    stat_change.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+                let added_stats = stat_change.to_stats(
+                    Some(afflicting_pet_stats),
+                    Some(&self.counters),
+                    false,
+                )?;
 
                 // Update action for digraph with static value.
                 modified_effect.action = Action::Add(StatChangeType::Static(added_stats));
@@ -1099,8 +1105,11 @@ impl EffectApplyHelpers for Team {
             Action::Remove(stat_change) => {
                 let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
 
-                let mut remove_stats =
-                    stat_change.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+                let mut remove_stats = stat_change.to_stats(
+                    Some(afflicting_pet_stats),
+                    Some(&self.counters),
+                    false,
+                )?;
 
                 // Check for food on effect owner. Add any effect dmg modifiers. ex. Pineapple
                 if let Some(item) = afflicting_pet
@@ -1111,8 +1120,11 @@ impl EffectApplyHelpers for Team {
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
                 {
                     if let Action::Add(modifier) = &item.ability.action {
-                        let modifier_stats =
-                            modifier.to_stats(Some(afflicting_pet_stats), Some(&self.counters))?;
+                        let modifier_stats = modifier.to_stats(
+                            Some(afflicting_pet_stats),
+                            Some(&self.counters),
+                            false,
+                        )?;
                         remove_stats += modifier_stats
                     }
                 }
@@ -1151,7 +1163,7 @@ impl EffectApplyHelpers for Team {
                     } else {
                         opponent.as_ref().map(|team| &team.counters)
                     };
-                    stat_change.to_stats(Some(pet.stats), team_counters)?
+                    stat_change.to_stats(Some(pet.stats), team_counters, true)?
                 };
                 affected_pet.write().unwrap().stats = new_stats;
             }
@@ -1437,7 +1449,8 @@ impl EffectApplyHelpers for Team {
             Action::Debuff(perc_stats) => {
                 let mut pet = affected_pet.write().unwrap();
                 // TODO: Change so modifier can be on afflicting or affected pet. Current only affected.
-                let debuff_stats = perc_stats.to_stats(Some(pet.stats), Some(&self.counters))?;
+                let debuff_stats =
+                    perc_stats.to_stats(Some(pet.stats), Some(&self.counters), false)?;
                 modified_effect.action = Action::Debuff(StatChangeType::Static(debuff_stats));
 
                 pet.stats -= debuff_stats;

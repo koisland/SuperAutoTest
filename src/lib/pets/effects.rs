@@ -187,7 +187,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 let mut free_apple = Food::try_from(FoodName::Apple)?;
                 free_apple.cost = 0;
                 if let Action::Add(stat_change_type) = &free_apple.ability.action {
-                    let add_stats = stat_change_type.to_stats(None, None)?;
+                    let add_stats = stat_change_type.to_stats(None, None, false)?;
                     // Multiple by current level to create better apples.
                     let new_apple_stats = add_stats * Statistics::new(record.lvl, record.lvl)?;
                     free_apple.ability.action =
@@ -258,7 +258,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 owner: None,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
                 temp: record.temp_effect,
@@ -312,7 +312,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 trigger: TRIGGER_SELF_FAINT,
                 target: Target::Friend,
                 // Must have a position to activate effect.
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::AddToCounter(String::from("Trumpets"), record.lvl.try_into()?),
                 uses: None,
                 temp: record.temp_effect,
@@ -369,7 +369,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_SELF_FAINT,
                     target: Target::Friend,
-                    position: Position::TriggerAffected,
+                    position: Position::TriggerAffected(None),
                     action: Action::Conditional(
                         LogicType::If(ConditionType::Shop(ShopCondition::InState(
                             ShopState::Closed,
@@ -551,7 +551,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_ANY_GAIN_AILMENT,
                     target: Target::Friend,
-                    position: Position::TriggerAffected,
+                    position: Position::TriggerAffected(None),
                     // Remove ailment.
                     action: Action::Gain(GainType::NoItem),
                     uses: Some(record.n_triggers),
@@ -740,7 +740,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_FOOD_EATEN,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
             }],
@@ -974,7 +974,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     let mut apple = Food::try_from(FoodName::Apple)?;
                     // Replace apple action with buffed effect based on record level.
                     if let Action::Add(stat_change_type) = &apple.ability.action {
-                        let add_stats = stat_change_type.to_stats(None, None)?;
+                        let add_stats = stat_change_type.to_stats(None, None, false)?;
                         // Multiple by current level to create better apples.
                         let new_apple_stats = add_stats * Statistics::new(record.lvl, record.lvl)?;
                         apple.ability.action = Action::Add(StatChangeType::Static(new_apple_stats));
@@ -1085,7 +1085,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Conditional(
                     LogicType::If(ConditionType::Shop(ShopCondition::InState(ShopState::Open))),
                     Box::new(Action::Add(StatChangeType::Static(effect_stats))),
@@ -1322,7 +1322,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
             }],
@@ -1508,7 +1508,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     temp: record.temp_effect,
                     trigger: TRIGGER_ANY_FAINT,
                     target: Target::Friend,
-                    position: Position::TriggerAffected,
+                    position: Position::TriggerAffected(None),
                     action: Action::Summon(SummonType::StoredPet(Box::new(Pet::new(
                         PetName::ZombieFly,
                         Some(effect_stats),
@@ -1624,7 +1624,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_ANY_ENEMY_SUMMON,
                     target: Target::Enemy,
-                    position: Position::TriggerAffected,
+                    position: Position::TriggerAffected(None),
                     action: Action::Remove(StatChangeType::Static(effect_stats)),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
@@ -1633,7 +1633,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     owner: None,
                     trigger: TRIGGER_ANY_ENEMY_PUSHED,
                     target: Target::Enemy,
-                    position: Position::TriggerAffected,
+                    position: Position::TriggerAffected(None),
                     action: Action::Remove(StatChangeType::Static(effect_stats)),
                     uses: Some(record.n_triggers),
                     temp: record.temp_effect,
@@ -1844,7 +1844,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 // Give currently held food.
                 action: Action::Gain(GainType::SelfItem),
                 uses: Some(record.n_triggers),
@@ -1863,7 +1863,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_LEVELUP,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
             }],
@@ -1872,7 +1872,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_ENEMY_HURT,
                 target: Target::Enemy,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: Some(record.n_triggers),
             }],
@@ -1941,7 +1941,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_SELF_HURT,
                 target: Target::Either,
-                position: Position::TriggerAfflicting,
+                position: Position::TriggerAfflicting(None),
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses: None,
             }],
@@ -2185,7 +2185,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 temp: record.temp_effect,
                 trigger: TRIGGER_ANY_SUMMON,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Experience(1),
                 uses: Some(record.n_triggers),
             }],

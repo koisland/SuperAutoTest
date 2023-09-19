@@ -59,7 +59,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Honey => Effect {
                 owner: None,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Summon(SummonType::DefaultPet(PetName::Bee)),
                 uses,
                 trigger: TRIGGER_SELF_FAINT,
@@ -86,7 +86,7 @@ impl TryFrom<&FoodRecord> for Effect {
             FoodName::Mushroom => Effect {
                 owner: None,
                 target: Target::Friend,
-                position: Position::TriggerAffected,
+                position: Position::TriggerAffected(None),
                 action: Action::Summon(SummonType::SelfPet(
                     Some(Statistics {
                         attack: 1,

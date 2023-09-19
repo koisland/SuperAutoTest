@@ -529,6 +529,7 @@ impl TeamEffects for Team {
                 None
             }
         };
+
         // Add persistent effects. Owner always first on team. Not sure if best choice but must work for golden pack.
         let mut applied_effects: Vec<Effect> = self
             .persistent_effects
