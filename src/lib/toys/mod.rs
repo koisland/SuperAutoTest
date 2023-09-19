@@ -1,4 +1,4 @@
-//! Super Auto Pets Toys.
+//! Super Auto Pets [`Toy`](crate::Toy)s.
 
 /// Toy effects.
 pub mod effects;

@@ -208,7 +208,7 @@
 //! let pet: Pet = pet_record.try_into().unwrap();
 //! ```
 //!
-//! ### [`SAPDB`](crate::SAPDB)
+//! ### [`SAPDB`](struct@crate::SAPDB)
 //! * This database is initialized as a global, static type using the [`lazy_static`] crate.
 //!     ```rust no_run
 //!     use saptest::SAPDB;
@@ -220,9 +220,10 @@
 //!
 //! ### Configuration
 //! To modify [`SapDB`](struct@crate::SapDB) behavior, create a `.saptest.toml`.
+//! * The config filename can also be altered by specifying the `CONFIG_SAPTEST` environment variable.
 //! * Specific page version to query.
-//!     * All pages on the Fandom wiki are version controlled and have an associated id.
-//!         * ex. <https://superautopets.wiki.gg/wiki/Pets?oldid=4883>
+//!     * All pages on the wiki.gg wiki are version controlled and have an associated id.
+//!         * ex. <https://superautopets.wiki.gg/index.php?title=Pets&oldid=11907>
 //!     * In the case that a page is altered with incorrect information, this can be used to find a valid version.
 //!     * Leaving this blank will default to the latest version.
 //!         * ex. <https://superautopets.wiki.gg/wiki/Pets>
@@ -241,7 +242,7 @@
 //! # https://superautopets.wiki.gg/wiki/Food
 //! # foods_version = ?
 //!
-//! //! # https://superautopets.wiki.gg/wiki/Ailments
+//! # https://superautopets.wiki.gg/wiki/Ailments
 //! # ailments_version = ?
 //!
 //! # https://superautopets.wiki.gg/wiki/Tokens
@@ -250,7 +251,7 @@
 //! # https://superautopets.wiki.gg/wiki/Toys
 //! # toys_version = ?
 //!
-//! # https://superautopets.wiki.gg/wiki/Hard_Mode_(Toys)
+//! # https://superautopets.wiki.gg/wiki/Hard_Mode_Toys
 //! # toys_hard_mode_version = ?
 //!
 //! filename = "./sap.db"

@@ -1,23 +1,29 @@
 # Fandom page id can be found by:
 # 1. Navigating to the page.
-# 2. Clicking on the page's "History" tab.
-# 3. Hovering over the "prev" link.
+# 2. Clicking on the page's "View history" tab.
+# 3. Hovering over the date timestamps.
 
 [database]
-# https://superautopets.wiki.gg/wiki/Team_Names
+# https://superautopets.wiki.gg/index.php?title=Team_Names&oldid=?
 # names_version = ?
 
-# https://superautopets.wiki.gg/wiki/Pets
+# https://superautopets.wiki.gg/index.php?title=Pets&oldid=?
 # pets_version = ?
 
-# https://superautopets.wiki.gg/wiki/Food
+# https://superautopets.wiki.gg/index.php?title=Food&oldid=?
 # foods_version = ?
 
-# https://superautopets.wiki.gg/wiki/Ailments
+# https://superautopets.wiki.gg/index.php?title=Ailments&oldid=?
 # ailments_version = ?
 
-# https://superautopets.wiki.gg/wiki/Tokens
+# https://superautopets.wiki.gg/index.php?title=Tokens&oldid=?
 # tokens_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Toys&oldid=?
+# toys_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Hard_Mode_Toys&oldid=?
+# toys_hard_mode_version = ?
 
 filename = "./sap.db"
 update_on_startup = true

@@ -58,10 +58,10 @@ digraph {
     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
-    0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-    0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+    1 -> 2 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
+    0 -> 3 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
 }
 ```
 
@@ -132,7 +132,6 @@ let mut pet = Pet::try_from(PetName::Ant).unwrap();
 
 // Or custom pets and effects.
 let custom_effect = Effect::new(
-    Entity::Pet,
     TRIGGER_START_BATTLE, // Effect trigger
     Target::Friend, // Target
     Position::Adjacent, // Positions
@@ -162,8 +161,8 @@ To configure the global `SapDB`'s startup, create a `.saptest.toml` file in the 
 
 ```toml
 [database]
-# https://superautopets.fandom.com/wiki/Pets?oldid=4883
-pets_version = 4883
+# https://superautopets.wiki.gg/index.php?title=Pets&oldid=4634
+pets_version = 4634
 filename = "./sap.db"
 update_on_startup = false
 ```

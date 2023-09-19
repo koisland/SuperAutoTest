@@ -502,9 +502,9 @@ pub enum Status {
     BuyFood,
     /// Food eaten.
     AteFood,
-    /// Pet gains an effect perk. ex. [`FoodName::Honey`]
+    /// Pet gains an effect perk. ex. [`FoodName::Honey`](crate::FoodName::Honey)
     GainPerk,
-    /// Pet gains an ailment. ex. [`FoodName::Ink`]
+    /// Pet gains an ailment. ex. [`FoodName::Ink`](crate::FoodName::Ink)
     GainAilment,
     /// Team State
     IsTeam(TeamCondition),

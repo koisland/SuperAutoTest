@@ -31,7 +31,7 @@ impl FromIterator<(String, Vec<String>)> for SAPQuery {
 }
 
 impl SAPQuery {
-    /// Construct a [`SAPDB`](crate::SAPDB) query
+    /// Construct a [`SAPDB`](struct@crate::SAPDB) query
     /// ```rust no_run
     /// use saptest::SAPQuery;
     ///
@@ -45,7 +45,7 @@ impl SAPQuery {
         }
     }
 
-    /// Set table in [`SAPDB`](crate::SAPDB) to query. See [here](crate::db) for more details.
+    /// Set table in [`SAPDB`](struct@crate::SAPDB) to query. See [here](crate::db) for more details.
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery};
     ///
@@ -57,10 +57,10 @@ impl SAPQuery {
         self
     }
 
-    /// Set params in [`SAPDB`](crate::SAPDB) to query. See [here](crate::db) for more details.
+    /// Set params in [`SAPDB`](struct@crate::SAPDB) to query. See [here](crate::db) for more details.
     /// * Prefixing the param name with `-` will select all values not in the given params.
     /// ---
-    /// Ex. Query [`FoodRecord`]s where `name` is [`FoodName::Apple`] or [`FoodName::Coconut`].
+    /// Ex. Query [`FoodRecord`](crate::db::record::FoodRecord)s where `name` is [`FoodName::Apple`](crate::FoodName::Apple) or [`FoodName::Coconut`](crate::FoodName::Coconut).
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery, FoodName};
     ///
@@ -70,7 +70,7 @@ impl SAPQuery {
     ///     .set_table(Entity::Food);
     /// ```
     /// ---
-    /// Ex. Query [`PetRecord`]s where name is **not** [`PetName::Ant`] and [`PetName::Dog`].
+    /// Ex. Query [`PetRecord`](crate::db::record::PetRecord)s where name is **not** [`PetName::Ant`](crate::PetName::Ant) and [`PetName::Dog`](crate::PetName::Dog).
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery, PetName};
     ///
