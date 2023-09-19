@@ -28,7 +28,9 @@ fn test_toy_pill_bottle() {
     // First friend faints at start of battle.
     team.trigger_start_battle_effects(&mut enemy_team).unwrap();
 
-    let Some(Some(pet)) = &team.friends.first() else { panic!("No first friend.") };
+    let Some(Some(pet)) = &team.friends.first() else {
+        panic!("No first friend.")
+    };
     assert_eq!(pet.read().unwrap().stats.health, 0);
 }
 

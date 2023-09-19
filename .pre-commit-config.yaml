@@ -35,9 +35,17 @@ repos:
         language: system
 -   repo: local
     hooks:
-    -   id: test
-        name: Unittests.
-        entry: cargo test
+    -   id: test-lib
+        name: Unittests
+        entry: cargo test --lib
+        pass_filenames: false
+        types: [file, rust]
+        language: system
+-   repo: local
+    hooks:
+    -   id: test-lib
+        name: Doctests
+        entry: bash -c 'CONFIG_SAPTEST=".saptest_doc.toml" cargo test --doc'
         pass_filenames: false
         types: [file, rust]
         language: system

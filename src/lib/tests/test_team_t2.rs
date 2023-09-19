@@ -382,7 +382,7 @@ fn test_battle_pug_team() {
 fn test_battle_stork_team() {
     let mut team = test_stork_team();
     let mut enemy_team = test_mammoth_team();
-    team.set_shop_tier(2).unwrap();
+    team.set_seed(Some(33)).set_shop_tier(2).unwrap();
 
     team.fight(&mut enemy_team).unwrap();
 

@@ -30,7 +30,14 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --lib
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test --doc
+        env:
+          # Add env var to use different saptest config that doesn't update on startup.
+          # Prevents doctests from hitting wiki.gg's request limit.
+          CONFIG_SAPTEST: ".saptest_doc.toml"
   fmt:
     name: Rustfmt
     runs-on: ubuntu-latest

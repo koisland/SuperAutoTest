@@ -42,10 +42,10 @@
 //!     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
 //!     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
 //!     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
-//!     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-//!     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-//!     1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-//!     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//!     0 -> 1 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+//!     1 -> 0 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+//!     1 -> 2 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
+//!     0 -> 3 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
 //! }
 //! ```
 //! ### Shops
@@ -195,14 +195,19 @@ mod tests;
 mod wiki_scraper;
 
 const DB_FNAME: &str = "./sap.db";
+const ENV_SAPTEST_CONFIG: &str = "CONFIG_SAPTEST";
 
 lazy_static! {
     #[doc(hidden)]
-    static ref CONFIG: LibConfig = read_to_string(CONFIG_PATH)
+    static ref CONFIG: LibConfig = {
+        // Read in env var for saptest config file if one provided. Otherwise, use default.
+        let config = std::env::var(ENV_SAPTEST_CONFIG).unwrap_or(CONFIG_PATH.to_string());
+        read_to_string(config)
         .map_or_else(
             |_| DEFAULT_CONFIG,
             |toml_str| toml::from_str(&toml_str).unwrap()
-        );
+        )
+    };
 
     #[doc(hidden)]
     /// Global pooled database.
