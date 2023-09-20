@@ -18,6 +18,10 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 ---
 
 ## Usage
+Add it to a project with `cargo`.
+```bash
+cargo add saptest
+```
 
 ### Teams
 Build a `Team` and simulate battles between them.
@@ -71,6 +75,8 @@ Graphs can be as simple as the example above... or extremely complex.
     <img align="middle" src="docs/images/ants.svg" width="40%">
     <img align="middle" src="docs/images/blowfish_5.svg" width="30%">
 </p>
+
+> Using [Graphviz Online](https://dreampuf.github.io/GraphvizOnline/).
 
 ### Shops
 Add shop functionality to a `Team` and roll, freeze, buy/sell pets and foods.

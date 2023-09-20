@@ -404,11 +404,11 @@ impl EffectApplyHelpers for Team {
                     })?;
                 Some(rec.try_into()?)
             }
-            ToyType::QueryOneToy { sql, params } => {
+            ToyType::QueryOneToy(sap_query) => {
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
 
                 let rec: ToyRecord = SAPDB
-                    .execute_sql_query(sql, params)?
+                    .execute_query(sap_query.clone())?
                     .into_iter()
                     .filter_map(|record| record.try_into().ok())
                     .choose(&mut rng)

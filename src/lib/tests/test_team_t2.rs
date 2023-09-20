@@ -207,8 +207,6 @@ fn test_battle_spider_team() {
 
 #[test]
 fn test_battle_bat_team() {
-    // TODO: Need to add ailments. Weak and Ink removed from Food.
-    // https://superautopets.fandom.com/wiki/Ailments
     let mut team = test_bat_team();
     let mut enemy_team = test_skunk_team();
 

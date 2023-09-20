@@ -360,7 +360,7 @@ impl TryInto<Vec<Effect>> for ToyRecord {
                         // TODO: Felines should be a field in the db?
                         base_effect.action = Action::None;
                     }
-                    ToyName::Custom(_) => todo!(),
+                    ToyName::Custom(_) => {}
                 }
                 effects.push(base_effect);
                 effects

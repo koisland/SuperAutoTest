@@ -11,7 +11,7 @@ use crate::{
     foods::{food::Food, names::FoodName},
     pets::pet::Pet,
     teams::effect_helpers::EffectApplyHelpers,
-    Entity, PetName, Team, ToyName,
+    Entity, PetName, SAPQuery, Team, ToyName,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -220,12 +220,7 @@ pub enum ToyType {
         lvl: Option<usize>,
     },
     /// Query toy based on given SQL.
-    QueryOneToy {
-        /// SQL string
-        sql: String,
-        /// Params.
-        params: Vec<String>,
-    },
+    QueryOneToy(SAPQuery),
 }
 
 /// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can randomize pets.
