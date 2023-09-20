@@ -9,8 +9,8 @@ use crate::{
         },
         effect::{Effect, Entity, EntityName},
         state::{
-            EqualityCondition, ItemCondition, Position, ShopCondition, Status, Target,
-            TeamCondition,
+            CondOrdering, EqualityCondition, ItemCondition, Position, ShopCondition, Status,
+            Target, TeamCondition,
         },
         trigger::*,
     },
@@ -354,7 +354,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Enemy,
-                                TeamCondition::Counter(String::from("Trumpets"), Some(0)),
+                                TeamCondition::Counter(String::from("Trumpets"), Some(CondOrdering::Equal(0))),
                             )),
                             Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
                             Box::new(Action::None),
@@ -377,7 +377,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Friend,
-                                TeamCondition::Counter(String::from("Trumpets"), Some(0)),
+                                TeamCondition::Counter(String::from("Trumpets"), Some(CondOrdering::Equal(0))),
                             )),
                             Box::new(Action::AddToCounter(String::from("Trumpets"), -1)),
                             Box::new(Action::None),
@@ -1037,7 +1037,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         target: Target::Friend,
                         position: Position::OnSelf,
                         action: Action::Conditional(
-                            LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(REQ_PERK_PETS)))),
+                            LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(CondOrdering::Equal(REQ_PERK_PETS))))),
                             Box::new(Action::Summon(SummonType::CustomPet(record.name.clone(), StatChangeType::Static(effect_stats), 1))),
                             Box::new(Action::None)
                         ),
@@ -1076,7 +1076,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 action: Action::Conditional(
                     LogicType::IfNot(ConditionType::Team(
                         Target::Friend,
-                        TeamCondition::OpenSpace(Some(0)),
+                        TeamCondition::OpenSpace(Some(CondOrdering::Equal(0))),
                     )),
                     Box::new(Action::Add(StatChangeType::Static(effect_stats))),
                     Box::new(Action::None),
@@ -2446,7 +2446,26 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             }],
             // PetName::Cat => todo!(),
             // PetName::Tiger => todo!(),
-            PetName::Gecko => todo!(),
+            PetName::Gecko => {
+                vec![
+                    Effect {
+                        owner: None,
+                        trigger: TRIGGER_START_BATTLE,
+                        target: Target::Friend,
+                        position: Position::OnSelf,
+                        action: Action::Conditional(
+                            LogicType::If(ConditionType::Team(
+                                Target::Friend,
+                                TeamCondition::NumberToys(Some(CondOrdering::Greater(0)))
+                            )),
+                            Box::new(Action::Add(StatChangeType::Static(effect_stats))),
+                            Box::default()
+                        ),
+                        uses: Some(record.n_triggers),
+                        temp: record.temp_effect
+                    }
+                ]
+            },
             PetName::AfricanPenguin => todo!(),
             PetName::BlackNeckedStilt => todo!(),
             PetName::DoorHeadAnt => todo!(),

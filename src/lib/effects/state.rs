@@ -9,7 +9,7 @@ use crate::{
     pets::pet::Pet,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
-    Food, PetCombat, Team, TeamViewer,
+    Food, PetCombat, Team, TeamShopping, TeamViewer,
 };
 
 use super::actions::Action;
@@ -58,7 +58,48 @@ impl EqualityCondition {
     }
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+/// Orderings for Conditions.
+pub enum CondOrdering {
+    /// Less than or equal to inner value.
+    LessEqual(usize),
+    /// Less than inner value.
+    Less(usize),
+    /// Equasl inner value.
+    Equal(usize),
+    /// Greater than inner value.
+    Greater(usize),
+    /// Greater than or equal to inner value.
+    GreaterEqual(usize),
+}
+
+impl CondOrdering {
+    fn check_true(&self, comp: usize) -> bool {
+        match self {
+            CondOrdering::LessEqual(val) => comp <= *val,
+            CondOrdering::Less(val) => comp < *val,
+            CondOrdering::Equal(val) => comp == *val,
+            CondOrdering::Greater(val) => comp > *val,
+            CondOrdering::GreaterEqual(val) => comp >= *val,
+        }
+    }
+}
+
+/// Conversion can only be Into<usize>. Cannot determined CondOrdering by num.
+#[allow(clippy::from_over_into)]
+impl Into<usize> for &CondOrdering {
+    fn into(self) -> usize {
+        match self {
+            CondOrdering::LessEqual(val)
+            | CondOrdering::Less(val)
+            | CondOrdering::Equal(val)
+            | CondOrdering::Greater(val)
+            | CondOrdering::GreaterEqual(val) => *val,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 /// Conditions a `Team` is in.
 pub enum TeamCondition {
     /// Previous team fight was some outcome.
@@ -66,33 +107,32 @@ pub enum TeamCondition {
     PreviousBattle(TeamFightOutcome),
     /// Number of open slots on team.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current number of open slots on team.
-    /// * If used for [`Action::Conditional`], checks if current number of open slots is equal to provided value.
-    OpenSpace(Option<usize>),
+    /// * If used for [`Action::Conditional`], checks if current number of open slots meets [`CondOrdering`].
+    OpenSpace(Option<CondOrdering>),
     /// Number of pets on team.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current number of pets on team.
-    /// * If used for [`Action::Conditional`], checks if current number of pets is equal to provided value.
-    NumberPets(Option<usize>),
-    /// Has this many or fewer pets on team.
-    NumberPetsLessEqual(usize),
-    /// Has this many or more pets on team.
-    NumberPetsGreaterEqual(usize),
+    /// * If used for [`Action::Conditional`], checks if current number of pets meets [`CondOrdering`]e.
+    NumberPets(Option<CondOrdering>),
     /// Number of fainted pets is a multiple of this value.
     NumberFaintedMultiple(usize),
     /// Counter.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current counter value.
-    /// * If used for [`Action::Conditional`], checks if current counter value is equal to provided value.
-    Counter(String, Option<usize>),
+    /// * If used for [`Action::Conditional`], checks if current counter value meets [`CondOrdering`].
+    Counter(String, Option<CondOrdering>),
     /// Number of turns.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current team turn.
-    /// * If used for [`Action::Conditional`], checks if current turn is equal to provided value.
-    NumberTurns(Option<usize>),
+    /// * If used for [`Action::Conditional`], checks if current turn meets [`CondOrdering`].
+    NumberTurns(Option<CondOrdering>),
     /// Number of pets with a perk.
-    NumberPerkPets(Option<usize>),
+    NumberPerkPets(Option<CondOrdering>),
+    /// Check number of toys.
+    NumberToys(Option<CondOrdering>),
 }
 
 impl TeamCondition {
     /// Count number of times a [`TeamCondition`] is met.
     pub(crate) fn to_num(&self, team: &Team) -> usize {
+        let get_inner_num = |cond_num: &CondOrdering| cond_num.into();
         match self {
             TeamCondition::PreviousBattle(outcome) => team
                 .history
@@ -100,22 +140,32 @@ impl TeamCondition {
                 .iter()
                 .filter(|prev_outcome| outcome == *prev_outcome)
                 .count(),
-            TeamCondition::OpenSpace(num_spaces) => num_spaces.unwrap_or_else(|| team.open_slots()),
-            TeamCondition::NumberPets(num_pets) => num_pets.unwrap_or_else(|| team.all().len()),
-            TeamCondition::NumberPetsLessEqual(num)
-            | TeamCondition::NumberPetsGreaterEqual(num) => *num,
+            TeamCondition::OpenSpace(num_spaces) => num_spaces
+                .as_ref()
+                .map_or_else(|| team.open_slots(), get_inner_num),
+            TeamCondition::NumberPets(num_pets) => num_pets
+                .as_ref()
+                .map_or_else(|| team.all().len(), get_inner_num),
             // Return divisor.
             TeamCondition::NumberFaintedMultiple(multiple) => team.fainted.len() / multiple,
-            TeamCondition::Counter(counter, num) => {
-                num.unwrap_or_else(|| *team.counters.get(counter).unwrap_or(&0))
+            TeamCondition::Counter(counter, counter_num) => counter_num
+                .as_ref()
+                .map_or_else(|| *team.counters.get(counter).unwrap_or(&0), get_inner_num),
+            TeamCondition::NumberTurns(turns) => {
+                turns.as_ref().map_or(team.history.curr_turn, get_inner_num)
             }
-            TeamCondition::NumberTurns(turns) => turns.unwrap_or(team.history.curr_turn),
-            TeamCondition::NumberPerkPets(num_perk_pets) => num_perk_pets.unwrap_or_else(|| {
-                team.all()
-                    .into_iter()
-                    .filter(|pet| EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap()))
-                    .count()
-            }),
+            TeamCondition::NumberPerkPets(num_perk_pets) => num_perk_pets.as_ref().map_or_else(
+                || {
+                    team.all()
+                        .into_iter()
+                        .filter(|pet| EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap()))
+                        .count()
+                },
+                get_inner_num,
+            ),
+            TeamCondition::NumberToys(num_toys) => num_toys
+                .as_ref()
+                .map_or_else(|| team.toys.len(), get_inner_num),
         }
     }
     /// Check if [`TeamCondition`] is met.
@@ -129,30 +179,38 @@ impl TeamCondition {
                     false
                 }
             }
-            TeamCondition::OpenSpace(num_open) => {
-                num_open.map_or(false, |num_open| num_open == team.open_slots())
-            }
-            TeamCondition::NumberPets(num_pets) => {
-                num_pets.map_or(false, |num_pets| num_pets == team.filled_slots())
-            }
-            TeamCondition::NumberPetsLessEqual(num_pets) => *num_pets >= team.filled_slots(),
-            TeamCondition::NumberPetsGreaterEqual(num_pets) => *num_pets <= team.filled_slots(),
+            TeamCondition::OpenSpace(num_open) => num_open.as_ref().map_or(false, |cond_spaces| {
+                cond_spaces.check_true(team.open_slots())
+            }),
+            TeamCondition::NumberPets(num_pets) => num_pets
+                .as_ref()
+                .map_or(false, |cond_pets| cond_pets.check_true(team.filled_slots())),
             TeamCondition::NumberFaintedMultiple(multiple) => team.fainted.len() % *multiple == 0,
-            TeamCondition::Counter(counter_name, num_counts) => team
+            TeamCondition::Counter(counter_name, cond_counts) => team
                 .counters
                 .get(counter_name)
-                .map(|count| Some(count) == num_counts.as_ref())
+                .and_then(|count| cond_counts.as_ref().map(|cond| cond.check_true(*count)))
                 .unwrap_or(false),
-            TeamCondition::NumberTurns(turns) => {
-                turns.map_or(false, |turns| team.history.curr_turn == turns)
+            TeamCondition::NumberTurns(cond_turns) => {
+                cond_turns.as_ref().map_or(false, |cond_turns| {
+                    cond_turns.check_true(team.history.curr_turn)
+                })
             }
-            TeamCondition::NumberPerkPets(num_perk_pets) => {
-                num_perk_pets.map_or(false, |num_perk_pets| {
-                    team.all()
-                        .into_iter()
-                        .filter(|pet| EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap()))
-                        .count()
-                        .eq(&num_perk_pets)
+            TeamCondition::NumberPerkPets(cond_num_perk_pets) => {
+                cond_num_perk_pets.as_ref().map_or(false, |num_perk_pets| {
+                    num_perk_pets.check_true(
+                        team.all()
+                            .into_iter()
+                            .filter(|pet| {
+                                EqualityCondition::HasPerk.matches_pet(&pet.read().unwrap())
+                            })
+                            .count(),
+                    )
+                })
+            }
+            TeamCondition::NumberToys(cond_num_toys) => {
+                cond_num_toys.as_ref().map_or(false, |cond_num_toys| {
+                    cond_num_toys.check_true(team.toys.len())
                 })
             }
         }
@@ -167,13 +225,11 @@ pub enum ShopCondition {
     /// Gold.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current shop gold.
     /// * If used for [`Action::Conditional`], checks if current shop gold is equal to provided value.
-    Gold(Option<usize>),
-    /// Gold is greater than or equal to this amount.
-    GoldGreaterEqual(usize),
+    Gold(Option<CondOrdering>),
     /// Shop tier.
     /// * If used for [`Position::FrontToBack`] and value is [`None`], returns current shop tier.
     /// * If used for [`Action::Conditional`], checks if current shop tier is equal to provided value.
-    Tier(Option<usize>),
+    Tier(Option<CondOrdering>),
     /// Shop tier multiple of given size.
     TierMultiple(usize),
     /// Number of pets sold.
@@ -183,14 +239,34 @@ pub enum ShopCondition {
 impl ShopCondition {
     pub(crate) fn to_num(&self, team: &Team) -> usize {
         match self {
-            ShopCondition::Gold(gold) => gold.unwrap_or(team.shop.coins),
-            ShopCondition::GoldGreaterEqual(gold) => *gold,
-            ShopCondition::Tier(tier) => tier.unwrap_or_else(|| team.shop.tier()),
+            ShopCondition::Gold(gold_cond) => gold_cond
+                .as_ref()
+                .map_or(team.shop.coins, |cond| cond.into()),
+            ShopCondition::Tier(tier_cond) => tier_cond
+                .as_ref()
+                .map_or_else(|| team.shop.tier(), |cond| cond.into()),
             // Return divisor. Num times multiple goes into tier.
             ShopCondition::TierMultiple(tier_multiple) => team.shop.tier() / tier_multiple,
             // Return divisor. Num times multiple goes into num sold pets.
             ShopCondition::NumberSoldMultiple(num_sold_mult) => team.sold.len() / num_sold_mult,
             _ => panic!("Can't convert {self:?} to num."),
+        }
+    }
+
+    pub(crate) fn matches_shop(&self, team: &Team) -> bool {
+        match self {
+            ShopCondition::InState(state) => team.shop.state == *state,
+            ShopCondition::Gold(gold) => gold
+                .as_ref()
+                .map_or(false, |gold_cond| gold_cond.check_true(team.gold())),
+            // Default to false if tier is None.
+            ShopCondition::Tier(tier) => tier
+                .as_ref()
+                .map_or(false, |tier_cond| tier_cond.check_true(team.shop_tier())),
+            ShopCondition::TierMultiple(tier_multiple) => team.shop_tier() % tier_multiple == 0,
+            ShopCondition::NumberSoldMultiple(sold_multiple) => {
+                team.sold.len() % sold_multiple == 0
+            }
         }
     }
 }
@@ -470,7 +546,7 @@ impl Outcome {
 }
 
 /// Status of [`Entity`](super::effect::Entity).
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum Status {
     /// Start of Turn.
     StartTurn,

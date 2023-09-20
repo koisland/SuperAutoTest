@@ -7,13 +7,14 @@ use crate::{
         count_pets, test_ant_team, test_beaver_team, test_beetle_team, test_bluebird_team,
         test_bulldog_team, test_chinchilla_team, test_chipmunk_team, test_cockroach_team,
         test_cone_snail_team, test_cricket_horse_team, test_duck_team, test_duckling_team,
-        test_fish_team, test_frilled_dragon_team, test_frog_team, test_goose_team,
+        test_fish_team, test_frilled_dragon_team, test_frog_team, test_gecko_team, test_goose_team,
         test_groundhog_team, test_hummingbird_team, test_iguana_seahorse_team, test_kiwi_team,
         test_ladybug_team, test_magpie_team, test_marmoset_team, test_mosq_team, test_moth_team,
         test_mouse_team, test_opossum_team, test_pied_tamarin_team, test_pig_team,
         test_pillbug_team, test_silkmoth_team,
     },
     Entity, Food, ItemCondition, Pet, Position, ShopItemViewer, ShopViewer, Team, TeamShopping,
+    Toy, ToyName,
 };
 
 #[test]
@@ -996,4 +997,32 @@ fn test_shop_magpie_team() {
     // Only save up to 1 gold as magpie lvl 1.
     team.open_shop().unwrap();
     assert_eq!(team.gold(), 11);
+}
+
+#[test]
+fn test_battle_gecko_team() {
+    let mut team = test_gecko_team();
+    let mut enemy_team = test_ant_team();
+
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    let gecko = team.first().unwrap();
+    let gecko_start_stats = gecko.read().unwrap().stats;
+    const GECKO_BUFF: Statistics = Statistics {
+        attack: 0,
+        health: 2,
+    };
+
+    // Gecko gains no buff as no toy.
+    assert_eq!(gecko.read().unwrap().stats, gecko_start_stats);
+
+    team.restore();
+
+    // Add a toy.
+    team.toys.push(Toy::try_from(ToyName::Dice).unwrap());
+
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    // Gecko gains buff w/toy.
+    assert_eq!(gecko.read().unwrap().stats, gecko_start_stats + GECKO_BUFF);
 }

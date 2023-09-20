@@ -3,7 +3,7 @@ use crate::{
     effects::{
         actions::{Action, ConditionType, LogicType, StatChangeType, SummonType},
         effect::{Effect, EffectModify},
-        state::{Outcome, Position, ShopCondition, Status, Target, TeamCondition},
+        state::{CondOrdering, Outcome, Position, ShopCondition, Status, Target, TeamCondition},
         trigger::*,
     },
     error::SAPTestError,
@@ -51,8 +51,12 @@ impl From<Pack> for Vec<Effect> {
                     Box::new(Action::Conditional(
                         LogicType::IfNot(ConditionType::Team(
                             Target::Friend,
-                            TeamCondition::Counter("Trumpets".to_owned(), Some(0)),
+                            TeamCondition::Counter(
+                                "Trumpets".to_owned(),
+                                Some(CondOrdering::Equal(0)),
+                            ),
                         )),
+                        // Summon Golden Retriever and remove 50 trumpets.
                         Box::new(Action::Multiple(vec![
                             Action::Summon(SummonType::CustomPet(
                                 PetName::GoldenRetriever,
@@ -673,8 +677,10 @@ impl TeamEffects for Team {
                 // Allow effect to activate if one or fewer pets remain.
                 if matches!(
                     effect.trigger.status,
-                    Status::IsTeam(TeamCondition::NumberPets(Some(0)))
-                        | Status::IsTeam(TeamCondition::NumberPetsLessEqual(1))
+                    Status::IsTeam(TeamCondition::NumberPets(Some(CondOrdering::Equal(0))))
+                        | Status::IsTeam(TeamCondition::NumberPets(Some(CondOrdering::LessEqual(
+                            1
+                        ))))
                 ) && target_pets.is_empty()
                 {
                     if effect.target == Target::Enemy {

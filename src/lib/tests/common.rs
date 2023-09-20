@@ -1713,3 +1713,7 @@ pub fn test_silkmoth_team() -> Team {
 pub fn test_magpie_team() -> Team {
     Team::new(&[Some(Pet::try_from(PetName::Magpie).unwrap())], 5).unwrap()
 }
+
+pub fn test_gecko_team() -> Team {
+    Team::new(&[Some(Pet::try_from(PetName::Gecko).unwrap())], 5).unwrap()
+}

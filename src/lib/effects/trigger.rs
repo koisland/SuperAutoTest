@@ -5,7 +5,10 @@ use std::{
 
 use crate::{
     effects::{
-        state::{ItemCondition, Outcome, Position, Status, Target},
+        state::{
+            CondOrdering, EqualityCondition, ItemCondition, Outcome, Position, Status, Target,
+            TeamCondition,
+        },
         stats::Statistics,
     },
     error::SAPTestError,
@@ -17,8 +20,6 @@ use crate::{
     },
     Pet,
 };
-
-use super::state::{EqualityCondition, TeamCondition};
 
 /// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
 pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 2] {
@@ -138,7 +139,7 @@ impl FromStr for Outcomes {
 
 /// Trigger for when one pet left on team.
 pub const TRIGGER_NO_ENEMIES_LEFT: Outcome = Outcome {
-    status: Status::IsTeam(TeamCondition::NumberPets(Some(0))),
+    status: Status::IsTeam(TeamCondition::NumberPets(Some(CondOrdering::Equal(0)))),
     affected_pet: None,
     affected_team: Target::Enemy,
     afflicting_pet: None,
@@ -150,7 +151,7 @@ pub const TRIGGER_NO_ENEMIES_LEFT: Outcome = Outcome {
 
 /// Trigger for when one pet left on team.
 pub const TRIGGER_ONE_OR_ZERO_PET_LEFT: Outcome = Outcome {
-    status: Status::IsTeam(TeamCondition::NumberPetsLessEqual(1)),
+    status: Status::IsTeam(TeamCondition::NumberPets(Some(CondOrdering::LessEqual(1)))),
     affected_pet: None,
     affected_team: Target::Friend,
     afflicting_pet: None,

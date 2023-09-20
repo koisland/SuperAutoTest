@@ -6,7 +6,7 @@ use crate::{
             SummonType, ToyType,
         },
         effect::{Effect, EffectModify, Entity},
-        state::{ItemCondition, Outcome, Position, ShopCondition, Status, Target},
+        state::{ItemCondition, Outcome, Position, Status, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -20,8 +20,8 @@ use crate::{
         team_shopping::TeamShoppingHelpers,
     },
     teams::{history::TeamHistoryHelpers, team::Team, viewer::TeamViewer},
-    Food, Pet, PetCombat, SAPQuery, ShopItem, ShopItemViewer, ShopViewer, TeamEffects,
-    TeamShopping, Toy, CONFIG, SAPDB,
+    Food, Pet, PetCombat, SAPQuery, ShopItem, ShopItemViewer, ShopViewer, TeamEffects, Toy, CONFIG,
+    SAPDB,
 };
 
 use itertools::Itertools;
@@ -781,21 +781,7 @@ impl EffectApplyHelpers for Team {
                     });
                 }
             }
-            ConditionType::Shop(cond) => match cond {
-                ShopCondition::InState(state) => Ok(self.shop.state == *state),
-                ShopCondition::Gold(gold) => Ok(gold.map_or(false, |gold| self.gold() == gold)),
-                ShopCondition::GoldGreaterEqual(gold) => Ok(self.gold() >= *gold),
-                // Default to false if tier is None.
-                ShopCondition::Tier(tier) => {
-                    Ok(tier.map_or(false, |tier| tier == self.shop_tier()))
-                }
-                ShopCondition::TierMultiple(tier_multiple) => {
-                    Ok(self.shop_tier() % tier_multiple == 0)
-                }
-                ShopCondition::NumberSoldMultiple(sold_multiple) => {
-                    Ok(self.sold.len() % sold_multiple == 0)
-                }
-            },
+            ConditionType::Shop(cond) => Ok(cond.matches_shop(self)),
             ConditionType::Trigger(entity, cond) => match entity {
                 Entity::Pet => {
                     let pets = self.all();
