@@ -138,20 +138,21 @@ impl StatChangeType {
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum SummonType {
     /// Summon a [`Pet`] via a `SQL` query.
-    /// 1. `SQL` statement where params are listed as (`?`).
-    ///     * All fields must be kept in the `SELECT` statment with the `*`.
-    /// 2. Parameters.
+    /// 1. [`SAPQuery`] that queries a [`Pet`].
     /// 3. [`Statistics`] if provided.
     ///
     /// # Example
     /// ```rust no_run
-    /// use saptest::effects::actions::SummonType;
+    /// use saptest::{effects::actions::SummonType, SAPQuery, PetName, Entity};
     /// // Summon a dog at default stats.
-    /// let sql = "SELECT * FROM pets WHERE name = ?";
-    /// let params = vec!["Dog".to_string()];
-    /// let summon_type = SummonType::QueryPet(sql.to_owned(), params, None);
+    /// let summon_type = SummonType::QueryPet(
+    ///     SAPQuery::builder()
+    ///         .set_table(Entity::Pet)
+    ///         .set_param("name", vec![PetName::Dog]),
+    ///     None
+    /// );
     /// ```
-    QueryPet(String, Vec<String>, Option<Statistics>),
+    QueryPet(SAPQuery, Option<Statistics>),
     /// Summon a stored [`Pet`].
     StoredPet(Box<Pet>),
     /// Summon a [`Pet`] with default `stats` and `level`.
@@ -196,9 +197,9 @@ impl SummonType {
         target_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Pet, SAPTestError> {
         let mut new_pet = match self {
-            SummonType::QueryPet(sql, params, stats) => {
+            SummonType::QueryPet(query, stats) => {
                 let pet_records: Vec<PetRecord> = SAPDB
-                    .execute_sql_query(sql, params)?
+                    .execute_query(query.clone())?
                     .into_iter()
                     .filter_map(|record| record.try_into().ok())
                     .collect();
@@ -211,7 +212,7 @@ impl SummonType {
                         .choose(&mut rng)
                         .ok_or(SAPTestError::QueryFailure {
                             subject: "Summon Query".to_string(),
-                            reason: format!("No record found for query: {sql} with {params:?}"),
+                            reason: format!("No record found for query: {query:?}"),
                         })?;
                 // Give unique id.
                 let mut pet = Pet::try_from(pet_record.clone())?;
@@ -253,11 +254,10 @@ impl SummonType {
             }
             SummonType::SelfTierPet(stats, level) => {
                 let summon_query_type = SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
-                    vec![
-                        target_pet.read().unwrap().tier.to_string(),
-                        level.unwrap_or(1).to_string(),
-                    ],
+                    SAPQuery::builder()
+                        .set_table(Entity::Pet)
+                        .set_param("tier", vec![target_pet.read().unwrap().tier])
+                        .set_param("lvl", vec![level.unwrap_or(1)]),
                     *stats,
                 );
                 summon_query_type.to_pet(team, target_pet)?
@@ -291,14 +291,17 @@ impl SummonType {
                 let calculated_tier =
                     (team.shop.tier() as isize).saturating_add(tier_diff.unwrap_or(0));
                 let summon_query_type = SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
-                    vec![
-                        // Restrict to min and max shop tier.
-                        calculated_tier
-                            .clamp(MIN_SHOP_TIER as isize, MAX_SHOP_TIER as isize)
-                            .to_string(),
-                        lvl.unwrap_or(1).to_string(),
-                    ],
+                    SAPQuery::builder()
+                        .set_table(Entity::Pet)
+                        .set_param(
+                            "tier",
+                            vec![
+                                // Restrict to min and max shop tier.
+                                calculated_tier
+                                    .clamp(MIN_SHOP_TIER as isize, MAX_SHOP_TIER as isize),
+                            ],
+                        )
+                        .set_param("lvl", vec![lvl.unwrap_or(1)]),
                     *stats,
                 );
                 summon_query_type.to_pet(team, target_pet)?

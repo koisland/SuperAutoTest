@@ -11,6 +11,17 @@ pub struct SAPQuery {
     pub(crate) params: IndexMap<String, Vec<String>>,
 }
 
+impl std::fmt::Display for SAPQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Query ({:?}) {:?}",
+            self.as_sql().ok(),
+            self.flat_params()
+        )
+    }
+}
+
 impl<N, P> FromIterator<(N, Vec<P>)> for SAPQuery
 where
     N: ToString,

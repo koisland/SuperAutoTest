@@ -42,7 +42,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -66,7 +66,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::NotEqual(EqualityCondition::IsSelf),
                         targets: 2,
                         random: true,
-                        exact_n_targets: false
+                        exact_n_targets: false,
                     },
                     action: Action::Add(StatChangeType::Static(effect_stats)),
                     uses: Some(record.n_triggers),
@@ -232,7 +232,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -345,7 +345,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::None,
                         targets: record.lvl,
                         random: true,
-                        exact_n_targets: false
+                        exact_n_targets: false,
                     },
                     action: Action::Conditional(
                         LogicType::If(ConditionType::Shop(ShopCondition::InState(
@@ -354,7 +354,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Enemy,
-                                TeamCondition::Counter(String::from("Trumpets"), Some(CondOrdering::Equal(0))),
+                                TeamCondition::Counter(
+                                    String::from("Trumpets"),
+                                    Some(CondOrdering::Equal(0)),
+                                ),
                             )),
                             Box::new(Action::Remove(StatChangeType::Static(effect_stats))),
                             Box::new(Action::None),
@@ -377,7 +380,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         Box::new(Action::Conditional(
                             LogicType::IfNot(ConditionType::Team(
                                 Target::Friend,
-                                TeamCondition::Counter(String::from("Trumpets"), Some(CondOrdering::Equal(0))),
+                                TeamCondition::Counter(
+                                    String::from("Trumpets"),
+                                    Some(CondOrdering::Equal(0)),
+                                ),
                             )),
                             Box::new(Action::AddToCounter(String::from("Trumpets"), -1)),
                             Box::new(Action::None),
@@ -429,7 +435,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::Healthiest,
                         targets: 1,
                         random: false,
-                        exact_n_targets: true
+                        exact_n_targets: true,
                     },
                 ),
                 uses: Some(record.n_triggers),
@@ -527,9 +533,10 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     target: Target::Friend,
                     position: Position::OnSelf,
                     action: Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets WHERE lvl = ? AND tier = 3 AND pack = 'Turtle'"
-                            .to_string(),
-                        vec![record.lvl.to_string()],
+                        SAPQuery::builder()
+                            .set_table(Entity::Pet)
+                            .set_param("lvl", vec![record.lvl])
+                            .set_param("tier", vec![3]),
                         None,
                     )),
                     uses: Some(record.n_triggers),
@@ -825,7 +832,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         .set_table(Entity::Toy)
                         .set_param("source", vec![record.name])
                         .set_param("lvl", vec![record.lvl])
-                        .to_owned()
+                        .to_owned(),
                 )),
                 uses: Some(record.n_triggers),
             }],
@@ -953,7 +960,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ]),
                     targets: 2,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1016,14 +1023,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::All(ItemCondition::NotEqual(EqualityCondition::IsSelf)),
                 action: Action::Conditional(
-                    LogicType::If(
-                        ConditionType::Trigger(
-                            Entity::Food,
-                            EqualityCondition::Name(EntityName::Food(FoodName::Apple))
-                        )
-                    ),
+                    LogicType::If(ConditionType::Trigger(
+                        Entity::Food,
+                        EqualityCondition::Name(EntityName::Food(FoodName::Apple)),
+                    )),
                     Box::new(Action::Add(StatChangeType::Static(effect_stats))),
-                    Box::new(Action::None)
+                    Box::new(Action::None),
                 ),
                 uses: Some(record.n_triggers),
             }],
@@ -1037,9 +1042,18 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         target: Target::Friend,
                         position: Position::OnSelf,
                         action: Action::Conditional(
-                            LogicType::If(ConditionType::Team(Target::Friend, TeamCondition::NumberPerkPets(Some(CondOrdering::Equal(REQ_PERK_PETS))))),
-                            Box::new(Action::Summon(SummonType::CustomPet(record.name.clone(), StatChangeType::Static(effect_stats), 1))),
-                            Box::new(Action::None)
+                            LogicType::If(ConditionType::Team(
+                                Target::Friend,
+                                TeamCondition::NumberPerkPets(Some(CondOrdering::Equal(
+                                    REQ_PERK_PETS,
+                                ))),
+                            )),
+                            Box::new(Action::Summon(SummonType::CustomPet(
+                                record.name.clone(),
+                                StatChangeType::Static(effect_stats),
+                                1,
+                            ))),
+                            Box::new(Action::None),
                         ),
                         uses: Some(record.n_triggers),
                     },
@@ -1048,12 +1062,17 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         temp: record.temp_effect,
                         trigger: TRIGGER_SELF_FAINT,
                         target: Target::Friend,
-                        position: Position::N { condition: ItemCondition::Equal(EqualityCondition::HasPerk), targets: REQ_PERK_PETS, random: false, exact_n_targets: true },
+                        position: Position::N {
+                            condition: ItemCondition::Equal(EqualityCondition::HasPerk),
+                            targets: REQ_PERK_PETS,
+                            random: false,
+                            exact_n_targets: true,
+                        },
                         action: Action::Gain(GainType::NoItem),
                         uses: Some(record.n_triggers),
-                    }
+                    },
                 ]
-            },
+            }
             PetName::Buffalo => vec![Effect {
                 owner: None,
                 temp: record.temp_effect,
@@ -1236,7 +1255,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::Healthiest,
                     targets: 1,
                     random: false,
-                    exact_n_targets: true
+                    exact_n_targets: true,
                 },
                 action: Action::Debuff(StatChangeType::Multiplier(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1379,7 +1398,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::NotEqual(EqualityCondition::IsSelf),
                     targets: 3,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: None,
@@ -1668,7 +1687,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Weak)),
                 uses: Some(record.n_triggers),
@@ -1709,7 +1728,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ))),
                     targets: 2,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Add(StatChangeType::Static(effect_stats)),
                 uses: Some(record.n_triggers),
@@ -1765,7 +1784,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     action: Action::Summon(SummonType::ShopTierPet {
                         stats: None,
                         lvl: Some(record.lvl),
-                        tier_diff: Some(-1)
+                        tier_diff: Some(-1),
                     }),
                     uses: Some(record.n_triggers),
                 }]
@@ -1819,7 +1838,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         ]),
                         targets: 1,
                         random: false,
-                        exact_n_targets: false
+                        exact_n_targets: false,
                     },
                 ),
                 uses: Some(record.n_triggers),
@@ -1991,7 +2010,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                         condition: ItemCondition::Strongest,
                         targets: 1,
                         random: false,
-                        exact_n_targets: true
+                        exact_n_targets: true,
                     },
                 ),
                 uses: Some(1),
@@ -2154,7 +2173,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::Healthiest,
                     targets: 1,
                     random: false,
-                    exact_n_targets: true
+                    exact_n_targets: true,
                 };
                 vec![self_dmg_effect, enemy_dmg_effect]
             }
@@ -2215,7 +2234,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Peanut)),
                 uses: Some(record.n_triggers),
@@ -2238,7 +2257,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     condition: ItemCondition::None,
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Remove(StatChangeType::Static(effect_stats)),
                 uses: None,
@@ -2251,9 +2270,11 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 position: Position::OnSelf,
                 action: Action::Multiple(vec![
                     Action::Summon(SummonType::QueryPet(
-                        "SELECT * FROM pets WHERE effect_trigger = ? AND lvl = ? AND is_token = ?"
-                            .to_string(),
-                        vec!["Faint".to_string(), 1.to_string(), false.to_string()],
+                        SAPQuery::builder()
+                            .set_table(Entity::Pet)
+                            .set_param("effect_trigger", vec!["Faint"])
+                            .set_param("lvl", vec![1])
+                            .set_param("is_token", vec![false]),
                         None
                     ));
                     record.lvl
@@ -2296,13 +2317,12 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                 target: Target::Friend,
                 position: Position::OnSelf,
                 action: Action::Summon(SummonType::QueryPet(
-                    String::from("SELECT * FROM pets WHERE lvl = ? AND tier = ? AND name != ? AND is_token = ?"),
-                    vec![
-                        1.to_string(),
-                        1.to_string(),
-                        "Sloth".to_string(),
-                        false.to_string(),
-                    ],
+                    SAPQuery::builder()
+                        .set_table(Entity::Pet)
+                        .set_param("lvl", vec![1])
+                        .set_param("tier", vec![1])
+                        .set_param("-name", vec![PetName::Sloth])
+                        .set_param("is_token", vec![false]),
                     Some(effect_stats),
                 )),
                 uses: None,
@@ -2339,7 +2359,7 @@ impl TryFrom<PetRecord> for Vec<Effect> {
                     ))),
                     targets: record.lvl,
                     random: true,
-                    exact_n_targets: false
+                    exact_n_targets: false,
                 },
                 action: Action::Gain(GainType::DefaultItem(FoodName::Coconut)),
                 uses: Some(record.n_triggers),
@@ -2447,100 +2467,98 @@ impl TryFrom<PetRecord> for Vec<Effect> {
             // PetName::Cat => todo!(),
             // PetName::Tiger => todo!(),
             PetName::Gecko => {
-                vec![
-                    Effect {
-                        owner: None,
-                        trigger: TRIGGER_START_BATTLE,
-                        target: Target::Friend,
-                        position: Position::OnSelf,
-                        action: Action::Conditional(
-                            LogicType::If(ConditionType::Team(
-                                Target::Friend,
-                                TeamCondition::NumberToys(Some(CondOrdering::Greater(0)))
-                            )),
-                            Box::new(Action::Add(StatChangeType::Static(effect_stats))),
-                            Box::default()
-                        ),
-                        uses: Some(record.n_triggers),
-                        temp: record.temp_effect
-                    }
-                ]
-            },
-            PetName::AfricanPenguin => todo!(),
-            PetName::BlackNeckedStilt => todo!(),
-            PetName::DoorHeadAnt => todo!(),
-            PetName::Gazelle => todo!(),
-            PetName::HerculesBeetle => todo!(),
-            PetName::Lizard => todo!(),
-            PetName::SeaTurtle => todo!(),
-            PetName::SeaUrchin => todo!(),
-            PetName::Squid => todo!(),
-            PetName::Stoat => todo!(),
-            PetName::BelugaSturgeon => todo!(),
-            PetName::Lemur => todo!(),
-            PetName::Mandrill => todo!(),
-            PetName::Robin => todo!(),
-            PetName::Baboon => todo!(),
-            PetName::BettaFish => todo!(),
-            PetName::Flea => todo!(),
-            PetName::FlyingFish => todo!(),
-            PetName::Guineafowl => todo!(),
-            PetName::Meekrat => todo!(),
-            PetName::MuskOx => todo!(),
-            PetName::Osprey => todo!(),
-            PetName::RoyalFlycatcher => todo!(),
-            PetName::SurgeonFish => todo!(),
-            PetName::Weasel => todo!(),
-            PetName::FlyingSquirrel => todo!(),
-            PetName::HoopoeBird => todo!(),
-            PetName::Pangolin => todo!(),
-            PetName::Cuttlefish => todo!(),
-            PetName::EgyptianVulture => todo!(),
-            PetName::Falcon => todo!(),
-            PetName::Manatee => todo!(),
-            PetName::MantaRay => todo!(),
-            PetName::PoisonDartFrog => todo!(),
-            PetName::SaigaAntelope => todo!(),
-            PetName::Sealion => todo!(),
-            PetName::SecretaryBird => todo!(),
-            PetName::Slug => todo!(),
-            PetName::Vaquita => todo!(),
-            PetName::Chameleon => todo!(),
-            PetName::Gharial => todo!(),
-            PetName::Tahr => todo!(),
-            PetName::WhaleShark => todo!(),
-            PetName::BelugaWhale => todo!(),
-            PetName::BlueRingedOctopus => todo!(),
-            PetName::Cockatoo => todo!(),
-            PetName::Crane => todo!(),
-            PetName::Emu => todo!(),
-            PetName::FireAnt => todo!(),
-            PetName::Macaque => todo!(),
-            PetName::NurseShark => todo!(),
-            PetName::Nyala => todo!(),
-            PetName::SilverFox => todo!(),
-            PetName::Wolf => todo!(),
-            PetName::Axolotl => todo!(),
-            PetName::Mosasaurus => todo!(),
-            PetName::Panther => todo!(),
-            PetName::SnappingTurtle => todo!(),
-            PetName::StingRay => todo!(),
-            PetName::Stonefish => todo!(),
-            PetName::BirdofParadise => todo!(),
-            PetName::Catfish => todo!(),
-            PetName::Cobra => todo!(),
-            PetName::GermanShepherd => todo!(),
-            PetName::GrizzlyBear => todo!(),
-            PetName::HighlandCow => todo!(),
-            PetName::Oyster => todo!(),
-            PetName::Pteranodon => todo!(),
-            PetName::Warthog => todo!(),
-            PetName::Wildebeest => todo!(),
-            PetName::AnglerFish => todo!(),
-            PetName::ElephantSeal => todo!(),
-            PetName::MantisShrimp => todo!(),
-            PetName::Mongoose => todo!(),
-            PetName::Puma => todo!(),
+                vec![Effect {
+                    owner: None,
+                    trigger: TRIGGER_START_BATTLE,
+                    target: Target::Friend,
+                    position: Position::OnSelf,
+                    action: Action::Conditional(
+                        LogicType::If(ConditionType::Team(
+                            Target::Friend,
+                            TeamCondition::NumberToys(Some(CondOrdering::Greater(0))),
+                        )),
+                        Box::new(Action::Add(StatChangeType::Static(effect_stats))),
+                        Box::default(),
+                    ),
+                    uses: Some(record.n_triggers),
+                    temp: record.temp_effect,
+                }]
+            }
+            // PetName::AfricanPenguin => todo!(),
+            // PetName::BlackNeckedStilt => todo!(),
+            // PetName::DoorHeadAnt => todo!(),
+            // PetName::Gazelle => todo!(),
+            // PetName::HerculesBeetle => todo!(),
+            // PetName::Lizard => todo!(),
+            // PetName::SeaTurtle => todo!(),
+            // PetName::SeaUrchin => todo!(),
+            // PetName::Squid => todo!(),
+            // PetName::Stoat => todo!(),
+            // PetName::BelugaSturgeon => todo!(),
+            // PetName::Lemur => todo!(),
+            // PetName::Mandrill => todo!(),
+            // PetName::Robin => todo!(),
+            // PetName::Baboon => todo!(),
+            // PetName::BettaFish => todo!(),
+            // PetName::Flea => todo!(),
+            // PetName::FlyingFish => todo!(),
+            // PetName::Guineafowl => todo!(),
+            // PetName::Meekrat => todo!(),
+            // PetName::MuskOx => todo!(),
+            // PetName::Osprey => todo!(),
+            // PetName::RoyalFlycatcher => todo!(),
+            // PetName::SurgeonFish => todo!(),
+            // PetName::Weasel => todo!(),
+            // PetName::FlyingSquirrel => todo!(),
+            // PetName::HoopoeBird => todo!(),
+            // PetName::Pangolin => todo!(),
+            // PetName::Cuttlefish => todo!(),
+            // PetName::EgyptianVulture => todo!(),
+            // PetName::Falcon => todo!(),
+            // PetName::Manatee => todo!(),
+            // PetName::MantaRay => todo!(),
+            // PetName::PoisonDartFrog => todo!(),
+            // PetName::SaigaAntelope => todo!(),
+            // PetName::Sealion => todo!(),
+            // PetName::SecretaryBird => todo!(),
+            // PetName::Slug => todo!(),
+            // PetName::Vaquita => todo!(),
+            // PetName::Chameleon => todo!(),
+            // PetName::Gharial => todo!(),
+            // PetName::Tahr => todo!(),
+            // PetName::WhaleShark => todo!(),
+            // PetName::BelugaWhale => todo!(),
+            // PetName::BlueRingedOctopus => todo!(),
+            // PetName::Cockatoo => todo!(),
+            // PetName::Crane => todo!(),
+            // PetName::Emu => todo!(),
+            // PetName::FireAnt => todo!(),
+            // PetName::Macaque => todo!(),
+            // PetName::NurseShark => todo!(),
+            // PetName::Nyala => todo!(),
+            // PetName::SilverFox => todo!(),
+            // PetName::Wolf => todo!(),
+            // PetName::Axolotl => todo!(),
+            // PetName::Mosasaurus => todo!(),
+            // PetName::Panther => todo!(),
+            // PetName::SnappingTurtle => todo!(),
+            // PetName::StingRay => todo!(),
+            // PetName::Stonefish => todo!(),
+            // PetName::BirdofParadise => todo!(),
+            // PetName::Catfish => todo!(),
+            // PetName::Cobra => todo!(),
+            // PetName::GermanShepherd => todo!(),
+            // PetName::GrizzlyBear => todo!(),
+            // PetName::HighlandCow => todo!(),
+            // PetName::Oyster => todo!(),
+            // PetName::Pteranodon => todo!(),
+            // PetName::Warthog => todo!(),
+            // PetName::Wildebeest => todo!(),
+            // PetName::AnglerFish => todo!(),
+            // PetName::ElephantSeal => todo!(),
+            // PetName::MantisShrimp => todo!(),
+            // PetName::Mongoose => todo!(),
+            // PetName::Puma => todo!(),
             _ => Vec::default(),
         })
     }

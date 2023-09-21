@@ -463,10 +463,14 @@ impl Shop {
         if self.pets.len() == MAX_SHOP_PETS {
             return Ok(self);
         }
-        let records = SAPDB.execute_sql_query(
-            "SELECT * FROM pets where tier = ? and lvl = ?",
-            &[(self.tier + 1).clamp(1, 6).to_string(), 1.to_string()],
-        )?;
+        let query = SAPQuery::builder()
+            .set_table(Entity::Pet)
+            .set_param(
+                "tier",
+                vec![(self.tier + 1).clamp(MIN_SHOP_TIER, MAX_SHOP_TIER)],
+            )
+            .set_param("lvl", vec![1]);
+        let records = SAPDB.execute_query(query)?;
 
         if let Some(SAPRecord::Pet(added_pet)) = records.first().cloned() {
             let pet: Pet = added_pet.try_into()?;

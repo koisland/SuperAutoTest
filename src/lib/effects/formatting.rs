@@ -84,12 +84,7 @@ impl std::fmt::Display for GainType {
         match self {
             GainType::SelfItem => write!(f, "Self Item"),
             GainType::DefaultItem(food_name) => write!(f, "{food_name}"),
-            GainType::QueryItem(query) => write!(
-                f,
-                "Item Query ({:?}) {:?}",
-                query.as_sql().ok(),
-                query.flat_params()
-            ),
+            GainType::QueryItem(query) => write!(f, "Item {query}"),
             GainType::RandomShopItem => write!(f, "Random Shop Item"),
             GainType::StoredItem(item) => write!(f, "{item}"),
             GainType::NoItem => write!(f, "No Item"),
@@ -100,10 +95,10 @@ impl std::fmt::Display for GainType {
 impl std::fmt::Display for SummonType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SummonType::QueryPet(sql, params, stats) => {
+            SummonType::QueryPet(query, stats) => {
                 let stats_str =
                     stats.map_or_else(|| "(Default Stats)".to_string(), |stats| stats.to_string());
-                write!(f, "Query Pet ({sql}) {params:?} {stats_str}")
+                write!(f, "Pet {query} {stats_str}")
             }
             SummonType::StoredPet(pet) => write!(f, "{pet}"),
             SummonType::DefaultPet(pet_name) => write!(f, "Default {pet_name}"),
@@ -426,12 +421,11 @@ mod test {
     #[test]
     fn test_shop_action_formatting() {
         let add_shop_pet = Action::AddShopPet(SummonType::QueryPet(
-            "SELECT * FROM pets".to_string(),
-            vec![],
+            SAPQuery::builder().set_table(Entity::Pet),
             None,
         ));
         assert_eq!(
-            "Add Query Pet (SELECT * FROM pets) [] (Default Stats) to Shop",
+            "Add Pet Query (Some(\"SELECT * FROM pets\")) [] (Default Stats) to Shop",
             format!("{add_shop_pet}")
         );
 
@@ -503,15 +497,16 @@ mod test {
     #[test]
     fn test_summon_type_formatting() {
         let summon_query_pet_action = Action::Summon(SummonType::QueryPet(
-            "SELECT * FROM pets WHERE name = ?".to_string(),
-            vec!["Dog".to_owned()],
+            SAPQuery::builder()
+                .set_table(Entity::Pet)
+                .set_param("name", vec![PetName::Dog]),
             Some(Statistics {
                 attack: 50,
                 health: 50,
             }),
         ));
         assert_eq!(
-            "Summon Query Pet (SELECT * FROM pets WHERE name = ?) [\"Dog\"] (50, 50)",
+            "Summon Pet Query (Some(\"SELECT * FROM pets WHERE name IN (?)\")) [\"Dog\"] (50, 50)",
             format!("{summon_query_pet_action}")
         );
 
