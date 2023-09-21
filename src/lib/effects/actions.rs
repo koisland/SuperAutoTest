@@ -185,19 +185,19 @@ pub enum GainType {
     SelfItem,
     /// Gain the default [`Food`] item.
     DefaultItem(FoodName),
-    /// Gain a [`Food`] item from a `SQL` query.
-    /// 1. `SQL` statement where params are listed as (`?`).
-    ///     * All fields must be kept in the `SELECT` statment with the `*`.
-    /// 2. Parameters.
+    /// Gain a [`Food`] item from a [`SAPQuery`].
     /// # Example
     /// ```rust no_run
-    /// use saptest::effects::actions::GainType;
+    /// use saptest::{effects::actions::GainType, SAPQuery, Entity};
+    ///
     /// // Gain Garlic.
-    /// let sql = "SELECT * FROM foods WHERE name = ?";
-    /// let params = vec!["Garlic".to_string()];
-    /// let summon_type = GainType::QueryItem(sql.to_owned(), params);
+    /// let mut query = SAPQuery::builder()
+    ///     .set_table(Entity::Food)
+    ///     .set_param("name", vec!["Garlic"]);
+    ///
+    /// let summon_type = GainType::QueryItem(query);
     /// ```
-    QueryItem(String, Vec<String>),
+    QueryItem(SAPQuery),
     /// Random [`Shop`](crate::Shop) [`Food`].
     RandomShopItem,
     /// Gain the stored [`Food`].

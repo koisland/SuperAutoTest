@@ -14,13 +14,11 @@ use std::{str::FromStr, thread};
 #[test]
 fn test_query_db() {
     // Essentially "SELECT * FROM foods"
-    let mut food_query = SAPQuery::builder();
-    food_query.set_table(Entity::Food);
+    let food_query = SAPQuery::builder().set_table(Entity::Food);
     assert!(SAPDB.execute_query(food_query).is_ok());
 
     // Essentially "SELECT * FROM pets"
-    let mut pet_query = SAPQuery::builder();
-    pet_query.set_table(Entity::Pet);
+    let pet_query = SAPQuery::builder().set_table(Entity::Pet);
     assert!(SAPDB.execute_query(pet_query).is_ok());
 }
 

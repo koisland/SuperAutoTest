@@ -33,9 +33,7 @@ impl Toy {
     /// assert_eq!(toy.name, ToyName::Balloon);
     /// ```
     pub fn new(name: ToyName, lvl: usize) -> Result<Toy, SAPTestError> {
-        let mut query = SAPQuery::builder();
-
-        query
+        let query = SAPQuery::builder()
             .set_table(Entity::Toy)
             .set_param("name", vec![&name])
             .set_param("lvl", vec![lvl]);
@@ -73,9 +71,9 @@ impl TryFrom<ToyName> for Toy {
     type Error = SAPTestError;
 
     fn try_from(name: ToyName) -> Result<Self, Self::Error> {
-        let mut query = SAPQuery::builder();
-
-        query.set_table(Entity::Toy).set_param("name", vec![&name]);
+        let query = SAPQuery::builder()
+            .set_table(Entity::Toy)
+            .set_param("name", vec![&name]);
 
         if let Some(SAPRecord::Toy(record)) = SAPDB
             .execute_query(query)

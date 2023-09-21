@@ -11,21 +11,15 @@ pub struct SAPQuery {
     pub(crate) params: IndexMap<String, Vec<String>>,
 }
 
-impl<'a> FromIterator<(&'a str, Vec<&'a str>)> for SAPQuery {
-    fn from_iter<T: IntoIterator<Item = (&'a str, Vec<&'a str>)>>(iter: T) -> Self {
+impl<N, P> FromIterator<(N, Vec<P>)> for SAPQuery
+where
+    N: ToString,
+    P: ToString,
+{
+    fn from_iter<T: IntoIterator<Item = (N, Vec<P>)>>(iter: T) -> Self {
         let mut query = SAPQuery::builder();
         for (param, value) in iter.into_iter() {
-            query.set_param(param, value);
-        }
-        query
-    }
-}
-
-impl FromIterator<(String, Vec<String>)> for SAPQuery {
-    fn from_iter<T: IntoIterator<Item = (String, Vec<String>)>>(iter: T) -> Self {
-        let mut query = SAPQuery::builder();
-        for (param, value) in iter.into_iter() {
-            query.set_param(&param, value);
+            query = query.set_param(param, value);
         }
         query
     }
@@ -51,9 +45,9 @@ impl SAPQuery {
     /// use saptest::{Entity, SAPQuery};
     ///
     /// // Construct a query set to the "pets" table.
-    /// let mut query = SAPQuery::builder().set_table(Entity::Pet);
+    /// let query = SAPQuery::builder().set_table(Entity::Pet);
     /// ```
-    pub fn set_table(&mut self, table: Entity) -> &mut Self {
+    pub fn set_table(mut self, table: Entity) -> Self {
         self.table = Some(table);
         self
     }
@@ -66,7 +60,7 @@ impl SAPQuery {
     /// use saptest::{Entity, SAPQuery, FoodName};
     ///
     /// // Construct a query set to the "foods" table.
-    /// let mut query = SAPQuery::builder()
+    /// let query = SAPQuery::builder()
     ///     .set_param("name", vec![FoodName::Apple, FoodName::Coconut])
     ///     .set_table(Entity::Food);
     /// ```
@@ -76,15 +70,14 @@ impl SAPQuery {
     /// use saptest::{Entity, SAPQuery, PetName};
     ///
     /// // Construct a query set to the "pets" table.
-    /// let mut query = SAPQuery::builder()
+    /// let query = SAPQuery::builder()
     ///     .set_param("-name", vec![PetName::Ant, PetName::Dog])
     ///     .set_table(Entity::Pet);
     /// ```
-    pub fn set_param<N: ToString, V: ToString>(&mut self, name: N, value: Vec<V>) -> &mut Self {
-        let values = value.iter().map(|val| val.to_string());
+    pub fn set_param<N: ToString, V: ToString>(mut self, name: N, value: Vec<V>) -> Self {
         self.params
             .entry(name.to_string())
-            .and_modify(|e| e.extend(values))
+            .and_modify(|e| e.extend(value.iter().map(|val| val.to_string())))
             .or_insert(value.into_iter().map(|value| value.to_string()).collect());
         self
     }
@@ -169,6 +162,8 @@ impl SAPQuery {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
+
     use super::SAPQuery;
     use crate::{db::pack::Pack, Entity};
 
@@ -180,8 +175,18 @@ mod test {
             ("tier", vec!["1", "2", "3"]),
             ("lvl", vec!["1"]),
         ];
-        let mut query = SAPQuery::from_iter(params);
-        query.set_table(Entity::Pet);
+        let query = SAPQuery::from_iter(params.clone());
+        assert!(query.table.is_none());
+        assert_eq!(
+            query.params.clone().into_iter().collect_vec(),
+            params
+                .iter()
+                .map(|(param, values)| (
+                    String::from(*param),
+                    values.iter().map(|val| String::from(*val)).collect_vec()
+                ))
+                .collect_vec()
+        );
     }
 
     #[test]

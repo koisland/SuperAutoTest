@@ -388,10 +388,9 @@ impl EffectApplyHelpers for Team {
             ToyType::DefaultToy { name } => Some(Toy::try_from(name.clone())?),
             ToyType::RandomToy { lvl } => {
                 let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                let mut query = SAPQuery::builder();
-                query.set_table(Entity::Toy);
+                let mut query = SAPQuery::builder().set_table(Entity::Toy);
                 if let Some(lvl) = lvl {
-                    query.set_param("lvl", vec![lvl.to_string()]);
+                    query = query.set_param("lvl", vec![lvl.to_string()]);
                 };
                 let rec: ToyRecord = SAPDB
                     .execute_query(query)?
@@ -431,12 +430,12 @@ impl EffectApplyHelpers for Team {
             GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
             GainType::StoredItem(food) => Some(*food.clone()),
             GainType::RandomShopItem => {
-                let (sql, params) = self.shop.shop_query(Entity::Food, 1..self.shop.tier() + 1);
-                self.convert_gain_type_to_food(&GainType::QueryItem(sql, params), target_pet)?
+                let query = self.shop.shop_query(Entity::Food, 1..self.shop.tier() + 1);
+                self.convert_gain_type_to_food(&GainType::QueryItem(query), target_pet)?
             }
-            GainType::QueryItem(query, params) => {
+            GainType::QueryItem(query) => {
                 let food_records: Vec<FoodRecord> = SAPDB
-                    .execute_sql_query(query, params)?
+                    .execute_query(query.to_owned())?
                     .into_iter()
                     .filter_map(|record| record.try_into().ok())
                     .collect_vec();
@@ -447,7 +446,7 @@ impl EffectApplyHelpers for Team {
                         .choose(&mut rng)
                         .ok_or(SAPTestError::QueryFailure {
                             subject: "Food Query".to_string(),
-                            reason: format!("No record found for query: {query} with {params:?}"),
+                            reason: format!("No record found for query: {query:?}"),
                         })?;
                 Some(Food::try_from(food_record.name.clone())?)
             }

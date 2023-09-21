@@ -84,7 +84,12 @@ impl std::fmt::Display for GainType {
         match self {
             GainType::SelfItem => write!(f, "Self Item"),
             GainType::DefaultItem(food_name) => write!(f, "{food_name}"),
-            GainType::QueryItem(query, params) => write!(f, "Query Item ({query}) {params:?}"),
+            GainType::QueryItem(query) => write!(
+                f,
+                "Item Query ({:?}) {:?}",
+                query.as_sql().ok(),
+                query.flat_params()
+            ),
             GainType::RandomShopItem => write!(f, "Random Shop Item"),
             GainType::StoredItem(item) => write!(f, "{item}"),
             GainType::NoItem => write!(f, "No Item"),
@@ -286,7 +291,8 @@ mod test {
             state::{EqualityCondition, Status, Target, TeamCondition},
         },
         teams::team::TeamFightOutcome,
-        Entity, EntityName, Food, FoodName, ItemCondition, Pet, PetName, Position, Statistics,
+        Entity, EntityName, Food, FoodName, ItemCondition, Pet, PetName, Position, SAPQuery,
+        Statistics,
     };
 
     #[test]
@@ -466,11 +472,13 @@ mod test {
         assert_eq!("Gain Carrot", format!("{gain_def_item_action}"));
 
         let gain_query_item_action = Action::Gain(GainType::QueryItem(
-            "SELECT * FROM foods WHERE name = ?".to_string(),
-            vec!["Garlic".to_string()],
+            SAPQuery::builder()
+                .set_table(Entity::Food)
+                .set_param("name", vec!["Garlic"])
+                .to_owned(),
         ));
         assert_eq!(
-            "Gain Query Item (SELECT * FROM foods WHERE name = ?) [\"Garlic\"]",
+            "Gain Item Query (Some(\"SELECT * FROM foods WHERE name IN (?)\")) [\"Garlic\"]",
             format!("{gain_query_item_action}"),
         );
 

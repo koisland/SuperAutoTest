@@ -238,11 +238,10 @@ impl Pet {
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
-        let mut pet_query = SAPQuery::from_iter([
-            ("name", vec![&self.name.to_string()[..]]),
-            ("lvl", vec![&lvl.to_string()[..]]),
-        ]);
-        pet_query.set_table(Entity::Pet);
+        let pet_query = SAPQuery::builder()
+            .set_param("name", vec![&self.name])
+            .set_param("lvl", vec![lvl])
+            .set_table(Entity::Pet);
         SAPDB
             .execute_query(pet_query)?
             .into_iter()

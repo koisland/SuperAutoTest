@@ -76,10 +76,9 @@ impl Food {
                     custom_effect,
                 )
             } else {
-                let mut food_query = SAPQuery::builder();
-                food_query
+                let food_query = SAPQuery::builder()
                     .set_table(Entity::Food)
-                    .set_param("name", vec![&name.to_string()]);
+                    .set_param("name", vec![name]);
 
                 let food_record: FoodRecord = SAPDB
                     .execute_query(food_query)?

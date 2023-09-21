@@ -412,8 +412,8 @@ impl SapDB {
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, PetName, db::{pack::Pack, record::SAPRecord}};
     ///
-    /// let mut query = SAPQuery::builder();
-    /// query.set_table(Entity::Pet)
+    /// let query = SAPQuery::builder()
+    ///     .set_table(Entity::Pet)
     ///     .set_param("name", vec![PetName::Tiger])
     ///     .set_param("lvl", vec![2])
     ///     .set_param("pack", vec![Pack::Turtle]);
@@ -427,8 +427,8 @@ impl SapDB {
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
     ///
-    /// let mut query = SAPQuery::builder();
-    /// query.set_table(Entity::Food)
+    /// let query = SAPQuery::builder()
+    ///     .set_table(Entity::Food)
     ///     .set_param("name", vec![FoodName::Apple])
     ///     .set_param("pack", vec![Pack::Turtle]);
     ///
@@ -441,8 +441,8 @@ impl SapDB {
     /// Toy Query
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, ToyName, db::record::SAPRecord};
-    /// let mut query = SAPQuery::builder();
-    /// query.set_table(Entity::Toy)
+    /// let mut query = SAPQuery::builder()
+    ///     .set_table(Entity::Toy)
     ///     .set_param("name", vec![ToyName::Balloon])
     ///     .set_param("lvl", vec![2]);
     ///
@@ -515,11 +515,9 @@ mod test {
 
     #[test]
     fn test_query_no_params() {
-        let mut food_query = SAPQuery::builder();
-        food_query.set_table(Entity::Food);
+        let food_query = SAPQuery::builder().set_table(Entity::Food);
 
-        let mut pet_query = SAPQuery::builder();
-        pet_query.set_table(Entity::Pet);
+        let pet_query = SAPQuery::builder().set_table(Entity::Pet);
 
         let foods = SAPDB.execute_query(food_query);
         let pets = SAPDB.execute_query(pet_query);
@@ -529,9 +527,7 @@ mod test {
 
     #[test]
     fn test_query_params_food() {
-        let mut food_query = SAPQuery::builder();
-
-        food_query
+        let food_query = SAPQuery::builder()
             .set_table(Entity::Food)
             .set_param("name", vec![FoodName::Apple])
             .set_param("pack", vec![Pack::Turtle]);
@@ -546,9 +542,7 @@ mod test {
 
     #[test]
     fn test_query_params_pets() {
-        let mut pet_query = SAPQuery::builder();
-
-        pet_query
+        let pet_query = SAPQuery::builder()
             .set_table(Entity::Pet)
             .set_param("name", vec![PetName::Tiger])
             .set_param("lvl", vec![2])
@@ -563,9 +557,7 @@ mod test {
 
     #[test]
     fn test_query_params_toys() {
-        let mut toy_query = SAPQuery::builder();
-
-        toy_query
+        let toy_query = SAPQuery::builder()
             .set_table(Entity::Toy)
             .set_param("name", vec![ToyName::Balloon])
             .set_param("lvl", vec![1]);
