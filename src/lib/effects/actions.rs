@@ -1,4 +1,5 @@
 use crate::{
+    db::record::{FoodRecord, PetRecord, ToyRecord},
     effects::{
         effect::Effect,
         state::{
@@ -9,12 +10,22 @@ use crate::{
     },
     error::SAPTestError,
     foods::{food::Food, names::FoodName},
-    pets::pet::Pet,
+    pets::pet::{Pet, MAX_PET_STATS},
+    shop::store::{MAX_SHOP_TIER, MIN_SHOP_TIER},
     teams::effect_helpers::EffectApplyHelpers,
-    Entity, PetName, SAPQuery, Team, ToyName,
+    Entity, PetName, SAPQuery, Team, Toy, ToyName, SAPDB,
 };
+use rand::{
+    random,
+    seq::{IteratorRandom, SliceRandom},
+    SeedableRng,
+};
+use rand_chacha::ChaCha12Rng;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::{Arc, RwLock},
+};
 
 /// [`Pet`] attribute used for [`Action::Copy`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
@@ -178,6 +189,127 @@ pub enum SummonType {
     },
 }
 
+impl SummonType {
+    pub(crate) fn to_pet(
+        &self,
+        team: &Team,
+        target_pet: &Arc<RwLock<Pet>>,
+    ) -> Result<Pet, SAPTestError> {
+        let mut new_pet = match self {
+            SummonType::QueryPet(sql, params, stats) => {
+                let pet_records: Vec<PetRecord> = SAPDB
+                    .execute_sql_query(sql, params)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .collect();
+                let mut rng = ChaCha12Rng::seed_from_u64(
+                    target_pet.read().unwrap().seed.unwrap_or_else(random),
+                );
+                // Only select one pet.
+                let pet_record =
+                    pet_records
+                        .choose(&mut rng)
+                        .ok_or(SAPTestError::QueryFailure {
+                            subject: "Summon Query".to_string(),
+                            reason: format!("No record found for query: {sql} with {params:?}"),
+                        })?;
+                // Give unique id.
+                let mut pet = Pet::try_from(pet_record.clone())?;
+
+                // Set stats if some value provided.
+                if let Some(set_stats) = stats {
+                    pet.stats = *set_stats;
+                }
+                pet
+            }
+            SummonType::StoredPet(box_pet) => *box_pet.clone(),
+            SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
+            SummonType::CustomPet(name, stat_types, lvl) => {
+                let mut stats = stat_types.to_stats(
+                    Some(target_pet.read().unwrap().stats),
+                    Some(&team.counters),
+                    false,
+                )?;
+                Pet::new(
+                    name.clone(),
+                    Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
+                    *lvl,
+                )?
+            }
+            SummonType::SelfPet(new_stats, new_level, keep_item) => {
+                // Current pet. Remove item
+                let mut pet = target_pet.read().unwrap().clone();
+                pet.item = if *keep_item {
+                    target_pet.read().unwrap().item.clone()
+                } else {
+                    None
+                };
+                pet.stats = new_stats
+                    .map_or_else(|| target_pet.read().unwrap().stats, |set_stats| set_stats);
+                if let Some(new_level) = new_level {
+                    pet.set_level(*new_level)?;
+                }
+                pet
+            }
+            SummonType::SelfTierPet(stats, level) => {
+                let summon_query_type = SummonType::QueryPet(
+                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
+                    vec![
+                        target_pet.read().unwrap().tier.to_string(),
+                        level.unwrap_or(1).to_string(),
+                    ],
+                    *stats,
+                );
+                summon_query_type.to_pet(team, target_pet)?
+            }
+            SummonType::SelfTeamPet(stats, lvl, ignore_pet) => {
+                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
+                // Choose a pet on the current team that isn't the ignored pet.
+                let chosen_friend_name = team
+                    .friends
+                    .iter()
+                    .flatten()
+                    .filter_map(|pet| {
+                        let pet_name = pet.read().unwrap().name.clone();
+                        (pet_name != *ignore_pet).then_some(pet_name)
+                    })
+                    .choose(&mut rng);
+                // NOTE: Allow to fail silently if no pet found.
+                // Will only fail if friends empty or no valid friends found.
+                if let Some(chosen_friend_name) = chosen_friend_name {
+                    Pet::new(chosen_friend_name, *stats, lvl.unwrap_or(1))?
+                } else {
+                    return Err(SAPTestError::FallibleAction);
+                }
+            }
+            SummonType::ShopTierPet {
+                stats,
+                lvl,
+                tier_diff,
+            } => {
+                // Calculate new tier from tier diff and current shop tier.
+                let calculated_tier =
+                    (team.shop.tier() as isize).saturating_add(tier_diff.unwrap_or(0));
+                let summon_query_type = SummonType::QueryPet(
+                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
+                    vec![
+                        // Restrict to min and max shop tier.
+                        calculated_tier
+                            .clamp(MIN_SHOP_TIER as isize, MAX_SHOP_TIER as isize)
+                            .to_string(),
+                        lvl.unwrap_or(1).to_string(),
+                    ],
+                    *stats,
+                );
+                summon_query_type.to_pet(team, target_pet)?
+            }
+        };
+
+        new_pet.id = Some(format!("{}_{}", new_pet.name, team.history.pet_count + 1));
+        Ok(new_pet)
+    }
+}
+
 /// Types of item gains for [`Action::Gain`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum GainType {
@@ -206,6 +338,42 @@ pub enum GainType {
     NoItem,
 }
 
+impl GainType {
+    pub(crate) fn to_food(
+        &self,
+        team: &Team,
+        target_pet: &Arc<RwLock<Pet>>,
+    ) -> Result<Option<Food>, SAPTestError> {
+        Ok(match self {
+            GainType::SelfItem => target_pet.read().unwrap().item.clone(),
+            GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
+            GainType::StoredItem(food) => Some(*food.clone()),
+            GainType::RandomShopItem => {
+                let query = team.shop.shop_query(Entity::Food, 1..team.shop.tier() + 1);
+                GainType::QueryItem(query).to_food(team, target_pet)?
+            }
+            GainType::QueryItem(query) => {
+                let food_records: Vec<FoodRecord> = SAPDB
+                    .execute_query(query.to_owned())?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .collect();
+                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
+                // Only select one pet.
+                let food_record =
+                    food_records
+                        .choose(&mut rng)
+                        .ok_or(SAPTestError::QueryFailure {
+                            subject: "Food Query".to_string(),
+                            reason: format!("No record found for query: {query:?}"),
+                        })?;
+                Some(Food::try_from(food_record.name.clone())?)
+            }
+            GainType::NoItem => None,
+        })
+    }
+}
+
 /// Types of ways to get a [`Toy`](crate::Toy).
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum ToyType {
@@ -221,6 +389,46 @@ pub enum ToyType {
     },
     /// Query toy based on given SQL.
     QueryOneToy(SAPQuery),
+}
+
+impl ToyType {
+    pub(crate) fn to_toy(&self, team: &Team) -> Result<Option<Toy>, SAPTestError> {
+        Ok(match self {
+            ToyType::DefaultToy { name } => Some(Toy::try_from(name.clone())?),
+            ToyType::RandomToy { lvl } => {
+                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
+                let mut query = SAPQuery::builder().set_table(Entity::Toy);
+                if let Some(lvl) = lvl {
+                    query = query.set_param("lvl", vec![lvl.to_string()]);
+                };
+                let rec: ToyRecord = SAPDB
+                    .execute_query(query)?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .choose(&mut rng)
+                    .ok_or(SAPTestError::QueryFailure {
+                        subject: String::from("No Toy Found"),
+                        reason: format!("No toy found for random toy query {self:?}"),
+                    })?;
+                Some(rec.try_into()?)
+            }
+            ToyType::QueryOneToy(sap_query) => {
+                let mut rng = ChaCha12Rng::seed_from_u64(team.seed.unwrap_or_else(random));
+
+                let rec: ToyRecord = SAPDB
+                    .execute_query(sap_query.clone())?
+                    .into_iter()
+                    .filter_map(|record| record.try_into().ok())
+                    .choose(&mut rng)
+                    .ok_or(SAPTestError::QueryFailure {
+                        subject: String::from("No Toy Found"),
+                        reason: format!("No toy found for random toy query {self:?}"),
+                    })?;
+
+                Some(rec.try_into()?)
+            }
+        })
+    }
 }
 
 /// Types of ways [`Action::Swap`] or [`Action::Shuffle`] can randomize pets.
