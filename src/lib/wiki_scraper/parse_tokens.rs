@@ -47,7 +47,7 @@ pub fn parse_single_token(block: &str, pets: &mut Vec<PetRecord>) -> Result<(), 
         let url = IMG_URLS
             .get(<&str>::clone(&name))
             .map(|data| data.url.clone())
-            .unwrap_or_else(String::default);
+            .unwrap_or_default();
 
         for (lvl, stats) in [stats_level_1, stats_level_2, stats_level_3]
             .into_iter()

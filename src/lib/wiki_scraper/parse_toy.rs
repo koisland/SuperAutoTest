@@ -38,7 +38,7 @@ pub fn parse_single_toy_row(
     let url = IMG_URLS
         .get(name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     // If effect at a level is missing, still create three records.
     for lvl in 0..3 {

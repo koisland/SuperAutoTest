@@ -160,7 +160,7 @@ pub struct Shop {
     /// * Added via a `CannedFood`
     pub perm_stats: Statistics,
     /// Temporary stats that are removed on shop opening.
-    pub(crate) temp_stats: Vec<(String, Statistics)>,
+    pub(crate) temp_stats: Vec<(usize, Statistics)>,
     /// Free rolls.
     pub free_rolls: usize,
     /// Saved coins.

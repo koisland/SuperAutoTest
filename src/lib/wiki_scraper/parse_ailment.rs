@@ -30,7 +30,7 @@ pub fn parse_one_ailment_entry(
     let img_url = IMG_URLS
         .get(name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     let (random, n_targets) = get_random_n_effect(effect)?;
     let turn_effect = is_turn_effect(effect);

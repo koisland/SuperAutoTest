@@ -36,7 +36,7 @@ pub fn parse_single_hard_mode_toy_row(
     let img_url = IMG_URLS
         .get(name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     let (effect_stats, n_triggers, temp_effect) = extract_pet_effect_info(Some(effect));
     toys.push(ToyRecord {

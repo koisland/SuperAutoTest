@@ -1019,8 +1019,7 @@ fn test_battle_popcorns() {
     let first_ant = team.first().unwrap();
     team.fight(&mut enemy_team).unwrap();
 
-    let first_fainted = team.fainted.first().unwrap().as_ref().unwrap();
-    assert!(Arc::ptr_eq(first_fainted, &first_ant));
+    assert_eq!(first_ant.read().unwrap().stats.health, 0);
     // Summoned pet is same tier as ant.
     let summoned_pet = team.first().unwrap();
     assert_eq!(

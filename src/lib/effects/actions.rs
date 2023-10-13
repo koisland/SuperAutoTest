@@ -308,7 +308,7 @@ impl SummonType {
             }
         };
 
-        new_pet.id = Some(format!("{}_{}", new_pet.name, team.history.pet_count + 1));
+        new_pet.id = Some(team.history.pet_count + 1);
         Ok(new_pet)
     }
 }

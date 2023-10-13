@@ -187,7 +187,7 @@ pub fn parse_single_pet(
     let url = IMG_URLS
         .get(pet_name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     let (pet_atk, pet_health) = parse_pet_stats(block)?;
 

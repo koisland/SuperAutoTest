@@ -201,7 +201,7 @@ impl Clone for Team {
                 .affected_pet
                 .as_ref()
                 .and_then(|pet| pet.upgrade())
-                .and_then(|pet| pet.read().unwrap().id.clone());
+                .and_then(|pet| pet.read().unwrap().id);
             // If found id in trigger is same as pet then set trigger to copied friend.
             if let Some(pet_id) = pet_id.as_ref() {
                 for friend in copied_friends.iter().flatten() {
@@ -373,7 +373,7 @@ impl Team {
             let rc_pet = if let Some(pet) = slot {
                 // Create id if one not assigned.
                 pet.team = Some(team_name.to_owned());
-                pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
+                pet.id = Some(pet.id.unwrap_or(i));
                 pet.set_pos(i);
 
                 let rc_pet = Arc::new(RwLock::new(pet.clone()));
@@ -694,8 +694,7 @@ impl Team {
         pos: usize,
         opponent: Option<&mut Team>,
     ) -> Result<&mut Self, SAPTestError> {
-        let new_pet_id = format!("{}_{}", pet.name, self.history.pet_count + 1);
-        let pet_id = pet.id.clone();
+        let pet_id = pet.id;
         let rc_pet = Arc::new(RwLock::new(pet));
         let alive_pets = self.all().len();
 
@@ -725,7 +724,7 @@ impl Team {
         }
 
         // Assign id to pet if not any.
-        rc_pet.write().unwrap().id = Some(pet_id.unwrap_or(new_pet_id));
+        rc_pet.write().unwrap().id = Some(pet_id.unwrap_or(self.history.pet_count + 1));
         rc_pet.write().unwrap().pos = Some(pos);
         rc_pet.write().unwrap().team = Some(self.name.clone());
 

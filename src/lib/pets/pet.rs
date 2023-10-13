@@ -27,7 +27,7 @@ pub const MAX_PET_STATS: isize = 50;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     /// An identifier for a pet.
-    pub(crate) id: Option<String>,
+    pub(crate) id: Option<usize>,
     /// Name for pet.
     pub name: PetName,
     /// Tier of pet.

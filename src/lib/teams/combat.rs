@@ -180,7 +180,7 @@ impl TeamCombat for Team {
         self.history.pet_count = self.stored_friends.len();
 
         // Clear counters.
-        self.counters.clear();
+        self.counters.iter_mut().for_each(|(_, item)| *item = 0);
 
         // Reset golden pack effect. Note user added effects are removed.
         let golden_effect: Vec<Effect> = Pack::Golden.into();

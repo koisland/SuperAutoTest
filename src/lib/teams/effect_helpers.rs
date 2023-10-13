@@ -868,10 +868,9 @@ impl EffectApplyHelpers for Team {
                     && effect.target == Target::Friend
                     && self.shop.state == ShopState::Open
                 {
-                    self.shop.temp_stats.push((
-                        affected_pet.read().unwrap().id.as_ref().unwrap().clone(),
-                        added_stats,
-                    ));
+                    self.shop
+                        .temp_stats
+                        .push((affected_pet.read().unwrap().id.unwrap(), added_stats));
                 }
                 affected_pet.write().unwrap().stats += added_stats;
                 {

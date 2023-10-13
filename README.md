@@ -201,21 +201,10 @@ python setup.py install
 ```
 
 ### saptest (No Graphs)
-* **50.684 ns ± 138.37 ns** with **100 measurements**.
-* Logging disabled.
-* Raw data available in `benches/saptest_raw_no_graphs.csv`.
-
-![](docs/images/pdf_sapai_example_no_graphs.svg)
-
+* TODO
 
 ### saptest (Graphs)
-* **2.8055 µs ± 147.39 ns** with **100 measurements**.
-    * This is a **5514% regression in speed** compared to no graphs.
-    * Consider disabling `graphs` if speed is required.
-* Logging disabled.
-* Raw data available in `benches/saptest_raw_graphs.csv`.
-
-![](docs/images/pdf_sapai_example_graphs.svg)
+* TODO
 
 ### sapai
 * **4.29 ms ± 51.8 µs** per loop (mean ± std. dev. of 7 runs, **100 loops each**)

@@ -134,7 +134,7 @@ pub fn parse_one_food_entry(
     let url = IMG_URLS
         .get(name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     let holdable_item = is_holdable_item(name, effect);
     let (_, single_use) = is_temp_single_use(name, effect);

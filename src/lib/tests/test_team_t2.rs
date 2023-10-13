@@ -18,6 +18,8 @@ use crate::{
     TeamEffects, TeamShopping,
 };
 
+use super::common::test_gorilla_team;
+
 #[test]
 fn test_shop_worm_team() {
     // Worm must be level 2 from creation as open_shop restores pet original states.
@@ -831,3 +833,48 @@ fn test_shop_snail_team() {
             }
     );
 }
+
+#[test]
+fn test_shop_african_penguin() {}
+
+#[test]
+fn test_battle_black_necked_stilt() {
+    let mut team = Team::new(
+        &[Some(Pet::try_from(PetName::BlackNeckedStilt).unwrap())],
+        5,
+    )
+    .unwrap();
+    let mut enemy_team = test_gorilla_team();
+
+    println!("{:?}", team.counters);
+    println!("{enemy_team}");
+
+    team.fight(&mut enemy_team).unwrap();
+
+    println!("{:?}", team.counters);
+    println!("{enemy_team}");
+}
+
+fn test_battle_door_head_ant() {}
+
+fn test_battle_gazelle() {}
+
+fn test_battle_hercules_beetle() {}
+
+fn test_battle_lizard() {}
+
+fn test_battle_sea_turtle() {}
+
+fn test_battle_sea_urchin() {}
+
+fn test_battle_squid() {}
+
+fn test_battle_stoat() {}
+
+fn test_battle_beluga_sturgeon() {}
+
+fn test_battle_lemur() {}
+
+fn test_battle_mandrill() {}
+
+fn test_battle_robin() {}
