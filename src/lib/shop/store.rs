@@ -160,9 +160,11 @@ pub struct Shop {
     /// * Added via a `CannedFood`
     pub perm_stats: Statistics,
     /// Temporary stats that are removed on shop opening.
-    pub(crate) temp_stats: Vec<(String, Statistics)>,
+    pub(crate) temp_stats: Vec<(usize, Statistics)>,
     /// Free rolls.
     pub free_rolls: usize,
+    /// Saved coins.
+    pub saved_coins: usize,
 }
 
 impl Default for Shop {
@@ -178,6 +180,7 @@ impl Default for Shop {
             foods: Vec::with_capacity(MAX_SHOP_FOODS),
             free_rolls: 0,
             packs: vec![Pack::Turtle],
+            saved_coins: 0,
         }
     }
 }
@@ -220,8 +223,8 @@ impl Shop {
         Ok(default_shop)
     }
 
-    /// Restock a shop with [`ShopItem`](crate::shop::store::ShopItem)s.
-    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
+    /// Restock a shop with [`ShopItem`]s.
+    /// * Frozen [`ShopItem`]s are retained.
     /// * Restocking doesn't cost gold.
     /// # Example
     /// ```
@@ -323,7 +326,7 @@ impl Shop {
     }
 
     /// Roll the `Shop`.
-    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
+    /// * Frozen [`ShopItem`]s are retained.
     /// * Fails if invalid funds to reroll.
     ///     * Each roll costs `1` coin.
     /// # Examples
@@ -421,6 +424,12 @@ impl Shop {
             let items = match item_type {
                 Entity::Pet => self.pets.iter(),
                 Entity::Food => self.foods.iter(),
+                _ => {
+                    return Err(SAPTestError::InvalidPetAction {
+                        subject: String::from("Invalid Freeze Entity"),
+                        reason: format!("Shop does not contain {item_type}."),
+                    })
+                }
             };
             items
                 .enumerate()
@@ -454,10 +463,14 @@ impl Shop {
         if self.pets.len() == MAX_SHOP_PETS {
             return Ok(self);
         }
-        let records = SAPDB.execute_sql_query(
-            "SELECT * FROM pets where tier = ? and lvl = ?",
-            &[(self.tier + 1).clamp(1, 6).to_string(), 1.to_string()],
-        )?;
+        let query = SAPQuery::builder()
+            .set_table(Entity::Pet)
+            .set_param(
+                "tier",
+                vec![(self.tier + 1).clamp(MIN_SHOP_TIER, MAX_SHOP_TIER)],
+            )
+            .set_param("lvl", vec![1]);
+        let records = SAPDB.execute_query(query)?;
 
         if let Some(SAPRecord::Pet(added_pet)) = records.first().cloned() {
             let pet: Pet = added_pet.try_into()?;
@@ -519,40 +532,21 @@ impl Shop {
     }
 
     /// Build shop query.
-    pub(crate) fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> (String, Vec<String>) {
-        let tiers = tiers.into_iter().map(|tier| tier.to_string()).collect_vec();
-        let packs = self.packs.iter().map(|pack| pack.to_string()).collect_vec();
+    pub(crate) fn shop_query(&self, entity: Entity, tiers: Range<usize>) -> SAPQuery {
+        let query = SAPQuery::builder()
+            .set_param("tier", tiers.into_iter().collect())
+            .set_param("pack", self.packs.iter().collect());
 
-        let (query, stmt) = match entity {
-            Entity::Pet => {
-                let mut query = SAPQuery::from_iter([
-                    ("tier".to_string(), tiers),
-                    ("pack".to_string(), packs),
-                    ("lvl".to_string(), vec![1.to_string()]),
-                ]);
-                query.set_table(Entity::Pet);
-
-                // As long as table set, safe to unwrap.
+        match entity {
+            Entity::Pet => query
+                .set_param("lvl", vec![1])
+                .set_table(Entity::Pet)
                 // Exclude sloth. Fixed percentage chance handled in Shop::fill_pets()
-                let stmt = query
-                    .as_sql()
-                    .map(|mut sql| {
-                        sql.push_str(" AND name != 'Sloth' AND is_token = 'false'");
-                        sql
-                    })
-                    .unwrap();
-                (query, stmt)
-            }
-            Entity::Food => {
-                let mut query =
-                    SAPQuery::from_iter([("tier".to_string(), tiers), ("pack".to_string(), packs)]);
-                query.set_table(Entity::Food);
-                let stmt = query.as_sql().unwrap();
-                (query, stmt)
-            }
-        };
-        let flat_params = query.flat_params().into_iter().cloned().collect();
-        (stmt, flat_params)
+                .set_param("-name", vec![PetName::Sloth])
+                .set_param("is_token", vec![false]),
+            Entity::Food => query.set_table(Entity::Food),
+            _ => unreachable!(),
+        }
     }
 
     pub(crate) fn get_rng(&self) -> ChaCha12Rng {
@@ -562,9 +556,9 @@ impl Shop {
 
     /// Fill pets based on current tier of shop.
     pub(crate) fn fill_pets(&mut self) -> Result<&mut Self, SAPTestError> {
-        let (sql, params) = self.shop_query(Entity::Pet, 1..self.tier + 1);
+        let query = self.shop_query(Entity::Pet, 1..self.tier + 1);
         let possible_pets: Vec<PetRecord> = SAPDB
-            .execute_sql_query(&sql, &params)?
+            .execute_query(query)?
             .into_iter()
             .filter_map(|record| record.try_into().ok())
             .collect_vec();
@@ -582,14 +576,13 @@ impl Shop {
             let (cost, mut pet) = if rng.gen_bool(SLOTH_CHANCE) {
                 (3, Pet::try_from(PetName::Sloth)?)
             } else {
-                let record = possible_pets
-                    .choose(&mut rng)
-                    .ok_or(SAPTestError::QueryFailure {
-                        subject: "Empty Shop Query".to_string(),
-                        reason: format!(
-                            "SQL ({sql}) with params ({params:?}) yielded no pet records."
-                        ),
-                    })?;
+                let record =
+                    possible_pets
+                        .choose(&mut rng)
+                        .ok_or_else(|| SAPTestError::QueryFailure {
+                            subject: "Empty Shop Query (Pets)".to_string(),
+                            reason: "Main pet query yielded no pet records.".to_string(),
+                        })?;
                 (record.cost, Pet::try_from(record.name.clone())?)
             };
             // Add permanent pet stats.
@@ -607,9 +600,9 @@ impl Shop {
 
     /// Fill the shop with foods based on current tier of shop.
     pub(crate) fn fill_foods(&mut self) -> Result<&mut Self, SAPTestError> {
-        let (sql, params) = self.shop_query(Entity::Food, 1..self.tier + 1);
+        let query = self.shop_query(Entity::Food, 1..self.tier + 1);
         let possible_foods: Vec<FoodRecord> = SAPDB
-            .execute_sql_query(&sql, &params)?
+            .execute_query(query)?
             .into_iter()
             .filter_map(|record| record.try_into().ok())
             .collect_vec();
@@ -627,11 +620,9 @@ impl Shop {
             let food_record =
                 possible_foods
                     .choose(&mut rng)
-                    .ok_or(SAPTestError::QueryFailure {
-                        subject: "Empty Shop Query".to_string(),
-                        reason: format!(
-                            "SQL ({sql}) with params ({params:?}) yielded no food records."
-                        ),
+                    .ok_or_else(|| SAPTestError::QueryFailure {
+                        subject: String::from("Empty Shop Query (Food)"),
+                        reason: String::from("Main food query yielded no food records."),
                     })?;
             let food = Food::try_from(food_record.name.clone())?;
             self.foods.push(ShopItem {

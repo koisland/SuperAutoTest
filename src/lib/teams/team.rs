@@ -1,4 +1,5 @@
 use crate::{
+    db::pack::Pack,
     effects::{
         state::{Outcome, Position, Target},
         trigger::*,
@@ -6,10 +7,10 @@ use crate::{
     error::SAPTestError,
     pets::pet::{reassign_effects, Pet},
     shop::{store::ShopState, team_shopping::TeamShoppingHelpers},
-    teams::history::History,
-    teams::viewer::TeamViewer,
+    teams::{history::History, viewer::TeamViewer},
+    toys::toy::Toy,
     wiki_scraper::parse_names::WordType,
-    Food, Shop, CONFIG, SAPDB,
+    Effect, Food, Shop, CONFIG, SAPDB,
 };
 
 use itertools::Itertools;
@@ -18,14 +19,14 @@ use rand::{random, seq::IteratorRandom, SeedableRng};
 use rand_chacha::ChaCha12Rng;
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::VecDeque,
+    collections::{HashMap, VecDeque},
     fmt::Display,
     sync::{Arc, RwLock, Weak},
 };
 
 const COPY_SUFFIX: &str = "_copy";
 
-/// The outcome of a [`Team`](crate::teams::team::Team) fight.
+/// The outcome of a [`Team`] fight.
 ///
 /// # Examples
 /// This can be used as an exit condition in a fight.
@@ -114,6 +115,15 @@ pub struct Team {
     pub(crate) curr_pet: Option<Weak<RwLock<Pet>>>,
     /// Clone of pets used for restoring team.
     pub(crate) stored_friends: Vec<Option<Pet>>,
+    /// Apply a persistent effect.
+    /// * These effects are **ALWAYS** applied during trigger_effects.
+    pub persistent_effects: Vec<Effect>,
+    /// Toys for a team.
+    /// Can include hard-mode or normal toys.
+    pub toys: Vec<Toy>,
+    /// Counters.
+    /// * These can be used with effects.
+    pub counters: HashMap<String, usize>,
 }
 
 impl Default for Team {
@@ -136,6 +146,10 @@ impl Default for Team {
             history: History::default(),
             seed,
             curr_pet: None,
+            persistent_effects: Vec::default(),
+            toys: Vec::default(),
+            // Add trumpets.
+            counters: HashMap::from_iter([("Trumpets".to_owned(), 0)]),
         }
     }
 }
@@ -187,7 +201,7 @@ impl Clone for Team {
                 .affected_pet
                 .as_ref()
                 .and_then(|pet| pet.upgrade())
-                .and_then(|pet| pet.read().unwrap().id.clone());
+                .and_then(|pet| pet.read().unwrap().id);
             // If found id in trigger is same as pet then set trigger to copied friend.
             if let Some(pet_id) = pet_id.as_ref() {
                 for friend in copied_friends.iter().flatten() {
@@ -211,6 +225,9 @@ impl Clone for Team {
             stored_friends: copied_stored_friends,
             curr_pet: None,
             shop: self.shop.clone(),
+            persistent_effects: self.persistent_effects.clone(),
+            toys: self.toys.clone(),
+            counters: self.counters.clone(),
         };
         // Reassign references.
         copied_team.reset_pet_references(None);
@@ -284,6 +301,9 @@ impl Team {
             curr_pet,
             ..Default::default()
         };
+        // Add golden pack effects.
+        let golden_effect: Vec<Effect> = Pack::Golden.into();
+        team.persistent_effects.extend(golden_effect);
 
         // Update pet count.
         team.history.pet_count = team.all().len();
@@ -353,7 +373,7 @@ impl Team {
             let rc_pet = if let Some(pet) = slot {
                 // Create id if one not assigned.
                 pet.team = Some(team_name.to_owned());
-                pet.id = Some(pet.id.clone().unwrap_or(format!("{}_{}", pet.name, i)));
+                pet.id = Some(pet.id.unwrap_or(i));
                 pet.set_pos(i);
 
                 let rc_pet = Arc::new(RwLock::new(pet.clone()));
@@ -372,6 +392,8 @@ impl Team {
 
     /// Set a `u64` seed for a team allowing for reproducibility of events.
     /// * **Note:** For abilities that select a random pet on the enemy team, the seed must be set for the opposing team.
+    /// * Uses [`ChaCha12Rng`].
+    ///
     /// # Examples
     ///  ```
     /// use saptest::{Pet, PetName, Team, TeamEffects, effects::trigger::TRIGGER_START_BATTLE};
@@ -513,7 +535,7 @@ impl Team {
         // If item, assign/activate item. Otherwise, set to None.
         if let Some(food) = item.as_ref() {
             self.buy_food_behavior(
-                Arc::new(RwLock::new(food.clone())),
+                &Arc::new(RwLock::new(food.clone())),
                 self.first(),
                 pos,
                 false,
@@ -672,8 +694,7 @@ impl Team {
         pos: usize,
         opponent: Option<&mut Team>,
     ) -> Result<&mut Self, SAPTestError> {
-        let new_pet_id = format!("{}_{}", pet.name, self.history.pet_count + 1);
-        let pet_id = pet.id.clone();
+        let pet_id = pet.id;
         let rc_pet = Arc::new(RwLock::new(pet));
         let alive_pets = self.all().len();
 
@@ -703,7 +724,7 @@ impl Team {
         }
 
         // Assign id to pet if not any.
-        rc_pet.write().unwrap().id = Some(pet_id.unwrap_or(new_pet_id));
+        rc_pet.write().unwrap().id = Some(pet_id.unwrap_or(self.history.pet_count + 1));
         rc_pet.write().unwrap().pos = Some(pos);
         rc_pet.write().unwrap().team = Some(self.name.clone());
 

@@ -1,6 +1,6 @@
 //! A testing framework for the game [Super Auto Pets](https://teamwoodgames.com/).
 //!
-//! Game information is scraped and parsed from the [Super Auto Pets Fandom Wiki](https://superautopets.fandom.com/f) before being stored in a [SQLite](https://www.sqlite.org/index.html) database.
+//! Game information is scraped and parsed from the [Super Auto Pets Wiki](https://superautopets.wiki.gg/wiki/Super_Auto_Pets_Wiki) before being stored in a [SQLite](https://www.sqlite.org/index.html) database.
 //!
 //! ### Teams
 //! Build a [`Team`] and simulate battles between them.
@@ -42,10 +42,10 @@
 //!     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
 //!     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
 //!     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
-//!     0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-//!     1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-//!     1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-//!     0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+//!     0 -> 1 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+//!     1 -> 0 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+//!     1 -> 2 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
+//!     0 -> 3 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
 //! }
 //! ```
 //! ### Shops
@@ -98,7 +98,7 @@
 //! use saptest::{
 //!     Pet, PetName, PetCombat,
 //!     Food, FoodName,
-//!     Entity, Position, Effect, Statistics,
+//!     Position, Effect, Statistics,
 //!     effects::{
 //!         trigger::TRIGGER_START_BATTLE,
 //!         actions::GainType,
@@ -112,7 +112,6 @@
 //!
 //! // A custom pet and effect.
 //! let custom_effect = Effect::new(
-//!     Entity::Pet,
 //!     TRIGGER_START_BATTLE, // Effect trigger
 //!     Target::Friend, // Target
 //!     Position::Adjacent, // Positions
@@ -139,7 +138,7 @@
 //! * Toggle recurring updates on startup.
 //! * Set database filename.
 //!
-//! Read more under the [`db`](crate::db) module.
+//! Read more under the [`db`] module.
 
 #![warn(missing_docs)]
 // TODO: Split errors into smaller categories?
@@ -158,6 +157,7 @@ pub mod foods;
 pub mod pets;
 pub mod shop;
 pub mod teams;
+pub mod toys;
 pub mod visualization;
 
 #[doc(inline)]
@@ -182,10 +182,13 @@ pub use crate::shop::{
     team_shopping::TeamShopping,
     viewer::{ShopItemViewer, ShopViewer},
 };
+#[doc(inline)]
+pub use crate::toys::{names::ToyName, toy::Toy};
 
 #[doc(inline)]
 pub use crate::visualization::{digraph::create_battle_digraph, tsv::create_battle_df};
 
+#[doc = include_str!("../../README.md")]
 mod config;
 mod regex_patterns;
 #[cfg(test)]
@@ -193,14 +196,19 @@ mod tests;
 mod wiki_scraper;
 
 const DB_FNAME: &str = "./sap.db";
+const ENV_SAPTEST_CONFIG: &str = "CONFIG_SAPTEST";
 
 lazy_static! {
     #[doc(hidden)]
-    static ref CONFIG: LibConfig = read_to_string(CONFIG_PATH)
+    static ref CONFIG: LibConfig = {
+        // Read in env var for saptest config file if one provided. Otherwise, use default.
+        let config = std::env::var(ENV_SAPTEST_CONFIG).unwrap_or(CONFIG_PATH.to_string());
+        read_to_string(config)
         .map_or_else(
             |_| DEFAULT_CONFIG,
             |toml_str| toml::from_str(&toml_str).unwrap()
-        );
+        )
+    };
 
     #[doc(hidden)]
     /// Global pooled database.

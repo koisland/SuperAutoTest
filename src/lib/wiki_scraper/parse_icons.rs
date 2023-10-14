@@ -22,7 +22,7 @@ pub(crate) struct ContinueParams {
     pub r#continue: String,
 }
 
-const API_ENDPT: &str = "https://superautopets.fandom.com/api.php";
+const API_ENDPT: &str = "https://superautopets.wiki.gg/api.php";
 const QRY_ALL_IMGS_PARAMS: [(&str, &str); 4] = [
     ("action", "query"),
     ("format", "json"),

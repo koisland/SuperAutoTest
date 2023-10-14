@@ -10,11 +10,14 @@ use crate::{
 use self::parse_icons::WikiImgData;
 
 pub mod common;
+pub mod parse_ailment;
 pub mod parse_food;
+pub mod parse_hard_mode_toys;
 pub mod parse_icons;
 pub mod parse_names;
 pub mod parse_pet;
 pub mod parse_tokens;
+pub mod parse_toy;
 
 lazy_static! {
     static ref ICON_SET: HashSet<String> = {
@@ -22,10 +25,15 @@ lazy_static! {
             let food_imgs = list_page_images("Food");
             let pet_imgs = list_page_images("Pets");
             let token_imgs = list_page_images("Tokens");
+            let toy_imgs = list_page_images("Toys");
+            let hard_mode_imgs = list_page_images("Hard Mode Toys");
+
             food_imgs
                 .into_iter()
                 .chain(pet_imgs)
                 .chain(token_imgs)
+                .chain(toy_imgs)
+                .chain(hard_mode_imgs)
                 .collect()
         } else {
             HashSet::default()

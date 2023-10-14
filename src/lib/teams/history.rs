@@ -69,7 +69,7 @@ impl BattleGraph {
             let pet = pet.read().unwrap();
             if let (Some(id), Some(team)) = (&pet.id, &pet.team) {
                 let node = PetNode {
-                    id: id.to_owned(),
+                    id: format!("{}_{}", pet.name, id),
                     team: team.to_owned(),
                 };
                 let node_idx = self.phase_graph.add_node(node.clone());
@@ -129,13 +129,13 @@ impl TeamHistoryHelpers for Team {
                 affected_pet,
                 afflicting_pet,
                 &trigger.status,
-                &Action::Remove(StatChangeType::StaticValue(atk_outcome.friend_stat_change)),
+                &Action::Remove(StatChangeType::Static(atk_outcome.friend_stat_change)),
             )?;
             self.add_action_edge(
                 afflicting_pet,
                 affected_pet,
                 &trigger.status,
-                &Action::Remove(StatChangeType::StaticValue(atk_outcome.enemy_stat_change)),
+                &Action::Remove(StatChangeType::Static(atk_outcome.enemy_stat_change)),
             )?;
         }
 
@@ -154,9 +154,9 @@ impl TeamHistoryHelpers for Team {
         if let (Some(affected_team), Some(afflicting_team)) =
             (affected.team.clone(), afflicting.team.clone())
         {
-            if let Some(id) = affected.id.clone() {
+            if let Some(id) = affected.id {
                 let node = PetNode {
-                    id,
+                    id: format!("{}_{}", affected.name, id),
                     team: affected_team,
                 };
 
@@ -169,9 +169,9 @@ impl TeamHistoryHelpers for Team {
                         self.history.graph.phase_graph.add_node(node.clone())
                     });
 
-                if let Some(afflicting_pet_id) = afflicting.id.clone() {
+                if let Some(afflicting_pet_id) = afflicting.id {
                     let other_node = PetNode {
-                        id: afflicting_pet_id,
+                        id: format!("{}_{}", afflicting.name, afflicting_pet_id),
                         team: afflicting_team,
                     };
                     let afflicting_node_idx =

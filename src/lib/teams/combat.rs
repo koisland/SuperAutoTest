@@ -2,15 +2,17 @@ use log::info;
 use std::sync::Arc;
 
 use crate::{
+    db::pack::Pack,
     effects::{
         actions::{Action, SummonType},
+        state::Status,
         trigger::*,
     },
     error::SAPTestError,
     shop::store::ShopState,
     teams::team::TeamFightOutcome,
     teams::{effect_helpers::EffectApplyHelpers, history::TeamHistoryHelpers},
-    PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
+    Effect, PetCombat, PetName, Team, TeamEffects, TeamViewer, CONFIG,
 };
 
 const BATTLE_PHASE_COMPLETE_OUTCOMES: [TeamFightOutcome; 3] = [
@@ -176,6 +178,13 @@ impl TeamCombat for Team {
         // Set current battle phase to 1.
         self.history.curr_phase = 1;
         self.history.pet_count = self.stored_friends.len();
+
+        // Clear counters.
+        self.counters.iter_mut().for_each(|(_, item)| *item = 0);
+
+        // Reset golden pack effect. Note user added effects are removed.
+        let golden_effect: Vec<Effect> = Pack::Golden.into();
+        self.persistent_effects.extend(golden_effect);
         self
     }
 
@@ -355,11 +364,31 @@ impl BattlePhases for Team {
             info!(target: "run", "(\"{}\")\n{}", opponent.name, opponent);
 
             // Update outcomes with weak references.
+            // Create triggers for pet behind if pet hurt.
             for trigger in atk_outcome.friends.iter_mut() {
                 trigger.set_affected(&pet).set_afflicting(&opponent_pet);
+                if trigger.status == Status::Hurt {
+                    if let Some(pet_behind) = self.nth(1) {
+                        self.triggers.push_back({
+                            let mut trigger = TRIGGER_AHEAD_HURT;
+                            trigger.set_affected(&pet_behind);
+                            trigger
+                        })
+                    }
+                }
             }
             for trigger in atk_outcome.opponents.iter_mut() {
                 trigger.set_affected(&opponent_pet).set_afflicting(&pet);
+
+                if trigger.status == Status::Hurt {
+                    if let Some(pet_behind) = opponent.nth(1) {
+                        opponent.triggers.push_back({
+                            let mut trigger = TRIGGER_AHEAD_HURT;
+                            trigger.set_affected(&pet_behind);
+                            trigger
+                        })
+                    }
+                }
             }
 
             if CONFIG.general.build_graph {
@@ -367,25 +396,35 @@ impl BattlePhases for Team {
             }
 
             // Add triggers to team from outcome of battle.
-            self.triggers.extend(atk_outcome.friends.into_iter());
-            opponent.triggers.extend(atk_outcome.opponents.into_iter());
+            self.triggers.extend(atk_outcome.friends);
+            opponent.triggers.extend(atk_outcome.opponents);
+
+            // Add triggers for after attack.
+            self.triggers.push_back({
+                let mut trigger = TRIGGER_SELF_AFTER_ATTACK;
+                trigger.set_affected(&pet);
+                trigger
+            });
+            opponent.triggers.push_back({
+                let mut trigger = TRIGGER_SELF_AFTER_ATTACK;
+                trigger.set_affected(&opponent_pet);
+                trigger
+            });
 
             // Add triggers for pet behind.
             if let Some(pet_behind) = opponent.nth(1) {
-                opponent.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
+                opponent.triggers.push_back({
+                    let mut trigger = TRIGGER_AHEAD_ATTACK;
+                    trigger.set_affected(&pet_behind);
+                    trigger
+                })
             }
             if let Some(pet_behind) = self.nth(1) {
-                self.triggers.push_back(
-                    TRIGGER_AHEAD_ATTACK
-                        .clone()
-                        .set_affected(&pet_behind)
-                        .to_owned(),
-                )
+                self.triggers.push_back({
+                    let mut trigger = TRIGGER_AHEAD_ATTACK;
+                    trigger.set_affected(&pet_behind);
+                    trigger
+                })
             }
 
             // Apply effect triggers from combat phase.
@@ -400,6 +439,24 @@ impl BattlePhases for Team {
         // A battle phase is a single direct attack between pets.
         self.history.curr_phase += 1;
         opponent.history.curr_phase += 1;
+
+        // Add triggers if no pets or one pet left.
+        let enemy_pets = opponent.all();
+        let pets = self.all();
+        if pets.len() <= 1 {
+            self.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT);
+            if pets.is_empty() {
+                opponent.triggers.push_back(TRIGGER_NO_ENEMIES_LEFT);
+            }
+        }
+        if enemy_pets.len() <= 1 {
+            opponent.triggers.push_back(TRIGGER_ONE_OR_ZERO_PET_LEFT);
+            if enemy_pets.is_empty() {
+                self.triggers.push_back(TRIGGER_NO_ENEMIES_LEFT);
+            }
+        }
+
+        self.trigger_all_effects(opponent)?;
 
         // Clear any fainted pets in case where first slot on either team is empty or battle phase interrupted.
         self.clear_team();

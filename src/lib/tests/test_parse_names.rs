@@ -4,7 +4,7 @@ const VALID_WORDS: &str = "
 *There are probably ones we haven't uncovered, so feel free to edit and add if there is something not on the list!
 ==Adjectives==
 ''Below is a list of Adjectives.''
-{| class=\"sortable mw-collapsible mw-collapsed fandom-table\"
+{| class=\"sortable mw-collapsible mw-collapsed wikitable\"
 |+Prefix
 ||Adorable
 |-
@@ -21,7 +21,7 @@ const VALID_WORDS: &str = "
 const INVALID_WORDS: &str = "
 ==Nouns==
 ''Below is a list of nouns.''
-{| class=\"sortable mw-collapsible mw-collapsed fandom-table\"
+{| class=\"sortable mw-collapsible mw-collapsed wikitable\"
 |+Noun
 |Abs # This is ignored. Abs is still valid. <---
 |-
@@ -37,7 +37,7 @@ const INVALID_WORDS: &str = "
 const INVALID_CATEG: &str = "
 ==Dogs==
 ''Below is a list of dogs.''
-{| class=\"sortable mw-collapsible mw-collapsed fandom-table\"
+{| class=\"sortable mw-collapsible mw-collapsed wikitable\"
 |+Dog
 |Otto
 |-

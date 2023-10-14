@@ -26,7 +26,6 @@ fn test_custom_food() {
     let custom_food = Food::new(
         &FoodName::Custom("Dung".to_string()),
         Some(Effect {
-            entity: Entity::Food,
             owner: None,
             trigger: TRIGGER_START_BATTLE,
             target: Target::Friend,
@@ -101,12 +100,11 @@ fn test_food_override_effect() {
     let buffed_apple = Food::new(
         &FoodName::Apple,
         Some(Effect {
-            entity: Entity::Food,
             owner: None,
             trigger: TRIGGER_NONE,
             target: Target::Friend,
             position: Position::OnSelf,
-            action: Action::Add(StatChangeType::StaticValue(Statistics {
+            action: Action::Add(StatChangeType::Static(Statistics {
                 attack: 5,
                 health: 5,
             })),
@@ -118,7 +116,15 @@ fn test_food_override_effect() {
 }
 #[test]
 fn test_attack_meat() {
-    let mut dog_w_meat = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog_w_meat = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
     dog_w_meat.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
 
     let mut mammoth = Pet::try_from(PetName::Mammoth).unwrap();
@@ -140,7 +146,7 @@ fn test_attack_meat() {
 
     dog_w_meat.attack(&mut mammoth);
 
-    // Dog deals 7 dmg (+4) with meat instead of 3 dmg .
+    // Dog deals 6 dmg (+3) with meat instead of 3 dmg .
     assert_eq!(
         dog_w_meat.stats,
         Statistics {
@@ -152,16 +158,25 @@ fn test_attack_meat() {
         mammoth.stats,
         Statistics {
             attack: 3,
-            health: 3
+            health: 4
         }
     )
 }
 
 #[test]
 fn test_attack_garlic() {
-    let mut dog_w_garlic = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
+    let mut dog_w_garlic = dog.clone();
+
     dog_w_garlic.item = Some(Food::try_from(FoodName::Garlic).unwrap());
-    let mut dog = Pet::try_from(PetName::Dog).unwrap();
 
     assert_eq!(
         dog_w_garlic.stats,
@@ -192,9 +207,25 @@ fn test_attack_garlic() {
 
 #[test]
 fn test_attack_garlic_min_1() {
-    let mut dog_w_garlic = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog_w_garlic = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
     dog_w_garlic.item = Some(Food::try_from(FoodName::Garlic).unwrap());
-    let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
 
     assert_eq!(
         dog_w_garlic.stats,
@@ -225,7 +256,15 @@ fn test_attack_garlic_min_1() {
 
 #[test]
 fn test_attack_melon() {
-    let mut dog_w_melon = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog_w_melon = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
     dog_w_melon.item = Some(Food::try_from(FoodName::Melon).unwrap());
 
     assert_eq!(dog_w_melon.item.as_ref().unwrap().ability.uses, Some(1));
@@ -260,7 +299,15 @@ fn test_attack_melon() {
 
 #[test]
 fn test_attack_steak() {
-    let mut dog_w_steak = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog_w_steak = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
     dog_w_steak.item = Some(Food::try_from(FoodName::Steak).unwrap());
 
     assert_eq!(dog_w_steak.item.as_ref().unwrap().ability.uses, Some(1));
@@ -292,7 +339,15 @@ fn test_attack_steak() {
 
 #[test]
 fn test_attack_coconut() {
-    let mut dog_w_coconut = Pet::try_from(PetName::Dog).unwrap();
+    let mut dog_w_coconut = Pet::new(
+        PetName::Dog,
+        Some(Statistics {
+            attack: 3,
+            health: 4,
+        }),
+        1,
+    )
+    .unwrap();
     dog_w_coconut.item = Some(Food::try_from(FoodName::Coconut).unwrap());
     let original_dog_w_coconut_stats = dog_w_coconut.stats;
 
@@ -597,7 +652,7 @@ fn test_shop_end_turn_foods() {
             ant.read().unwrap().stats,
             Statistics {
                 attack: 2,
-                health: 1
+                health: 2
             }
         );
     }
@@ -610,7 +665,7 @@ fn test_shop_end_turn_foods() {
         first_ant.read().unwrap().stats,
         Statistics {
             attack: 3,
-            health: 2
+            health: 3
         }
     );
 
@@ -619,7 +674,7 @@ fn test_shop_end_turn_foods() {
         second_ant.read().unwrap().stats,
         Statistics {
             attack: 2,
-            health: 2
+            health: 3
         }
     );
 
@@ -628,7 +683,7 @@ fn test_shop_end_turn_foods() {
         third_ant.read().unwrap().stats,
         Statistics {
             attack: 3,
-            health: 1
+            health: 2
         }
     );
 }
@@ -650,7 +705,15 @@ fn test_shop_start_turn_foods() {
 
 #[test]
 fn test_direct_attack_pepper() {
-    let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
 
     ant.item = Some(Food::try_from(FoodName::Pepper).unwrap());
 
@@ -674,7 +737,15 @@ fn test_direct_attack_pepper() {
 
 #[test]
 fn test_indirect_attack_pepper() {
-    let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
     ant.item = Some(Food::try_from(FoodName::Pepper).unwrap());
 
     // At start Ant has 1 health.
@@ -698,7 +769,15 @@ fn test_indirect_attack_pepper() {
 
 #[test]
 fn test_direct_attack_pepper_peanut_1hp() {
-    let mut ant = Pet::try_from(PetName::Ant).unwrap();
+    let mut ant = Pet::new(
+        PetName::Ant,
+        Some(Statistics {
+            attack: 2,
+            health: 1,
+        }),
+        1,
+    )
+    .unwrap();
     ant.item = Some(Food::try_from(FoodName::Pepper).unwrap());
 
     let mut mammoth = Pet::try_from(PetName::Mammoth).unwrap();
@@ -846,23 +925,23 @@ fn test_shop_canned_food() {
         pet_1
     }
 
-    let mosq = first_shop_pet_query(&team);
+    let pig: &ShopItem = first_shop_pet_query(&team);
 
     // Starting pets in shop.
-    assert!(mosq.attack_stat() == Some(2) && mosq.health_stat() == Some(2));
+    assert!(pig.attack_stat() == Some(4) && pig.health_stat() == Some(1));
     team.buy(&Position::Last, &Entity::Food, &Position::None)
         .unwrap();
 
-    let mosq = first_shop_pet_query(&team);
+    let pig = first_shop_pet_query(&team);
     // Pets in shop receive (1,1).
-    assert!(mosq.attack_stat() == Some(3) && mosq.health_stat() == Some(3));
+    assert!(pig.attack_stat() == Some(5) && pig.health_stat() == Some(2));
 
     // Roll shop.
     team.set_shop_seed(Some(13)).roll_shop().unwrap();
 
-    let horse = first_shop_pet_query(&team);
+    let mosq = first_shop_pet_query(&team);
     // Future pets get buff as permanent stats added to shop.
-    assert!(horse.attack_stat() == Some(3) && horse.health_stat() == Some(2));
+    assert!(mosq.attack_stat() == Some(3) && mosq.health_stat() == Some(3));
     assert_eq!(
         team.shop.perm_stats,
         Statistics {
@@ -874,7 +953,21 @@ fn test_shop_canned_food() {
 
 #[test]
 fn test_shop_lollipop() {
-    let mut team = test_ant_team();
+    let mut team = Team::new(
+        &[Some(
+            Pet::new(
+                PetName::Ant,
+                Some(Statistics {
+                    attack: 2,
+                    health: 1,
+                }),
+                1,
+            )
+            .unwrap(),
+        )],
+        5,
+    )
+    .unwrap();
     let mut custom_shop = Shop::new(1, Some(12)).unwrap();
     custom_shop
         .add_item(ShopItem::from(Food::try_from(FoodName::Lollipop).unwrap()))
@@ -912,7 +1005,7 @@ fn test_battle_popcorns() {
 
     let mut custom_shop = Shop::new(1, Some(12)).unwrap();
     custom_shop
-        .add_item(ShopItem::from(Food::try_from(FoodName::Popcorns).unwrap()))
+        .add_item(ShopItem::from(Food::try_from(FoodName::Popcorn).unwrap()))
         .unwrap();
 
     team.replace_shop(custom_shop).unwrap().open_shop().unwrap();
@@ -926,8 +1019,7 @@ fn test_battle_popcorns() {
     let first_ant = team.first().unwrap();
     team.fight(&mut enemy_team).unwrap();
 
-    let first_fainted = team.fainted.first().unwrap().as_ref().unwrap();
-    assert!(Arc::ptr_eq(first_fainted, &first_ant));
+    assert_eq!(first_ant.read().unwrap().stats.health, 0);
     // Summoned pet is same tier as ant.
     let summoned_pet = team.first().unwrap();
     assert_eq!(

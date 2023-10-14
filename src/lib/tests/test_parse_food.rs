@@ -2,11 +2,10 @@ use crate::{
     db::{pack::Pack, record::FoodRecord},
     regex_patterns::RGX_FOOD_ROW,
     wiki_scraper::{
-        common::get_largest_table,
+        common::{clean_link_text, get_largest_table},
         parse_food::{
-            clean_link_text, get_effect_attack, get_effect_health, get_food_cost,
-            get_random_n_effect, is_holdable_item, is_temp_single_use, is_turn_effect,
-            parse_one_food_entry,
+            get_effect_attack, get_effect_health, get_food_cost, get_random_n_effect,
+            is_holdable_item, is_temp_single_use, is_turn_effect, parse_one_food_entry,
         },
     },
     FoodName,
@@ -20,7 +19,7 @@ const PAGE_INFO: &str = "
 |}
 
 Foods in Pack 2 and not in any pack are subject to change.
-{| class=\"sortable fandom-table\"
+{| class=\"sortable wikitable\"
 !Tier
 !Name
 !Effect
@@ -30,7 +29,7 @@ Foods in Pack 2 and not in any pack are subject to change.
 |-
 |1
 |{{IconSAP|Apple}}
-|Give one [[Pets|pet]] +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
+|Give one [[Pets|pet]] +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].
 |Yes
 |Yes
 |Yes (summoned)
@@ -57,7 +56,7 @@ const CUPCAKE_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Cupcake}}
 | turtlepack = yes | puppypack = yes
-| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}} until end of battle.
+| ability = Give one pet +3 [[File:Attack.png|20x20px]] and +3 [[File:Health.png|20x20px]] until end of battle.
 }}
 ";
 
@@ -65,7 +64,7 @@ const BROCCOLI_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Broccoli}}
 | starpack = yes
-| ability = Give one pet -1 {{IconSAP|attack|nolink=yes}} and +3 {{IconSAP|health|nolink=yes}}.
+| ability = Give one pet -1 [[File:Attack.png|20x20px]] and +3 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -73,7 +72,7 @@ const SHRIMP_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Fried Shrimp}}
 | starpack = yes
-| ability = Give one pet +3 {{IconSAP|attack|nolink=yes}} and -1 {{IconSAP|health|nolink=yes}}.
+| ability = Give one pet +3 [[File:Attack.png|20x20px]] and -1 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -97,7 +96,7 @@ const CARROT_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Carrot}}
 | starpack = yes
-| ability = Give one pet {{IconSAP|Carrot}}. Gain +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}} at end of turn.
+| ability = Give one pet {{IconSAP|Carrot}}. Gain +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]] at end of turn.
 }}
 ";
 
@@ -105,7 +104,7 @@ const SUSHI_ENTRY: &str = "
 {{:Foods/row
 | food = {{IconSAP|Sushi}}
 | turtlepack = yes | puppypack = yes
-| ability = Give three random pets +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.
+| ability = Give three random pets +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].
 }}
 ";
 
@@ -154,8 +153,8 @@ fn test_get_table() {
     let res = get_largest_table(PAGE_INFO).unwrap();
     // Cols, table_1, table_2, ...
     let exp_res = [
-        "{| class=\"sortable fandom-table\"\n!Tier\n!Name\n!Effect\n!Turtle Pack\n!Puppy Pack\n!Star Pack\n",
-        "\n|1\n|{{IconSAP|Apple}}\n|Give one [[Pets|pet]] +1 {{IconSAP|attack|nolink=yes}} and +1 {{IconSAP|health|nolink=yes}}.\n|Yes\n|Yes\n|Yes (summoned)\n",
+        "{| class=\"sortable wikitable\"\n!Tier\n!Name\n!Effect\n!Turtle Pack\n!Puppy Pack\n!Star Pack\n",
+        "\n|1\n|{{IconSAP|Apple}}\n|Give one [[Pets|pet]] +1 [[File:Attack.png|20x20px]] and +1 [[File:Health.png|20x20px]].\n|Yes\n|Yes\n|Yes (summoned)\n",
         "\n|N/A\n|{{IconSAP|Peanuts}}\n|Knockout any pet attacked and hurt by this.\n|Yes (summoned)\n|Yes\n(summoned)\n|Yes (summoned)\n|}"
     ];
 
@@ -202,9 +201,8 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from(
-                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                )
+                img_url: String::from("https://superautopets.wiki.gg/images/8/8a/Cupcake_Icon.png"),
+                is_ailment: false
             },
             FoodRecord {
                 name: FoodName::Cupcake,
@@ -220,9 +218,8 @@ fn test_parse_food_entry() {
                 effect_health: 3,
                 turn_effect: false,
                 cost: 3,
-                img_url: String::from(
-                    "https://static.wikia.nocookie.net/superautopets/images/8/8a/Cupcake_Icon.png"
-                )
+                img_url: String::from("https://superautopets.wiki.gg/images/8/8a/Cupcake_Icon.png"),
+                is_ailment: false
             }
         ]
     )
@@ -232,7 +229,6 @@ fn test_parse_food_entry() {
 fn food_cost() {
     assert_eq!(3, get_food_cost("Cupcake"));
     assert_eq!(1, get_food_cost("Sleeping Pill"));
-    assert_eq!(0, get_food_cost("Weak"))
 }
 
 #[test]

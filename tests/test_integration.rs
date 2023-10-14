@@ -14,13 +14,11 @@ use std::{str::FromStr, thread};
 #[test]
 fn test_query_db() {
     // Essentially "SELECT * FROM foods"
-    let mut food_query = SAPQuery::builder();
-    food_query.set_table(Entity::Food);
+    let food_query = SAPQuery::builder().set_table(Entity::Food);
     assert!(SAPDB.execute_query(food_query).is_ok());
 
     // Essentially "SELECT * FROM pets"
-    let mut pet_query = SAPQuery::builder();
-    pet_query.set_table(Entity::Pet);
+    let pet_query = SAPQuery::builder().set_table(Entity::Pet);
     assert!(SAPDB.execute_query(pet_query).is_ok());
 }
 
@@ -44,11 +42,10 @@ fn test_create_custom_food() {
     let food = Food::new(
         &FoodName::Custom("Churro".to_string()),
         Some(Effect::new(
-            Entity::Food,
             TRIGGER_ANY_FAINT,
             Target::Friend,
             Position::OnSelf,
-            Action::Add(StatChangeType::StaticValue(Statistics {
+            Action::Add(StatChangeType::Static(Statistics {
                 attack: 1,
                 health: 2,
             })),
@@ -63,7 +60,7 @@ fn test_create_custom_food() {
 fn test_create_known_pet() {
     let pet_from_name = Pet::try_from(PetName::Ant).unwrap();
     let pet_from_constructor =
-        Pet::new(PetName::Ant, Some(Statistics::new(2, 1).unwrap()), 1).unwrap();
+        Pet::new(PetName::Ant, Some(Statistics::new(2, 2).unwrap()), 1).unwrap();
 
     assert!([pet_from_name.clone(), pet_from_constructor]
         .iter()
@@ -78,7 +75,6 @@ fn test_create_custom_pet() {
         "MelonBear",
         Statistics::new(50, 50).unwrap(),
         &[Effect::new(
-            Entity::Pet,
             TRIGGER_START_BATTLE,
             Target::Friend,
             Position::Adjacent,
@@ -207,22 +203,22 @@ fn test_multithreaded_team_battle() {
 
 #[test]
 fn test_pet_exp() {
-    let mut pet = Pet::try_from(PetName::Ant).unwrap();
+    let mut pet = Pet::new(PetName::Ant, Some(Statistics::new(2, 2).unwrap()), 1).unwrap();
 
     // Add single point.
     pet.add_experience(1).unwrap();
     assert!(pet.get_experience() == 1 && pet.get_level() == 1);
-    assert!(pet.stats.attack == 3 && pet.stats.health == 2);
+    assert!(pet.stats.attack == 3 && pet.stats.health == 3);
 
     // Add three points to reach level 2 and 4 total exp points.
     pet.add_experience(3).unwrap();
     assert!(pet.get_experience() == 4 && pet.get_level() == 2);
-    assert!(pet.stats.attack == 6 && pet.stats.health == 5);
+    assert!(pet.stats.attack == 6 && pet.stats.health == 6);
 
     // Add one point to reach level cap.
     pet.add_experience(1).unwrap();
     assert!(pet.get_experience() == 5 && pet.get_level() == 3);
-    assert!(pet.stats.attack == 7 && pet.stats.health == 6);
+    assert!(pet.stats.attack == 7 && pet.stats.health == 7);
 
     // Additional experience is not allowed.
     assert!(pet.add_experience(3).is_err())
@@ -242,23 +238,15 @@ fn test_apply_effect() {
 
     // Without a reference to the pet owning the effect, this will fail.
     assert!(team
-        .apply_effect(
-            &TRIGGER_START_BATTLE,
-            &no_ref_mosquito_effect,
-            Some(&mut enemy_team)
-        )
+        .apply_effect(&no_ref_mosquito_effect, Some(&mut enemy_team))
         .is_err());
 
     // Get mosquito_effect with reference.
     // Apply effect of mosquito at position 0 to a pet on team to enemy team.
     let mosquito = team.friends[0].as_ref().unwrap();
     let mosquito_effect = mosquito.read().unwrap().effect[0].clone();
-    team.apply_effect(
-        &TRIGGER_START_BATTLE,
-        &mosquito_effect,
-        Some(&mut enemy_team),
-    )
-    .unwrap();
+    team.apply_effect(&mosquito_effect, Some(&mut enemy_team))
+        .unwrap();
 
     // Last enemy mosquito takes one damage and opponent triggers gets updated.
     assert_eq!(
@@ -282,7 +270,7 @@ fn test_serialize_pet() {
     pet.seed = Some(20);
 
     let json_pet = serde_json::to_string(&pet).unwrap();
-    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":1},"effect":[{"entity":"Pet","trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"StaticValue":{"attack":2,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null,"team":null}"#;
+    let exp_json = r#"{"id":null,"name":"Ant","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"Faint","affected_team":"Friend","afflicting_team":"None","position":"OnSelf","stat_diff":null},"target":"Friend","position":{"Any":"None"},"action":{"Add":{"Static":{"attack":1,"health":1}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":null,"team":null}"#;
     assert_eq!(json_pet, exp_json);
 
     // Restore pet from json string.
@@ -308,7 +296,7 @@ fn test_serialize_team() {
     team.set_seed(Some(seed)).set_name(&name).unwrap();
 
     let json_team: String = (&team).try_into().unwrap();
-    let exp_json = r#"{"seed":20,"name":"The Wavy Monks","friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}],"fainted":[],"sold":[],"max_size":5,"triggers":[],"stored_friends":[{"id":"Mosquito_0","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":"Mosquito_1","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":"Mosquito_2","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":"Mosquito_3","name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"entity":"Pet","trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":["None",1,true]},"action":{"Remove":{"StaticValue":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}]}"#;
+    let exp_json = r#"{"seed":20,"name":"The Wavy Monks","friends":[{"id":0,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":1,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":2,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":3,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}],"fainted":[],"sold":[],"max_size":5,"triggers":[],"stored_friends":[{"id":0,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":0,"team":"The Wavy Monks"},{"id":1,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":1,"team":"The Wavy Monks"},{"id":2,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":2,"team":"The Wavy Monks"},{"id":3,"name":"Mosquito","tier":1,"stats":{"attack":2,"health":2},"effect":[{"trigger":{"status":"StartOfBattle","affected_team":"None","afflicting_team":"None","position":"None","stat_diff":null},"target":"Enemy","position":{"N":{"condition":"None","targets":1,"random":true,"exact_n_targets":false}},"action":{"Remove":{"Static":{"attack":1,"health":0}}},"uses":1,"temp":false}],"item":null,"seed":20,"cost":3,"lvl":1,"exp":0,"pos":3,"team":"The Wavy Monks"}],"persistent_effects":[{"trigger":{"status":{"IsTeam":{"NumberPets":{"LessEqual":1}}},"affected_team":"Friend","afflicting_team":"Enemy","position":"None","stat_diff":null},"target":"Friend","position":"First","action":{"Conditional":[{"If":{"Shop":{"InState":"Closed"}}},{"Conditional":[{"IfNot":{"Team":["Friend",{"Counter":["Trumpets",{"Equal":0}]}]}},{"Multiple":[{"Summon":{"CustomPet":["GoldenRetriever",{"TeamCounter":"Trumpets"},1]}},{"AddToCounter":["Trumpets",-50]}]},"None"]},"None"]},"uses":1,"temp":true}],"toys":[],"counters":{"Trumpets":0}}"#;
     assert_eq!(exp_json, json_team);
 
     let new_team = Team::from_str(&json_team).unwrap();

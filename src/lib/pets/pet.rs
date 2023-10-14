@@ -27,7 +27,7 @@ pub const MAX_PET_STATS: isize = 50;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pet {
     /// An identifier for a pet.
-    pub(crate) id: Option<String>,
+    pub(crate) id: Option<usize>,
     /// Name for pet.
     pub name: PetName,
     /// Tier of pet.
@@ -47,7 +47,7 @@ pub struct Pet {
     pub(crate) lvl: usize,
     /// Experience of pet.
     pub(crate) exp: usize,
-    /// Pet position on a [`Team`](crate::teams::team::Team).
+    /// Pet position on a [`Team`].
     pub(crate) pos: Option<usize>,
     /// Team name.
     pub(crate) team: Option<String>,
@@ -129,9 +129,9 @@ impl TryFrom<PetRecord> for Pet {
 
 impl Pet {
     /// Create a new pet.
-    /// * All [`Effect`](crate::Effect)s are determined by the given `stats` and `lvl`.
-    ///     * To use custom [`Effect`](crate::Effect)s, use the [`custom`](crate::Pet) constructor.
-    /// * Providing `None` for `stats` will yield the default [`Statistics`](crate::Statistics) for the pet at the given `lvl`.
+    /// * All [`Effect`]s are determined by the given `stats` and `lvl`.
+    ///     * To use custom [`Effect`]s, use the [`custom`](crate::Pet) constructor.
+    /// * Providing `None` for `stats` will yield the default [`Statistics`] for the pet at the given `lvl`.
     /// * By default, pets are randomly seeded.
     /// # Examples
     /// ```
@@ -139,7 +139,7 @@ impl Pet {
     ///
     /// let pet = Pet::new(
     ///     PetName::Ant,
-    ///     Some(Statistics::new(2, 1).unwrap()),
+    ///     Some(Statistics::new(2, 2).unwrap()),
     ///     1
     /// );
     /// let pet_with_no_stats = Pet::new(
@@ -189,19 +189,18 @@ impl Pet {
     ///     },
     ///     Effect, Food, FoodName, Pet, Statistics,
     /// };
-    /// let custom_pet = Pet::custom(
+    /// let give_melon_adj_effect = Effect::new(
+    ///     TRIGGER_START_BATTLE,
+    ///     Target::Friend,
+    ///     Position::Adjacent,
+    ///     Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
+    ///     Some(1),
+    ///     false,
+    /// );
+    /// let melon_bear = Pet::custom(
     ///     "MelonBear",
     ///     Statistics::new(50, 50).unwrap(),
-    ///     &[
-    ///         Effect::new(
-    ///             Entity::Pet,
-    ///             TRIGGER_START_BATTLE,
-    ///             Target::Friend,
-    ///             Position::Adjacent,
-    ///             Action::Gain(GainType::StoredItem(Box::new(Food::try_from(FoodName::Melon).unwrap()))),
-    ///             Some(1),
-    ///             false,
-    ///     )],
+    ///     &[give_melon_adj_effect],
     /// );
     /// ```
     pub fn custom(name: &str, stats: Statistics, effect: &[Effect]) -> Pet {
@@ -235,15 +234,14 @@ impl Pet {
     /// let lvl_2_ant_action = &ant.get_effect(2).unwrap()[0].action;
     /// assert_eq!(
     ///     *lvl_2_ant_action,
-    ///     Action::Add(StatChangeType::StaticValue(Statistics::new(4,2).unwrap()))
+    ///     Action::Add(StatChangeType::Static(Statistics::new(2,2).unwrap()))
     /// )
     /// ```
     pub fn get_effect(&self, lvl: usize) -> Result<Vec<Effect>, SAPTestError> {
-        let mut pet_query = SAPQuery::from_iter([
-            ("name", vec![&self.name.to_string()[..]]),
-            ("lvl", vec![&lvl.to_string()[..]]),
-        ]);
-        pet_query.set_table(Entity::Pet);
+        let pet_query = SAPQuery::builder()
+            .set_param("name", vec![&self.name])
+            .set_param("lvl", vec![lvl])
+            .set_table(Entity::Pet);
         SAPDB
             .execute_query(pet_query)?
             .into_iter()
@@ -304,8 +302,8 @@ impl Pet {
     /// * This will also increase health (`+1`) and attack (`+1`) per experience point.
     /// # Examples
     /// ```
-    /// use saptest::{Pet, PetName};
-    /// let mut pet = Pet::try_from(PetName::Ant).unwrap();
+    /// use saptest::{Pet, PetName, Statistics};
+    /// let mut pet = Pet::new(PetName::Ant, Some(Statistics { attack: 2, health:1 }), 1).unwrap();
     ///
     /// // Add single point.
     /// pet.add_experience(1).unwrap();
@@ -448,15 +446,13 @@ impl Pet {
     ///
     /// let mut pet_1 = Pet::try_from(PetName::Gorilla).unwrap();
     /// let mut pet_2 = Pet::try_from(PetName::Leopard).unwrap();
-    /// assert!(
-    ///     pet_1.stats == Statistics::new(6, 9).unwrap() &&
-    ///     pet_2.stats == Statistics::new(10, 4).unwrap()
-    /// );
+    /// let pet_1_stats = pet_1.stats;
+    /// let pet_2_stats = pet_2.stats;
     ///
     /// pet_1.swap_stats(&mut pet_2);
     /// assert!(
-    ///     pet_1.stats == Statistics::new(10, 4).unwrap() &&
-    ///     pet_2.stats == Statistics::new(6, 9).unwrap()
+    ///     pet_1.stats == pet_2_stats &&
+    ///     pet_2.stats == pet_1_stats
     /// );
     /// ```
     pub fn swap_stats(&mut self, other: &mut Pet) -> &mut Self {
@@ -486,7 +482,7 @@ impl Pet {
     }
 
     /// Helper function to set pet idx for matching on effect triggers.
-    /// * Note: This does not update other pets on the same [`Team`](crate::teams::team::Team).
+    /// * Note: This does not update other pets on the same [`Team`].
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         self

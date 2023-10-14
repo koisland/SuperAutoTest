@@ -1,4 +1,4 @@
-use crate::{db::pack::Pack, error::SAPTestError, Effect, FoodName, PetName};
+use crate::{db::pack::Pack, error::SAPTestError, toys::names::ToyName, Effect, FoodName, PetName};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -8,6 +8,8 @@ pub enum SAPRecord {
     Food(FoodRecord),
     /// A [`PetRecord`].
     Pet(PetRecord),
+    /// A [`ToyRecord`]
+    Toy(ToyRecord),
 }
 
 impl TryFrom<SAPRecord> for Vec<Effect> {
@@ -17,6 +19,7 @@ impl TryFrom<SAPRecord> for Vec<Effect> {
         match value {
             SAPRecord::Food(food_record) => Ok(vec![Effect::try_from(&food_record)?]),
             SAPRecord::Pet(pet_record) => pet_record.try_into(),
+            SAPRecord::Toy(toy_record) => toy_record.try_into(),
         }
     }
 }
@@ -46,6 +49,21 @@ impl TryFrom<SAPRecord> for PetRecord {
             Err(SAPTestError::QueryFailure {
                 subject: "Invalid Record Type".to_string(),
                 reason: format!("Record {value:?} doesn't contain PetRecord"),
+            })
+        }
+    }
+}
+
+impl TryFrom<SAPRecord> for ToyRecord {
+    type Error = SAPTestError;
+
+    fn try_from(value: SAPRecord) -> Result<Self, Self::Error> {
+        if let SAPRecord::Toy(record) = value {
+            Ok(record)
+        } else {
+            Err(SAPTestError::QueryFailure {
+                subject: "Invalid Record Type".to_string(),
+                reason: format!("Record {value:?} doesn't contain ToyRecord"),
             })
         }
     }
@@ -91,6 +109,11 @@ pub struct FoodRecord {
     pub cost: usize,
     /// Most recent image url.
     pub img_url: String,
+    /// Is this food an ailment?
+    /// * Ex. [`Weak`](crate::foods::names::FoodName::Weak)
+    /// * Due to old way effect perks were stored on Fandom wiki.
+    ///     * All foods and ailments were grouped on single table.
+    pub is_ailment: bool,
 }
 
 /// A record with information about a pet from Super Auto Pets.
@@ -134,4 +157,36 @@ pub struct PetRecord {
     pub img_url: String,
     /// Is pet a token?
     pub is_token: bool,
+}
+
+/// A record with information about Toys from Super Auto Pets.
+/// * Both hard-mode and friendly toys are included.
+///
+/// This information is queried and parsed from the Super Auto Pets Fandom wiki.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ToyRecord {
+    /// Name of toy.
+    pub name: ToyName,
+    /// Tier of toy.
+    pub tier: usize,
+    /// Toy effect trigger.
+    pub effect_trigger: Option<String>,
+    /// Toy effect.
+    pub effect: Option<String>,
+    /// Effect attack
+    pub effect_atk: usize,
+    /// Effect health
+    pub effect_health: usize,
+    /// The number of triggers the toy's effect has.
+    pub n_triggers: usize,
+    /// If the effect the toy has is temporary.
+    pub temp_effect: bool,
+    /// Toy level.
+    pub lvl: usize,
+    /// Toy source
+    pub source: Option<String>,
+    /// Most recent image url.
+    pub img_url: String,
+    /// Is hard mode toy?
+    pub hard_mode: bool,
 }

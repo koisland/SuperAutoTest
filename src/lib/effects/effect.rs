@@ -4,6 +4,7 @@ use crate::{
         state::{Outcome, Position, Target},
     },
     error::SAPTestError,
+    toys::names::ToyName,
     FoodName, Pet, PetName,
 };
 use serde::{Deserialize, Serialize};
@@ -13,10 +14,12 @@ use std::sync::{Arc, RwLock, Weak};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Entity {
     #[default]
-    /// A [`Pet`](crate::pets::pet::Pet).
+    /// A [`Pet`].
     Pet,
     /// A [`Food`](crate::foods::food::Food).
     Food,
+    /// A [`Toy`](crate::toys::toy::Toy)
+    Toy,
 }
 
 impl std::fmt::Display for Entity {
@@ -32,13 +35,13 @@ pub enum EntityName {
     Pet(PetName),
     /// Food name.
     Food(FoodName),
+    /// Toy name.
+    Toy(ToyName),
 }
 
 /// An effect for an [`Entity`] in Super Auto Pets.
 #[derive(Debug, Clone, Deserialize, Serialize, Default)]
 pub struct Effect {
-    /// Owner of effect.
-    pub entity: Entity,
     #[serde(skip)]
     /// Idx of owner.
     pub(crate) owner: Option<Weak<RwLock<Pet>>>,
@@ -59,8 +62,7 @@ pub struct Effect {
 
 impl PartialEq for Effect {
     fn eq(&self, other: &Self) -> bool {
-        self.entity == other.entity
-            && self.trigger == other.trigger
+        self.trigger == other.trigger
             && self.target == other.target
             && self.position == other.position
             && self.action == other.action
@@ -95,24 +97,21 @@ impl Effect {
     /// use saptest::{
     ///     Effect, Statistics,
     ///     effects::{
-    ///         effect::Entity,
     ///         trigger::TRIGGER_SELF_FAINT,
     ///         state::{Position, Target, ItemCondition, Outcome},
     ///         actions::{Action, StatChangeType}
     ///     }
     /// };
     /// let lvl_1_ant_effect = Effect::new(
-    ///     Entity::Pet,
     ///     TRIGGER_SELF_FAINT,
     ///     Target::Friend,
     ///     Position::Any(ItemCondition::None),
-    ///     Action::Add(StatChangeType::StaticValue(Statistics {attack: 2, health: 1})),
+    ///     Action::Add(StatChangeType::Static(Statistics {attack: 2, health: 1})),
     ///     Some(1),
     ///     false
     /// );
     /// ```
     pub fn new(
-        effect_type: Entity,
         trigger: Outcome,
         target: Target,
         position: Position,
@@ -121,7 +120,6 @@ impl Effect {
         temporary: bool,
     ) -> Self {
         Effect {
-            entity: effect_type,
             owner: None,
             trigger,
             target,
@@ -188,7 +186,7 @@ impl Effect {
             && self.trigger.affected_team == trigger.affected_team
             && self.trigger.status == trigger.status;
         // Either match and not out of uses.
-        exact_match || non_specific_match && self.uses != Some(0)
+        (exact_match || non_specific_match) && self.uses != Some(0)
     }
 }
 

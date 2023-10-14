@@ -15,7 +15,7 @@ r2d2_sqlite = "0.21.0"
 r2d2 = "0.8.10"
 toml = "0.7.2"
 ureq = "2.6.2"
-indexmap = "1.9.3"
+indexmap = { version = "1.9.3", features = ["serde"] }
 
 [dev-dependencies]
 criterion = {version = "0.3", features = ["html_reports"]}
@@ -30,7 +30,7 @@ path = "src/lib/lib.rs"
 
 [package]
 name = "saptest"
-version = "0.4.12"
+version = "0.5.0"
 edition = "2021"
 authors = ["Keisuke K. Oshima <koshima789@gmail.com>"]
 description = "A library for testing Super Auto Pets teams."

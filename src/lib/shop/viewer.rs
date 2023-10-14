@@ -19,7 +19,7 @@ use crate::{
 
 /// Enables viewing [`ShopItem`]s and their state.
 pub trait ShopViewer {
-    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`ItemCondition`](crate::ItemCondition).
+    /// Get [`ShopItem`]s by [`ItemCondition`].
     /// # Example
     /// ```
     /// use saptest::{Shop, ShopViewer, ShopItemViewer, Entity, ItemCondition, Position};
@@ -42,7 +42,7 @@ pub trait ShopViewer {
         item_type: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError>;
 
-    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Position`](crate::Position).
+    /// Get [`ShopItem`]s by [`Position`].
     /// # Example
     /// ```
     /// use saptest::{Shop, ShopViewer, Entity, Position, ItemCondition};
@@ -88,6 +88,8 @@ impl ShopViewer for Shop {
         self.pets.len()
     }
 
+    // TODO: Needs to be larger. Also include other shop changes. Too lazy to mark inline.
+    // * https://steamcommunity.com/app/1714040/eventcomments/3812906855243976215?snr=1_2108_9__2107
     fn max_food_slots(&self) -> usize {
         if self.tier() < 2 {
             1
@@ -123,6 +125,12 @@ impl ShopViewer for Shop {
         let all_items = match item_type {
             Entity::Pet => self.pets.iter(),
             Entity::Food => self.foods.iter(),
+            _ => {
+                return Err(SAPTestError::InvalidPetAction {
+                    subject: String::from("Invalid Entity"),
+                    reason: format!("Shop does not contain {item_type}."),
+                })
+            }
         };
 
         match cond {
@@ -239,7 +247,12 @@ impl ShopViewer for Shop {
         let mut found_items = vec![];
 
         match pos {
-            Position::N(condition, number_items, randomize) => {
+            Position::N {
+                condition,
+                targets: number_items,
+                random: randomize,
+                exact_n_targets,
+            } => {
                 let mut found_shop_items = self.get_shop_items_by_cond(condition, item)?;
                 if *randomize {
                     let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
@@ -250,6 +263,9 @@ impl ShopViewer for Shop {
                     if let Some(item) = found_shop_items.next() {
                         found_items.push(item)
                     }
+                }
+                if *exact_n_targets && found_items.len() != *number_items {
+                    found_items.clear()
                 }
             }
             Position::Any(condition) => {
@@ -375,8 +391,8 @@ impl ShopItemViewer for ShopItem {
         match &self.item {
             ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.health),
             ItemSlot::Food(food) => match food.read().unwrap().ability.action {
-                Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.health),
-                Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.health),
+                Action::Add(StatChangeType::Static(stats)) => Some(stats.health),
+                Action::Remove(StatChangeType::Static(stats)) => Some(stats.health),
                 _ => None,
             },
         }
@@ -385,8 +401,8 @@ impl ShopItemViewer for ShopItem {
         match &self.item {
             ItemSlot::Pet(pet) => Some(pet.read().unwrap().stats.attack),
             ItemSlot::Food(food) => match food.read().unwrap().ability.action {
-                Action::Add(StatChangeType::StaticValue(stats)) => Some(stats.attack),
-                Action::Remove(StatChangeType::StaticValue(stats)) => Some(stats.attack),
+                Action::Add(StatChangeType::Static(stats)) => Some(stats.attack),
+                Action::Remove(StatChangeType::Static(stats)) => Some(stats.attack),
                 Action::Negate(stats) => Some(stats.attack),
                 _ => None,
             },

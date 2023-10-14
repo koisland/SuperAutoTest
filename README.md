@@ -8,7 +8,7 @@
 
 Database and testing framework for Super Auto Pets.
 
-Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite` database.
+Game information is queried from the [Super Auto Pets wiki](https://superautopets.wiki.gg/wiki/Super_Auto_Pets_Wiki) page and stored in a `SQLite` database.
 * [x] [Turtle](https://superautopets.fandom.com/wiki/Turtle_Pack)
 * [x] [Puppy](https://superautopets.fandom.com/wiki/Puppy_Pack)
 * [x] [Weekly](https://superautopets.fandom.com/wiki/Weekly_Pack)
@@ -18,6 +18,10 @@ Game information is queried from the [Super Auto Pets Fandom wiki](https://super
 ---
 
 ## Usage
+Add it to a project with `cargo`.
+```bash
+cargo add saptest
+```
 
 ### Teams
 Build a `Team` and simulate battles between them.
@@ -49,7 +53,7 @@ team.fight(&mut enemy_team).unwrap();
 println!("{}", create_battle_digraph(&team, false));
 ```
 
-```
+```ignore
 digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
@@ -58,10 +62,10 @@ digraph {
     1 [ label = "Ant_0 - The Fragile Truckers", fillcolor = "yellow" ]
     2 [ label = "Ant_3 - The Fragile Truckers", fillcolor = "yellow" ]
     3 [ label = "Ant_4 - The Fragile Truckers_copy" ]
-    0 -> 1 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 0 [ label = "(Attack, Damage (0, 1), Phase: 1)" ]
-    1 -> 2 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
-    0 -> 3 [ label = "(Faint, Add (2, 1), Phase: 1)" ]
+    0 -> 1 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+    1 -> 0 [ label = "(Attack, Damage (0, 2), Phase: 1)" ]
+    1 -> 2 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
+    0 -> 3 [ label = "(Faint, Add (1, 1), Phase: 1)" ]
 }
 ```
 
@@ -72,12 +76,14 @@ Graphs can be as simple as the example above... or extremely complex.
     <img align="middle" src="docs/images/blowfish_5.svg" width="30%">
 </p>
 
+> Using [Graphviz Online](https://dreampuf.github.io/GraphvizOnline/).
+
 ### Shops
 Add shop functionality to a `Team` and roll, freeze, buy/sell pets and foods.
 ```rust
 use saptest::{
     Shop, ShopItem, TeamShopping, Team,
-    Position, Entity, EntityName, FoodName,
+    Position, Entity, EntityName, Food, FoodName,
     db::pack::Pack
 };
 
@@ -106,9 +112,8 @@ team.set_shop_seed(Some(1212))
 // Shops can be built separately and can replace a team's shop.
 let mut tier_5_shop = Shop::new(3, Some(42)).unwrap();
 let weakness = ShopItem::new(
-    EntityName::Food(FoodName::Weak),
-    5
-).unwrap();
+    Food::try_from(FoodName::Weak).unwrap()
+);
 tier_5_shop.add_item(weakness).unwrap();
 team.replace_shop(tier_5_shop).unwrap();
 ```
@@ -132,7 +137,6 @@ let mut pet = Pet::try_from(PetName::Ant).unwrap();
 
 // Or custom pets and effects.
 let custom_effect = Effect::new(
-    Entity::Pet,
     TRIGGER_START_BATTLE, // Effect trigger
     Target::Friend, // Target
     Position::Adjacent, // Positions
@@ -160,10 +164,10 @@ To configure the global `SapDB`'s startup, create a `.saptest.toml` file in the 
 * Toggle recurring updates on startup.
 * Set database filename.
 
-```toml
+```toml no_run
 [database]
-# https://superautopets.fandom.com/wiki/Pets?oldid=4883
-pets_version = 4883
+# https://superautopets.wiki.gg/index.php?title=Pets&oldid=4634
+pets_version = 4634
 filename = "./sap.db"
 update_on_startup = false
 ```
@@ -196,21 +200,10 @@ python setup.py install
 ```
 
 ### saptest (No Graphs)
-* **50.684 ns ± 138.37 ns** with **100 measurements**.
-* Logging disabled.
-* Raw data available in `benches/saptest_raw_no_graphs.csv`.
-
-![](docs/images/pdf_sapai_example_no_graphs.svg)
-
+* TODO
 
 ### saptest (Graphs)
-* **2.8055 µs ± 147.39 ns** with **100 measurements**.
-    * This is a **5514% regression in speed** compared to no graphs.
-    * Consider disabling `graphs` if speed is required.
-* Logging disabled.
-* Raw data available in `benches/saptest_raw_graphs.csv`.
-
-![](docs/images/pdf_sapai_example_graphs.svg)
+* TODO
 
 ### sapai
 * **4.29 ms ± 51.8 µs** per loop (mean ± std. dev. of 7 runs, **100 loops each**)
@@ -219,8 +212,15 @@ python setup.py install
 
 ## TODO:
 * Add trait for randomly generating teams.
-
+* Add method to iterate through record fields/fieldnames and build macro to construct SQL statements.
+    * Manually adding fields is tedious and error-prone.
+* Build lexer to parse raw effect text into `Effect` struct.
+* Add feature flags for each pack.
+* Improve interface.
+    * Function arguments with impls like `AsRef` and `Into/TryInto`. ex. `Shop.add_item`
+    * Type state pattern with `Shop<Open/Close>`
 ---
+
 ## Sources
 * https://superautopets.fandom.com/wiki
 * https://emoji.supply/kitchen/

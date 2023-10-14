@@ -1,37 +1,43 @@
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use std::fmt::Write;
 
 use crate::{error::SAPTestError, Entity};
 
 /// Query constructor for [`SapDB::execute_query`](crate::SapDB::execute_query).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct SAPQuery {
     pub(crate) table: Option<Entity>,
     pub(crate) params: IndexMap<String, Vec<String>>,
 }
 
-impl<'a> FromIterator<(&'a str, Vec<&'a str>)> for SAPQuery {
-    fn from_iter<T: IntoIterator<Item = (&'a str, Vec<&'a str>)>>(iter: T) -> Self {
-        let mut query = SAPQuery::builder();
-        for (param, value) in iter.into_iter() {
-            query.set_param(param, value);
-        }
-        query
+impl std::fmt::Display for SAPQuery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Query ({:?}) {:?}",
+            self.as_sql().ok(),
+            self.flat_params()
+        )
     }
 }
 
-impl FromIterator<(String, Vec<String>)> for SAPQuery {
-    fn from_iter<T: IntoIterator<Item = (String, Vec<String>)>>(iter: T) -> Self {
+impl<N, P> FromIterator<(N, Vec<P>)> for SAPQuery
+where
+    N: ToString,
+    P: ToString,
+{
+    fn from_iter<T: IntoIterator<Item = (N, Vec<P>)>>(iter: T) -> Self {
         let mut query = SAPQuery::builder();
         for (param, value) in iter.into_iter() {
-            query.set_param(&param, value);
+            query = query.set_param(param, value);
         }
         query
     }
 }
 
 impl SAPQuery {
-    /// Construct a [`SAPDB`](crate::SAPDB) query
+    /// Construct a [`SAPDB`](struct@crate::SAPDB) query
     /// ```rust no_run
     /// use saptest::SAPQuery;
     ///
@@ -45,45 +51,44 @@ impl SAPQuery {
         }
     }
 
-    /// Set table in [`SAPDB`](crate::SAPDB) to query. See [here](crate::db) for more details.
+    /// Set table in [`SAPDB`](struct@crate::SAPDB) to query. See [here](crate::db) for more details.
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery};
     ///
     /// // Construct a query set to the "pets" table.
-    /// let mut query = SAPQuery::builder().set_table(Entity::Pet);
+    /// let query = SAPQuery::builder().set_table(Entity::Pet);
     /// ```
-    pub fn set_table(&mut self, table: Entity) -> &mut Self {
+    pub fn set_table(mut self, table: Entity) -> Self {
         self.table = Some(table);
         self
     }
 
-    /// Set params in [`SAPDB`](crate::SAPDB) to query. See [here](crate::db) for more details.
+    /// Set params in [`SAPDB`](struct@crate::SAPDB) to query. See [here](crate::db) for more details.
     /// * Prefixing the param name with `-` will select all values not in the given params.
     /// ---
-    /// Ex. Query [`FoodRecord`]s where `name` is [`FoodName::Apple`] or [`FoodName::Coconut`].
+    /// Ex. Query [`FoodRecord`](crate::db::record::FoodRecord)s where `name` is [`FoodName::Apple`](crate::FoodName::Apple) or [`FoodName::Coconut`](crate::FoodName::Coconut).
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery, FoodName};
     ///
     /// // Construct a query set to the "foods" table.
-    /// let mut query = SAPQuery::builder()
+    /// let query = SAPQuery::builder()
     ///     .set_param("name", vec![FoodName::Apple, FoodName::Coconut])
     ///     .set_table(Entity::Food);
     /// ```
     /// ---
-    /// Ex. Query [`PetRecord`]s where name is **not** [`PetName::Ant`] and [`PetName::Dog`].
+    /// Ex. Query [`PetRecord`](crate::db::record::PetRecord)s where name is **not** [`PetName::Ant`](crate::PetName::Ant) and [`PetName::Dog`](crate::PetName::Dog).
     /// ```rust no_run
     /// use saptest::{Entity, SAPQuery, PetName};
     ///
     /// // Construct a query set to the "pets" table.
-    /// let mut query = SAPQuery::builder()
+    /// let query = SAPQuery::builder()
     ///     .set_param("-name", vec![PetName::Ant, PetName::Dog])
     ///     .set_table(Entity::Pet);
     /// ```
-    pub fn set_param<N: ToString, V: ToString>(&mut self, name: N, value: Vec<V>) -> &mut Self {
-        let values = value.iter().map(|val| val.to_string());
+    pub fn set_param<N: ToString, V: ToString>(mut self, name: N, value: Vec<V>) -> Self {
         self.params
             .entry(name.to_string())
-            .and_modify(|e| e.extend(values))
+            .and_modify(|e| e.extend(value.iter().map(|val| val.to_string())))
             .or_insert(value.into_iter().map(|value| value.to_string()).collect());
         self
     }
@@ -129,7 +134,10 @@ impl SAPQuery {
             table_name.push('s');
             table_name
         }) else {
-            return Err(SAPTestError::QueryFailure { subject: "No Table".to_string(), reason: "Query requires a table.".to_string() })
+            return Err(SAPTestError::QueryFailure {
+                subject: "No Table".to_string(),
+                reason: "Query requires a table.".to_string(),
+            });
         };
         let mut sql_stmt = format!("SELECT * FROM {}", table);
         // If params.
@@ -165,6 +173,8 @@ impl SAPQuery {
 
 #[cfg(test)]
 mod test {
+    use itertools::Itertools;
+
     use super::SAPQuery;
     use crate::{db::pack::Pack, Entity};
 
@@ -176,8 +186,18 @@ mod test {
             ("tier", vec!["1", "2", "3"]),
             ("lvl", vec!["1"]),
         ];
-        let mut query = SAPQuery::from_iter(params);
-        query.set_table(Entity::Pet);
+        let query = SAPQuery::from_iter(params.clone());
+        assert!(query.table.is_none());
+        assert_eq!(
+            query.params.clone().into_iter().collect_vec(),
+            params
+                .iter()
+                .map(|(param, values)| (
+                    String::from(*param),
+                    values.iter().map(|val| String::from(*val)).collect_vec()
+                ))
+                .collect_vec()
+        );
     }
 
     #[test]

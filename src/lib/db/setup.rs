@@ -1,12 +1,10 @@
 use crate::{
-    db::{
-        query::SAPQuery,
-        record::{FoodRecord, PetRecord, SAPRecord},
-    },
+    db::{query::SAPQuery, record::SAPRecord},
     error::SAPTestError,
     wiki_scraper::{
-        parse_food::parse_food_info, parse_names::parse_names_info, parse_pet::parse_pet_info,
-        parse_tokens::parse_token_info,
+        parse_ailment::parse_ailment_info, parse_food::parse_food_info,
+        parse_hard_mode_toys::parse_hard_mode_toy_info, parse_names::parse_names_info,
+        parse_pet::parse_pet_info, parse_tokens::parse_token_info, parse_toy::parse_toy_info,
     },
     Entity, CONFIG,
 };
@@ -14,10 +12,13 @@ use log::info;
 use r2d2_sqlite::SqliteConnectionManager;
 use std::path::Path;
 
-const PET_URL: &str = "https://superautopets.fandom.com/wiki/Pets?action=raw";
-const FOOD_URL: &str = "https://superautopets.fandom.com/wiki/Food?action=raw";
-const TOKEN_URL: &str = "https://superautopets.fandom.com/wiki/Tokens?action=raw";
-const NAMES_URL: &str = "https://superautopets.fandom.com/wiki/Team_Names?action=raw";
+const PET_URL: &str = "https://superautopets.wiki.gg/wiki/Pets?action=raw";
+const FOOD_URL: &str = "https://superautopets.wiki.gg/wiki/Food?action=raw";
+const AILMENTS_URL: &str = "https://superautopets.wiki.gg/wiki/Ailments?action=raw";
+const TOKEN_URL: &str = "https://superautopets.wiki.gg/wiki/Tokens?action=raw";
+const TOYS_URL: &str = "https://superautopets.wiki.gg/wiki/Toys?action=raw";
+const TOYS_HARD_MODE_URL: &str = "https://superautopets.wiki.gg/wiki/Hard_Mode_Toys?action=raw";
+const NAMES_URL: &str = "https://superautopets.wiki.gg/wiki/Team_Names?action=raw";
 
 /// A Super Auto Pets database.
 pub struct SapDB {
@@ -57,6 +58,7 @@ impl SapDB {
             db.create_tables()?
                 .update_food_info()?
                 .update_pet_info()?
+                .update_toy_info()?
                 .update_name_info()?;
         }
 
@@ -118,7 +120,24 @@ impl SapDB {
                 turn_effect BOOLEAN NOT NULL,
                 cost INTEGER NOT NULL,
                 img_url TEXT,
+                is_ailment BOOLEAN NOT NULL,
                 CONSTRAINT unq UNIQUE (name, pack)
+            );
+            CREATE TABLE IF NOT EXISTS toys (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                tier INTEGER NOT NULL,
+                effect_trigger TEXT NOT NULL,
+                effect TEXT NOT NULL,
+                effect_atk INTEGER NOT NULL,
+                effect_health INTEGER NOT NULL,
+                n_triggers INTEGER NOT NULL,
+                temp_effect BOOLEAN NOT NULL,
+                lvl INTEGER NOT NULL,
+                source TEXT NOT NULL,
+                img_url TEXT,
+                hard_mode BOOLEAN NOT NULL,
+                CONSTRAINT unq UNIQUE (name, lvl)
             );",
         )?;
 
@@ -136,9 +155,10 @@ impl SapDB {
                 holdable, single_use, end_of_battle,
                 random, n_targets,
                 effect_atk, effect_health,
-                turn_effect, cost, img_url
+                turn_effect, cost, img_url,
+                is_ailment
             )
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)
             ON CONFLICT(name, pack) DO UPDATE SET
                 tier = ?2,
                 effect = ?3,
@@ -152,7 +172,8 @@ impl SapDB {
                 effect_health = ?11,
                 turn_effect = ?12,
                 cost = ?13,
-                img_url = ?14
+                img_url = ?14,
+                is_ailment = ?15
             WHERE
                 tier != ?2 OR
                 effect != ?3
@@ -165,8 +186,13 @@ impl SapDB {
             || FOOD_URL.to_owned(),
             |id| format!("{FOOD_URL}&oldid={id}"),
         );
+        let ailments_url = CONFIG.database.ailments_version.map_or_else(
+            || AILMENTS_URL.to_owned(),
+            |id| format!("{AILMENTS_URL}&oldid={id}"),
+        );
         let foods = parse_food_info(&food_url)?;
-        for food in foods.iter() {
+        let ailments = parse_ailment_info(&ailments_url)?;
+        for food in foods.iter().chain(ailments.iter()) {
             let n_rows = conn.execute(
                 sql_insert_food,
                 [
@@ -184,6 +210,7 @@ impl SapDB {
                     &food.turn_effect.to_string(),
                     &food.cost.to_string(),
                     &food.img_url.to_string(),
+                    &food.is_ailment.to_string(),
                 ],
             )?;
             n_rows_updated += n_rows;
@@ -274,6 +301,84 @@ impl SapDB {
         Ok(self)
     }
 
+    /// Update toy information in the database.
+    /// * Scrapes toy (hard and normal) information from the Fandom wiki.
+    /// * Inserts a new record for each pet by `level`
+    /// * Changes in any field aside from `name` and `level` will update an entry.
+    fn update_toy_info(&self) -> Result<&Self, SAPTestError> {
+        let conn = self.pool.get()?;
+        // Read in insert or replace SQL.
+        let sql_insert_pet = "
+            INSERT INTO toys (
+                name, tier, effect_trigger, effect, effect_atk, effect_health,
+                n_triggers, temp_effect,
+                lvl, source, img_url, hard_mode
+            )
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+            ON CONFLICT(name, lvl) DO UPDATE SET
+                tier = ?2,
+                effect_trigger = ?3,
+                effect = ?4,
+                effect_atk = ?5,
+                effect_health = ?6,
+                n_triggers = ?7,
+                temp_effect = ?8,
+                source = ?10,
+                img_url = ?11,
+                hard_mode = ?12
+            WHERE
+                tier != ?2 OR
+                effect_atk != ?5 OR
+                effect_health != ?6 OR
+                effect_trigger != ?3 OR
+                effect != ?4
+            ;
+        ";
+        let mut n_rows_updated: usize = 0;
+
+        // Use older version if available.
+        let toys_url = CONFIG.database.toys_version.map_or_else(
+            || TOYS_URL.to_owned(),
+            |id| format!("{TOYS_URL}&oldid={id}"),
+        );
+        let hard_mode_toys_url = CONFIG.database.toys_version.map_or_else(
+            || TOYS_HARD_MODE_URL.to_owned(),
+            |id| format!("{TOYS_HARD_MODE_URL}&oldid={id}"),
+        );
+
+        let mut toys = parse_toy_info(&toys_url)?;
+        let hard_mode_toys = parse_hard_mode_toy_info(&hard_mode_toys_url)?;
+        toys.extend(hard_mode_toys);
+
+        // Add each toy.
+        for toy in toys.iter() {
+            // Creating a new row for each pack and level a pet belongs to.
+            // Each pet constrained by name and pack so will replace if already exists.
+            let n_rows = conn.execute(
+                sql_insert_pet,
+                [
+                    &toy.name.to_string(),
+                    &toy.tier.to_string(),
+                    &toy.effect_trigger
+                        .clone()
+                        .unwrap_or_else(|| "None".to_string()),
+                    &toy.effect.clone().unwrap_or_else(|| "None".to_string()),
+                    &toy.effect_atk.to_string(),
+                    &toy.effect_health.to_string(),
+                    &toy.n_triggers.to_string(),
+                    &toy.temp_effect.to_string(),
+                    &toy.lvl.to_string(),
+                    &toy.source.clone().unwrap_or_else(|| "None".to_string()),
+                    &toy.img_url.to_string(),
+                    &toy.hard_mode.to_string(),
+                ],
+            )?;
+            n_rows_updated += n_rows;
+        }
+        info!(target: "db", "{} rows updated in \"pet\" table.", n_rows_updated);
+        Ok(self)
+    }
+
     fn update_name_info(&self) -> Result<&Self, SAPTestError> {
         let conn = self.pool.get()?;
         // Read in insert or replace SQL.
@@ -302,8 +407,8 @@ impl SapDB {
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, PetName, db::{pack::Pack, record::SAPRecord}};
     ///
-    /// let mut query = SAPQuery::builder();
-    /// query.set_table(Entity::Pet)
+    /// let query = SAPQuery::builder()
+    ///     .set_table(Entity::Pet)
     ///     .set_param("name", vec![PetName::Tiger])
     ///     .set_param("lvl", vec![2])
     ///     .set_param("pack", vec![Pack::Turtle]);
@@ -316,9 +421,9 @@ impl SapDB {
     /// Food Query
     /// ```
     /// use saptest::{SAPDB, SAPQuery, Entity, FoodName, db::{pack::Pack, record::SAPRecord}};
-
-    /// let mut query = SAPQuery::builder();
-    /// query.set_table(Entity::Food)
+    ///
+    /// let query = SAPQuery::builder()
+    ///     .set_table(Entity::Food)
     ///     .set_param("name", vec![FoodName::Apple])
     ///     .set_param("pack", vec![Pack::Turtle]);
     ///
@@ -326,6 +431,20 @@ impl SapDB {
     ///
     /// let Some(SAPRecord::Food(record)) = foods.first() else { panic!("No Record found.")};
     /// assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
+    /// ```
+    /// ---
+    /// Toy Query
+    /// ```
+    /// use saptest::{SAPDB, SAPQuery, Entity, ToyName, db::record::SAPRecord};
+    /// let mut query = SAPQuery::builder()
+    ///     .set_table(Entity::Toy)
+    ///     .set_param("name", vec![ToyName::Balloon])
+    ///     .set_param("lvl", vec![2]);
+    ///
+    /// let toys = SAPDB.execute_query(query).unwrap();
+    ///
+    /// let Some(SAPRecord::Toy(record)) = toys.first() else { panic!("No Record found.")};
+    /// assert!(record.name == ToyName::Balloon && record.lvl == 2)
     /// ```
     pub fn execute_query(&self, sap_query: SAPQuery) -> Result<Vec<SAPRecord>, SAPTestError> {
         let conn = self.pool.get()?;
@@ -340,33 +459,7 @@ impl SapDB {
             let record = match table {
                 Entity::Pet => SAPRecord::Pet(row.try_into()?),
                 Entity::Food => SAPRecord::Food(row.try_into()?),
-            };
-            records.push(record);
-        }
-        Ok(records)
-    }
-
-    pub(crate) fn execute_sql_query(
-        &self,
-        sql: &str,
-        params: &[String],
-    ) -> Result<Vec<SAPRecord>, SAPTestError> {
-        let conn = self.pool.get()?;
-        let mut stmt = conn.prepare(sql)?;
-        let mut records: Vec<SAPRecord> = vec![];
-
-        let mut query = stmt.query(rusqlite::params_from_iter(params))?;
-        while let Some(row) = query.next()? {
-            // Try converting records to valid types.
-            let record = if let Ok(record) = TryInto::<PetRecord>::try_into(row) {
-                SAPRecord::Pet(record)
-            } else if let Ok(record) = TryInto::<FoodRecord>::try_into(row) {
-                SAPRecord::Food(record)
-            } else {
-                return Err(SAPTestError::QueryFailure {
-                    subject: "Invalid Record Conversion".to_string(),
-                    reason: format!("Cannot form query ({sql}) with params {params:?} results into a valid record type.")
-                })?;
+                Entity::Toy => SAPRecord::Toy(row.try_into()?),
             };
             records.push(record);
         }
@@ -377,21 +470,16 @@ impl SapDB {
 #[cfg(test)]
 mod test {
     use crate::{
-        db::{
-            pack::Pack,
-            query::SAPQuery,
-            record::{FoodRecord, PetRecord, SAPRecord},
-        },
+        db::{pack::Pack, query::SAPQuery, record::SAPRecord},
+        toys::names::ToyName,
         Entity, FoodName, PetName, SAPDB,
     };
 
     #[test]
     fn test_query_no_params() {
-        let mut food_query = SAPQuery::builder();
-        food_query.set_table(Entity::Food);
+        let food_query = SAPQuery::builder().set_table(Entity::Food);
 
-        let mut pet_query = SAPQuery::builder();
-        pet_query.set_table(Entity::Pet);
+        let pet_query = SAPQuery::builder().set_table(Entity::Pet);
 
         let foods = SAPDB.execute_query(food_query);
         let pets = SAPDB.execute_query(pet_query);
@@ -401,52 +489,46 @@ mod test {
 
     #[test]
     fn test_query_params_food() {
-        let mut food_query = SAPQuery::builder();
-
-        food_query
+        let food_query = SAPQuery::builder()
             .set_table(Entity::Food)
             .set_param("name", vec![FoodName::Apple])
             .set_param("pack", vec![Pack::Turtle]);
 
         let foods = SAPDB.execute_query(food_query).unwrap();
 
-        let SAPRecord::Food(record) = foods.first().unwrap() else { panic!("No Record found.")};
+        let SAPRecord::Food(record) = foods.first().unwrap() else {
+            panic!("No Record found.")
+        };
         assert!(record.name == FoodName::Apple && record.pack == Pack::Turtle)
     }
 
     #[test]
     fn test_query_params_pets() {
-        let mut pet_query = SAPQuery::builder();
-
-        pet_query
+        let pet_query = SAPQuery::builder()
             .set_table(Entity::Pet)
             .set_param("name", vec![PetName::Tiger])
             .set_param("lvl", vec![2])
             .set_param("pack", vec![Pack::Turtle]);
 
         let pets = SAPDB.execute_query(pet_query).unwrap();
-        let SAPRecord::Pet(record) = pets.first().unwrap() else { panic!("No Record found.")};
+        let SAPRecord::Pet(record) = pets.first().unwrap() else {
+            panic!("No Record found.")
+        };
         assert!(record.name == PetName::Tiger && record.lvl == 2 && record.pack == Pack::Turtle)
     }
 
     #[test]
-    fn test_query_sql_foods() {
-        let sql = "SELECT * FROM foods";
-        let params: Vec<String> = vec![];
-        let records = SAPDB.execute_sql_query(sql, &params).unwrap();
-        let first_record = &records[0];
-        assert!(TryInto::<FoodRecord>::try_into(first_record.clone()).is_ok());
-        assert!(TryInto::<PetRecord>::try_into(first_record.clone()).is_err())
-    }
+    fn test_query_params_toys() {
+        let toy_query = SAPQuery::builder()
+            .set_table(Entity::Toy)
+            .set_param("name", vec![ToyName::Balloon])
+            .set_param("lvl", vec![1]);
 
-    #[test]
-    fn test_query_sql_pets() {
-        let sql = "SELECT * FROM pets";
-        let params: Vec<String> = vec![];
-        let records = SAPDB.execute_sql_query(sql, &params).unwrap();
-        let first_record = &records[0];
-        assert!(TryInto::<FoodRecord>::try_into(first_record.clone()).is_err());
-        assert!(TryInto::<PetRecord>::try_into(first_record.clone()).is_ok())
+        let toys = SAPDB.execute_query(toy_query).unwrap();
+        let SAPRecord::Toy(record) = toys.first().unwrap() else {
+            panic!("No Record found.")
+        };
+        assert!(record.name == ToyName::Balloon && record.lvl == 1)
     }
 
     #[test]
@@ -462,5 +544,10 @@ mod test {
     #[test]
     fn test_update_names() {
         assert!(SAPDB.update_name_info().is_ok())
+    }
+
+    #[test]
+    fn test_update_toys() {
+        assert!(SAPDB.update_toy_info().is_ok())
     }
 }

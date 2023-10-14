@@ -36,25 +36,25 @@ pub(crate) trait TeamShoppingHelpers {
     ) -> Result<(), SAPTestError>;
     fn buy_food_behavior(
         &mut self,
-        food: Arc<RwLock<Food>>,
+        food: &Arc<RwLock<Food>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
     ) -> Result<(), SAPTestError>;
     fn buy_pet_behavior(
         &mut self,
-        pet: Arc<RwLock<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError>;
 }
 
-/// Implements Super Auto Pets [`Shop`](crate::Shop) behavior.
+/// Implements Super Auto Pets [`Shop`] behavior.
 /// ```rust no_run
 /// use saptest::TeamShopping;
 /// ```
 pub trait TeamShopping {
-    /// Buy a [`ShopItem`](crate::shop::store::ShopItem) from the [`Shop`](crate::Shop) and place it on the [`Team`](crate::Team).
+    /// Buy a [`ShopItem`](crate::ShopItem) from the [`Shop`] and place it on the [`Team`].
     /// # Examples
     /// ---
     /// Buying a pet.
@@ -98,7 +98,7 @@ pub trait TeamShopping {
         to: &Position,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Sell a [`Pet`](crate::Pet) on the [`Team`](crate::Team) for gold.
+    /// Sell a [`Pet`] on the [`Team`] for gold.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamViewer, TeamShopping, Pet, PetName, Position};
@@ -120,7 +120,7 @@ pub trait TeamShopping {
     /// ```
     fn sell(&mut self, pos: &Position) -> Result<&mut Self, SAPTestError>;
 
-    /// Roll the [`Shop`](crate::Shop) restocking it with new items at the cost of `1` gold.
+    /// Roll the [`Shop`] restocking it with new items at the cost of `1` gold.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -137,7 +137,7 @@ pub trait TeamShopping {
     /// ```
     fn roll_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Set the [`Shop`](crate::Shop)'s seed.
+    /// Set the [`Shop`]'s seed.
     /// * Setting the seed to [`None`] will randomize the rng.
     /// # Example
     /// ``` rust no_run
@@ -148,7 +148,7 @@ pub trait TeamShopping {
     /// ```
     fn set_shop_seed(&mut self, seed: Option<u64>) -> &mut Self;
 
-    /// Set the [`Shop`](crate::Shop)'s tier.
+    /// Set the [`Shop`]'s tier.
     /// * Note: This adjusts the number of turns in the team's history to the minimum required to reach the given tier.
     /// # Example
     /// ```
@@ -165,7 +165,7 @@ pub trait TeamShopping {
     /// ```
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError>;
 
-    /// Set the [`Shop`](crate::Shop) to only include [`PetName`](crate::PetName)s and [`FoodName`](crate::FoodName)s from these [`Pack`](crate::db::pack::Pack)s.
+    /// Set the [`Shop`] to only include [`PetName`]s and [`FoodName`]s from these [`Pack`]s.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping, db::pack::Pack};
@@ -203,7 +203,7 @@ pub trait TeamShopping {
     /// ```
     fn get_shop_packs(&mut self) -> &[Pack];
 
-    /// Freeze an item in the [`Shop`](crate::Shop).
+    /// Freeze an item in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping, Position, Entity};
@@ -219,7 +219,7 @@ pub trait TeamShopping {
         item_type: &Entity,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Open the [`Shop`](crate::Shop) for a [`Team`](crate::Team).
+    /// Open the [`Shop`] for a [`Team`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -229,8 +229,8 @@ pub trait TeamShopping {
     /// ```
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Close a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
-    /// * Enables [`Team`](crate::Team) fighting.
+    /// Close a [`Shop`] for a [`Team`].
+    /// * Enables [`Team`] fighting.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -241,7 +241,7 @@ pub trait TeamShopping {
     /// ```
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Get [`Shop`](crate::Shop) gold available.
+    /// Get [`Shop`] gold available.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -251,7 +251,7 @@ pub trait TeamShopping {
     /// ```
     fn gold(&self) -> usize;
 
-    /// Get the [`Shop`](crate::Shop) tier.
+    /// Get the [`Shop`] tier.
     /// ```
     /// use saptest::{Team, TeamShopping};
     ///
@@ -260,7 +260,7 @@ pub trait TeamShopping {
     /// ```
     fn shop_tier(&self) -> usize;
 
-    /// Get number of foods in the [`Shop`](crate::Shop).
+    /// Get number of foods in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -272,7 +272,7 @@ pub trait TeamShopping {
     /// ```
     fn len_shop_foods(&self) -> usize;
 
-    /// Get number of pets in the [`Shop`](crate::Shop).
+    /// Get number of pets in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -284,7 +284,7 @@ pub trait TeamShopping {
     /// ```
     fn len_shop_pets(&self) -> usize;
 
-    /// Replace [`Shop`](crate::Shop) of [`Team`](crate::Team).
+    /// Replace [`Shop`] of [`Team`].
     /// # Example
     /// ```
     /// use saptest::{
@@ -369,7 +369,7 @@ pub trait TeamShopping {
     /// (Normal) [$3] [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
     ///
     /// (Foods)
-    /// (Normal) [$3] [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
+    /// (Normal) [$3] [Apple: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(SetStatistics(Statistics { attack: 1, health: 1 })) on Friend (OnSelf) ]]
     /// ```
     fn print_shop(&self);
 }
@@ -400,9 +400,11 @@ impl TeamShoppingHelpers for Team {
             // For pet effect of leveled up pet.
             for mut effect in to_pet.read().unwrap().get_effect(prev_lvl)? {
                 effect.assign_owner(Some(to_pet));
+
                 if effect.trigger.status == Status::Levelup {
+                    effect.trigger = levelup_trigger.clone();
                     // Apply pet effect directly here if trigger is levelup.
-                    self.apply_effect(&levelup_trigger, &effect, None)?;
+                    self.apply_effect(&effect, None)?;
                 }
             }
             // Increment level.
@@ -422,7 +424,7 @@ impl TeamShoppingHelpers for Team {
     }
     fn buy_food_behavior(
         &mut self,
-        food: Arc<RwLock<Food>>,
+        food: &Arc<RwLock<Food>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
         emit_buy_triggers: bool,
@@ -445,14 +447,28 @@ impl TeamShoppingHelpers for Team {
                 // Create trigger if food eaten.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
-                let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
-                trigger_self_food.set_affected(&pet);
-                trigger_any_food.set_affected(&pet);
-                trigger_self_food_name.set_affected(&pet);
+                let mut trigger_any_gained_perk = TRIGGER_ANY_GAIN_PERK;
+                let mut trigger_self_gained_perk = TRIGGER_SELF_GAIN_PERK;
 
-                self.triggers
-                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
+                trigger_any_gained_perk
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_self_gained_perk
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_self_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_any_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+
+                self.triggers.extend([
+                    trigger_self_food,
+                    trigger_any_food,
+                    trigger_any_gained_perk,
+                    trigger_self_gained_perk,
+                ]);
             }
         } else if food.read().unwrap().name == FoodName::CannedFood {
             // Applying any effect requires an owner so assign current pet.
@@ -465,12 +481,12 @@ impl TeamShoppingHelpers for Team {
             let mut food_ability = food.read().unwrap().ability.clone();
             // If only one position (ex. apple), use target position, otherwise, use the food.ability positions.
             let target_pos = if food.read().unwrap().n_targets == 1 {
-                to_pos.clone()
+                to_pos
             } else {
-                food_ability.position.clone()
+                &food_ability.position
             };
             let affected_pets =
-                self.get_pets_by_pos(curr_pet, &food_ability.target, &target_pos, None, None)?;
+                self.get_pets_by_pos(curr_pet, &food_ability.target, target_pos, None, None)?;
 
             // Hard-coded cat multiplier.
             // Repeat applying effect if action is to add stats.
@@ -497,14 +513,15 @@ impl TeamShoppingHelpers for Team {
                 // Pet triggers for eating food.
                 let mut trigger_self_food = TRIGGER_SELF_FOOD_EATEN;
                 let mut trigger_any_food = TRIGGER_ANY_FOOD_EATEN;
-                let mut trigger_self_food_name =
-                    trigger_self_food_ate_name(food.read().unwrap().name.clone());
-                trigger_self_food.set_affected(&pet);
-                trigger_any_food.set_affected(&pet);
-                trigger_self_food_name.set_affected(&pet);
 
-                self.triggers
-                    .extend([trigger_self_food, trigger_any_food, trigger_self_food_name]);
+                trigger_self_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+                trigger_any_food
+                    .set_affected(&pet)
+                    .set_afflicting_food(food);
+
+                self.triggers.extend([trigger_self_food, trigger_any_food]);
 
                 for _ in 0..(1 + cat_multiplier) {
                     self.apply_single_effect(&pet, &pet, &food_ability, None)?;
@@ -516,7 +533,7 @@ impl TeamShoppingHelpers for Team {
 
     fn buy_pet_behavior(
         &mut self,
-        pet: Arc<RwLock<Pet>>,
+        pet: &Arc<RwLock<Pet>>,
         curr_pet: Option<Arc<RwLock<Pet>>>,
         to_pos: &Position,
     ) -> Result<(), SAPTestError> {
@@ -525,12 +542,12 @@ impl TeamShoppingHelpers for Team {
         let purchased_pet = if let Some(affected_pet) = affected_pets.first() {
             // If affected pet same as purchased pet.
             if affected_pet.read().unwrap().name == pet.read().unwrap().name {
-                self.merge_behavior(affected_pet, &pet)?;
+                self.merge_behavior(pet, affected_pet)?;
                 Some(affected_pet.clone())
             } else {
                 // Pet target exists. If position is last, make sure put after pet.
                 // Otherwise, add pet in front of position.
-                let adj_idx = if let Position::Last = to_pos { 1 } else { 0 };
+                let adj_idx = usize::from(Position::Last == *to_pos);
                 let pos = affected_pet.read().unwrap().pos.unwrap_or(0) + adj_idx;
                 self.add_pet(pet.read().unwrap().clone(), pos, None)?;
                 self.nth(pos)
@@ -599,6 +616,8 @@ impl TeamShopping for Team {
             let items_empty = match item_type {
                 Entity::Pet => self.shop.pets.is_empty(),
                 Entity::Food => self.shop.foods.is_empty(),
+                // Entities unobtainable in shop.
+                _ => true,
             };
             let err_msg = if items_empty {
                 format!("No {item_type:?} items left to purchase.")
@@ -632,14 +651,15 @@ impl TeamShopping for Team {
                 .shop
                 .foods
                 .retain(|food| !selected_items.contains(food)),
+            _ => unreachable!(),
         }
 
         // Buy the item and check if sufficient funds.
-        for item in selected_items.into_iter() {
+        for item in selected_items.iter() {
             // Decrement coins.
             self.shop.coins -= item.cost;
 
-            match item.item {
+            match &item.item {
                 ItemSlot::Pet(pet) => self.buy_pet_behavior(pet, self.first(), to)?,
                 ItemSlot::Food(food) => self.buy_food_behavior(food, self.first(), to, true)?,
             };
@@ -822,6 +842,9 @@ impl TeamShopping for Team {
         let calc_tier = ((self.history.curr_turn / 2) + (self.history.curr_turn % 2))
             .clamp(MIN_SHOP_TIER, MAX_SHOP_TIER);
 
+        // Remove sold pets from prev round.
+        self.sold.clear();
+
         // Shop tier upgraded.
         if self.shop.tier() + 1 == calc_tier {
             self.triggers.push_back(TRIGGER_SHOP_TIER_UPGRADED)
@@ -844,11 +867,23 @@ impl TeamShopping for Team {
         // Trigger start of turn.
         self.triggers.push_front(TRIGGER_START_TURN);
         self.shop.restock()?;
+
+        // Decrease duration of toys.
+        for toy in self.toys.iter_mut() {
+            if let Some(duration) = toy.duration.as_mut() {
+                *duration = duration.saturating_sub(1);
+            }
+        }
+
+        // Activate all effects given a trigger.
         while let Some(trigger) = self.triggers.pop_front() {
             self.trigger_effects(&trigger, None)?;
             self.trigger_items(&trigger, None)?;
         }
         self.clear_team();
+
+        // Clear toys that have run out.
+        self.toys.retain_mut(|toy| toy.duration != Some(0));
 
         Ok(self)
     }
@@ -888,8 +923,9 @@ impl TeamShopping for Team {
             .map(|slot| slot.as_ref().map(|pet| pet.read().unwrap().clone()))
             .collect_vec();
 
-        // Reset coins.
-        self.shop.coins = DEFAULT_COIN_COUNT;
+        // Reset coins adding saved coins.
+        self.shop.coins = DEFAULT_COIN_COUNT + self.shop.saved_coins;
+        self.shop.saved_coins = 0;
         self.shop.state = ShopState::Closed;
 
         Ok(self)

@@ -186,7 +186,7 @@ fn test_view_item_attr() {
             && horse.attack_stat().unwrap() == 2
             && horse.health_stat().unwrap() == 1
             && horse.actions()[0]
-                == Action::Add(StatChangeType::StaticValue(Statistics {
+                == Action::Add(StatChangeType::Static(Statistics {
                     attack: 1,
                     health: 0
                 }))
@@ -197,7 +197,7 @@ fn test_view_item_attr() {
             && pizza.attack_stat().unwrap() == 2
             && pizza.health_stat().unwrap() == 2
             && pizza.actions()[0]
-                == Action::Add(StatChangeType::StaticValue(Statistics {
+                == Action::Add(StatChangeType::Static(Statistics {
                     attack: 2,
                     health: 2
                 }))
@@ -209,7 +209,7 @@ fn test_view_item_attr() {
             && chili.attack_stat().unwrap() == 5
             && chili.health_stat().unwrap() == 0
             && chili.actions()[0]
-                == Action::Remove(StatChangeType::StaticValue(Statistics {
+                == Action::Remove(StatChangeType::Static(Statistics {
                     attack: 5,
                     health: 0
                 }))
@@ -232,17 +232,18 @@ fn test_view_item_attr() {
 fn test_view_by_cond() {
     /*
     (Pets)
-    (Normal) [Parrot: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Seal: (3,8) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Gorilla: (6,9) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Giraffe: (1,3) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Parrot: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Shark: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Leopard: (10,4) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Elephant: (3,7) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
 
     (Foods)
-    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
-    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(StaticValue(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
+    (Normal) [$3] [Pizza: [Effect (Uses: None): Action: Add (2, 2) on Friend (N { condition: None, targets: 2, random: true }), Trigger: [Status: None, Position: None, Affected: None, From: None]]]
+    (Normal) [$3] [Chili: [Effect (Uses: None): Action: Damage (5, 0) on Enemy (Relative(-1)), Trigger: [Status: BattleFoodEffect, Position: OnSelf, Affected: None, From: None]]]
     */
     let shop = Shop::new(6, Some(122)).unwrap();
+
     let pets = shop
         .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
@@ -250,7 +251,7 @@ fn test_view_by_cond() {
         .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
         .unwrap();
 
-    let (parrot, horse, seal, gorilla, giraffe) = pets
+    let (parrot, horse, shark, leopard, elephant) = pets
         .into_iter()
         .collect_tuple::<(&ShopItem, &ShopItem, &ShopItem, &ShopItem, &ShopItem)>()
         .unwrap();
@@ -262,7 +263,7 @@ fn test_view_by_cond() {
     let healthiest = shop
         .get_shop_items_by_cond(&ItemCondition::Healthiest, &Entity::Pet)
         .unwrap()[0];
-    assert_eq!(healthiest, gorilla);
+    assert_eq!(healthiest, elephant);
 
     let illest = shop
         .get_shop_items_by_cond(&ItemCondition::Illest, &Entity::Pet)
@@ -272,17 +273,17 @@ fn test_view_by_cond() {
     let strongest = shop
         .get_shop_items_by_cond(&ItemCondition::Strongest, &Entity::Pet)
         .unwrap()[0];
-    assert_eq!(strongest, gorilla);
+    assert_eq!(strongest, leopard);
 
     let weakest = shop
         .get_shop_items_by_cond(&ItemCondition::Weakest, &Entity::Pet)
         .unwrap()[0];
-    assert_eq!(weakest, giraffe);
+    assert_eq!(weakest, horse);
 
     let highest_tier = shop
         .get_shop_items_by_cond(&ItemCondition::HighestTier, &Entity::Pet)
         .unwrap()[0];
-    assert_eq!(highest_tier, gorilla);
+    assert_eq!(highest_tier, leopard);
 
     let lowest_tier = shop
         .get_shop_items_by_cond(&ItemCondition::LowestTier, &Entity::Pet)
@@ -303,7 +304,7 @@ fn test_view_by_cond() {
             &Entity::Pet,
         )
         .unwrap()[0];
-    assert_eq!(tier_is_5, seal);
+    assert_eq!(tier_is_5, shark);
 
     // Can't check if self.
     assert!(shop
@@ -313,22 +314,25 @@ fn test_view_by_cond() {
         )
         .is_err());
 
-    let trigger_is_hurt = shop
+    let trigger_is_start_of_battle = shop
         .get_shop_items_by_cond(
-            &ItemCondition::Equal(EqualityCondition::Trigger(Status::Hurt)),
+            &ItemCondition::Equal(EqualityCondition::Trigger(Status::StartOfBattle)),
             &Entity::Pet,
         )
         .unwrap()[0];
-    assert_eq!(trigger_is_hurt, gorilla);
+    assert_eq!(trigger_is_start_of_battle, leopard);
 
-    // All other pets aside gorilla are included.
-    let trigger_is_not_hurt = shop
+    // All other pets aside leopard are included.
+    let trigger_is_not_start_of_battle = shop
         .get_shop_items_by_cond(
-            &ItemCondition::NotEqual(EqualityCondition::Trigger(Status::Hurt)),
+            &ItemCondition::NotEqual(EqualityCondition::Trigger(Status::StartOfBattle)),
             &Entity::Pet,
         )
         .unwrap();
-    assert!(trigger_is_not_hurt.len() == 4 && !trigger_is_not_hurt.contains(&gorilla));
+    assert!(
+        trigger_is_not_start_of_battle.len() == 4
+            && !trigger_is_not_start_of_battle.contains(&leopard)
+    );
 
     // Get multiple conditions.
     let tier_is_5_or_6 = shop
@@ -343,22 +347,22 @@ fn test_view_by_cond() {
 
     assert!(
         tier_is_5_or_6.len() == 2
-            && tier_is_5_or_6.contains(&gorilla)
-            && tier_is_5_or_6.contains(&seal)
+            && tier_is_5_or_6.contains(&leopard)
+            && tier_is_5_or_6.contains(&shark)
     );
 
-    let tier_is_not_5_and_trigger_is_hurt = shop
+    let tier_is_not_5_and_trigger_is_start_of_battle = shop
         .get_shop_items_by_cond(
             &ItemCondition::MultipleAll(vec![
                 ItemCondition::NotEqual(EqualityCondition::Tier(5)),
-                ItemCondition::Equal(EqualityCondition::Trigger(Status::Hurt)),
+                ItemCondition::Equal(EqualityCondition::Trigger(Status::StartOfBattle)),
             ]),
             &Entity::Pet,
         )
         .unwrap();
     assert!(
-        tier_is_not_5_and_trigger_is_hurt.len() == 1
-            && tier_is_not_5_and_trigger_is_hurt[0] == gorilla
+        tier_is_not_5_and_trigger_is_start_of_battle.len() == 1
+            && tier_is_not_5_and_trigger_is_start_of_battle[0] == leopard
     );
 
     // Also works for foods.
@@ -371,7 +375,7 @@ fn test_view_by_cond() {
     let gives_2_2_stats = shop
         .get_shop_items_by_cond(
             &ItemCondition::Equal(EqualityCondition::Action(Box::new(Action::Add(
-                StatChangeType::StaticValue(Statistics::new(2, 2).unwrap()),
+                StatChangeType::Static(Statistics::new(2, 2).unwrap()),
             )))),
             &Entity::Food,
         )
@@ -383,22 +387,22 @@ fn test_view_by_cond() {
 fn test_view_by_pos() {
     /*
     (Pets)
-    (Normal) [Parrot: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Seal: (3,8) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Gorilla: (6,9) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
-    (Normal) [Giraffe: (1,3) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Parrot: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Horse: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Shark: (4,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Leopard: (10,4) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
+    (Normal) [$3] [Elephant: (3,7) (Level: 1 Exp: 0) (Pos: None) (Item: None)]
 
     (Foods)
-    (Normal) [Pizza: [Effect (Uses: None): (Food) - Trigger: [Status: None, Position: None, Affected: None, From: None] - Action: Add(StaticValue(Statistics { attack: 2, health: 2 })) on Friend (Any(None)) ]]
-    (Normal) [Chili: [Effect (Uses: None): (Food) - Trigger: [Status: Attack, Position: OnSelf, Affected: None, From: None] - Action: Remove(StaticValue(Statistics { attack: 5, health: 0 })) on Enemy (Relative(-1)) ]]
+    (Normal) [$3] [Pizza: [Effect (Uses: None): Action: Add (2, 2) on Friend (N { condition: None, targets: 2, random: true }), Trigger: [Status: None, Position: None, Affected: None, From: None]]]
+    (Normal) [$3] [Chili: [Effect (Uses: None): Action: Damage (5, 0) on Enemy (Relative(-1)), Trigger: [Status: BattleFoodEffect, Position: OnSelf, Affected: None, From: None]]]
     */
     let shop = Shop::new(6, Some(122)).unwrap();
 
     let all_pets = shop
         .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Pet)
         .unwrap();
-    let (parrot, horse, seal, _, _) = all_pets
+    let (parrot, horse, shark, _, _) = all_pets
         .clone()
         .into_iter()
         .collect_tuple::<(&ShopItem, &ShopItem, &ShopItem, &ShopItem, &ShopItem)>()
@@ -417,7 +421,15 @@ fn test_view_by_pos() {
         .get_shop_items_by_pos(&Position::Range(0..=2), &Entity::Pet)
         .unwrap();
     let n_num_pets = shop
-        .get_shop_items_by_pos(&Position::N(ItemCondition::None, 3, true), &Entity::Pet)
+        .get_shop_items_by_pos(
+            &Position::N {
+                condition: ItemCondition::None,
+                targets: 3,
+                random: true,
+                exact_n_targets: false,
+            },
+            &Entity::Pet,
+        )
         .unwrap();
 
     let rel_idx_food = shop
@@ -439,14 +451,14 @@ fn test_view_by_pos() {
     assert!(all_pets.len() == 5 && any_pet.len() == 1);
     assert!(
         first_pet[0].name() == EntityName::Pet(PetName::Parrot)
-            && last_pet[0].name() == EntityName::Pet(PetName::Giraffe)
+            && last_pet[0].name() == EntityName::Pet(PetName::Elephant)
     );
     // Three pets because range is inclusive
     assert_eq!(rng_of_pet.len(), 3);
     assert!(
         rng_of_pet[0].name() == EntityName::Pet(PetName::Parrot)
             && rng_of_pet[1].name() == EntityName::Pet(PetName::Horse)
-            && rng_of_pet[2].name() == EntityName::Pet(PetName::Seal)
+            && rng_of_pet[2].name() == EntityName::Pet(PetName::Shark)
     );
 
     // Position::N() gets 3 pets but because randomized, doesn't have all of the first 3 pets.
@@ -454,7 +466,7 @@ fn test_view_by_pos() {
     let has_first_three_pets = [
         n_num_pets.contains(&parrot),
         n_num_pets.contains(&horse),
-        n_num_pets.contains(&seal),
+        n_num_pets.contains(&shark),
     ];
     assert!(!has_first_three_pets.into_iter().all(|cond| cond))
 }

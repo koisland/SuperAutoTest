@@ -1,4 +1,5 @@
 use crate::db::{pack::Pack, record::PetRecord};
+use crate::wiki_scraper::common::clean_link_text;
 use crate::wiki_scraper::{
     common::remove_icon_names,
     parse_pet::{
@@ -10,36 +11,36 @@ use crate::PetName;
 
 const MAMMOTH_ENTRY: &str = "
 {{:Pets/row
-    | pet = {{IconSAP|Mammoth|size=40px}}
-    | attack = 3 | health = 10
-    | turtlepack = yes | puppypack = yes
-    | '''Faint''' → Give all friends +2 {{IconSAP|attack|nolink=yes}} and +2 {{IconSAP|health|nolink=yes}}.
-    | '''Faint''' → Give all friends +4 {{IconSAP|attack|nolink=yes}} and +4 {{IconSAP|health|nolink=yes}}.
-    | '''Faint''' → Give all friends +6 {{IconSAP|attack|nolink=yes}} and +6 {{IconSAP|health|nolink=yes}}.
-    }}
+| pet = {{IconSAP|Mammoth|size=40px}}
+| attack = 3 | health = 10
+| turtlepack = yes | puppypack = yes
+| '''Faint''' → Give all friends +2 {{IconSAP|attack|nolink=yes}} and +2 {{IconSAP|health|nolink=yes}}.
+| '''Faint''' → Give all friends +4 {{IconSAP|attack|nolink=yes}} and +4 {{IconSAP|health|nolink=yes}}.
+| '''Faint''' → Give all friends +6 {{IconSAP|attack|nolink=yes}} and +6 {{IconSAP|health|nolink=yes}}.
+}}
 ";
 
 const SLOTH_ENTRY: &str = "
 {{:Pets/row
-    | pet = {{IconSAP|Sloth|size=40px}}
-    | attack = 1 | health = 1
-    | turtlepack = yes | puppypack = yes | starpack = yes
-    | ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
-    | ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
-    | ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
-    }}
-    |}
+| pet = {{IconSAP|Sloth|size=40px}}
+| attack = 1 | health = 1
+| turtlepack = yes | puppypack = yes | starpack = yes
+| ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
+| ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
+| ''\"Sloth has no special ability. Is kind of lame combat-wise. But he truly believes in you!\"''
+}}
+|}
 ";
 
 const TIGER_ENTRY: &str = "
 {{:Pets/row
-    | pet = {{IconSAP|Tiger|size=40px}}
-    | attack = 4 | health = 3
-    | turtlepack = yes | puppypack = yes
-    | The friend ahead repeats their ability in battle as if they were level 1.
-    | The friend ahead repeats their ability in battle as if they were level 2.
-    | The friend ahead repeats their ability in battle as if they were level 3.
-    }}
+| pet = {{IconSAP|Tiger|size=40px}}
+| attack = 4 | health = 3
+| turtlepack = yes | puppypack = yes
+| The friend ahead repeats their ability in battle as if they were level 1.
+| The friend ahead repeats their ability in battle as if they were level 2.
+| The friend ahead repeats their ability in battle as if they were level 3.
+}}
 ";
 
 #[test]
@@ -111,9 +112,9 @@ fn test_parse_effects() {
 
 #[test]
 fn test_create_pet_record() {
-    let mut curr_tier: usize = 6;
     let mut pets: Vec<PetRecord> = vec![];
-    parse_single_pet(MAMMOTH_ENTRY, &mut curr_tier, &mut pets).unwrap();
+    let entry = clean_link_text(MAMMOTH_ENTRY);
+    parse_single_pet(&entry, 6, &mut pets).unwrap();
 
     let exp_pets = vec![
         PetRecord {
@@ -130,9 +131,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 1,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
         PetRecord {
@@ -149,9 +148,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 2,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
         PetRecord {
@@ -168,9 +165,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 3,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
         PetRecord {
@@ -187,9 +182,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 1,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
         PetRecord {
@@ -206,9 +199,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 2,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
         PetRecord {
@@ -225,9 +216,7 @@ fn test_create_pet_record() {
             temp_effect: false,
             lvl: 3,
             cost: 3,
-            img_url: String::from(
-                "https://static.wikia.nocookie.net/superautopets/images/f/fe/Mammoth_Icon.png",
-            ),
+            img_url: String::from("https://superautopets.wiki.gg/images/f/fe/Mammoth_Icon.png"),
             is_token: false,
         },
     ];

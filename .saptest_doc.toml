@@ -1,0 +1,33 @@
+# Fandom page id can be found by:
+# 1. Navigating to the page.
+# 2. Clicking on the page's "View history" tab.
+# 3. Hovering over the date timestamps.
+
+[database]
+# https://superautopets.wiki.gg/index.php?title=Team_Names&oldid=?
+# names_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Pets&oldid=?
+# pets_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Food&oldid=?
+# foods_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Ailments&oldid=?
+# ailments_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Tokens&oldid=?
+# tokens_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Toys&oldid=?
+# toys_version = ?
+
+# https://superautopets.wiki.gg/index.php?title=Hard_Mode_Toys&oldid=?
+# toys_hard_mode_version = ?
+filename = "./sap.db"
+# Avoid updating on startup as 100+ doctests will hit request limit for wiki.gg api.
+update_on_startup = false
+
+[general]
+# Store battle data and build digraphs. If speed is necessary, this can be toggled off.
+build_graph = true

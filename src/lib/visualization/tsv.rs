@@ -37,37 +37,37 @@ const TSV_HEADER: [&str; 11] = [
 ///
 /// let tsv = create_battle_df(&team);
 /// let exp_tsv = "n_actions\tafflicting_id\tafflicting_team\tafflicting_stats\taffected_id\taffected_team\taffected_stats\ttrigger\taction\tn_phases\tn_cycles
-/// 0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-/// 1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-/// 2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(4, 2)\tFaint\tAdd (2, 1)\t1\t18
-/// 3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(4, 2)\tFaint\tAdd (2, 1)\t1\t26
+/// 0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+/// 1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+/// 2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(3, 3)\tFaint\tAdd (1, 1)\t1\t18
+/// 3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(3, 3)\tFaint\tAdd (1, 1)\t1\t27
 /// ";
 /// assert_eq!(tsv,  exp_tsv);
 /// ```
 ///
 /// # Fields:
 /// 1. Number of actions performed.
-///     * [`usize`](usize)
+///     * [`usize`]
 /// 2. Afflicting pet's id.
-///     * [`String`](String)
+///     * [`String`]
 /// 3. Afflicting pet's team name.
-///     * [`String`](String)
+///     * [`String`]
 /// 4. Afflicting pet's stats after the action.
-///     * [`String`](String)
+///     * [`String`]
 /// 5. Affected pet's id.
-///     * [`String`](String)
+///     * [`String`]
 /// 6. Affected pet's team name.
-///     * [`String`](String)
+///     * [`String`]
 /// 7. Affected pet's stats after the action.
-///     * [`String`](String)
+///     * [`String`]
 /// 8. Action trigger [`Status`](crate::effects::state::Status).
-///     * [`String`](String)
+///     * [`String`]
 /// 9. [`Action`](crate::effects::actions::Action) taken.
-///     * [`String`](String)
+///     * [`String`]
 /// 10. Number of battle phases.
-///     * [`usize`](usize)
+///     * [`usize`]
 /// 11. Number of cycles.
-///     * [`usize`](usize)
+///     * [`usize`]
 ///     * This represents the number of trigger [`Outcome`](crate::effects::state::Outcome)s iterated through.
 pub fn create_battle_df(team: &Team) -> String {
     let graph = &team.history.graph.phase_graph;
@@ -137,10 +137,10 @@ mod test {
 
         let tsv = create_battle_df(&team);
         let exp_tsv = "n_actions\tafflicting_id\tafflicting_team\tafflicting_stats\taffected_id\taffected_team\taffected_stats\ttrigger\taction\tn_phases\tn_cycles
-0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 1)\t1\t15
-2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(4, 2)\tFaint\tAdd (2, 1)\t1\t18
-3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(4, 2)\tFaint\tAdd (2, 1)\t1\t26
+0\tAnt_0\tAnts_copy\t(2, 0)\tAnt_0\tAnts\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+1\tAnt_0\tAnts\t(2, 0)\tAnt_0\tAnts_copy\t(2, 0)\tAttack\tDamage (0, 2)\t1\t15
+2\tAnt_0\tAnts\t(2, 0)\tAnt_3\tAnts\t(3, 3)\tFaint\tAdd (1, 1)\t1\t18
+3\tAnt_0\tAnts_copy\t(2, 0)\tAnt_2\tAnts_copy\t(3, 3)\tFaint\tAdd (1, 1)\t1\t27
 ";
         assert_eq!(tsv, exp_tsv);
     }

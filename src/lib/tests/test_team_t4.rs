@@ -13,17 +13,36 @@ use crate::{
     teams::{combat::TeamCombat, effects::TeamEffects, team::TeamFightOutcome, viewer::TeamViewer},
     tests::common::{
         count_pets, test_ant_team, test_anteater_team, test_armadillo_team, test_bison_team,
-        test_buffalo_team, test_caterpillar_team, test_crow_team, test_deer_team,
-        test_doberman_highest_tier_team, test_doberman_team, test_donkey_team, test_dragonfly_team,
-        test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team, test_jerboa_team,
-        test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team, test_orangutan_team,
-        test_ox_team, test_parrot_team, test_pelican_team, test_penguin_team, test_platypus_team,
-        test_porcupine_team, test_praying_mantis_team, test_rooster_team, test_skunk_team,
-        test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team, test_worm_team,
+        test_blowfish_team, test_buffalo_team, test_caterpillar_team, test_crow_team,
+        test_deer_team, test_doberman_highest_tier_team, test_doberman_team, test_donkey_team,
+        test_dragonfly_team, test_eel_team, test_gorilla_team, test_hawk_team, test_hippo_team,
+        test_jerboa_team, test_llama_team, test_lobster_team, test_lynx_team, test_mosq_team,
+        test_orangutan_team, test_ox_team, test_parrot_team, test_pelican_team, test_penguin_team,
+        test_platypus_team, test_porcupine_team, test_praying_mantis_team, test_skunk_team,
+        test_snake_team, test_squirrel_team, test_turtle_team, test_whale_team,
     },
-    Effect, EntityName, Food, ItemCondition, Pet, Shop, ShopItem, ShopItemViewer, ShopViewer, Team,
-    TeamShopping,
+    Effect, EntityName, Food, ItemCondition, Pet, ShopItemViewer, ShopViewer, Team, TeamShopping,
 };
+
+#[test]
+fn test_battle_blowfish_team() {
+    let mut team = test_blowfish_team();
+    let mut enemy_team = test_ant_team();
+
+    let start_blowfish_health = team.nth(1).unwrap().read().unwrap().stats.health;
+
+    team.fight(&mut enemy_team).unwrap();
+
+    // One pet dies to blowfish indirect attack.
+    // Another dies to elephant attack.
+    assert_eq!(enemy_team.all().len(), 1);
+
+    // Blowfish takes 1 dmg.
+    assert_eq!(
+        team.nth(1).unwrap().read().unwrap().stats.health,
+        start_blowfish_health - 1
+    );
+}
 
 #[test]
 fn test_battle_deer_team() {
@@ -41,7 +60,7 @@ fn test_battle_deer_team() {
     let bus = team.any().unwrap();
     assert!(
         bus.read().unwrap().name == PetName::Bus
-            && bus.read().unwrap().stats.health == 2
+            && bus.read().unwrap().stats.health == 3
             && team.all().len() == 1
     );
     assert_eq!(enemy_team.fainted.len(), 2)
@@ -64,7 +83,7 @@ fn test_battle_hippo_team() {
                 }
             && team.all().len() == 1,
     );
-    // Versus three lvl.1 ants.
+    // Versus three lvl. 1 ants.
     assert!(enemy_team
         .all()
         .iter()
@@ -74,13 +93,13 @@ fn test_battle_hippo_team() {
         fight = team.fight(&mut enemy_team).unwrap()
     }
 
-    // Hippo takes 2 dmg (1st) + 8 dmg (2nd + 3rd) = 10 dmg
-    // Hippo kills all three gaining (9,9) + base (4,5) - dmg (0,10) to (13,4)
+    // Hippo takes 2 dmg (1st) + 6 dmg (2nd + 3rd) = 8 dmg
+    // Hippo kills all three gaining (9,9) + base (4,5) - dmg (0,8) to (13,6)
     assert!(
         team.first().unwrap().read().unwrap().stats
             == Statistics {
                 attack: 13,
-                health: 4
+                health: 6
             }
     );
 }
@@ -131,7 +150,6 @@ fn test_shop_parrot_team() {
     assert_eq!(
         vec![Effect {
             owner: Some(Arc::downgrade(&parrot)),
-            entity: Entity::Pet,
             trigger: TRIGGER_END_TURN.clone().set_affected(&parrot).to_owned(),
             target: Target::Friend,
             position: Position::OnSelf,
@@ -166,83 +184,10 @@ fn test_shop_parrot_team() {
             position: Position::OnSelf,
             action: Action::Summon(SummonType::StoredPet(Box::new(zombie_cricket))),
             uses: Some(1),
-            entity: Entity::Pet,
             temp: false,
         }],
         team.nth(1).unwrap().read().unwrap().effect
     );
-}
-
-#[test]
-fn test_battle_rooster_lvl_1_team() {
-    let mut team = test_rooster_team();
-    let mut enemy_team = test_rooster_team();
-    {
-        let rooster = team.first().unwrap();
-        assert!(
-            rooster.read().unwrap().name == PetName::Rooster
-                && rooster.read().unwrap().stats
-                    == Statistics {
-                        attack: 5,
-                        health: 3
-                    }
-        )
-    }
-
-    team.fight(&mut enemy_team).unwrap();
-
-    let chick = team.first().unwrap();
-    // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
-    assert!(
-        chick.read().unwrap().name == PetName::Chick
-            && chick.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
-    )
-}
-
-#[test]
-fn test_battle_rooster_lvl_2_team() {
-    let mut team = test_rooster_team();
-    let mut enemy_team = test_rooster_team();
-    {
-        team.set_level(&Position::First, 2).unwrap();
-        let rooster = team.first().unwrap();
-        // Level 2 now. Will spawn 2 chicks.
-        assert!(
-            rooster.read().unwrap().name == PetName::Rooster
-                && rooster.read().unwrap().stats
-                    == Statistics {
-                        attack: 5,
-                        health: 3
-                    }
-                && rooster.read().unwrap().lvl == 2
-        )
-    }
-
-    team.fight(&mut enemy_team).unwrap();
-
-    let chick = team.first().unwrap();
-    let chick_2 = team.nth(1).unwrap();
-    // 50% of base lvl.1 rooster is 3 (2.5). Health is 1.
-    assert!(
-        chick.read().unwrap().name == PetName::Chick
-            && chick.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
-    );
-    assert!(
-        chick_2.read().unwrap().name == PetName::Chick
-            && chick_2.read().unwrap().stats
-                == Statistics {
-                    attack: 3,
-                    health: 1
-                }
-    )
 }
 
 #[test]
@@ -374,17 +319,34 @@ fn test_battle_armadillo_team() {
     let mut team = test_armadillo_team();
     let mut enemy_team = test_hippo_team();
 
-    team.fight(&mut enemy_team).unwrap();
+    // Armadillo at lvl. 1 provides 8 health
+    const BUFF: Statistics = Statistics {
+        attack: 0,
+        health: 8,
+    };
+    let pets = team.all();
+    let exp_stats: Vec<Statistics> = pets
+        .iter()
+        .enumerate()
+        .map(|(i, pet)| {
+            // Armadillo at position 0.
+            if i == 0 {
+                pet.read().unwrap().stats
+            } else {
+                pet.read().unwrap().stats + BUFF
+            }
+        })
+        .collect();
 
-    for (i, pet) in team.all().into_iter().enumerate() {
-        // First pet is armadillo, it takes (2,6)-(0,4).
-        // It doesn't gain (0,1) but all dogs do.
-        if i == 0 {
-            assert_eq!(pet.read().unwrap().stats, Statistics::new(2, 2).unwrap())
-        } else {
-            assert_eq!(pet.read().unwrap().stats, Statistics::new(3, 5).unwrap())
-        }
-    }
+    // Trigger start of battle.
+    team.trigger_start_battle_effects(&mut enemy_team).unwrap();
+
+    assert_eq!(
+        pets.iter()
+            .map(|pet| pet.read().unwrap().stats)
+            .collect::<Vec<Statistics>>(),
+        exp_stats
+    );
 }
 
 #[test]
@@ -393,11 +355,14 @@ fn test_battle_doberman_team() {
     let mut enemy_team = test_hippo_team();
 
     // Doberman has no item.
-    assert_eq!(team.first().unwrap().read().unwrap().item, None);
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics::new(4, 5).unwrap()
-    );
+    let doberman = team.first().unwrap();
+    const BUFF: Statistics = Statistics {
+        attack: 8,
+        health: 0,
+    };
+    let start_stats = doberman.read().unwrap().stats;
+    assert_eq!(doberman.read().unwrap().item, None);
+
     // Doberman is lowest tier.
     assert_eq!(
         team.all()
@@ -412,15 +377,11 @@ fn test_battle_doberman_team() {
     team.fight(&mut enemy_team).unwrap();
 
     // Doberman gets coconut and gets (5,5)
-    let doberman = team.first().unwrap();
     assert_eq!(
         doberman.read().unwrap().item.as_ref().unwrap().name,
         FoodName::Coconut
     );
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics::new(9, 10).unwrap()
-    );
+    assert_eq!(doberman.read().unwrap().stats, start_stats + BUFF);
 }
 
 #[test]
@@ -508,7 +469,7 @@ fn test_battle_porcupine_team() {
     let mut enemy_team = test_mosq_team();
 
     // Buff 1st mosquito so survives first returned attack.
-    enemy_team.first().unwrap().write().unwrap().stats.health += 8;
+    enemy_team.first().unwrap().write().unwrap().stats.health += 3;
 
     // Trigger start of battle effects. Then clear fainted pets.
     team.trigger_start_battle_effects(&mut enemy_team).unwrap();
@@ -519,7 +480,7 @@ fn test_battle_porcupine_team() {
     // 1 mosquito that was buffed survives.
     assert!(
         enemy_team.all().len() == 1
-            && enemy_team.first().unwrap().read().unwrap().stats == Statistics::new(2, 4).unwrap()
+            && enemy_team.first().unwrap().read().unwrap().stats == Statistics::new(2, 2).unwrap()
     );
 
     // Continue fight.
@@ -536,18 +497,18 @@ fn test_battle_caterpillar_team() {
     let caterpillar = team.first().unwrap();
     assert_eq!(
         caterpillar.read().unwrap().stats,
-        Statistics::new(2, 2).unwrap()
+        Statistics::new(1, 1).unwrap()
     );
     assert_eq!(caterpillar.read().unwrap().name, PetName::Caterpillar);
 
     // Right before battle phase, butterfly will copy effect.
     team.fight(&mut enemy_team).unwrap();
 
-    // Butterfly takes 4 dmg from hippo but copied (50/50) dog.
+    // Butterfly takes 4 dmg from hippo but copied hippo's stats leaving it with 1 health.
     let butterfly = team.first().unwrap();
     assert_eq!(
         butterfly.read().unwrap().stats,
-        Statistics::new(50, 46).unwrap()
+        Statistics::new(4, 1).unwrap()
     );
     assert_eq!(butterfly.read().unwrap().name, PetName::Butterfly);
 }
@@ -640,31 +601,21 @@ fn test_battle_hawk_team() {
 
     // Hawk on 1st position.
     assert_eq!(team.first().unwrap().read().unwrap().name, PetName::Hawk);
-    {
-        let gorilla_on_1st = enemy_team.first().unwrap();
-        assert_eq!(
-            gorilla_on_1st.read().unwrap().stats,
-            Statistics {
-                attack: 6,
-                health: 9
-            }
-        );
-    }
+    let gorilla_on_1st = enemy_team.first().unwrap();
+    let gorilla_on_first_start_stats = gorilla_on_1st.read().unwrap().stats;
 
     team.trigger_effects(&TRIGGER_START_BATTLE, Some(&mut enemy_team))
         .unwrap();
 
-    {
-        // Gorilla takes 7 dmg.
-        let gorilla_on_1st = enemy_team.first().unwrap();
-        assert_eq!(
-            gorilla_on_1st.read().unwrap().stats,
-            Statistics {
-                attack: 6,
-                health: 2
+    // Gorilla takes 7 dmg.
+    assert_eq!(
+        gorilla_on_1st.read().unwrap().stats,
+        gorilla_on_first_start_stats
+            - Statistics {
+                attack: 0,
+                health: 7
             }
-        );
-    }
+    );
 }
 
 #[test]
@@ -676,7 +627,7 @@ fn test_battle_pelican_team() {
         // Ant has strawberry.
         let ant = team.nth(1).unwrap();
 
-        assert_eq!(ant.read().unwrap().stats, Statistics::new(2, 1).unwrap());
+        assert_eq!(ant.read().unwrap().stats, Statistics::new(2, 2).unwrap());
         let ant_item = &ant.read().unwrap().item;
         assert_eq!(ant_item.as_ref().unwrap().name, FoodName::Strawberry)
     }
@@ -687,7 +638,7 @@ fn test_battle_pelican_team() {
     // Pelican at lvl.1 give strawberry ant (2,1)
     assert_eq!(
         team.nth(1).unwrap().read().unwrap().stats,
-        Statistics::new(4, 2).unwrap()
+        Statistics::new(4, 3).unwrap()
     );
 }
 
@@ -696,21 +647,19 @@ fn test_shop_bison_team() {
     let mut team = test_bison_team();
     // Lvl 3 duck on team.
     assert_eq!(team.first().unwrap().read().unwrap().lvl, 3);
-    assert_eq!(
-        team.last().unwrap().read().unwrap().stats,
-        Statistics {
-            attack: 5,
-            health: 3
-        }
-    );
+    let bison = team.last().unwrap();
+    const BUFF: Statistics = Statistics {
+        attack: 1,
+        health: 2,
+    };
+
+    let bison_start_stats = bison.read().unwrap().stats;
+    let bison_exp_stats = bison_start_stats + BUFF;
+
     team.open_shop().unwrap().close_shop().unwrap();
 
-    let exp_bison_stats = Statistics {
-        attack: 7,
-        health: 5,
-    };
     // Bison gains (2,2)
-    assert_eq!(team.last().unwrap().read().unwrap().stats, exp_bison_stats);
+    assert_eq!(bison.read().unwrap().stats, bison_exp_stats);
 
     // Sell lvl 3 friend
     team.open_shop()
@@ -721,7 +670,7 @@ fn test_shop_bison_team() {
         .unwrap();
 
     // Stats don't change at end of turn anymore.
-    assert_eq!(team.last().unwrap().read().unwrap().stats, exp_bison_stats);
+    assert_eq!(bison.read().unwrap().stats, bison_exp_stats);
 }
 
 #[test]
@@ -755,13 +704,10 @@ fn test_shop_penguin_team() {
 fn test_shop_squirrel_team() {
     let mut team = test_squirrel_team();
 
-    // Default tier 1 shop has 1 max food slots.
-    assert_eq!(team.shop.max_food_slots(), 1);
     // Open shop and squirrel effect activates.
     team.open_shop().unwrap();
 
-    // Two items in shop despite max food slot of 1. Both are discounted.
-    assert_eq!(team.len_shop_foods(), 2);
+    // Food discounted.
     assert!(team
         .shop
         .get_shop_items_by_pos(&Position::All(ItemCondition::None), &Entity::Food)
@@ -771,52 +717,20 @@ fn test_shop_squirrel_team() {
 }
 
 #[test]
-fn test_shop_worm_team() {
-    let mut team = test_worm_team();
-
-    assert_eq!(
-        team.first().unwrap().read().unwrap().stats,
-        Statistics::new(3, 3).unwrap()
-    );
-    team.set_shop_seed(Some(12))
-        .open_shop()
-        .unwrap()
-        .buy(&Position::First, &Entity::Food, &Position::First)
-        .unwrap();
-
-    let worm = team.first().unwrap();
-    // Worm gets (1,1) from eating honey.
-    assert!(
-        worm.read().unwrap().stats == Statistics::new(4, 4).unwrap()
-            && worm.read().unwrap().item.as_ref().unwrap().name == FoodName::Honey
-    );
-}
-
-#[test]
 fn test_shop_dragonfly_team() {
     let mut team = test_dragonfly_team();
     team.set_seed(Some(12));
     team.open_shop().unwrap();
 
-    let starting_duck_stats = Statistics {
-        attack: 2,
-        health: 3,
-    };
-    let starting_dog_stats = Statistics {
-        attack: 3,
-        health: 4,
-    };
+    let duck = team.first().unwrap();
+    let dog = team.last().unwrap();
+    let starting_duck_stats = duck.read().unwrap().stats;
+    let starting_dog_stats = dog.read().unwrap().stats;
     const DRAGONFLY_BUFF: Statistics = Statistics {
         attack: 1,
         health: 1,
     };
-    let (duck, dog) = (team.first().unwrap(), team.last().unwrap());
-    assert!(
-        duck.read().unwrap().lvl == 3
-            && duck.read().unwrap().stats == starting_duck_stats
-            && dog.read().unwrap().lvl == 1
-            && dog.read().unwrap().stats == starting_dog_stats
-    );
+    assert!(duck.read().unwrap().lvl == 3 && dog.read().unwrap().lvl == 1);
 
     team.close_shop().unwrap();
 
@@ -908,82 +822,31 @@ fn test_shop_jerboa_team() {
 }
 
 #[test]
-fn test_shop_mole_team() {
-    let pets = [
-        Some(Pet::try_from(PetName::Ant).unwrap()),
-        None,
-        Some(Pet::try_from(PetName::Ant).unwrap()),
-        Some(Pet::try_from(PetName::Ant).unwrap()),
-    ];
-    let mut team = Team::new(&pets, 5).unwrap();
-
-    // Create shop with mole inside.
-    let mut shop = Shop::default();
-    shop.add_item(ShopItem::from(Pet::try_from(PetName::Mole).unwrap()))
-        .unwrap();
-
-    // replace shop.
-    team.replace_shop(shop).unwrap().open_shop().unwrap();
-
-    // Ants at 0 and 2 position.
-    let (ant_1, ant_2, ant_3) = (
-        team.nth(0).unwrap(),
-        team.nth(2).unwrap(),
-        team.nth(3).unwrap(),
-    );
-    let (ant_1_start_stats, ant_2_start_stats, ant_3_start_stats) = (
-        ant_1.read().unwrap().stats,
-        ant_2.read().unwrap().stats,
-        ant_3.read().unwrap().stats,
-    );
-    const MOLE_BUFF: Statistics = Statistics {
-        attack: 1,
-        health: 1,
-    };
-    team.buy(&Position::First, &Entity::Pet, &Position::Relative(-1))
-        .unwrap();
-
-    // Ants adjacent to mole get stats.
-    assert_eq!(ant_1_start_stats + MOLE_BUFF, ant_1.read().unwrap().stats);
-    assert_eq!(ant_2_start_stats + MOLE_BUFF, ant_2.read().unwrap().stats);
-    // Ant not adjacent gets nothing.
-    assert_eq!(ant_3_start_stats, ant_3.read().unwrap().stats);
-}
-
-#[test]
 fn test_shop_buffalo_team() {
     let mut team = test_buffalo_team();
-    team.set_shop_seed(Some(11)).open_shop().unwrap();
+    team.open_shop().unwrap();
 
-    let buffalo = team.first().unwrap();
+    let buffalo = team.last().unwrap();
     let buffalo_start_stats = buffalo.read().unwrap().stats;
     const BUFF_BUFF: Statistics = Statistics {
-        attack: 1,
-        health: 1,
+        attack: 2,
+        health: 2,
     };
 
-    // Buy three pets.
-    for i in 1..=3 {
-        team.buy(&Position::First, &Entity::Pet, &Position::First)
-            .unwrap();
-        // Get (1,1) for every pet purchased.
-        let stat_increase = BUFF_BUFF * Statistics::new(i, i).unwrap();
-        assert_eq!(
-            buffalo_start_stats + stat_increase,
-            buffalo.read().unwrap().stats
-        );
-    }
+    // Sell three pets.
+    // No change until third pet sold.
+    team.sell(&Position::First).unwrap();
+    assert_eq!(buffalo_start_stats, buffalo.read().unwrap().stats);
+
+    team.sell(&Position::First).unwrap();
+    assert_eq!(buffalo_start_stats, buffalo.read().unwrap().stats);
+
+    // Get (1,1) for every three pets sold.
+    team.sell(&Position::First).unwrap();
+    assert!(team.sold.len() % 3 == 0);
+
     let final_buffalo_stats = buffalo.read().unwrap().stats;
-
-    // Add some gold to allow buying a 4th pet.
-    team.shop.coins += 3;
-    team.roll_shop()
-        .unwrap()
-        .buy(&Position::First, &Entity::Pet, &Position::First)
-        .unwrap();
-
-    // No additional stats on buy as limit reached.
-    assert_eq!(final_buffalo_stats, buffalo.read().unwrap().stats);
+    assert_eq!(buffalo_start_stats + BUFF_BUFF, final_buffalo_stats);
 }
 
 #[test]
@@ -996,13 +859,13 @@ fn test_shop_llama_team() {
 
     let llama_start_stats = llama.read().unwrap().stats;
     const LLAMA_BUFF: Statistics = Statistics {
-        attack: 2,
+        attack: 1,
         health: 2,
     };
 
     team.close_shop().unwrap();
 
-    // Llama gets (2,2)
+    // Llama gets (1,2)
     assert_eq!(llama_start_stats + LLAMA_BUFF, llama.read().unwrap().stats);
 
     team.open_shop().unwrap();
@@ -1030,7 +893,17 @@ fn test_shop_lobster_team() {
     let mut team = test_lobster_team();
 
     team.set_shop_seed(Some(12)).open_shop().unwrap();
-    // Buy the first pet in the shop. A mosquito.
+    // Buy the first pet in the shop.
+    let EntityName::Pet(first_shop_petname) = team
+        .shop
+        .get_shop_items_by_pos(&Position::First, &Entity::Pet)
+        .unwrap()
+        .first()
+        .unwrap()
+        .name()
+    else {
+        panic!("Not a pet.")
+    };
     team.buy(&Position::First, &Entity::Pet, &Position::First)
         .unwrap();
 
@@ -1038,11 +911,14 @@ fn test_shop_lobster_team() {
         attack: 2,
         health: 2,
     };
-    let base_mosq = Pet::try_from(PetName::Mosquito).unwrap();
-    let mosq = team.first().unwrap();
+    let base_bought_pet = Pet::try_from(first_shop_petname).unwrap();
+    let bought_pet = team.first().unwrap();
 
-    // Mosquito summoned to team and buffed by lobster.
-    assert_eq!(mosq.read().unwrap().stats, base_mosq.stats + LOBSTER_BUFF);
+    // Pet summoned to team and buffed by lobster.
+    assert_eq!(
+        bought_pet.read().unwrap().stats,
+        base_bought_pet.stats + LOBSTER_BUFF
+    );
 }
 
 #[test]
@@ -1157,7 +1033,7 @@ fn test_shop_orangutan_team() {
     let lowest_health_pet = found_pets.first().unwrap();
     assert_eq!(lowest_health_pet.read().unwrap().name, PetName::Ant);
 
-    let ant_start_stats = lowest_health_pet.read().unwrap().stats;
+    let lowest_health_pet_start_stats = lowest_health_pet.read().unwrap().stats;
     const ORANGUTAN_BUFF: Statistics = Statistics {
         attack: 0,
         health: 4,
@@ -1167,6 +1043,6 @@ fn test_shop_orangutan_team() {
     // Ant gains buff because lowest health.
     assert_eq!(
         lowest_health_pet.read().unwrap().stats,
-        ant_start_stats + ORANGUTAN_BUFF
+        lowest_health_pet_start_stats + ORANGUTAN_BUFF
     );
 }

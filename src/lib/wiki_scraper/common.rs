@@ -2,7 +2,7 @@ use crate::{error::SAPTestError, regex_patterns::*};
 use itertools::Itertools;
 use log::info;
 
-const TABLE_ENTRY_DELIM: &str = "|-";
+pub const TABLE_ENTRY_DELIM: &str = "|-";
 
 pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
     info!(target: "wiki_scraper", "Retrieving page info for {url}.");
@@ -13,9 +13,8 @@ pub fn get_page_info(url: &str) -> Result<String, SAPTestError> {
 /// * Ex. `{IconSAP|Turtle}` -> `Turtle`
 pub fn remove_icon_names(line: &str) -> String {
     let mut final_line = line.to_string();
-    let final_line_copy = final_line.clone();
 
-    for cap in RGX_ICON_NAME.captures_iter(&final_line_copy) {
+    for cap in RGX_ICON_NAME.captures_iter(line) {
         // If an arg exists for icon, capture it.
         let icon_arg = cap.get(2).map(|cap| cap.as_str()).unwrap_or("");
         // If no name arg exists for icon, substitute icon name.
@@ -57,4 +56,34 @@ pub fn get_largest_table(page_info: &str) -> Result<Vec<&str>, SAPTestError> {
             reason: "Can't find main table following format: {|...|}.".to_string(),
         })
     }
+}
+
+/// Clean text removing:
+/// * Links `[[...|...]]`
+/// * Icon names `{IconSAP|...}`.
+pub fn clean_link_text(text: &str) -> String {
+    let mut text_copy = text.to_string();
+
+    for capture in RGX_LINK_NAME.captures_iter(text) {
+        // Get last element in link text.
+        // ex. |Give one [[Pets|pet]] [[Lemon]]. -> Give one pet Lemon.
+        for (i, mtch) in capture.iter().enumerate() {
+            // Skip first match which matches everything.
+            if i == 0 {
+                continue;
+            }
+            let icon_name = mtch
+                .map_or("", |m| m.as_str())
+                .split('|')
+                .next()
+                .and_then(|name| name.strip_prefix("File:"))
+                .and_then(|name| name.strip_suffix(".png"))
+                .unwrap_or("");
+            let icon_name = icon_name.to_ascii_lowercase();
+
+            // Update line copy replacing links wiht food name.
+            text_copy = RGX_LINK_NAME.replacen(&text_copy, 1, icon_name).to_string();
+        }
+    }
+    remove_icon_names(&text_copy).trim_matches('|').to_string()
 }

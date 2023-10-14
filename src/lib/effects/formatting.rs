@@ -11,8 +11,8 @@ impl std::fmt::Display for Effect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "[{:?} Effect (Uses: {:?}): Action: {} on {:?} ({:?}), Trigger: {}]",
-            self.entity, self.uses, self.action, self.target, self.position, self.trigger
+            "[Effect (Uses: {:?}): Action: {} on {:?} ({:?}), Trigger: {}]",
+            self.uses, self.action, self.target, self.position, self.trigger
         )
     }
 }
@@ -36,10 +36,15 @@ impl std::fmt::Display for Status {
 impl std::fmt::Display for StatChangeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            StatChangeType::StaticValue(stats) => write!(f, "{stats}"),
-            StatChangeType::SelfMultValue(stats) => {
-                write!(f, "({}%, {}%) of Self Stats", stats.attack, stats.health)
+            StatChangeType::Static(stats) => write!(f, "{stats}"),
+            StatChangeType::Multiplier(stats) => {
+                write!(f, "({}%, {}%) of Stats", stats.attack, stats.health)
             }
+            StatChangeType::StaticAttack(atk) => write!(f, "({atk}, 0)"),
+            StatChangeType::StaticHealth(health) => write!(f, "(0, {health})"),
+            StatChangeType::CurrentAttack => write!(f, "To Current Attack"),
+            StatChangeType::CurrentHealth => write!(f, "To Current Health"),
+            StatChangeType::TeamCounter(counter_key) => write!(f, "Based on {counter_key}"),
         }
     }
 }
@@ -79,7 +84,7 @@ impl std::fmt::Display for GainType {
         match self {
             GainType::SelfItem => write!(f, "Self Item"),
             GainType::DefaultItem(food_name) => write!(f, "{food_name}"),
-            GainType::QueryItem(query, params) => write!(f, "Query Item ({query}) {params:?}"),
+            GainType::QueryItem(query) => write!(f, "Item {query}"),
             GainType::RandomShopItem => write!(f, "Random Shop Item"),
             GainType::StoredItem(item) => write!(f, "{item}"),
             GainType::NoItem => write!(f, "No Item"),
@@ -90,10 +95,10 @@ impl std::fmt::Display for GainType {
 impl std::fmt::Display for SummonType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SummonType::QueryPet(sql, params, stats) => {
+            SummonType::QueryPet(query, stats) => {
                 let stats_str =
                     stats.map_or_else(|| "(Default Stats)".to_string(), |stats| stats.to_string());
-                write!(f, "Query Pet ({sql}) {params:?} {stats_str}")
+                write!(f, "Pet {query} {stats_str}")
             }
             SummonType::StoredPet(pet) => write!(f, "{pet}"),
             SummonType::DefaultPet(pet_name) => write!(f, "Default {pet_name}"),
@@ -124,6 +129,20 @@ impl std::fmt::Display for SummonType {
                     "Any (Ignoring {ignore}) Team Pet {stats_str} at Level {lvl}"
                 )
             }
+            SummonType::ShopTierPet {
+                stats,
+                lvl,
+                tier_diff,
+            } => {
+                let stats_str =
+                    stats.map_or_else(|| "(Default Stats)".to_string(), |stats| stats.to_string());
+                let lvl = lvl.unwrap_or(1);
+                let tier_diff = tier_diff.unwrap_or(0);
+                write!(
+                    f,
+                    "Pet {stats_str} from Shop Tier ({tier_diff}) at Level {lvl}"
+                )
+            }
         }
     }
 }
@@ -132,12 +151,9 @@ impl std::fmt::Display for Action {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Action::Add(stat_change) => write!(f, "Add {stat_change}"),
+            Action::Set(stat_change) => write!(f, "Set {stat_change}"),
             Action::Remove(stat_change) => write!(f, "Damage {stat_change}"),
-            Action::Debuff(stat_debuff) => write!(
-                f,
-                "Debuff ({}%, {}%)",
-                stat_debuff.attack, stat_debuff.health
-            ),
+            Action::Debuff(stat_change) => write!(f, "Debuff {stat_change}"),
             Action::Shuffle(shuffle_type) => write!(f, "Shuffle {shuffle_type:?}"),
             Action::Swap(swap_type) => write!(f, "Swap {swap_type:?}"),
             Action::Push(pos) => write!(f, "Push from Current to {pos:?} Position"),
@@ -155,14 +171,17 @@ impl std::fmt::Display for Action {
             Action::Kill => write!(f, "Faint"),
             Action::Invincible => write!(f, "Invincibility"),
             Action::Gain(gain_type) => write!(f, "Gain {gain_type}"),
+            Action::GetToy(get_toy_type) => write!(f, "Get a toy {get_toy_type:?}"),
             Action::AddShopStats(stats) => write!(f, "Add Shop {stats}"),
             Action::AddShopFood(food) => write!(f, "Add {food} to Shop"),
             Action::AddShopPet(pet) => write!(f, "Add {pet} to Shop"),
             Action::ClearShop(item_type) => write!(f, "Clear Shop {item_type:?}"),
-            Action::Profit(gold) => write!(f, "Gain {gold} Gold"),
+            Action::AlterGold(gold_change) => write!(f, "Alter gold by {gold_change}"),
+            Action::AlterCost(cost_change) => write!(f, "Alter cost by {cost_change}"),
             Action::Discount(item_type, gold) => {
                 write!(f, "Discount {gold} Gold from {item_type:?}")
             }
+            Action::SaveGold { limit } => write!(f, "Save Remaining Gold up to {limit} Gold"),
             Action::FreeRoll(rolls) => write!(f, "Gain {rolls} Free Rolls"),
             Action::Summon(summon_type) => write!(f, "Summon {summon_type}"),
             Action::Multiple(actions) => {
@@ -175,7 +194,10 @@ impl std::fmt::Display for Action {
             Action::Lynx => write!(f, "Lynx (Damage Equal Sum Levels)"),
             Action::Stegosaurus(stats) => write!(f, "Stegosaurus (Add {stats} x Turns)"),
             Action::Cockroach => write!(f, "Cockroach (Set Attack Equal Shop Tier + Level)"),
-            Action::Moose(stats) => write!(f, "Moose (Unfreeze And Add {stats} x Lowest Tier)"),
+            Action::Moose { stats, tier } => write!(
+                f,
+                "Moose (Unfreeze And Add {stats} x Number of Tier {tier} Pets)"
+            ),
             Action::Fox(item_type, multiplier) => {
                 write!(f, "Fox (Steal {item_type:?} With {multiplier}x Stats)")
             }
@@ -192,6 +214,9 @@ impl std::fmt::Display for Action {
                         "{logic_type} Then {if_action}. Otherwise, {else_action}."
                     )
                 }
+            }
+            Action::AddToCounter(counter, count_change) => {
+                write!(f, "Adjust {counter} by {count_change}")
             }
         }
     }
@@ -232,6 +257,9 @@ impl std::fmt::Display for ConditionType {
             ConditionType::Pet(target, item_cond) => write!(f, "Pet ({target:?}) {item_cond}"),
             ConditionType::Team(target, team_cond) => write!(f, "{target:?} Team {team_cond}"),
             ConditionType::Shop(shop_cond) => write!(f, "Shop {shop_cond:?}"),
+            ConditionType::Trigger(entity, item_cond) => {
+                write!(f, "Trigger Entity ({entity:?}) {item_cond}")
+            }
         }
     }
 }
@@ -258,28 +286,29 @@ mod test {
             state::{EqualityCondition, Status, Target, TeamCondition},
         },
         teams::team::TeamFightOutcome,
-        Entity, EntityName, Food, FoodName, ItemCondition, Pet, PetName, Position, Statistics,
+        Entity, EntityName, Food, FoodName, ItemCondition, Pet, PetName, Position, SAPQuery,
+        Statistics,
     };
 
     #[test]
     fn test_stat_change_type_formatting() {
-        let add_action = Action::Add(StatChangeType::SelfMultValue(Statistics {
+        let add_action = Action::Add(StatChangeType::Multiplier(Statistics {
             attack: 50,
             health: 0,
         }));
-        assert_eq!("Add (50%, 0%) of Self Stats", format!("{add_action}"));
+        assert_eq!("Add (50%, 0%) of Stats", format!("{add_action}"));
 
-        let remove_action = Action::Remove(StatChangeType::StaticValue(Statistics {
+        let remove_action = Action::Remove(StatChangeType::Static(Statistics {
             attack: 10,
             health: 0,
         }));
         assert_eq!("Damage (10, 0)", format!("{remove_action}"));
 
-        let debuff_action = Action::Debuff(Statistics {
+        let debuff_action = Action::Debuff(StatChangeType::Multiplier(Statistics {
             attack: 50,
             health: 50,
-        });
-        assert_eq!("Debuff (50%, 50%)", format!("{debuff_action}"));
+        }));
+        assert_eq!("Debuff (50%, 50%) of Stats", format!("{debuff_action}"));
     }
 
     #[test]
@@ -364,12 +393,15 @@ mod test {
             format!("{cockroach_action}")
         );
 
-        let moose_action = Action::Moose(Statistics {
-            attack: 1,
-            health: 1,
-        });
+        let moose_action = Action::Moose {
+            stats: Statistics {
+                attack: 1,
+                health: 1,
+            },
+            tier: 1,
+        };
         assert_eq!(
-            "Moose (Unfreeze And Add (1, 1) x Lowest Tier)",
+            "Moose (Unfreeze And Add (1, 1) x Number of Tier 1 Pets)",
             format!("{moose_action}")
         );
 
@@ -389,12 +421,11 @@ mod test {
     #[test]
     fn test_shop_action_formatting() {
         let add_shop_pet = Action::AddShopPet(SummonType::QueryPet(
-            "SELECT * FROM pets".to_string(),
-            vec![],
+            SAPQuery::builder().set_table(Entity::Pet),
             None,
         ));
         assert_eq!(
-            "Add Query Pet (SELECT * FROM pets) [] (Default Stats) to Shop",
+            "Add Pet Query (Some(\"SELECT * FROM pets\")) [] (Default Stats) to Shop",
             format!("{add_shop_pet}")
         );
 
@@ -413,8 +444,8 @@ mod test {
         let shop_clear_action = Action::ClearShop(Entity::Food);
         assert_eq!("Clear Shop Food", format!("{shop_clear_action}"));
 
-        let shop_profit_action = Action::Profit(3);
-        assert_eq!("Gain 3 Gold", format!("{shop_profit_action}"));
+        let shop_profit_action = Action::AlterGold(3);
+        assert_eq!("Alter gold by 3", format!("{shop_profit_action}"));
 
         let shop_discount_action = Action::Discount(Entity::Food, 3);
         assert_eq!(
@@ -435,11 +466,13 @@ mod test {
         assert_eq!("Gain Carrot", format!("{gain_def_item_action}"));
 
         let gain_query_item_action = Action::Gain(GainType::QueryItem(
-            "SELECT * FROM foods WHERE name = ?".to_string(),
-            vec!["Garlic".to_string()],
+            SAPQuery::builder()
+                .set_table(Entity::Food)
+                .set_param("name", vec!["Garlic"])
+                .to_owned(),
         ));
         assert_eq!(
-            "Gain Query Item (SELECT * FROM foods WHERE name = ?) [\"Garlic\"]",
+            "Gain Item Query (Some(\"SELECT * FROM foods WHERE name IN (?)\")) [\"Garlic\"]",
             format!("{gain_query_item_action}"),
         );
 
@@ -453,7 +486,7 @@ mod test {
             Food::try_from(FoodName::Chocolate).unwrap(),
         )));
         assert_eq!(
-            "Gain [Chocolate: [Food Effect (Uses: None): Action: Add Experience (1) on Friend (OnSelf), Trigger: [Status: AteFood, Position: OnSelf, Affected: None, From: None]]]",
+            "Gain [Chocolate: [Effect (Uses: None): Action: Add Experience (1) on Friend (OnSelf), Trigger: [Status: AteFood, Position: OnSelf, Affected: None, From: None]]]",
             format!("{gain_stored_item_action}")
         );
 
@@ -464,15 +497,16 @@ mod test {
     #[test]
     fn test_summon_type_formatting() {
         let summon_query_pet_action = Action::Summon(SummonType::QueryPet(
-            "SELECT * FROM pets WHERE name = ?".to_string(),
-            vec!["Dog".to_owned()],
+            SAPQuery::builder()
+                .set_table(Entity::Pet)
+                .set_param("name", vec![PetName::Dog]),
             Some(Statistics {
                 attack: 50,
                 health: 50,
             }),
         ));
         assert_eq!(
-            "Summon Query Pet (SELECT * FROM pets WHERE name = ?) [\"Dog\"] (50, 50)",
+            "Summon Pet Query (Some(\"SELECT * FROM pets WHERE name IN (?)\")) [\"Dog\"] (50, 50)",
             format!("{summon_query_pet_action}")
         );
 
@@ -480,7 +514,7 @@ mod test {
             Pet::try_from(PetName::Ant).unwrap(),
         )));
         assert_eq!(
-            "Summon [Ant: (2,1) (Level: 1 Exp: 0) (Pos: None) (Item: None)]",
+            "Summon [Ant: (2,2) (Level: 1 Exp: 0) (Pos: None) (Item: None)]",
             format!("{summon_stored_pet_action}")
         );
 
@@ -489,7 +523,7 @@ mod test {
 
         let summon_custom_pet = Action::Summon(SummonType::CustomPet(
             PetName::Chick,
-            StatChangeType::StaticValue(Statistics {
+            StatChangeType::Static(Statistics {
                 attack: 12,
                 health: 1,
             }),
@@ -543,7 +577,7 @@ mod test {
             Position::All(ItemCondition::None),
         );
         assert_eq!(
-            "Copy [Pet Effect (Uses: Some(1)): Action: Damage (50%, 0%) of Self Stats on Either (Multiple([Relative(1), Relative(-1)])), Trigger: [Status: Faint, Position: OnSelf, Affected: None, From: None]] at Lvl 2 to All(None) Pet(s) on Friend Team.",
+            "Copy [Effect (Uses: Some(1)): Action: Damage (50%, 0%) of Stats on Either (Multiple([Relative(1), Relative(-1)])), Trigger: [Status: Faint, Position: OnSelf, Affected: None, From: None]] at Lvl 2 to All(None) Pet(s) on Friend Team.",
             format!("{copy_effect_action}")
         );
 
@@ -594,7 +628,7 @@ mod test {
                 ItemCondition::Equal(EqualityCondition::Name(EntityName::Food(FoodName::Garlic))),
             )),
             Box::new(Action::Gain(GainType::DefaultItem(FoodName::Weak))),
-            Box::new(Action::Remove(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Remove(StatChangeType::Static(Statistics {
                 attack: 10,
                 health: 10,
             }))),
@@ -612,7 +646,7 @@ mod test {
                     ItemCondition::Equal(EqualityCondition::Tier(6)),
                 ]),
             )),
-            Box::new(Action::Add(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 1,
                 health: 1,
             }))),
@@ -629,11 +663,11 @@ mod test {
                 Target::Either,
                 ItemCondition::Equal(EqualityCondition::Tier(2)),
             )),
-            Box::new(Action::Remove(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Remove(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
-            Box::new(Action::Add(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
@@ -648,7 +682,7 @@ mod test {
                 Target::Friend,
                 TeamCondition::PreviousBattle(TeamFightOutcome::Loss),
             )),
-            Box::new(Action::Add(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),
@@ -667,7 +701,7 @@ mod test {
                     ItemCondition::Equal(EqualityCondition::Trigger(Status::Faint)),
                 ]),
             )),
-            Box::new(Action::Add(StatChangeType::StaticValue(Statistics {
+            Box::new(Action::Add(StatChangeType::Static(Statistics {
                 attack: 2,
                 health: 2,
             }))),

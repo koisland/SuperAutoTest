@@ -4,7 +4,7 @@ use saptest::{
     Entity, Pet, Team, SAPDB,
 };
 
-fn factorial(n: u128) -> u128 {
+pub fn factorial(n: u128) -> u128 {
     (1..=n).product()
 }
 fn combinations(n: u128, choose: u128) -> u128 {
@@ -22,12 +22,15 @@ pub fn five_pet_combinations() {
         .set_param("lvl", vec![1])
         .set_param("pack", vec![Pack::Turtle]);
 
-    let turtle_records = SAPDB
+    let mut turtle_records = SAPDB
         .execute_query(query)
         .unwrap()
         .into_iter()
-        .filter_map(|record| TryInto::<PetRecord>::try_into(record).ok())
+        .map(|record| TryInto::<PetRecord>::try_into(record).ok())
         .collect_vec();
+
+    // Include combinations with two slots.
+    turtle_records.extend([None, None]);
 
     let n = turtle_records.len().try_into().unwrap();
     let choose = 5;
@@ -56,7 +59,7 @@ pub fn five_pet_combinations() {
             for comb in chunk.into_iter() {
                 let pets: Vec<Option<Pet>> = comb
                     .into_iter()
-                    .map(|pet| Some(pet.try_into().unwrap()))
+                    .map(|pet| pet.map(|rec| rec.try_into().unwrap()))
                     .collect_vec();
                 let team = Team::new(&pets, 5).unwrap();
                 teams.push(team)

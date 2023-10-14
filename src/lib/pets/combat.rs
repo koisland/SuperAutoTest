@@ -3,7 +3,7 @@ use rand_chacha::ChaCha12Rng;
 
 use crate::{
     effects::{
-        actions::{Action, StatChangeType},
+        actions::Action,
         effect::EffectModify,
         state::{Outcome, Position, Status},
         stats::Statistics,
@@ -88,7 +88,7 @@ pub trait PetCombat {
     /// ```
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize);
 
-    /// Handle the logic of [`Pet`](crate::Pet) interaction during the battle phase.
+    /// Handle the logic of [`Pet`] interaction during the battle phase.
     /// * Decrements a held [`Food`](crate::Food) uses.
     /// # Example
     /// ```
@@ -102,24 +102,24 @@ pub trait PetCombat {
     /// ant_1.item = Some(Food::try_from(FoodName::Melon).unwrap());
     ///
     /// // Original stats and effect uses.
-    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 1);
+    /// assert!(ant_1.stats.health == 2 && ant_2.stats.health == 2);
     /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(1));
     ///
     /// // Attack alters attack, health, and held item uses.
     /// ant_1.attack(&mut ant_2);
-    /// assert!(ant_1.stats.health == 1 && ant_2.stats.health == 0);
+    /// assert!(ant_1.stats.health == 2 && ant_2.stats.health == 0);
     /// assert_eq!(ant_1.item.as_ref().unwrap().ability.uses, Some(0));
     /// ```
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome;
 
-    /// Perform a projectile/indirect attack on a [`Pet`](crate::Pet).
+    /// Perform a projectile/indirect attack on a [`Pet`].
     /// * Health stat in [`Statistics`] is ignored.
     /// # Examples
     /// ```
     /// use saptest::{Pet, PetName, PetCombat, Statistics};
     ///
     /// let mut ant = Pet::try_from(PetName::Ant).unwrap();
-    /// assert_eq!(ant.stats.health, 1);
+    /// assert_eq!(ant.stats.health, 2);
     ///
     /// // Deal damage with attack value of 2.
     /// ant.indirect_attack(&Statistics {attack: 2, health: 0});
@@ -135,7 +135,7 @@ pub trait PetCombat {
     ///
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
     /// // New health is identical.
-    /// let outcome = ant_1.get_atk_outcomes(1);
+    /// let outcome = ant_1.get_atk_outcomes(2);
     /// // Unhurt trigger for friends.
     /// assert_eq!(
     ///     outcome.friends.front().unwrap(),
@@ -170,7 +170,7 @@ pub trait PetCombat {
     /// );
     /// ```
     /// ---
-    /// **MeatBone** - Gives `4` additional attack in damage calculation.
+    /// **MeatBone** - Gives `3` additional attack in damage calculation.
     /// ```
     /// use saptest::{Pet, PetName, Food, FoodName, Statistics, PetCombat};
     ///
@@ -178,7 +178,7 @@ pub trait PetCombat {
     /// ant_1.item = Some(Food::try_from(FoodName::MeatBone).unwrap());
     /// assert_eq!(
     ///     ant_1.get_food_stat_modifier(),
-    ///     Some(Statistics::new(4, 0).unwrap())
+    ///     Some(Statistics::new(3, 0).unwrap())
     /// );
     /// ```
     fn get_food_stat_modifier(&self) -> Option<Statistics>;
@@ -207,7 +207,7 @@ pub trait PetCombat {
     ///     effects::actions::{Action, StatChangeType}
     /// };
     /// let mut ant_1 = Pet::try_from(PetName::Ant).unwrap();
-    /// let add_action = Action::Add(StatChangeType::StaticValue(Statistics::new(2,1).unwrap()));
+    /// let add_action = Action::Add(StatChangeType::Static(Statistics::new(2,1).unwrap()));
     ///
     /// assert!(ant_1.has_effect_ability(&add_action, true))
     /// ```
@@ -224,9 +224,7 @@ impl PetCombat for Pet {
             return AttackOutcome::default();
         }
         // Get food status modifier. ex. Melon/Garlic
-        let stat_modifier = self
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
+        let stat_modifier = self.get_food_stat_modifier().unwrap_or_default();
 
         let min_enemy_dmg = min_dmg_received(self);
         let max_enemy_dmg = max_dmg_received(self);
@@ -330,12 +328,9 @@ impl PetCombat for Pet {
 
             match food_effect {
                 // Get stat modifiers from effects.
-                Action::Add(stat_change) | Action::Remove(stat_change) => match stat_change {
-                    StatChangeType::StaticValue(stats) => Some(*stats),
-                    StatChangeType::SelfMultValue(stats_mult) => {
-                        Some(self.stats.mult_perc(stats_mult))
-                    }
-                },
+                Action::Add(stat_change) | Action::Remove(stat_change) => {
+                    stat_change.to_stats(Some(self.stats), None, false).ok()
+                }
                 Action::Negate(stats) => {
                     let mut mod_stats = *stats;
                     // Reverse values so that (2 atk, 0 health) -> (0 atk, 2 health).
@@ -404,12 +399,8 @@ impl PetCombat for Pet {
 
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize) {
         // Get stat modifier from food.
-        let stat_modifier = self
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
-        let enemy_stat_modifier = enemy
-            .get_food_stat_modifier()
-            .unwrap_or(Statistics::default());
+        let stat_modifier = self.get_food_stat_modifier().unwrap_or_default();
+        let enemy_stat_modifier = enemy.get_food_stat_modifier().unwrap_or_default();
 
         let min_enemy_dmg = min_dmg_received(self);
         let min_dmg = min_dmg_received(enemy);

@@ -12,43 +12,16 @@ use crate::{
     db::{pack::Pack, record::FoodRecord},
     error::SAPTestError,
     regex_patterns::*,
-    wiki_scraper::common::{get_page_info, remove_icon_names},
+    wiki_scraper::common::get_page_info,
 };
 
+use super::common::clean_link_text;
 use super::IMG_URLS;
 
 const SINGLE_USE_ITEMS_EXCEPTIONS: [&str; 2] = ["Pepper", "Sleeping Pill"];
-const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 3] = ["Coconut", "Weak", "Peanut"];
+const HOLDABLE_ITEMS_EXCEPTIONS: [&str; 2] = ["Coconut", "Peanut"];
 const ONE_GOLD_ITEMS_EXCEPTIONS: [&str; 1] = ["Sleeping Pill"];
 const DEFAULT_FOOD_COST: usize = 3;
-
-/// Clean text removing:
-/// * Links `[[...|...]]`
-/// * Icon names `{IconSAP|...}`.
-pub fn clean_link_text(text: &str) -> String {
-    let mut text_copy = text.to_string();
-
-    for capture in RGX_FOOD_LINK_NAME.captures_iter(text) {
-        // Get last element in link text.
-        // ex. |Give one [[Pets|pet]] [[Lemon]]. -> Give one pet Lemon.
-        for (i, mtch) in capture.iter().enumerate() {
-            // Skip first match which matches everything.
-            if i == 0 {
-                continue;
-            }
-            let food_name = mtch
-                .map_or("", |m| m.as_str())
-                .split('|')
-                .last()
-                .unwrap_or("");
-            // Update line copy replacing links wiht food name.
-            text_copy = RGX_FOOD_LINK_NAME
-                .replacen(&text_copy, 1, food_name)
-                .to_string();
-        }
-    }
-    remove_icon_names(&text_copy).trim_matches('|').to_string()
-}
 
 /// Check whether food effect is random and the number of targets it affects.
 pub fn get_random_n_effect(effect: &str) -> Result<(bool, usize), Box<dyn Error>> {
@@ -161,7 +134,7 @@ pub fn parse_one_food_entry(
     let url = IMG_URLS
         .get(name)
         .map(|data| data.url.clone())
-        .unwrap_or_else(String::default);
+        .unwrap_or_default();
 
     let holdable_item = is_holdable_item(name, effect);
     let (_, single_use) = is_temp_single_use(name, effect);
@@ -194,6 +167,7 @@ pub fn parse_one_food_entry(
             turn_effect,
             cost,
             img_url: url.clone(),
+            is_ailment: false,
         });
     }
     Ok(())

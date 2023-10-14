@@ -1,12 +1,10 @@
 use crate::{
-    db::record::{FoodRecord, PetRecord},
     effects::{
         actions::{
-            Action, ConditionType, CopyType, GainType, LogicType, RandomizeType, StatChangeType,
-            SummonType,
+            Action, ConditionType, CopyType, LogicType, RandomizeType, StatChangeType, SummonType,
         },
         effect::{Effect, EffectModify, Entity},
-        state::{ItemCondition, Outcome, Position, ShopCondition, Status, Target, TeamCondition},
+        state::{ItemCondition, Outcome, Position, Status, Target},
         stats::Statistics,
         trigger::*,
     },
@@ -16,12 +14,11 @@ use crate::{
         pet::{reassign_effects, MAX_PET_STATS, MIN_PET_STATS},
     },
     shop::{
-        store::{ItemSlot, ItemState, ShopState, MAX_SHOP_TIER},
+        store::{ItemSlot, ItemState, ShopState},
         team_shopping::TeamShoppingHelpers,
     },
     teams::{history::TeamHistoryHelpers, team::Team, viewer::TeamViewer},
-    Food, Pet, PetCombat, ShopItem, ShopItemViewer, ShopViewer, TeamEffects, TeamShopping, CONFIG,
-    SAPDB,
+    Pet, PetCombat, ShopItem, ShopItemViewer, ShopViewer, TeamEffects, CONFIG,
 };
 
 use itertools::Itertools;
@@ -76,7 +73,7 @@ pub(crate) trait EffectApplyHelpers {
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
-    /// Apply [`Shop`](crate::Shop) effects.
+    /// Apply [`Shop`] effects.
     fn apply_shop_effect(&mut self, effect: &Effect) -> Result<(), SAPTestError>;
 
     fn copy_effect(
@@ -86,23 +83,10 @@ pub(crate) trait EffectApplyHelpers {
         receiving_pet: &Arc<RwLock<Pet>>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
-    fn convert_gain_type_to_food(
-        &self,
-        gain_type: &GainType,
-        target_pet: &Arc<RwLock<Pet>>,
-    ) -> Result<Option<Food>, SAPTestError>;
-
-    fn convert_summon_type_to_pet(
-        &self,
-        summon_type: &SummonType,
-        target_pet: &Arc<RwLock<Pet>>,
-    ) -> Result<Pet, SAPTestError>;
-
     fn swap_pets(
         &mut self,
         swap_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
@@ -111,7 +95,6 @@ pub(crate) trait EffectApplyHelpers {
         target_team: &Target,
         shuffle_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
@@ -134,6 +117,7 @@ pub(crate) trait EffectApplyHelpers {
     fn check_condition(
         &self,
         condition_type: &ConditionType,
+        effect: &Effect,
         target_pet: &Arc<RwLock<Pet>>,
         opponent: &Option<&mut Team>,
     ) -> Result<bool, SAPTestError>;
@@ -213,11 +197,7 @@ impl EffectApplyHelpers for Team {
             });
         if let Some(valid_food) = item {
             // Use effect on affected pets.
-            let affected_pets = self.get_pets_by_effect(
-                &valid_food.ability.trigger,
-                &valid_food.ability,
-                Some(opponent),
-            )?;
+            let affected_pets = self.get_pets_by_effect(&valid_food.ability, Some(opponent))?;
             for affected_pet in affected_pets.iter() {
                 if affected_pet.read().unwrap().team.as_ref() == Some(&self.name) {
                     self.apply_single_effect(
@@ -244,13 +224,12 @@ impl EffectApplyHelpers for Team {
         &mut self,
         swap_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let target_pets = if let Some(opponent) = opponent.as_ref() {
-            self.get_pets_by_effect(trigger, effect, Some(opponent))?
+            self.get_pets_by_effect(effect, Some(opponent))?
         } else {
-            self.get_pets_by_effect(trigger, effect, None)?
+            self.get_pets_by_effect(effect, None)?
         };
 
         if target_pets.len() != 2 {
@@ -284,7 +263,6 @@ impl EffectApplyHelpers for Team {
         target_team: &Target,
         shuffle_type: &RandomizeType,
         effect: &Effect,
-        trigger: &Outcome,
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let teams = match target_team {
@@ -307,7 +285,7 @@ impl EffectApplyHelpers for Team {
                 // Find pets on current team.
                 &Target::Friend,
                 &effect.position,
-                Some(trigger),
+                Some(&effect.trigger),
                 None,
             )?;
             match shuffle_type {
@@ -317,7 +295,8 @@ impl EffectApplyHelpers for Team {
 
                     // Then split into two pet chunks and swap pets.
                     for mut chunk in &found_pets.iter().chunks(2) {
-                        let (Some(first_pet), Some(second_pet)) = (chunk.next(), chunk.next()) else {
+                        let (Some(first_pet), Some(second_pet)) = (chunk.next(), chunk.next())
+                        else {
                             continue;
                         };
                         first_pet
@@ -387,138 +366,6 @@ impl EffectApplyHelpers for Team {
         Ok(tiger_doubled_effects)
     }
 
-    fn convert_gain_type_to_food(
-        &self,
-        gain_type: &GainType,
-        target_pet: &Arc<RwLock<Pet>>,
-    ) -> Result<Option<Food>, SAPTestError> {
-        Ok(match gain_type {
-            GainType::SelfItem => target_pet.read().unwrap().item.clone(),
-            GainType::DefaultItem(food_name) => Some(Food::try_from(food_name)?),
-            GainType::StoredItem(food) => Some(*food.clone()),
-            GainType::RandomShopItem => {
-                let (sql, params) = self.shop.shop_query(Entity::Food, 1..self.shop.tier() + 1);
-                self.convert_gain_type_to_food(&GainType::QueryItem(sql, params), target_pet)?
-            }
-            GainType::QueryItem(query, params) => {
-                let food_records: Vec<FoodRecord> = SAPDB
-                    .execute_sql_query(query, params)?
-                    .into_iter()
-                    .filter_map(|record| record.try_into().ok())
-                    .collect_vec();
-                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                // Only select one pet.
-                let food_record =
-                    food_records
-                        .choose(&mut rng)
-                        .ok_or(SAPTestError::QueryFailure {
-                            subject: "Food Query".to_string(),
-                            reason: format!("No record found for query: {query} with {params:?}"),
-                        })?;
-                Some(Food::try_from(food_record.name.clone())?)
-            }
-            GainType::NoItem => None,
-        })
-    }
-    fn convert_summon_type_to_pet(
-        &self,
-        summon_type: &SummonType,
-        target_pet: &Arc<RwLock<Pet>>,
-    ) -> Result<Pet, SAPTestError> {
-        let mut new_pet = match summon_type {
-            SummonType::QueryPet(sql, params, stats) => {
-                let pet_records: Vec<PetRecord> = SAPDB
-                    .execute_sql_query(sql, params)?
-                    .into_iter()
-                    .filter_map(|record| record.try_into().ok())
-                    .collect_vec();
-                let mut rng = ChaCha12Rng::seed_from_u64(
-                    target_pet.read().unwrap().seed.unwrap_or_else(random),
-                );
-                // Only select one pet.
-                let pet_record =
-                    pet_records
-                        .choose(&mut rng)
-                        .ok_or(SAPTestError::QueryFailure {
-                            subject: "Summon Query".to_string(),
-                            reason: format!("No record found for query: {sql} with {params:?}"),
-                        })?;
-                // Give unique id.
-                let mut pet = Pet::try_from(pet_record.clone())?;
-
-                // Set stats if some value provided.
-                if let Some(set_stats) = stats {
-                    pet.stats = *set_stats;
-                }
-                pet
-            }
-            SummonType::StoredPet(box_pet) => *box_pet.clone(),
-            SummonType::DefaultPet(default_pet) => Pet::try_from(default_pet.clone())?,
-            SummonType::CustomPet(name, stat_types, lvl) => {
-                let mut stats = match stat_types {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        target_pet.read().unwrap().stats.mult_perc(stats)
-                    }
-                };
-                Pet::new(
-                    name.clone(),
-                    Some(stats.clamp(1, MAX_PET_STATS).to_owned()),
-                    *lvl,
-                )?
-            }
-            SummonType::SelfPet(new_stats, new_level, keep_item) => {
-                // Current pet. Remove item
-                let mut pet = target_pet.read().unwrap().clone();
-                pet.item = if *keep_item {
-                    target_pet.read().unwrap().item.clone()
-                } else {
-                    None
-                };
-                pet.stats = new_stats
-                    .map_or_else(|| target_pet.read().unwrap().stats, |set_stats| set_stats);
-                if let Some(new_level) = new_level {
-                    pet.set_level(*new_level)?;
-                }
-                pet
-            }
-            SummonType::SelfTierPet(stats, level) => {
-                let summon_query_type = SummonType::QueryPet(
-                    "SELECT * FROM pets WHERE tier = ? AND lvl = ?".to_string(),
-                    vec![
-                        target_pet.read().unwrap().tier.to_string(),
-                        level.unwrap_or(1).to_string(),
-                    ],
-                    *stats,
-                );
-                self.convert_summon_type_to_pet(&summon_query_type, target_pet)?
-            }
-            SummonType::SelfTeamPet(stats, lvl, ignore_pet) => {
-                let mut rng = ChaCha12Rng::seed_from_u64(self.seed.unwrap_or_else(random));
-                // Choose a pet on the current team that isn't the ignored pet.
-                let chosen_friend_name = self
-                    .friends
-                    .iter()
-                    .flatten()
-                    .filter_map(|pet| {
-                        let pet_name = pet.read().unwrap().name.clone();
-                        (pet_name != *ignore_pet).then_some(pet_name)
-                    })
-                    .choose(&mut rng);
-                // NOTE: Allow to fail silently if no pet found.
-                // Will only fail if friends empty or no valid friends found.
-                if let Some(chosen_friend_name) = chosen_friend_name {
-                    Pet::new(chosen_friend_name, *stats, lvl.unwrap_or(1))?
-                } else {
-                    return Err(SAPTestError::FallibleAction);
-                }
-            }
-        };
-
-        new_pet.id = Some(format!("{}_{}", new_pet.name, self.history.pet_count + 1));
-        Ok(new_pet)
-    }
-
     fn summon_pet(
         &mut self,
         target_pet: &Arc<RwLock<Pet>>,
@@ -526,7 +373,7 @@ impl EffectApplyHelpers for Team {
         opponent: Option<&mut Team>,
     ) -> Result<Arc<RwLock<Pet>>, SAPTestError> {
         // Can't impl TryFrom because requires target pet.
-        let summoned_pet = self.convert_summon_type_to_pet(summon_type, target_pet)?;
+        let summoned_pet = summon_type.to_pet(self, target_pet)?;
         let target_pet = target_pet.read().unwrap();
         let target_idx = target_pet.pos.ok_or(SAPTestError::InvalidTeamAction {
             subject: "Missing Summon Position".to_string(),
@@ -585,7 +432,6 @@ impl EffectApplyHelpers for Team {
         let mut affected_pet_guard = affected_pet.write().unwrap();
         affected_pet_guard.effect = vec![Effect {
             owner: Some(target_pet_ref),
-            entity: Entity::Pet,
             trigger: target_pet_trigger,
             target: Target::Friend,
             position: Position::OnSelf,
@@ -707,30 +553,10 @@ impl EffectApplyHelpers for Team {
     fn check_condition(
         &self,
         condition_type: &ConditionType,
+        effect: &Effect,
         target_pet: &Arc<RwLock<Pet>>,
         opponent: &Option<&mut Team>,
     ) -> Result<bool, SAPTestError> {
-        fn match_team_cond(team: &Team, cond: &TeamCondition) -> bool {
-            match cond {
-                TeamCondition::PreviousBattle(outcome) => {
-                    // Get last battle outcome and if matches condition, apply effect.
-                    if let Some(last_outcome) = team.history.fight_outcomes.last() {
-                        last_outcome == outcome
-                    } else {
-                        false
-                    }
-                }
-                TeamCondition::OpenSpaceEqual(des_num_open) => {
-                    // Number of spaces open.
-                    *des_num_open == team.open_slots()
-                }
-                TeamCondition::NumberPetsEqual(num_pets) => *num_pets == team.filled_slots(),
-                TeamCondition::NumberPetsGreaterEqual(num_pets) => *num_pets <= team.filled_slots(),
-                TeamCondition::NumberFaintedMultiple(multiple) => {
-                    team.fainted.len() % *multiple == 0
-                }
-            }
-        }
         match condition_type {
             ConditionType::Pet(target, cond) => Ok(self
                 .get_matching_pets(target, cond, opponent)?
@@ -738,9 +564,9 @@ impl EffectApplyHelpers for Team {
                 .any(|pet| Arc::ptr_eq(pet, target_pet))),
             ConditionType::Team(target, cond) => {
                 if let Target::Friend = target {
-                    Ok(match_team_cond(self, cond))
+                    Ok(cond.matches_team(self))
                 } else if let (Target::Enemy, Some(opponent)) = (target, opponent) {
-                    Ok(match_team_cond(opponent, cond))
+                    Ok(cond.matches_team(opponent))
                 } else {
                     return Err(SAPTestError::InvalidTeamAction {
                         subject: "Invalid Target".to_string(),
@@ -748,10 +574,29 @@ impl EffectApplyHelpers for Team {
                     });
                 }
             }
-            ConditionType::Shop(cond) => match cond {
-                ShopCondition::InState(state) => Ok(self.shop.state == *state),
-                ShopCondition::GoldEqual(gold) => Ok(self.gold() == *gold),
-                ShopCondition::GoldGreaterEqual(gold) => Ok(self.gold() >= *gold),
+            ConditionType::Shop(cond) => Ok(cond.matches_shop(self)),
+            ConditionType::Trigger(entity, cond) => match entity {
+                Entity::Pet => {
+                    let pets = self.all();
+
+                    Ok(self
+                        .filter_matching_pets(pets, cond)
+                        .into_iter()
+                        .any(|pet| Arc::ptr_eq(&pet, target_pet)))
+                }
+                Entity::Food => {
+                    let Some(food) = effect
+                        .trigger
+                        .afflicting_food
+                        .as_ref()
+                        .and_then(|food_ref| food_ref.upgrade())
+                    else {
+                        return Ok(false);
+                    };
+                    let food = food.read().unwrap();
+                    Ok(cond.matches_food(&food))
+                }
+                Entity::Toy => todo!(),
             },
         }
     }
@@ -798,92 +643,21 @@ impl EffectApplyHelpers for Team {
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError> {
         let mut affected_pets = vec![];
 
-        // /// TODO: Maybe change to execute difference from total?
-        // /// ex. Conditional action for each open slot on team. if 0: execute if_action 0 times, else: execute else_action 5 times.
-        // /// Get the number of pets at a given target.
-        // fn num_pets(target: &Target, team: &Team, opponent: &Option<&mut Team>) -> usize {
-        //     match target {
-        //         Target::Friend => team.all().len(),
-        //         Target::Enemy => opponent.as_ref().map(|opponent| opponent.all().len()).unwrap_or(0),
-        //         Target::Shop => team.shop.pets.len(),
-        //         Target::Either => team.all().len() + num_pets(&Target::Enemy, team, opponent),
-        //         Target::None => 0,
-        //     }
-        // }
-
-        /// Get the number of actions given a ConditionType.
-        fn num_actions_for_each(
-            cond_type: &ConditionType,
-            team: &Team,
-            opponent: &Option<&mut Team>,
-        ) -> Result<usize, SAPTestError> {
-            match cond_type {
-                // Get number of pets matching condition
-                ConditionType::Pet(target, cond) => {
-                    Ok(team.get_matching_pets(target, cond, opponent)?.len())
-                }
-                ConditionType::Team(target, cond) => {
-                    let selected_team = if *target == Target::Friend {
-                        team
-                    } else if let Some(opponent) = opponent.as_ref() {
-                        opponent
-                    } else {
-                        return Err(SAPTestError::InvalidTeamAction {
-                            subject: format!("Incompatible Target {target:?} or Missing Opponent"),
-                            reason: format!("Opponent must be known for this action or invalid target {target:?} for {cond_type:?}."),
-                        });
-                    };
-                    match cond {
-                        TeamCondition::PreviousBattle(outcome) => {
-                            let matching_outcomes = selected_team
-                                .history
-                                .fight_outcomes
-                                .iter()
-                                .filter(|fight_outcome| *fight_outcome == outcome)
-                                .count();
-
-                            Ok(matching_outcomes)
-                        }
-                        _ => Err(SAPTestError::InvalidTeamAction {
-                            subject: "Not Implemented".to_string(),
-                            reason: format!("{cond:?} not implemented for {cond_type:?}."),
-                        }),
-                    }
-                }
-                _ => Err(SAPTestError::InvalidTeamAction {
-                    subject: "Not Implemented".to_string(),
-                    reason: format!(
-                        "ConditionType {cond_type:?} not implemented for LogicType::ForEach."
-                    ),
-                }),
-            }
-        }
-
         // Get number of times action should be executed for action and other action.
         let num_actions = match logic_type {
-            LogicType::ForEach(cond_type) => num_actions_for_each(cond_type, self, &opponent)?,
+            LogicType::ForEach(cond_type) => {
+                cond_type.num_actions_for_each(self, &opponent, Some(&effect.trigger))?
+            }
             LogicType::If(cond_type) => {
-                if self.check_condition(cond_type, affected_pet, &opponent)? {
-                    1
-                } else {
-                    0
-                }
+                usize::from(self.check_condition(cond_type, effect, affected_pet, &opponent)?)
             }
             LogicType::IfNot(cond_type) => {
-                if !self.check_condition(cond_type, affected_pet, &opponent)? {
-                    1
-                } else {
-                    0
-                }
+                usize::from(!self.check_condition(cond_type, effect, affected_pet, &opponent)?)
             }
             LogicType::IfAny(cond_type) => match cond_type {
                 ConditionType::Pet(target, cond) => {
                     // If any pet matches condition, run action.
-                    if !self.get_matching_pets(target, cond, &opponent)?.is_empty() {
-                        1
-                    } else {
-                        0
-                    }
+                    usize::from(!self.get_matching_pets(target, cond, &opponent)?.is_empty())
                 }
                 _ => {
                     return Err(SAPTestError::InvalidTeamAction {
@@ -941,7 +715,6 @@ impl EffectApplyHelpers for Team {
 
     fn apply_shop_effect(&mut self, effect: &Effect) -> Result<(), SAPTestError> {
         let effect_owner: Arc<RwLock<Pet>> = effect.try_into()?;
-        // let mut affected_team_pets = vec![];
 
         match &effect.action {
             Action::AddShopStats(stats) => {
@@ -956,8 +729,8 @@ impl EffectApplyHelpers for Team {
                 info!(target: "run", "(\"{}\")\nAdded permanent shop {}.", self.name, stats)
             }
             Action::AddShopFood(gain_food_type) => {
-                let new_shop_food = self
-                    .convert_gain_type_to_food(gain_food_type, &effect_owner)?
+                let new_shop_food = gain_food_type
+                    .to_food(self, &effect_owner)?
                     .map(ShopItem::from);
                 info!(target: "run", "(\"{}\")\nAdding shop item {:?}.", self.name, new_shop_food.as_ref());
 
@@ -966,8 +739,7 @@ impl EffectApplyHelpers for Team {
                 }
             }
             Action::AddShopPet(summon_type) => {
-                let new_shop_pet =
-                    ShopItem::from(self.convert_summon_type_to_pet(summon_type, &effect_owner)?);
+                let new_shop_pet = ShopItem::from(summon_type.to_pet(self, &effect_owner)?);
                 info!(target: "run", "(\"{}\")\nAdding shop item {:?}.", self.name, &new_shop_pet);
 
                 if let Err(err) = self.shop.add_item(new_shop_pet) {
@@ -978,14 +750,24 @@ impl EffectApplyHelpers for Team {
                 match item_type {
                     Entity::Pet => self.shop.pets.clear(),
                     Entity::Food => self.shop.foods.clear(),
+                    _ => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: String::from("Invalid Shop Entity"),
+                            reason: format!("{item_type} cannot be cleared."),
+                        })
+                    }
                 }
                 info!(target: "run", "(\"{}\")\nCleared shop {item_type:?}.", self.name)
             }
-            Action::Profit(coins) => {
-                for _ in 0..*coins {
-                    self.shop.coins += 1;
-                    info!(target: "run", "(\"{}\")\nIncreased shop coins by 1. New coin count: {}", self.name, self.shop.coins)
+            Action::AlterGold(coins) => {
+                if coins.is_negative() {
+                    let coin_change: usize = (-*coins).try_into()?;
+                    self.shop.coins = self.shop.coins.saturating_sub(coin_change);
+                } else {
+                    let coin_change: usize = (*coins).try_into()?;
+                    self.shop.coins += coin_change;
                 }
+                info!(target: "run", "(\"{}\")\nAltered shop gold by {}. New coin count: {}", self.name, coins, self.shop.coins)
             }
             Action::Discount(entity, discount) => {
                 // Method only gets immutable refs.
@@ -998,11 +780,23 @@ impl EffectApplyHelpers for Team {
                 let shop_items = match entity {
                     Entity::Pet => self.shop.pets.iter_mut(),
                     Entity::Food => self.shop.foods.iter_mut(),
+                    _ => {
+                        return Err(SAPTestError::InvalidShopAction {
+                            subject: String::from("Invalid Shop Entity"),
+                            reason: format!("{entity} cannot be discounted."),
+                        })
+                    }
                 };
                 for item in shop_items.filter(|item| affected_items_copy.contains(item)) {
                     item.cost = item.cost.saturating_sub(*discount)
                 }
             }
+            Action::GetToy(toy_type) => {
+                if let Some(toy) = toy_type.to_toy(self)? {
+                    self.toys.push(toy)
+                }
+            }
+            Action::SaveGold { limit } => self.shop.saved_coins = self.shop.coins.clamp(0, *limit),
             Action::FreeRoll(n_rolls) => {
                 for _ in 0..*n_rolls {
                     self.shop.free_rolls += 1;
@@ -1027,7 +821,7 @@ impl EffectApplyHelpers for Team {
                 )?;
             }
             _ => {
-                for pet in self.get_pets_by_effect(&TRIGGER_NONE, effect, None)? {
+                for pet in self.get_pets_by_effect(effect, None)? {
                     self.apply_single_effect(&pet, &effect_owner, effect, None)?;
                 }
             }
@@ -1035,6 +829,7 @@ impl EffectApplyHelpers for Team {
 
         Ok(())
     }
+
     fn apply_single_effect(
         &mut self,
         affected_pet: &Arc<RwLock<Pet>>,
@@ -1048,35 +843,34 @@ impl EffectApplyHelpers for Team {
 
         match &effect.action {
             Action::Add(stat_change) => {
+                let affected_pet_stats = affected_pet.read().unwrap().stats;
+                let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
+
                 // Cannot add stats to fainted pets.
                 // If owner is dead and the trigger for effect was not faint, ignore it.
-                if affected_pet.read().unwrap().stats.health == 0
-                    || (afflicting_pet.read().unwrap().stats.health == 0
-                        && effect.trigger.status != Status::Faint)
-                {
+                let afflicting_pet_w_faint_trigger_has_fainted =
+                    afflicting_pet_stats.health == 0 && effect.trigger.status != Status::Faint;
+                if affected_pet_stats.health == 0 || afflicting_pet_w_faint_trigger_has_fainted {
                     return Ok(affected_pets);
                 }
+                // Convert stat change to stats with afflicting pet stats.
+                let added_stats = stat_change.to_stats(
+                    Some(afflicting_pet_stats),
+                    Some(&self.counters),
+                    false,
+                )?;
 
-                let added_stats = match stat_change {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
-                        // Update action for digraph with static value.
-                        modified_effect.action =
-                            Action::Add(StatChangeType::StaticValue(mult_stats));
-                        mult_stats
-                    }
-                };
+                // Update action for digraph with static value.
+                modified_effect.action = Action::Add(StatChangeType::Static(added_stats));
 
                 // If effect is temporary, store stats to be removed from referenced pet on reopening shop.
                 if effect.temp
                     && effect.target == Target::Friend
                     && self.shop.state == ShopState::Open
                 {
-                    self.shop.temp_stats.push((
-                        affected_pet.read().unwrap().id.as_ref().unwrap().clone(),
-                        added_stats,
-                    ));
+                    self.shop
+                        .temp_stats
+                        .push((affected_pet.read().unwrap().id.unwrap(), added_stats));
                 }
                 affected_pet.write().unwrap().stats += added_stats;
                 {
@@ -1086,13 +880,14 @@ impl EffectApplyHelpers for Team {
                 affected_pets.push(affected_pet.clone());
             }
             Action::Remove(stat_change) => {
-                let mut remove_stats = match stat_change {
-                    StatChangeType::StaticValue(stats) => *stats,
-                    StatChangeType::SelfMultValue(stats) => {
-                        let mult_stats = afflicting_pet.read().unwrap().stats.mult_perc(stats);
-                        mult_stats
-                    }
-                };
+                let afflicting_pet_stats = afflicting_pet.read().unwrap().stats;
+
+                let mut remove_stats = stat_change.to_stats(
+                    Some(afflicting_pet_stats),
+                    Some(&self.counters),
+                    false,
+                )?;
+
                 // Check for food on effect owner. Add any effect dmg modifiers. ex. Pineapple
                 if let Some(item) = afflicting_pet
                     .read()
@@ -1102,16 +897,16 @@ impl EffectApplyHelpers for Team {
                     .filter(|item| Status::IndirectAttackDmgCalc == item.ability.trigger.status)
                 {
                     if let Action::Add(modifier) = &item.ability.action {
-                        remove_stats = match modifier {
-                            StatChangeType::StaticValue(stats) => remove_stats + *stats,
-                            StatChangeType::SelfMultValue(stats_mult) => {
-                                remove_stats.mult_perc(stats_mult)
-                            }
-                        }
+                        let modifier_stats = modifier.to_stats(
+                            Some(afflicting_pet_stats),
+                            Some(&self.counters),
+                            false,
+                        )?;
+                        remove_stats += modifier_stats
                     }
                 }
                 // Update with remaining modifiers.
-                modified_effect.action = Action::Remove(StatChangeType::StaticValue(remove_stats));
+                modified_effect.action = Action::Remove(StatChangeType::Static(remove_stats));
 
                 let mut atk_outcome = affected_pet.write().unwrap().indirect_attack(&remove_stats);
                 {
@@ -1121,7 +916,7 @@ impl EffectApplyHelpers for Team {
 
                 // Update for digraph to show health loss.
                 modified_effect.action =
-                    Action::Remove(StatChangeType::StaticValue(atk_outcome.friend_stat_change));
+                    Action::Remove(StatChangeType::Static(atk_outcome.friend_stat_change));
 
                 // Update triggers from where they came from.
                 if let Some(opponent) = opponent.as_mut() {
@@ -1137,9 +932,20 @@ impl EffectApplyHelpers for Team {
 
                 affected_pets.push(affected_pet.clone());
             }
+            Action::Set(stat_change) => {
+                let new_stats = {
+                    let pet = affected_pet.read().unwrap();
+                    let team_counters = if pet.team.as_ref() == Some(&self.name) {
+                        Some(&self.counters)
+                    } else {
+                        opponent.as_ref().map(|team| &team.counters)
+                    };
+                    stat_change.to_stats(Some(pet.stats), team_counters, true)?
+                };
+                affected_pet.write().unwrap().stats = new_stats;
+            }
             Action::Gain(gain_food_type) => {
-                let mut food = self.convert_gain_type_to_food(gain_food_type, afflicting_pet)?;
-
+                let mut food = gain_food_type.to_food(self, afflicting_pet)?;
                 {
                     let pet = affected_pet.read().unwrap();
                     if food.is_none() {
@@ -1147,27 +953,51 @@ impl EffectApplyHelpers for Team {
                     } else if let Some(food) = food.as_mut() {
                         info!(target: "run", "(\"{}\")\nGave {} to {}.", self.name, food, pet);
                         food.ability.assign_owner(Some(affected_pet));
+
+                        // Check if given an ailment.
+                        if food.is_ailment {
+                            let mut trigger_ailment = TRIGGER_ANY_GAIN_AILMENT;
+                            trigger_ailment.set_affected(affected_pet);
+                            self.triggers.push_back(trigger_ailment)
+                        }
                     }
                 }
-
                 affected_pet.write().unwrap().item = food;
                 affected_pets.push(affected_pet.clone());
             }
-            Action::Moose(stats) => {
+            Action::AlterCost(cost_change) => {
+                let affected_pet_cost = affected_pet.read().unwrap().cost;
+                if cost_change.is_negative() {
+                    let coin_change: usize = (-*cost_change).try_into()?;
+                    affected_pet.write().unwrap().cost =
+                        affected_pet_cost.saturating_sub(coin_change);
+                } else {
+                    let coin_change: usize = (*cost_change).try_into()?;
+                    affected_pet.write().unwrap().cost += coin_change;
+                }
+                info!(
+                    target: "run",
+                    "(\"{}\")\nAltered cost of {:?} by {}. New coin count: {}",
+                    self.name,
+                    affected_pet.read().unwrap().id,
+                    cost_change,
+                    affected_pet.read().unwrap().cost
+                )
+            }
+            Action::Moose { stats, tier } => {
                 // TODO: Separate into two different actions: Unfreeze shop + StatChangeType::MultShopTier
                 for item in self.shop.foods.iter_mut() {
                     item.state = ItemState::Normal
                 }
-                let mut min_tier = MAX_SHOP_TIER;
+                let mut num_tier = 0;
                 for pet in self.shop.pets.iter_mut() {
-                    let pet_tier = pet.tier();
-                    if pet_tier < min_tier {
-                        min_tier = pet_tier
+                    if pet.tier() == *tier {
+                        num_tier += 1
                     }
                     pet.state = ItemState::Normal
                 }
-                let buffed_stats = *stats * Statistics::new(min_tier, min_tier)?;
-                modified_effect.action = Action::Add(StatChangeType::StaticValue(buffed_stats));
+                let buffed_stats = *stats * Statistics::new(num_tier, num_tier)?;
+                modified_effect.action = Action::Add(StatChangeType::Static(buffed_stats));
                 affected_pets.extend(self.apply_single_effect(
                     affected_pet,
                     afflicting_pet,
@@ -1181,6 +1011,12 @@ impl EffectApplyHelpers for Team {
                 let possible_items = match item_type {
                     Entity::Pet => &mut self.shop.pets,
                     Entity::Food => &mut self.shop.foods,
+                    _ => {
+                        return Err(SAPTestError::InvalidPetAction {
+                            subject: String::from("Invalid Fox Free Entity"),
+                            reason: format!("Fox cannot obtain {item_type}."),
+                        })
+                    }
                 };
                 if let Some(stolen_item) = (0..possible_items.len())
                     .choose(&mut rng)
@@ -1192,21 +1028,21 @@ impl EffectApplyHelpers for Team {
                             pet.write().unwrap().stats *=
                                 Statistics::new(*multiplier, *multiplier)?;
                             self.buy_pet_behavior(
-                                pet,
+                                &pet,
                                 Some(afflicting_pet.clone()),
                                 &effect.position,
                             )?;
                         }
                         ItemSlot::Food(food) => {
                             // If stats adds some static value, multiply it by the mulitplier
-                            if let Action::Add(StatChangeType::StaticValue(mut stats)) =
+                            if let Action::Add(StatChangeType::Static(mut stats)) =
                                 food.read().unwrap().ability.action
                             {
                                 let stat_multiplier = Statistics::new(*multiplier, *multiplier)?;
                                 stats *= stat_multiplier
                             }
                             self.buy_food_behavior(
-                                food,
+                                &food,
                                 Some(afflicting_pet.clone()),
                                 &effect.position,
                                 false,
@@ -1389,8 +1225,10 @@ impl EffectApplyHelpers for Team {
             }
             Action::Debuff(perc_stats) => {
                 let mut pet = affected_pet.write().unwrap();
-                let debuff_stats = pet.stats.mult_perc(perc_stats);
-                modified_effect.action = Action::Debuff(debuff_stats);
+                // TODO: Change so modifier can be on afflicting or affected pet. Current only affected.
+                let debuff_stats =
+                    perc_stats.to_stats(Some(pet.stats), Some(&self.counters), false)?;
+                modified_effect.action = Action::Debuff(StatChangeType::Static(debuff_stats));
 
                 pet.stats -= debuff_stats;
                 info!(target: "run", "(\"{}\")\nMultiplied stats of {} by {}.", self.name, pet, perc_stats);
@@ -1407,10 +1245,8 @@ impl EffectApplyHelpers for Team {
                     .iter()
                     .map(|pet| pet.read().unwrap().lvl)
                     .sum();
-                let lvl_dmg_action = Action::Remove(StatChangeType::StaticValue(Statistics::new(
-                    opponent_lvls,
-                    0,
-                )?));
+                let lvl_dmg_action =
+                    Action::Remove(StatChangeType::Static(Statistics::new(opponent_lvls, 0)?));
                 modified_effect.action = lvl_dmg_action;
 
                 self.apply_single_effect(
@@ -1462,7 +1298,7 @@ impl EffectApplyHelpers for Team {
                 turn_mult_stats.health *= turn_multiplier;
 
                 // Modify action to add turn-multiplied stats and apply effect.
-                modified_effect.action = Action::Add(StatChangeType::StaticValue(turn_mult_stats));
+                modified_effect.action = Action::Add(StatChangeType::Static(turn_mult_stats));
                 let pets = if let Some(opponent) = opponent.as_mut() {
                     self.apply_single_effect(
                         affected_pet,
@@ -1488,9 +1324,9 @@ impl EffectApplyHelpers for Team {
                 modified_effect.target = *target;
 
                 let targets = if let Some(opponent) = opponent.as_mut() {
-                    self.get_pets_by_effect(&TRIGGER_NONE, &modified_effect, Some(opponent))?
+                    self.get_pets_by_effect(&modified_effect, Some(opponent))?
                 } else {
-                    self.get_pets_by_effect(&TRIGGER_NONE, &modified_effect, None)?
+                    self.get_pets_by_effect(&modified_effect, None)?
                 };
                 affected_pets.extend(self.copy_effect(attr, targets, affected_pet)?);
             }
@@ -1498,11 +1334,56 @@ impl EffectApplyHelpers for Team {
                 affected_pet.write().unwrap().stats.invert();
                 affected_pets.push(affected_pet.clone());
             }
+            Action::AddToCounter(counter, count_change) => {
+                let modify_count = |count: &mut usize| {
+                    if count_change.is_negative() {
+                        let count_change = (-*count_change).try_into().unwrap_or(0);
+                        *count = count.saturating_sub(count_change)
+                    } else {
+                        // TODO: Should probably be clamped.
+                        *count = count.saturating_add((*count_change).try_into().unwrap_or(0))
+                    }
+                };
+                let modify_w_new_count = || {
+                    // Create new count and modify it. Closure ensures always clamped to 0.
+                    let mut new_cnt = 0;
+                    modify_count(&mut new_cnt);
+                    new_cnt
+                };
+                match effect.target {
+                    Target::Friend => {
+                        self.counters
+                            .entry(counter.to_owned())
+                            .and_modify(modify_count)
+                            .or_insert_with(modify_w_new_count);
+                    }
+                    Target::Enemy => {
+                        if let Some(opponent) = opponent.as_mut() {
+                            opponent
+                                .counters
+                                .entry(counter.to_owned())
+                                .and_modify(modify_count)
+                                .or_insert_with(modify_w_new_count);
+                        } else {
+                            return Err(SAPTestError::InvalidTeamAction {
+                                subject: "Opponent Counter Modification".to_owned(),
+                                reason: format!("Opponent required to modify counter, {counter}."),
+                            });
+                        };
+                    }
+                    _ => {
+                        return Err(SAPTestError::InvalidTeamAction {
+                            subject: "No Counter".to_string(),
+                            reason: format!("Target ({:?}) has no counter.", effect.target),
+                        })
+                    }
+                }
+            }
             Action::None => {}
             _ => {
                 return Err(SAPTestError::InvalidTeamAction {
                     subject: "Action Not Implemented".to_string(),
-                    reason: format!("Single action ({:?}) not implemented yet.", &effect.action),
+                    reason: format!("Single action ({:?}) not implemented.", &effect.action),
                 })
             }
         }
@@ -1544,7 +1425,8 @@ impl EffectApplyHelpers for Team {
             Position::First => (!self.friends.is_empty()).then_some(0),
             Position::Last => Some(self.friends.len().saturating_sub(1)),
             Position::Relative(idx) => {
-                let Some((Target::Friend, adj_idx)) = self.cvt_rel_idx_to_adj_idx(0, *idx).ok() else {
+                let Some((Target::Friend, adj_idx)) = self.cvt_rel_idx_to_adj_idx(0, *idx).ok()
+                else {
                     return None;
                 };
                 Some(adj_idx)
