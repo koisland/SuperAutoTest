@@ -73,7 +73,7 @@ fn test_toy_paper_shredder_shop() {
     team.toys
         .push(Toy::try_from(ToyName::PaperShredder).unwrap());
 
-    team.set_seed(Some(123)).open_shop().unwrap();
+    team.set_shop_seed(Some(123)).open_shop().unwrap();
 
     // Shop isn't empty
     assert!(!team.get_shop().pets.is_empty());

@@ -188,6 +188,7 @@ pub use crate::toys::{names::ToyName, toy::Toy};
 #[doc(inline)]
 pub use crate::visualization::{digraph::create_battle_digraph, tsv::create_battle_df};
 
+#[doc = include_str!("../../README.md")]
 mod config;
 mod regex_patterns;
 #[cfg(test)]

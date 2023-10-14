@@ -30,7 +30,7 @@ path = "src/lib/lib.rs"
 
 [package]
 name = "saptest"
-version = "0.4.12"
+version = "0.5.0"
 edition = "2021"
 authors = ["Keisuke K. Oshima <koshima789@gmail.com>"]
 description = "A library for testing Super Auto Pets teams."
@@ -43,7 +43,3 @@ members = [
     "docs/examples",
     ".",
 ]
-
-[features]
-default = ["hard_mode"]
-hard_mode = []

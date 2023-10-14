@@ -53,7 +53,7 @@ team.fight(&mut enemy_team).unwrap();
 println!("{}", create_battle_digraph(&team, false));
 ```
 
-```
+```ignore
 digraph {
     rankdir=LR
     node [shape=box, style="rounded, filled", fontname="Arial"]
@@ -83,7 +83,7 @@ Add shop functionality to a `Team` and roll, freeze, buy/sell pets and foods.
 ```rust
 use saptest::{
     Shop, ShopItem, TeamShopping, Team,
-    Position, Entity, EntityName, FoodName,
+    Position, Entity, EntityName, Food, FoodName,
     db::pack::Pack
 };
 
@@ -112,9 +112,8 @@ team.set_shop_seed(Some(1212))
 // Shops can be built separately and can replace a team's shop.
 let mut tier_5_shop = Shop::new(3, Some(42)).unwrap();
 let weakness = ShopItem::new(
-    EntityName::Food(FoodName::Weak),
-    5
-).unwrap();
+    Food::try_from(FoodName::Weak).unwrap()
+);
 tier_5_shop.add_item(weakness).unwrap();
 team.replace_shop(tier_5_shop).unwrap();
 ```
@@ -165,7 +164,7 @@ To configure the global `SapDB`'s startup, create a `.saptest.toml` file in the 
 * Toggle recurring updates on startup.
 * Set database filename.
 
-```toml
+```toml no_run
 [database]
 # https://superautopets.wiki.gg/index.php?title=Pets&oldid=4634
 pets_version = 4634
