@@ -21,7 +21,7 @@ use crate::{
     Pet,
 };
 
-/// Get enemy faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
+/// Get enemy faint triggers when a [`Pet`] on the `self` team faints.
 pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 2] {
     // Add triggers for enemy.
     let mut enemy_faint = TRIGGER_SPEC_ENEMY_FAINT;
@@ -30,7 +30,7 @@ pub fn get_self_enemy_faint_triggers(health_diff_stats: &Option<Statistics>) -> 
     [enemy_faint, enemy_any_faint]
 }
 
-/// Get faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team faints.
+/// Get faint triggers when a [`Pet`] on the `self` team faints.
 pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outcome; 3] {
     let (mut self_faint, mut any_faint, mut ahead_faint) =
         (TRIGGER_SELF_FAINT, TRIGGER_ANY_FAINT, TRIGGER_AHEAD_FAINT);
@@ -41,7 +41,7 @@ pub fn get_self_faint_triggers(health_diff_stats: &Option<Statistics>) -> [Outco
     [self_faint, any_faint, ahead_faint]
 }
 
-/// Get faint triggers when a [`Pet`](crate::pets::pet::Pet) on the `self` team is summoned.
+/// Get faint triggers when a [`Pet`] on the `self` team is summoned.
 pub fn get_summon_triggers(pet: Weak<RwLock<Pet>>) -> [Outcome; 3] {
     let mut self_trigger = TRIGGER_SELF_SUMMON;
     let mut any_trigger = TRIGGER_ANY_SUMMON;
@@ -262,7 +262,7 @@ pub const TRIGGER_NONE: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) is unhurt after an attack.
+/// Trigger for when friendly [`Pet`] is unhurt after an attack.
 pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
     status: Status::None,
     position: Position::OnSelf,
@@ -274,7 +274,7 @@ pub const TRIGGER_SELF_UNHURT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when friendly [`Pet`] faints.
 pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     status: Status::Faint,
     position: Position::OnSelf,
@@ -286,7 +286,7 @@ pub const TRIGGER_SELF_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when friendly [`Pet`](crate::pets::pet::Pet) levelsup.
+/// Trigger for when friendly [`Pet`] levelsup.
 pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
     status: Status::Levelup,
     position: Position::OnSelf,
@@ -298,7 +298,7 @@ pub const TRIGGER_SELF_LEVELUP: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when any friendly [`Pet`] faints.
 pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     status: Status::Faint,
     position: Position::Any(ItemCondition::None),
@@ -311,7 +311,7 @@ pub const TRIGGER_ANY_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when any enemy [`Pet`] faints.
 pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
     status: Status::Faint,
     position: Position::Any(ItemCondition::None),
@@ -325,7 +325,7 @@ pub const TRIGGER_ANY_ENEMY_FAINT: Outcome = Outcome {
 };
 
 /// TODO: Needs to work if pet faints.
-/// Trigger for when a [`Pet`](crate::pets::pet::Pet) knocks out another pet.
+/// Trigger for when a [`Pet`] knocks out another pet.
 pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
     status: Status::KnockOut,
     position: Position::OnSelf,
@@ -337,7 +337,7 @@ pub const TRIGGER_KNOCKOUT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when a specific enemy [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when a specific enemy [`Pet`] faints.
 pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
     status: Status::Faint,
     position: Position::Relative(0),
@@ -349,7 +349,7 @@ pub const TRIGGER_SPEC_ENEMY_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the friend directly one position ahead [`Pet`](crate::pets::pet::Pet) faints.
+/// Trigger for when the friend directly one position ahead [`Pet`] faints.
 pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     status: Status::Faint,
     position: Position::Nearest(1),
@@ -361,7 +361,7 @@ pub const TRIGGER_AHEAD_FAINT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the the current friendly [`Pet`](crate::pets::pet::Pet) is hurt.
+/// Trigger for when the the current friendly [`Pet`] is hurt.
 pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     status: Status::Hurt,
     position: Position::OnSelf,
@@ -373,7 +373,7 @@ pub const TRIGGER_SELF_HURT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the any friendly [`Pet`](crate::pets::pet::Pet) is hurt.
+/// Trigger for when the any friendly [`Pet`] is hurt.
 pub const TRIGGER_ANY_HURT: Outcome = Outcome {
     status: Status::Hurt,
     position: Position::Any(ItemCondition::None),
@@ -386,7 +386,7 @@ pub const TRIGGER_ANY_HURT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the any enemy [`Pet`](crate::pets::pet::Pet) is hurt.
+/// Trigger for when the any enemy [`Pet`] is hurt.
 pub const TRIGGER_ANY_ENEMY_HURT: Outcome = Outcome {
     status: Status::Hurt,
     position: Position::Any(ItemCondition::None),
@@ -415,7 +415,7 @@ pub const TRIGGER_BATTLE_FOOD: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the current [`Pet`](crate::pets::pet::Pet) attacks.
+/// Trigger for when the current [`Pet`] attacks.
 pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     status: Status::Attack,
     position: Position::OnSelf,
@@ -427,7 +427,7 @@ pub const TRIGGER_SELF_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for before the current [`Pet`](crate::pets::pet::Pet) attacks.
+/// Trigger for before the current [`Pet`] attacks.
 pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
     status: Status::BeforeAttack,
     position: Position::OnSelf,
@@ -440,7 +440,7 @@ pub const TRIGGER_SELF_BEFORE_ATTACK: Outcome = Outcome {
 };
 
 /// TODO: Needs to work if pet faints.
-/// Trigger for after the current [`Pet`](crate::pets::pet::Pet) attacks.
+/// Trigger for after the current [`Pet`] attacks.
 pub const TRIGGER_SELF_AFTER_ATTACK: Outcome = Outcome {
     status: Status::AfterAttack,
     position: Position::OnSelf,
@@ -452,7 +452,7 @@ pub const TRIGGER_SELF_AFTER_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for before any [`Pet`](crate::pets::pet::Pet) attacks.
+/// Trigger for before any [`Pet`] attacks.
 /// * Ignore self.
 pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     status: Status::BeforeAttack,
@@ -465,7 +465,7 @@ pub const TRIGGER_ANY_BEFORE_ATTACK: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead attacks.
+/// Trigger for when the [`Pet`] ahead attacks.
 pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
     status: Status::Attack,
     position: Position::Nearest(1),
@@ -478,7 +478,7 @@ pub const TRIGGER_AHEAD_ATTACK: Outcome = Outcome {
 };
 
 /// TODO: Needs to work if pet faints.
-/// Trigger for when the [`Pet`](crate::pets::pet::Pet) ahead hurt.
+/// Trigger for when the [`Pet`] ahead hurt.
 pub const TRIGGER_AHEAD_HURT: Outcome = Outcome {
     status: Status::Hurt,
     position: Position::Nearest(1),
@@ -490,7 +490,7 @@ pub const TRIGGER_AHEAD_HURT: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when the current [`Pet`](crate::pets::pet::Pet) is summoned.
+/// Trigger for when the current [`Pet`] is summoned.
 pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
     position: Position::OnSelf,
@@ -502,7 +502,7 @@ pub const TRIGGER_SELF_SUMMON: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is summoned.
+/// Trigger for when any friendly [`Pet`] is summoned.
 pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
     position: Position::Any(ItemCondition::None),
@@ -514,7 +514,7 @@ pub const TRIGGER_ANY_SUMMON: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is summoned.
+/// Trigger for when any enemy [`Pet`] is summoned.
 pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     status: Status::Summoned,
     position: Position::Any(ItemCondition::None),
@@ -526,7 +526,7 @@ pub const TRIGGER_ANY_ENEMY_SUMMON: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) is pushed.
+/// Trigger for when any friendly [`Pet`] is pushed.
 pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
     position: Position::Any(ItemCondition::None),
@@ -538,7 +538,7 @@ pub const TRIGGER_ANY_PUSHED: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any enemy [`Pet`](crate::pets::pet::Pet) is pushed.
+/// Trigger for when any enemy [`Pet`] is pushed.
 pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     status: Status::Pushed,
     position: Position::Any(ItemCondition::None),
@@ -550,7 +550,7 @@ pub const TRIGGER_ANY_ENEMY_PUSHED: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any friend [`Pet`](crate::pets::pet::Pet) levels up.
+/// Trigger for when any friend [`Pet`] levels up.
 pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     status: Status::Levelup,
     position: Position::Any(ItemCondition::None),
@@ -562,7 +562,7 @@ pub const TRIGGER_ANY_LEVELUP: Outcome = Outcome {
     afflicting_team: Target::None,
 };
 
-/// Trigger for when any friendly [`Pet`](crate::pets::pet::Pet) gains an ailment.
+/// Trigger for when any friendly [`Pet`] gains an ailment.
 pub const TRIGGER_ANY_GAIN_AILMENT: Outcome = Outcome {
     status: Status::GainAilment,
     position: Position::Any(ItemCondition::None),

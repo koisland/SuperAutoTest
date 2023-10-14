@@ -108,7 +108,7 @@ pub trait TeamEffects {
     fn trigger_all_effects(&mut self, opponent: &mut Team) -> Result<&mut Self, SAPTestError>;
 
     /// Trigger the start of battle [`Pet`] [`Effect`]s for two [`Team`]s.
-    /// * No [`Food`](crate::Food) abilities trigger with [`TRIGGER_START_BATTLE`](crate::effects::trigger::TRIGGER_START_BATTLE) so this functionality is not yet supported.
+    /// * No [`Food`](crate::Food) abilities trigger with [`TRIGGER_START_BATTLE`] so this functionality is not yet supported.
     /// * Invocation order does not matter with a [`Team`].
     ///     * `team.trigger_start_battle_effects(&mut enemy_team)` or its reverse will not alter the outcome.
     /// * This takes all [`Pet`]s into consideration unlike [`trigger_effects`](TeamEffects::trigger_effects) which only activates effects from a single [`Team`].
@@ -143,10 +143,10 @@ pub trait TeamEffects {
         opponent: &mut Team,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Apply [`Pet`](crate::pets::pet::Pet) [`Effect`]s that would be triggered by a given [`Outcome`].
+    /// Apply [`Pet`] [`Effect`]s that would be triggered by a given [`Outcome`].
     /// * This only applies effects on a **single** [`Team`] for the single [`Outcome`] trigger given.
     ///     * Start of battle effects should be handled by [`trigger_start_battle_effects`](TeamEffects::trigger_start_battle_effects).
-    ///     * Non-opponent affecting effects can be activated by adding a [`TRIGGER_START_BATTLE`](crate::effects::trigger::TRIGGER_START_BATTLE).
+    ///     * Non-opponent affecting effects can be activated by adding a [`TRIGGER_START_BATTLE`].
     ///     * Use [`trigger_all_effects`](TeamEffects::trigger_all_effects) to completely expend any triggers.
     /// * This only applies [`Pet`] effects.
     ///     * Use [`trigger_items`](TeamEffects::trigger_items) for item effects.
@@ -179,7 +179,7 @@ pub trait TeamEffects {
         opponent: Option<&mut Team>,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Apply a [`Pet`](crate::pets::pet::Pet)'s [`Food`](crate::Food) [`Effect`]s that would be triggered by a given [`Outcome`].
+    /// Apply a [`Pet`]'s [`Food`](crate::Food) [`Effect`]s that would be triggered by a given [`Outcome`].
     /// * This only applies effects on a **single** [`Team`] for the single [`Outcome`] trigger given.
     /// * Fainted [`Pet`]s are not removed.
     /// # Example

@@ -85,7 +85,7 @@ impl CondOrdering {
     }
 }
 
-/// Conversion can only be Into<usize>. Cannot determined CondOrdering by num.
+/// Conversion can only be `Into<usize>`. Cannot determined [`CondOrdering``] by num.
 #[allow(clippy::from_over_into)]
 impl Into<usize> for &CondOrdering {
     fn into(self) -> usize {
@@ -280,7 +280,7 @@ pub enum FrontToBackCondition {
     Team(TeamCondition),
 }
 
-/// Conditions to select [`Pet`]s or [`ShopItem`](crate::shop::store::ShopItem) by.
+/// Conditions to select [`Pet`]s or [`ShopItem`](crate::ShopItem) by.
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum ItemCondition {
     /// Is the healthiest (highest health) pet.
@@ -353,15 +353,15 @@ pub enum Position {
     /// let curr_pet = saptest::Position::TriggerAfflicting(Some(Box::new(saptest::Position::Relative(-1))));
     /// ```
     TriggerAfflicting(Option<Box<Position>>),
-    /// First pet on [`Team`](crate::teams::team::Team).
+    /// First pet on [`Team`].
     First,
-    /// Last pet on [`Team`](crate::teams::team::Team).
+    /// Last pet on [`Team`].
     Last,
     /// Opposite team's pet at the current pet index.
     Opposite,
     /// All [`Pet`]s ahead of current pet.
     Ahead,
-    /// A specified range on a [`Team`](crate::teams::team::Team).
+    /// A specified range on a [`Team`].
     Range(RangeInclusive<isize>),
     /// A [`Pet`] relative to current [`Pet`].
     /// * Note: Empty slots are taken into consideration.

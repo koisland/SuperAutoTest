@@ -171,12 +171,12 @@ pub enum SummonType {
     /// 1. Pet [`Statistics`]. Defaults to current [`Pet`] if omitted.
     /// 2. Pet `level`. Defaults to current [`Pet`] if omitted.
     SelfTierPet(Option<Statistics>, Option<usize>),
-    /// Summon a random [`Pet`] from the same [`Team`](crate::Team). Used for [`Tapir`](crate::PetName::Tapir).
+    /// Summon a random [`Pet`] from the same [`Team`]. Used for [`Tapir`](crate::PetName::Tapir).
     /// 1. Pet [`Statistics`]. Defaults to current [`Pet`] if omitted.
     /// 2. Pet `level`. Defaults to current [`Pet`] if omitted.
-    /// 3. Ignore any [`Pet`]s on the [`Team`](crate::Team) with this [`PetName`].
+    /// 3. Ignore any [`Pet`]s on the [`Team`] with this [`PetName`].
     SelfTeamPet(Option<Statistics>, Option<usize>, PetName),
-    /// Summon a random pet at a [`Shop`](crate::Shop) `tier` from the current [`Team`](crate::Team). Used for [`Eagle`](crate::PetName::Eagle).
+    /// Summon a random pet at a [`Shop`](crate::Shop) `tier` from the current [`Team`]. Used for [`Eagle`](crate::PetName::Eagle).
     ShopTierPet {
         /// Pet [`Statistics`]. Defaults to summoned [`Pet`]'s stats if omitted.
         stats: Option<Statistics>,
@@ -377,7 +377,7 @@ impl GainType {
     }
 }
 
-/// Types of ways to get a [`Toy`](crate::Toy).
+/// Types of ways to get a [`Toy`].
 #[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
 pub enum ToyType {
     /// Get toy at default level of 1.
@@ -537,7 +537,7 @@ pub enum Action {
     /// Set [`Statistics`] of a [`Pet`].
     Set(StatChangeType),
     /// Remove [`Statistics`] from a [`Pet`].
-    /// * Altering stats this way creates hurt trigger [`Outcome`](crate::effects::state::Outcome)s.
+    /// * Altering stats this way creates hurt trigger [`Outcome`]s.
     Remove(StatChangeType),
     /// Debuff a [`Pet`] by subtracting some **percent** of [`Statistics`] from it.
     Debuff(StatChangeType),
@@ -554,14 +554,14 @@ pub enum Action {
     Push(Position),
     /// Copy some attribute from [`CopyType`] to the owner from the [`Pet`] at a given [`Position`].
     /// 1. Attribute to copy.
-    /// 2. [`Target`] [`Team`](crate::Team) to copy from.
+    /// 2. [`Target`] [`Team`] to copy from.
     /// 3. Position of copy from.
     ///     * If multiple pets are targeted, only the first is taken.
     Copy(CopyType, Target, Position),
     /// Negate some amount of [`Statistics`] damage.
     /// * An item-only [`Action`].
     /// * Used for [`Garlic`](crate::FoodName::Garlic) and [`Melon`](crate::FoodName::Melon)
-    /// * The [`Statistics`](crate::Statistics) **`attack`** field represents the negated damage.
+    /// * The [`Statistics`] **`attack`** field represents the negated damage.
     Negate(Statistics),
     /// Do a critical attack with a percent probability to deal double damage.
     /// * An item-only [`Action`].
@@ -589,16 +589,16 @@ pub enum Action {
     Invincible,
     /// Gain a [`Food`] item specified by [`GainType`].
     Gain(GainType),
-    /// Gain a [`Toy`](crate::Toy).
+    /// Gain a [`Toy`].
     /// * NOTE: This only works with [`Target::Shop`]
     GetToy(ToyType),
-    /// Add permanent [`Statistics`] to shop.
+    /// Add permanent [`Statistics`] to [`Shop`](crate::Shop).
     /// * The action of the [`Canned Food`](crate::FoodName::CannedFood).
     /// * Also, immediately buffs the current [`Pet`]s in the [`Shop`](crate::Shop)
     AddShopStats(Statistics),
-    /// Add a [`Shop`](crate::Shop) food as a [`ShopItem`](crate::shop::store::ShopItem).
+    /// Add a [`Shop`](crate::Shop) food as a [`ShopItem`](crate::ShopItem).
     AddShopFood(GainType),
-    /// Add a [`Shop`](crate::Shop) pet as a [`ShopItem`](crate::shop::store::ShopItem).
+    /// Add a [`Shop`](crate::Shop) pet as a [`ShopItem`](crate::ShopItem).
     AddShopPet(SummonType),
     /// Clear [`Shop`](crate::Shop) items of a specified [type](crate::effects::effect::Entity).
     ClearShop(Entity),
@@ -606,7 +606,7 @@ pub enum Action {
     AlterGold(isize),
     /// Alter cost for a [`Pet`] when sold.
     AlterCost(isize),
-    /// Reduce cost of [`Shop`](crate::Shop) a [`ShopItem`](crate::shop::store::ShopItem).
+    /// Reduce cost of [`Shop`](crate::Shop) a [`ShopItem`](crate::ShopItem).
     /// 1. Item type to discount.
     /// 2. Gold to discount by.
     Discount(Entity, usize),

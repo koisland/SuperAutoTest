@@ -47,7 +47,7 @@ pub struct Pet {
     pub(crate) lvl: usize,
     /// Experience of pet.
     pub(crate) exp: usize,
-    /// Pet position on a [`Team`](crate::teams::team::Team).
+    /// Pet position on a [`Team`].
     pub(crate) pos: Option<usize>,
     /// Team name.
     pub(crate) team: Option<String>,
@@ -129,9 +129,9 @@ impl TryFrom<PetRecord> for Pet {
 
 impl Pet {
     /// Create a new pet.
-    /// * All [`Effect`](crate::Effect)s are determined by the given `stats` and `lvl`.
-    ///     * To use custom [`Effect`](crate::Effect)s, use the [`custom`](crate::Pet) constructor.
-    /// * Providing `None` for `stats` will yield the default [`Statistics`](crate::Statistics) for the pet at the given `lvl`.
+    /// * All [`Effect`]s are determined by the given `stats` and `lvl`.
+    ///     * To use custom [`Effect`]s, use the [`custom`](crate::Pet) constructor.
+    /// * Providing `None` for `stats` will yield the default [`Statistics`] for the pet at the given `lvl`.
     /// * By default, pets are randomly seeded.
     /// # Examples
     /// ```
@@ -482,7 +482,7 @@ impl Pet {
     }
 
     /// Helper function to set pet idx for matching on effect triggers.
-    /// * Note: This does not update other pets on the same [`Team`](crate::teams::team::Team).
+    /// * Note: This does not update other pets on the same [`Team`].
     pub(crate) fn set_pos(&mut self, pos: usize) -> &mut Self {
         self.pos = Some(pos);
         self

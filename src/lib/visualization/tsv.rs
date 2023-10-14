@@ -47,27 +47,27 @@ const TSV_HEADER: [&str; 11] = [
 ///
 /// # Fields:
 /// 1. Number of actions performed.
-///     * [`usize`](usize)
+///     * [`usize`]
 /// 2. Afflicting pet's id.
-///     * [`String`](String)
+///     * [`String`]
 /// 3. Afflicting pet's team name.
-///     * [`String`](String)
+///     * [`String`]
 /// 4. Afflicting pet's stats after the action.
-///     * [`String`](String)
+///     * [`String`]
 /// 5. Affected pet's id.
-///     * [`String`](String)
+///     * [`String`]
 /// 6. Affected pet's team name.
-///     * [`String`](String)
+///     * [`String`]
 /// 7. Affected pet's stats after the action.
-///     * [`String`](String)
+///     * [`String`]
 /// 8. Action trigger [`Status`](crate::effects::state::Status).
-///     * [`String`](String)
+///     * [`String`]
 /// 9. [`Action`](crate::effects::actions::Action) taken.
-///     * [`String`](String)
+///     * [`String`]
 /// 10. Number of battle phases.
-///     * [`usize`](usize)
+///     * [`usize`]
 /// 11. Number of cycles.
-///     * [`usize`](usize)
+///     * [`usize`]
 ///     * This represents the number of trigger [`Outcome`](crate::effects::state::Outcome)s iterated through.
 pub fn create_battle_df(team: &Team) -> String {
     let graph = &team.history.graph.phase_graph;

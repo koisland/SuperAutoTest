@@ -26,7 +26,7 @@ use std::{
 
 const COPY_SUFFIX: &str = "_copy";
 
-/// The outcome of a [`Team`](crate::teams::team::Team) fight.
+/// The outcome of a [`Team`] fight.
 ///
 /// # Examples
 /// This can be used as an exit condition in a fight.

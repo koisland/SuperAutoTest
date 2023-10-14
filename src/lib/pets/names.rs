@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::SAPTestError;
 
-/// Names for [`Pet`](crate::pets::pet::Pet)s.
+/// Names for [`Pet`](crate::Pet)s.
 #[allow(missing_docs)]
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq, Eq)]
 pub enum PetName {

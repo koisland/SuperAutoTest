@@ -223,8 +223,8 @@ impl Shop {
         Ok(default_shop)
     }
 
-    /// Restock a shop with [`ShopItem`](crate::shop::store::ShopItem)s.
-    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
+    /// Restock a shop with [`ShopItem`]s.
+    /// * Frozen [`ShopItem`]s are retained.
     /// * Restocking doesn't cost gold.
     /// # Example
     /// ```
@@ -326,7 +326,7 @@ impl Shop {
     }
 
     /// Roll the `Shop`.
-    /// * Frozen [`ShopItem`](crate::shop::store::ShopItem)s are retained.
+    /// * Frozen [`ShopItem`]s are retained.
     /// * Fails if invalid funds to reroll.
     ///     * Each roll costs `1` coin.
     /// # Examples

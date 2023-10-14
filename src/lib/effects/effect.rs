@@ -14,7 +14,7 @@ use std::sync::{Arc, RwLock, Weak};
 #[derive(Debug, Clone, Copy, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub enum Entity {
     #[default]
-    /// A [`Pet`](crate::pets::pet::Pet).
+    /// A [`Pet`].
     Pet,
     /// A [`Food`](crate::foods::food::Food).
     Food,

@@ -19,7 +19,7 @@ use crate::{
 
 /// Enables viewing [`ShopItem`]s and their state.
 pub trait ShopViewer {
-    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`ItemCondition`](crate::ItemCondition).
+    /// Get [`ShopItem`]s by [`ItemCondition`].
     /// # Example
     /// ```
     /// use saptest::{Shop, ShopViewer, ShopItemViewer, Entity, ItemCondition, Position};
@@ -42,7 +42,7 @@ pub trait ShopViewer {
         item_type: &Entity,
     ) -> Result<Vec<&ShopItem>, SAPTestError>;
 
-    /// Get [`ShopItem`](crate::shop::store::ShopItem)s by [`Position`](crate::Position).
+    /// Get [`ShopItem`]s by [`Position`].
     /// # Example
     /// ```
     /// use saptest::{Shop, ShopViewer, Entity, Position, ItemCondition};

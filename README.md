@@ -8,7 +8,7 @@
 
 Database and testing framework for Super Auto Pets.
 
-Game information is queried from the [Super Auto Pets Fandom wiki](https://superautopets.fandom.com/wiki) page and stored in a `SQLite` database.
+Game information is queried from the [Super Auto Pets wiki](https://superautopets.wiki.gg/wiki/Super_Auto_Pets_Wiki) page and stored in a `SQLite` database.
 * [x] [Turtle](https://superautopets.fandom.com/wiki/Turtle_Pack)
 * [x] [Puppy](https://superautopets.fandom.com/wiki/Puppy_Pack)
 * [x] [Weekly](https://superautopets.fandom.com/wiki/Weekly_Pack)

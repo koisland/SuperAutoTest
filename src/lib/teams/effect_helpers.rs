@@ -73,7 +73,7 @@ pub(crate) trait EffectApplyHelpers {
         opponent: Option<&mut Team>,
     ) -> Result<Vec<Arc<RwLock<Pet>>>, SAPTestError>;
 
-    /// Apply [`Shop`](crate::Shop) effects.
+    /// Apply [`Shop`] effects.
     fn apply_shop_effect(&mut self, effect: &Effect) -> Result<(), SAPTestError>;
 
     fn copy_effect(

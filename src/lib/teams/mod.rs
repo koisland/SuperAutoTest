@@ -1,4 +1,4 @@
-//! [`Team`](crate::teams::team::Team) battle and effect logic.
+//! [`Team`](crate::Team) battle and effect logic.
 
 /// Implements [`Team`](crate::Team) battle mechanics.
 pub mod combat;

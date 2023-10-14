@@ -88,7 +88,7 @@ pub trait PetCombat {
     /// ```
     fn calculate_new_health(&self, enemy: &Pet) -> (isize, isize);
 
-    /// Handle the logic of [`Pet`](crate::Pet) interaction during the battle phase.
+    /// Handle the logic of [`Pet`] interaction during the battle phase.
     /// * Decrements a held [`Food`](crate::Food) uses.
     /// # Example
     /// ```
@@ -112,7 +112,7 @@ pub trait PetCombat {
     /// ```
     fn attack(&mut self, enemy: &mut Pet) -> AttackOutcome;
 
-    /// Perform a projectile/indirect attack on a [`Pet`](crate::Pet).
+    /// Perform a projectile/indirect attack on a [`Pet`].
     /// * Health stat in [`Statistics`] is ignored.
     /// # Examples
     /// ```

@@ -49,12 +49,12 @@ pub(crate) trait TeamShoppingHelpers {
     ) -> Result<(), SAPTestError>;
 }
 
-/// Implements Super Auto Pets [`Shop`](crate::Shop) behavior.
+/// Implements Super Auto Pets [`Shop`] behavior.
 /// ```rust no_run
 /// use saptest::TeamShopping;
 /// ```
 pub trait TeamShopping {
-    /// Buy a [`ShopItem`](crate::shop::store::ShopItem) from the [`Shop`](crate::Shop) and place it on the [`Team`](crate::Team).
+    /// Buy a [`ShopItem`](crate::ShopItem) from the [`Shop`] and place it on the [`Team`].
     /// # Examples
     /// ---
     /// Buying a pet.
@@ -98,7 +98,7 @@ pub trait TeamShopping {
         to: &Position,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Sell a [`Pet`](crate::Pet) on the [`Team`](crate::Team) for gold.
+    /// Sell a [`Pet`] on the [`Team`] for gold.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamViewer, TeamShopping, Pet, PetName, Position};
@@ -120,7 +120,7 @@ pub trait TeamShopping {
     /// ```
     fn sell(&mut self, pos: &Position) -> Result<&mut Self, SAPTestError>;
 
-    /// Roll the [`Shop`](crate::Shop) restocking it with new items at the cost of `1` gold.
+    /// Roll the [`Shop`] restocking it with new items at the cost of `1` gold.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -137,7 +137,7 @@ pub trait TeamShopping {
     /// ```
     fn roll_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Set the [`Shop`](crate::Shop)'s seed.
+    /// Set the [`Shop`]'s seed.
     /// * Setting the seed to [`None`] will randomize the rng.
     /// # Example
     /// ``` rust no_run
@@ -148,7 +148,7 @@ pub trait TeamShopping {
     /// ```
     fn set_shop_seed(&mut self, seed: Option<u64>) -> &mut Self;
 
-    /// Set the [`Shop`](crate::Shop)'s tier.
+    /// Set the [`Shop`]'s tier.
     /// * Note: This adjusts the number of turns in the team's history to the minimum required to reach the given tier.
     /// # Example
     /// ```
@@ -165,7 +165,7 @@ pub trait TeamShopping {
     /// ```
     fn set_shop_tier(&mut self, tier: usize) -> Result<&mut Self, SAPTestError>;
 
-    /// Set the [`Shop`](crate::Shop) to only include [`PetName`](crate::PetName)s and [`FoodName`](crate::FoodName)s from these [`Pack`](crate::db::pack::Pack)s.
+    /// Set the [`Shop`] to only include [`PetName`]s and [`FoodName`]s from these [`Pack`]s.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping, db::pack::Pack};
@@ -203,7 +203,7 @@ pub trait TeamShopping {
     /// ```
     fn get_shop_packs(&mut self) -> &[Pack];
 
-    /// Freeze an item in the [`Shop`](crate::Shop).
+    /// Freeze an item in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping, Position, Entity};
@@ -219,7 +219,7 @@ pub trait TeamShopping {
         item_type: &Entity,
     ) -> Result<&mut Self, SAPTestError>;
 
-    /// Open the [`Shop`](crate::Shop) for a [`Team`](crate::Team).
+    /// Open the [`Shop`] for a [`Team`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -229,8 +229,8 @@ pub trait TeamShopping {
     /// ```
     fn open_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Close a [`Shop`](crate::Shop) for a [`Team`](crate::Team).
-    /// * Enables [`Team`](crate::Team) fighting.
+    /// Close a [`Shop`] for a [`Team`].
+    /// * Enables [`Team`] fighting.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -241,7 +241,7 @@ pub trait TeamShopping {
     /// ```
     fn close_shop(&mut self) -> Result<&mut Self, SAPTestError>;
 
-    /// Get [`Shop`](crate::Shop) gold available.
+    /// Get [`Shop`] gold available.
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -251,7 +251,7 @@ pub trait TeamShopping {
     /// ```
     fn gold(&self) -> usize;
 
-    /// Get the [`Shop`](crate::Shop) tier.
+    /// Get the [`Shop`] tier.
     /// ```
     /// use saptest::{Team, TeamShopping};
     ///
@@ -260,7 +260,7 @@ pub trait TeamShopping {
     /// ```
     fn shop_tier(&self) -> usize;
 
-    /// Get number of foods in the [`Shop`](crate::Shop).
+    /// Get number of foods in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -272,7 +272,7 @@ pub trait TeamShopping {
     /// ```
     fn len_shop_foods(&self) -> usize;
 
-    /// Get number of pets in the [`Shop`](crate::Shop).
+    /// Get number of pets in the [`Shop`].
     /// # Example
     /// ```
     /// use saptest::{Team, TeamShopping};
@@ -284,7 +284,7 @@ pub trait TeamShopping {
     /// ```
     fn len_shop_pets(&self) -> usize;
 
-    /// Replace [`Shop`](crate::Shop) of [`Team`](crate::Team).
+    /// Replace [`Shop`] of [`Team`].
     /// # Example
     /// ```
     /// use saptest::{

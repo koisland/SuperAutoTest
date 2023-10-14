@@ -111,7 +111,7 @@ pub trait TeamViewer {
     /// ```
     fn all(&self) -> Vec<Arc<RwLock<Pet>>>;
 
-    /// Filter pets that match an [`EqualityCondition`](crate::effects::state::EqualityCondition).
+    /// Filter pets that match an [`EqualityCondition`].
     /// * Used by [`TeamViewer::get_pets_by_cond`].
     /// * Will [`panic`] if used using a condition specific to a [`Shop`](crate::Shop) like [`EqualityCondition::Frozen`].
     fn filter_matching_pets<T>(
@@ -129,7 +129,7 @@ pub trait TeamViewer {
     ///     * Nested [`ItemCondition::Multiple`] or [`ItemCondition::MultipleAll`].
     /// # Examples
     /// ---
-    /// Pets with a [`StartOfBattle`](crate::effects::state::Status::StartOfBattle) [`Effect`](crate::Effect) trigger.
+    /// Pets with a [`StartOfBattle`](crate::effects::state::Status::StartOfBattle) [`Effect`] trigger.
     /// ```
     /// use saptest::{
     ///     Pet, PetName, Team, TeamViewer, ItemCondition,

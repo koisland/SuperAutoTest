@@ -1,6 +1,6 @@
 //! A testing framework for the game [Super Auto Pets](https://teamwoodgames.com/).
 //!
-//! Game information is scraped and parsed from the [Super Auto Pets Fandom Wiki](https://superautopets.fandom.com/f) before being stored in a [SQLite](https://www.sqlite.org/index.html) database.
+//! Game information is scraped and parsed from the [Super Auto Pets Wiki](https://superautopets.wiki.gg/wiki/Super_Auto_Pets_Wiki) before being stored in a [SQLite](https://www.sqlite.org/index.html) database.
 //!
 //! ### Teams
 //! Build a [`Team`] and simulate battles between them.
@@ -138,7 +138,7 @@
 //! * Toggle recurring updates on startup.
 //! * Set database filename.
 //!
-//! Read more under the [`db`](crate::db) module.
+//! Read more under the [`db`] module.
 
 #![warn(missing_docs)]
 // TODO: Split errors into smaller categories?
